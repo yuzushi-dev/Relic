@@ -44,14 +44,23 @@ logs/
 runtime/
 _site/
 
-# Generated demo outputs (re-created by soulkiller-demo)
+# Generated demo outputs (re-created by relic-demo)
 demo/generated/
 
 # Local development guidance (private)
 CLAUDE.md
+AGENTS.local.md
+*.local.md
 
 # Internal and non-essential documents (not needed to spin up or use the project)
 docs/SANITIZATION_STATUS.md
 docs/history/
 docs/whitepaper/
 docs/design/
+docs/plans/
+docs/adrs/
+docs/runbooks/
+docs/audits/
+docs/reports/
+docs/private/
+docs/internal/

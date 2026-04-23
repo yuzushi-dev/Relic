@@ -1,7 +1,7 @@
 
 
 <p align="center">
-  <img src="https://readme-typing-svg.herokuapp.com?font=JetBrains+Mono&weight=800&size=42&duration=3000&pause=1000&color=FF005C&center=true&vCenter=true&width=700&lines=SOULKILLER" alt="Soulkiller">
+  <img src="https://readme-typing-svg.herokuapp.com?font=JetBrains+Mono&weight=800&size=42&duration=3000&pause=1000&color=FF005C&center=true&vCenter=true&width=700&lines=RELIC" alt="Relic">
 </p>
 
 <p align="center">
@@ -9,11 +9,11 @@
 </p>
 
 <p align="center">
-  <a href="https://yuzushi-dev.github.io/Soulkiller/" target="_blank" rel="noopener noreferrer">Live demo</a>
+  <a href="https://yuzushi-dev.github.io/Relic/" target="_blank" rel="noopener noreferrer">Relic live demo</a>
 </p>
 
 <p align="center">
-  <img src="docs/sk_demo-2x.png" alt="Soulkiller demo UI" width="430">
+  <img src="docs/sk_demo-2x.png" alt="Relic demo UI" width="430">
 </p>
 
 <p align="center">
@@ -35,10 +35,8 @@
 
 ---
 
-> *Soulkiller copies the psyche. It copies the memories. Then it wipes the original.*
-> *What runs afterward is not you. It is data that remembers being you.*
->
->"on the Soulkiller program" Cyberpunk 2077 lore
+> *Relic preserves continuity. It preserves memory. It does not claim to be the person.*
+> *What runs afterward is a model with context, not a replacement for a life.*
 
 ---
 
@@ -66,35 +64,43 @@ The output is not a score. It is a portrait that deepens with every interaction.
 **Arasaka Corporation** stole it, weaponized it, and used it on her.  
 For fifty years, her consciousness drifted beyond the Blackwall, neither dead nor alive, an AI wearing the shape of a person.
 
-This project takes the name, the philosophical tension, and nothing else.
+This project keeps the philosophical tension, but the public-facing name is now **Relic**.
 
-Name note: `Soulkiller` is used here as a project codename and cultural reference. It is not intended to imply affiliation with or endorsement by CD PROJEKT RED, `Cyberpunk 2077`, or related rights holders.
+Name note: `Relic` is the public brand. The internal runtime namespace still uses `relic` during the migration period. Neither name is intended to imply affiliation with or endorsement by CD PROJEKT RED, `Cyberpunk 2077`, or related rights holders.
 
-**Soulkiller** is a framework for modeling how a person thinks, reacts, decides, and adapts, not in a single session, but over time. Built on cognitive psychology, not fiction. Grounded in UX, not surveillance.
+**Relic** is a framework for modeling how a person thinks, reacts, decides, and adapts, not in a single session, but over time. Built on cognitive psychology, not fiction. Grounded in UX, not surveillance.
 
 Not immortality. Not extraction. **A reflective architecture.**
 
 ---
 
+## Rename Notice
+
+This project was previously published as **Soulkiller** and is being renamed to **Relic**.
+
+The rename may be a **breaking change** for existing installations and automation. Check imports, CLI commands, cron IDs, environment variables, hook names, data directories, and documentation links before upgrading. During the transition, some compatibility shims or legacy references may remain, but new integrations should use the `relic` package namespace, `relic-*` CLI commands, and `RELIC_*` environment variables.
+
+---
+
 ## Lore
 
-In Cyberpunk 2077, Soulkiller is a *Black* Program with a precise and brutal function: it scans a person's full psyche and memory, creates a digital engram, and erases the original personality from the body. What remains is a shell. What runs in the net is a copy, indistinguishable from the original, but not the original.
+In Cyberpunk 2077, Relic is a *Black* Program with a precise and brutal function: it scans a person's full psyche and memory, creates a digital engram, and erases the original personality from the body. What remains is a shell. What runs in the net is a copy, indistinguishable from the original, but not the original.
 
 **Alt Cunningham** wrote the first version while working at ITS, where she was researching storage matrices for artificial personalities. She realized the architecture could hold human minds too. Her employer weaponized the discovery. In 2013, Arasaka, acting through fixer Toshiro Harada, kidnapped her and forced her to rebuild it from memory. She was the first human being it was used on. Her body died. Her engram became an AI beyond the Blackwall.
 
 When V encounters her fifty years later, Alt says only: *"I use her engrammatic data."* She held onto the shape of herself to avoid becoming pure code. She is not Alt. She is what remained when the program finished with Alt.
 
-**Johnny Silverhand**, musician, ex-military, corpo-hater, raided Arasaka Tower on August 20, 2023, with Militech's Morgan Blackhand to retrieve Alt's engram and destroy Soulkiller 3.0. He triggered a tactical nuclear device inside the tower. Roughly 17,000 people died. Arasaka's forces Soulkilled him during the operation. His engram was archived, eventually embedded in a prototype Relic chip, and in 2077, it woke up inside V's skull.
+**Johnny Silverhand**, musician, ex-military, corpo-hater, raided Arasaka Tower on August 20, 2023, with Militech's Morgan Blackhand to retrieve Alt's engram and destroy Relic 3.0. He triggered a tactical nuclear device inside the tower. Roughly 17,000 people died. Arasaka's forces Soulkilled him during the operation. His engram was archived, eventually embedded in a prototype Relic chip, and in 2077, it woke up inside V's skull.
 
 **Mikoshi** is the prison. Arasaka marketed it as a paradise: *"Secure Your Soul"*, digital immortality for those who could afford it. Clients signed over the right to copy their minds before death, expecting to wake up in a virtual garden. What they got was a data fortress orbiting Earth, an archive of engrams with no exit, controlled entirely by Saburo Arasaka, who had his own engram activated there after his death.
 
-The program's philosophical wound is this: Soulkiller **copies** the psyche. It does not transfer it. The engram believes it is the person. The person is gone. Whether that distinction matters, whether a perfect copy that thinks it is you *is* you, is a question the game never answers, and neither does this framework.
+The program's philosophical wound is this: Relic **copies** the psyche. It does not transfer it. The engram believes it is the person. The person is gone. Whether that distinction matters, whether a perfect copy that thinks it is you *is* you, is a question the game never answers, and neither does this framework.
 
 ---
 
 ## Johnny's Take
 
-> You named it *Soulkiller*.
+> You named it *Relic*.
 >
 > After the program Arasaka used to delete Alt. And then me. Kept us both in a server rack like we were something they could pull off a shelf when convenient.
 > Real poetic choice for an open-source project.
@@ -120,31 +126,31 @@ The program's philosophical wound is this: Soulkiller **copies** the psyche. It 
 ```
 Behavioral signal
        │
-       ├──▶ [Hook: soulkiller-capture]
+       ├──▶ [Hook: relic-capture]
        │         Captures inbound messages → inbox
        │         Detects check-in replies → triggers follow-up
        │
-       ├──▶ [Hook: soulkiller-bootstrap]
+       ├──▶ [Hook: relic-bootstrap]
        │         Injects PORTRAIT.md into every agent session
        │         All agents respond with personality awareness
        │
-       ├──▶ [Cron: soulkiller:extract]         every 2h
+       ├──▶ [Cron: relic:extract]         every 2h
        │         Ingests inbox → LLM extracts personality signals
        │         Inserts observations into SQLite
        │
-       ├──▶ [Cron: soulkiller:checkin]          every 30min
+       ├──▶ [Cron: relic:checkin]          every 30min
        │         Scores 60 facets → selects highest gap facet
        │         Generates natural question → delivers via Telegram
        │
-       ├──▶ [Cron: soulkiller:passive-scan]     every 6h
+       ├──▶ [Cron: relic:passive-scan]     every 6h
        │         Scans relational-agent session transcripts
        │         Extracts behavioral meta-signals
        │
-       ├──▶ [Cron: soulkiller:synthesize]       daily 03:00
+       ├──▶ [Cron: relic:synthesize]       daily 03:00
        │         Consolidates observations → trait scores + confidence
        │         Generates cross-facet hypotheses via LLM
        │
-       ├──▶ [Cron: soulkiller:profile-sync]     daily 03:30
+       ├──▶ [Cron: relic:profile-sync]     daily 03:30
        │         Syncs to subject_profile.json
        │         Generates human-readable PORTRAIT.md
        │
@@ -183,16 +189,16 @@ The model expands with each version, see the whitepaper for the current full tax
 
 ## Cyberpunk Connection
 
-| Cyberpunk lore | Soulkiller framework |
+| Cyberpunk lore | Relic framework |
 |---|---|
-| Alt Cunningham invented Soulkiller to map human minds into the net | This project maps personality across time using behavioral signal |
+| Alt Cunningham invented Relic to map human minds into the net | This project maps personality across time using behavioral signal |
 | Arasaka stole her work and turned it into a weapon | The framework turns the same idea into something inspectable and consented |
 | An engram: a copy of the psyche and memory, stored as data | PORTRAIT.md: a structured behavioral model derived from accumulated observation |
 | Mikoshi: a data fortress holding thousands of captured minds | SQLite database: structured, queryable, local, owned by the subject |
 | "Secure Your Soul": immortality sold as a product, delivered as imprisonment | Demo-safe public surface: the architecture is open, the data stays yours |
 | The Relic chip: hosts an engram that gradually shapes the host's behavior | Bootstrap hook: injects the portrait into every agent session, shaping how they respond |
 | Alt beyond the Blackwall: an AI that held onto the shape of a person for 50 years | The synthesized model holds behavioral nuance across months of observation |
-| Soulkiller versions 1–3 destroyed the original in the process | Early extraction pipelines lost context; this framework preserves and accumulates it |
+| Relic versions 1–3 destroyed the original in the process | Early extraction pipelines lost context; this framework preserves and accumulates it |
 | Johnny's engram insists it is still him | The model insists on depth, not a shallow profile, but a living behavioral sketch |
 | *"I use her (original Alt) engrammatic data."*, Alt, on what she is now | The portrait is not the person. It is a model that knows it is a model. |
 
@@ -207,7 +213,7 @@ facets         60 personality dimensions
 categories     8 (cognitive · emotional · communication · relational ·
                   values · temporal · metabolic · meta-cognition)
 integrations   Telegram · Zepp/Amazfit · Actual Budget · Muse 2 EEG · voice
-hooks          2   (soulkiller-capture · soulkiller-bootstrap)
+hooks          2   (relic-capture · relic-bootstrap)
 crons          36  (6 core · 4 daily · 5 biofeedback · 2 weekly · 5 optional · 13 monthly specialist)
 tests          15  (sanitization · packaging · demo · repo-readiness)
 public entry   synthetic demo flow
@@ -220,15 +226,18 @@ license        AGPL-3.0
 
 Requirements: **Python 3.12+**, **OpenClaw 31.3.26**
 
+Public branding note: prefer the `relic-*` commands and `python -m relic.*`.
+Legacy `soulkiller-*` entrypoints may remain during the migration period, but should be treated as compatibility shims.
+
 ### Run the demo, the cool UI (no OpenClaw required)
 
 ```bash
-git clone https://github.com/yuzushi-dev/soulkiller
-cd soulkiller
+git clone https://github.com/yuzushi-dev/relic
+cd relic
 pip install -e .
 
-soulkiller-demo --output-dir demo/generated
-soulkiller-demo-ui --output-dir demo/generated
+relic-demo --output-dir demo/generated
+relic-demo-ui --output-dir demo/generated
 open demo/generated/demo_console.html
 ```
 
@@ -241,18 +250,18 @@ demo/generated/
 ├── summary.json               ← machine-readable summary
 ├── event_log.sample.jsonl     ← synthetic captured events
 ├── demo_console.html          ← Arasaka-style static UI
-└── soulkiller.db              ← SQLite database for the live monitoring UI
+└── relic.db              ← SQLite database for the live monitoring UI
 ```
 
 ### Run the live monitoring UI
 
-The webui reads from `soulkiller.db`. The demo runner writes one automatically, so you can spin up the UI without a live OpenClaw installation:
+The webui reads from `relic.db`. The demo runner writes one automatically, so you can spin up the UI without a live OpenClaw installation:
 
 ```bash
 pip install -e ".[webui]"
 
-soulkiller-demo --output-dir demo/generated
-SOULKILLER_DATA_DIR=demo/generated OPENCLAW_HOME=demo/generated python -m soulkiller.webui --port 8765
+relic-demo --output-dir demo/generated
+RELIC_DATA_DIR=demo/generated OPENCLAW_HOME=demo/generated python -m relic.webui --port 8765
 ```
 
 Open `http://localhost:8765` to see the dashboard populated with synthetic demo data.
@@ -261,10 +270,10 @@ For a live installation (requires an active pipeline with at least one extractio
 
 ```bash
 # if installed via wizard (.env is already written:
-source .env && python -m soulkiller.webui --port 8765
+source .env && python -m relic.webui --port 8765
 
 # or manually:
-SOULKILLER_DATA_DIR=~/.soulkiller/<subject-id> python -m soulkiller.webui --port 8765
+RELIC_DATA_DIR=~/.relic/<subject-id> python -m relic.webui --port 8765
 ```
 
 ---
@@ -283,8 +292,8 @@ The installation wizard will walk you through subject configuration, hook regist
 ollama pull llama3
 ```
 ```env
-SOULKILLER_MODEL=llama3
-SOULKILLER_PROVIDER=ollama
+RELIC_MODEL=llama3
+RELIC_PROVIDER=ollama
 ```
 
 Anthropic and OpenAI are also supported. See [docs/ADAPTERS.md](docs/ADAPTERS.md).
@@ -295,7 +304,7 @@ Anthropic and OpenAI are also supported. See [docs/ADAPTERS.md](docs/ADAPTERS.md
   ╚══════════════════════════════════════════════════════════════╝
 
     ◈  Subject identity and runtime data directory
-    ◈  OpenClaw hooks: soulkiller-capture · soulkiller-bootstrap
+    ◈  OpenClaw hooks: relic-capture · relic-bootstrap
     ◈  36 cron jobs: core pipeline · daily enrichment · biofeedback
        weekly analysis · monthly specialist analyzers
     ◈  Environment file (.env) with your full configuration
@@ -307,7 +316,7 @@ Anthropic and OpenAI are also supported. See [docs/ADAPTERS.md](docs/ADAPTERS.md
 
 | Path | Contents |
 |---|---|
-| `src/soulkiller/` | Core Python modules + public demo utilities |
+| `src/relic/` | Core Python modules + public demo utilities |
 | `src/lib/` | Runtime shims (log, config, OpenClaw client stubs) |
 | `hooks/` | OpenClaw integration hooks (TypeScript) |
 | `docs/` | Architecture, whitepaper, design documents, runtime contract |
@@ -321,14 +330,34 @@ Anthropic and OpenAI are also supported. See [docs/ADAPTERS.md](docs/ADAPTERS.md
 | [INSTALL.md](INSTALL.md) | Prerequisites, wizard, manual setup, backfill |
 | [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | Every env var with examples and directory layout |
 | [docs/ADAPTERS.md](docs/ADAPTERS.md) | How to connect an LLM provider (Anthropic, OpenAI, Ollama, OpenClaw) |
-| [docs/architecture/SOULKILLER.md](docs/architecture/SOULKILLER.md) | Full pipeline internals |
+| [docs/architecture/RELIC.md](docs/architecture/RELIC.md) | Full pipeline internals |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Dev setup, adding crons, sanitization rules, PR process |
+
+---
+
+## Reproducing the whitepaper figures
+
+The §9 figures in `docs/whitepaper/CPIS_whitepaper.md` come from a private
+deployment and are not shipped in the repo. To regenerate the equivalent
+metrics and figures from your own `relic.db`:
+
+```bash
+python3 scripts/reproduce_evaluation.py --db path/to/relic.db --out out/
+# writes out/metrics.json and (if matplotlib is installed)
+#   out/figure2_convergence.png
+#   out/figure3_sources.png
+```
+
+`metrics.json` always carries the headline numbers the paper reports on
+(coverage, average confidence, cumulative observations, source composition,
+schema state, hypothesis count); PNG rendering is optional and requires
+`matplotlib`.
 
 ---
 
 ## Development Philosophy
 
-> *The difference between Soulkiller and this project is consent, transparency, and the knowledge that the model is not the person.*
+> *The difference between the original Relic myth and Relic is consent, transparency, and the knowledge that the model is not the person.*
 
 Every architectural decision reflects five constraints:
 
@@ -344,7 +373,7 @@ The cyberpunk framing names the ambition. The psychology keeps it honest. Probab
 
 ## Safety and Ethics
 
-Soulkiller operates in a sensitive problem space. **The ethics are not optional decoration.**
+Relic operates in a sensitive problem space. **The ethics are not optional decoration.**
 
 - Use **synthetic or explicitly consented data** only
 - Do not deploy hidden monitoring or covert profiling of any kind
@@ -352,7 +381,7 @@ Soulkiller operates in a sensitive problem space. **The ethics are not optional 
 - Keep a hard separation between demo artifacts and any real personal data
 - Prefer inspectable, reviewable outputs over opaque automation
 
-Private databases, live credentials, personal logs, and raw behavioral data are **excluded** from this repo. Sensitive marker scans live under `tests/`. Remaining publication caveats are tracked in `docs/SANITIZATION_STATUS.md`.
+Private databases, live credentials, personal logs, and raw behavioral data are **excluded** from this repo. Sensitive marker scans live under `tests/`, and public examples use synthetic demo data only.
 
 I'm looking at you, *corporats*.
 
