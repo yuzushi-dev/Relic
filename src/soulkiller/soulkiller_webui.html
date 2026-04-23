@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Soulkiller · Secure Your Soul · Arasaka Corp</title>
+  <title>Relic · Synthetic Demo · Public Preview</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
@@ -75,7 +75,7 @@
     }
 
     body::after {
-      content: 'SECURE YOUR SOUL';
+      content: 'PUBLIC DEMO';
       position: fixed;
       bottom: 28px;
       right: 32px;
@@ -554,7 +554,7 @@
   }
   .splash-title::before,
   .splash-title::after {
-    content: 'SOULKILLER';
+    content: 'RELIC';
     position: absolute;
     inset: 0;
     opacity: 0.85;
@@ -610,8 +610,8 @@
 <body>
 
 <div id="splash">
-  <div class="splash-title">SOULKILLER</div>
-  <div class="splash-tagline">Secure your soul</div>
+  <div class="splash-title">RELIC</div>
+  <div class="splash-tagline">Synthetic public demo</div>
 </div>
 
 <script>
@@ -633,8 +633,8 @@
   <!-- ── Sidebar ── -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
-      <div class="sidebar-logo">Soul<span>killer</span></div>
-      <div class="sidebar-sub">SECURE YOUR SOUL · MIKOSHI PROTOCOL</div>
+      <div class="sidebar-logo">Rel<span>ic</span></div>
+      <div class="sidebar-sub">SYNTHETIC DEMO · PUBLIC PREVIEW</div>
     </div>
     <nav class="nav">
       <div class="nav-group">
@@ -696,10 +696,10 @@
       </div>
     </nav>
     <div class="sidebar-footer">
-      <div style="font-size:10px;letter-spacing:.14em;color:var(--accent-soft);font-family:var(--font-mono);text-transform:uppercase;margin-bottom:6px;">SECURE YOUR SOUL</div>
+      <div style="font-size:10px;letter-spacing:.14em;color:var(--accent-soft);font-family:var(--font-mono);text-transform:uppercase;margin-bottom:6px;">RELIC DEMO</div>
       <div id="last-refresh">-</div>
       <button class="refresh-btn" onclick="refresh()">↺ Sync</button>
-      <div style="margin-top:10px;font-size:9px;letter-spacing:.1em;color:rgba(198,166,103,.4);font-family:var(--font-mono);">荒坂 · ENGRAMMATIC TRANSFER SYSTEM<br>UNAUTHORIZED ACCESS IS A CAPITAL OFFENSE</div>
+      <div style="margin-top:10px;font-size:9px;letter-spacing:.1em;color:rgba(198,166,103,.4);font-family:var(--font-mono);">SYNTHETIC DATA ONLY<br>NO LIVE RUNTIME OR PRIVATE LOGS</div>
     </div>
   </aside>
 
@@ -709,7 +709,7 @@
     <!-- HEALTH -->
     <section id="s-health" class="section active">
       <h1 class="page-title">System Health</h1>
-      <p class="page-sub">Engrammatic transfer runtime · live posture</p>
+      <p class="page-sub">Synthetic runtime preview · demo posture</p>
       <div id="health-kpi" class="kpi-grid"></div>
       <div id="health-alerts"></div>
       <div class="grid-2">
@@ -731,7 +731,7 @@
     <!-- CRON -->
     <section id="s-cron" class="section">
       <h1 class="page-title">Cron Jobs</h1>
-      <p class="page-sub">Mikoshi scheduler · extraction pipeline state</p>
+      <p class="page-sub">Demo scheduler · extraction pipeline state</p>
       <div class="filter-row" id="cron-filters">
         <button class="filter-btn active" onclick="setCronFilter('', this)">All</button>
       </div>
@@ -751,7 +751,7 @@
     <!-- PROFILE -->
     <section id="s-profile" class="section">
       <h1 class="page-title">Profile</h1>
-      <p class="page-sub">Facet-level engrammatic model · longitudinal capture</p>
+      <p class="page-sub">Facet-level behavioral model · longitudinal capture</p>
       <div class="filter-row" id="profile-filters"></div>
       <div id="profile-body"></div>
     </section>
@@ -1013,8 +1013,8 @@ function toggleSidebar() {
 }
 
 async function get(url) {
-  if (window.SOULKILLER_STATIC && url in window.SOULKILLER_STATIC) {
-    return window.SOULKILLER_STATIC[url];
+  if (window.RELIC_STATIC && url in window.RELIC_STATIC) {
+    return window.RELIC_STATIC[url];
   }
   const r = await fetch(url);
   if (!r.ok) throw new Error(r.status);
@@ -1047,7 +1047,7 @@ function closeModal() {
 }
 
 async function apiPatch(url, body) {
-  if (window.SOULKILLER_STATIC) return { ok: true };
+  if (window.RELIC_STATIC) return { ok: true };
   const r = await fetch(url, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
@@ -1061,7 +1061,7 @@ async function apiPatch(url, body) {
 }
 
 async function apiDelete(url) {
-  if (window.SOULKILLER_STATIC) return { ok: true };
+  if (window.RELIC_STATIC) return { ok: true };
   const r = await fetch(url, { method: 'DELETE' });
   if (!r.ok) {
     const err = await r.json().catch(() => ({ detail: r.status }));
@@ -1597,7 +1597,7 @@ function renderCron(jobs) {
 }
 
 async function toggleJob(id, enabled) {
-  if (window.SOULKILLER_STATIC) return;
+  if (window.RELIC_STATIC) return;
   await fetch('/api/cron/' + id, {
     method: 'PATCH', headers: {'Content-Type':'application/json'},
     body: JSON.stringify({ enabled })
@@ -1897,7 +1897,7 @@ async function loadMetrics() {
   const rows = await get('/api/metrics/communication');
   const el = document.getElementById('metrics-body');
   if (!rows.length) {
-    el.innerHTML = emptyState('◈', 'No metrics', 'Run: python3 -m soulkiller.liwc');
+    el.innerHTML = emptyState('◈', 'No metrics', 'Run: python3 -m relic.liwc');
     return;
   }
   const byType = {};

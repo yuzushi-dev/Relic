@@ -1,4 +1,4 @@
-# Soulkiller - Personality Model
+# Relic - Personality Model
 
 **Subject**: Demo Subject
 **Generated**: 2026-04-08  (synthetic demo run)

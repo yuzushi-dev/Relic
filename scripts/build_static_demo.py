@@ -2,7 +2,7 @@
 """Build a self-contained static demo page for GitHub Pages.
 
 Generates the demo SQLite DB, queries every API endpoint, embeds the
-results as ``window.SOULKILLER_STATIC`` in the webui HTML, and writes
+results as ``window.RELIC_STATIC`` in the webui HTML, and writes
 the output to ``_site/index.html``.
 
 Usage:
@@ -38,7 +38,7 @@ def load_jobs(jobs_path: Path) -> list[dict]:
     if not jobs_path.exists():
         return []
     data = json.loads(jobs_path.read_text())
-    jobs = [j for j in data.get("jobs", []) if j.get("id", "").startswith("soulkiller:")]
+    jobs = [j for j in data.get("jobs", []) if j.get("id", "").startswith("relic:")]
     now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
     for j in jobs:
         s = j.get("state") or {}
@@ -215,7 +215,7 @@ def build(out_dir: Path) -> None:
     html_src = (ROOT / "src" / "soulkiller" / "soulkiller_webui.html").read_text()
     injection = (
         "<script>\n"
-        "window.SOULKILLER_STATIC = "
+        "window.RELIC_STATIC = "
         + json.dumps(static_data, ensure_ascii=False, default=str)
         + ";\n</script>\n"
     )

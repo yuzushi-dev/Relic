@@ -131,7 +131,7 @@ def _generate_profile_md(seed: dict, observations: list[dict]) -> str:
         obs_count[o["facet_id"]] = obs_count.get(o["facet_id"], 0) + 1
 
     lines: list[str] = [
-        "# Soulkiller - Personality Model",
+        "# Relic - Personality Model",
         "",
         f"**Subject**: {seed['subject_name']}",
         f"**Generated**: {datetime.now(timezone.utc).strftime('%Y-%m-%d')}  (synthetic demo run)",
@@ -720,24 +720,24 @@ def _write_demo_db(output_dir: Path, seed: dict, observations: list[dict]) -> No
 
 
 _DEMO_CRON_JOBS = [
-    ("soulkiller:extract",       "0 */2 * * *",    "Extract personality signals from inbox"),
-    ("soulkiller:checkin",       "*/30 9-22 * * *", "Select and deliver a check-in question"),
-    ("soulkiller:checkin-followup", "on-demand",   "Process a check-in reply"),
-    ("soulkiller:passive-scan",  "0 */6 * * *",    "Scan session transcripts for behavioral signal"),
-    ("soulkiller:reply-extract", "0 */6 * * *",    "Extract observations from check-in replies"),
-    ("soulkiller:synthesize",    "0 3 * * *",      "Consolidate observations into trait scores"),
-    ("soulkiller:profile-sync",  "30 3 * * *",     "Sync trait scores to subject_profile.json and PORTRAIT.md"),
-    ("soulkiller:entity-extract","0 4 * * *",      "Extract named entities from recent messages"),
-    ("soulkiller:decisions",     "15 4 * * *",     "Extract decisions and choices from recent messages"),
-    ("soulkiller:healthcheck",   "0 4 * * *",      "Check pipeline health and data freshness"),
-    ("soulkiller:memory",        "0 5 * * 0",      "Weekly memory consolidation"),
-    ("soulkiller:liwc",          "0 3 * * 0",      "Weekly LIWC-style language analysis"),
-    ("soulkiller:stress-index",  "0 6 * * 1",      "Weekly stress index computation"),
-    ("soulkiller:schemas",       "0 5 1 * *",      "Monthly: schema and core belief extraction"),
-    ("soulkiller:goals",         "0 5 2 * *",      "Monthly: goal and motivation mapping"),
-    ("soulkiller:portrait",      "0 5 3 * *",      "Monthly: narrative portrait generation"),
-    ("soulkiller:attachment",    "0 5 4 * *",      "Monthly: attachment pattern analysis"),
-    ("soulkiller:narrative",     "0 5 5 * *",      "Monthly: life narrative extraction"),
+    ("relic:extract",       "0 */2 * * *",    "Extract personality signals from inbox"),
+    ("relic:checkin",       "*/30 9-22 * * *", "Select and deliver a check-in question"),
+    ("relic:checkin-followup", "on-demand",   "Process a check-in reply"),
+    ("relic:passive-scan",  "0 */6 * * *",    "Scan session transcripts for behavioral signal"),
+    ("relic:reply-extract", "0 */6 * * *",    "Extract observations from check-in replies"),
+    ("relic:synthesize",    "0 3 * * *",      "Consolidate observations into trait scores"),
+    ("relic:profile-sync",  "30 3 * * *",     "Sync trait scores to subject_profile.json and PORTRAIT.md"),
+    ("relic:entity-extract","0 4 * * *",      "Extract named entities from recent messages"),
+    ("relic:decisions",     "15 4 * * *",     "Extract decisions and choices from recent messages"),
+    ("relic:healthcheck",   "0 4 * * *",      "Check pipeline health and data freshness"),
+    ("relic:memory",        "0 5 * * 0",      "Weekly memory consolidation"),
+    ("relic:liwc",          "0 3 * * 0",      "Weekly LIWC-style language analysis"),
+    ("relic:stress-index",  "0 6 * * 1",      "Weekly stress index computation"),
+    ("relic:schemas",       "0 5 1 * *",      "Monthly: schema and core belief extraction"),
+    ("relic:goals",         "0 5 2 * *",      "Monthly: goal and motivation mapping"),
+    ("relic:portrait",      "0 5 3 * *",      "Monthly: narrative portrait generation"),
+    ("relic:attachment",    "0 5 4 * *",      "Monthly: attachment pattern analysis"),
+    ("relic:narrative",     "0 5 5 * *",      "Monthly: life narrative extraction"),
 ]
 
 
@@ -864,7 +864,7 @@ def _write_demo_amber_db(output_dir: Path) -> None:
           (id, subject_id, memory_type, title, content, salience, confidence,
            origin_type, source_system, status, review_status,
            first_seen_at, last_seen_at, created_at, updated_at, metadata_json)
-        VALUES (?, 'demo-subject', ?, ?, ?, ?, ?, ?, 'soulkiller', 'active', ?,
+        VALUES (?, 'demo-subject', ?, ?, ?, ?, ?, ?, 'relic', 'active', ?,
                 ?, ?, ?, ?, '{}')
         """,
         [(r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], now, now, now, now)
