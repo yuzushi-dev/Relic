@@ -133,6 +133,10 @@ Personality is modeled across 60 facets in 8 categories, each as a continuous po
 
 Each facet carries a position `[0.0 - 1.0]`, a confidence score, and an observation count. The model expands with each version; see the whitepaper for the current full taxonomy.
 
+### Verification & Audit
+
+A verification and audit layer operates across the pipeline as a whole. It consolidates candidate model findings, resolves noise through structured evidence review, and maintains a persistent, inspectable ground-truth state of inferred claims. This layer is architecturally separate from the inference modules that produce findings, and is capable of retroactive application to accumulated observations.
+
 ---
 
 ## Project Stats
@@ -293,6 +297,7 @@ Every architectural decision reflects five constraints:
 - **Inspectability** — structured data, traceable decisions, outputs that can be read and questioned by the subject.
 - **Human readability** — PORTRAIT.md is written to be read by a person, not parsed by a machine.
 - **Consent and separation** — demo data and real behavioral data are architecturally separated. The subject controls the data.
+- **Epistemic accountability** — every inferred claim is subject to structured verification. A dedicated audit layer consolidates findings, eliminates noise, and maintains an inspectable ground-truth state distinct from raw inference output.
 
 ---
 
