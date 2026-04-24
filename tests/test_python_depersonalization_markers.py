@@ -1,13 +1,19 @@
+import os
 from pathlib import Path
 
+ROOT = Path(__file__).resolve().parents[1] / "src" / "relic"
 
-ROOT = Path(__file__).resolve().parents[1] / "src" / "soulkiller"
-FORBIDDEN_MARKERS = [
-    "ExamplePersonA",
-    "ExamplePersonB",
-    "ExamplePersonC",
-    "person@example.invalid",
-    "ExampleSecret123",
+BASELINE_MARKERS = [
+    "@gmail.com",
+    "@hotmail.com",
+    "@yahoo.com",
+    "biofeedback_creds.json",
+]
+
+FORBIDDEN_MARKERS = BASELINE_MARKERS + [
+    marker
+    for marker in os.environ.get("RELIC_PRIVATE_MARKERS", "").splitlines()
+    if marker.strip()
 ]
 
 
@@ -15,7 +21,7 @@ def iter_python_files() -> list[Path]:
     return sorted(ROOT.rglob("*.py"))
 
 
-def test_python_sources_do_not_contain_personal_names_or_inline_secrets():
+def test_python_sources_do_not_contain_configured_private_markers():
     offenders: list[str] = []
     for path in iter_python_files():
         text = path.read_text(encoding="utf-8")
