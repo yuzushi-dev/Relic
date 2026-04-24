@@ -1,6 +1,6 @@
-"""ProviderLLMClient - multi-provider LLM adapter for Soulkiller OSS.
+"""ProviderLLMClient - multi-provider LLM adapter for Relic OSS.
 
-Dispatches to the correct provider based on SOULKILLER_PROVIDER (or inferred
+Dispatches to the correct provider based on RELIC_PROVIDER (or inferred
 from the model name). Supported providers:
 
   anthropic   - requires: pip install anthropic  + ANTHROPIC_API_KEY
@@ -11,8 +11,8 @@ from the model name). Supported providers:
 
 Set in .env:
 
-  SOULKILLER_MODEL=claude-opus-4-6
-  SOULKILLER_PROVIDER=anthropic        # or openai / ollama / openclaw
+  RELIC_MODEL=claude-opus-4-6
+  RELIC_PROVIDER=anthropic        # or openai / ollama / openclaw
 """
 from __future__ import annotations
 
@@ -170,7 +170,7 @@ def _complete_openclaw(model: str, prompt: str) -> str:
     import subprocess
 
     bin_path = os.environ.get("OPENCLAW_BIN", "openclaw")
-    agent = os.environ.get("SOULKILLER_RELATIONAL_AGENT", "")
+    agent = os.environ.get("RELIC_RELATIONAL_AGENT", "")
     # openclaw agent [--agent <id>] --message <text> --json
     cmd = [bin_path, "agent"]
     if agent:
@@ -200,18 +200,18 @@ def _complete_openclaw(model: str, prompt: str) -> str:
 # ── Public client ──────────────────────────────────────────────────────────────
 
 class ProviderLLMClient:
-    """Multi-provider LLM client. Reads SOULKILLER_MODEL and SOULKILLER_PROVIDER."""
+    """Multi-provider LLM client. Reads RELIC_MODEL and RELIC_PROVIDER."""
 
     def __init__(self, model: str | None = None, provider: str | None = None) -> None:
-        self.model = model or os.environ.get("SOULKILLER_MODEL", "")
-        self.provider = provider or os.environ.get("SOULKILLER_PROVIDER", "")
+        self.model = model or os.environ.get("RELIC_MODEL", "")
+        self.provider = provider or os.environ.get("RELIC_PROVIDER", "")
 
     def complete(self, prompt: str, **kwargs: Any) -> str:
         """Send a completion request and return the response text."""
         if not self.model:
             raise RuntimeError(
-                "SOULKILLER_MODEL is not set. "
-                "Add it to your .env file (e.g. SOULKILLER_MODEL=claude-opus-4-6)."
+                "RELIC_MODEL is not set. "
+                "Add it to your .env file (e.g. RELIC_MODEL=claude-opus-4-6)."
             )
 
         provider = (self.provider or _infer_provider(self.model)).lower()
@@ -231,6 +231,6 @@ class ProviderLLMClient:
 
         raise RuntimeError(
             f"Unknown provider '{provider}' for model='{self.model}'.\n"
-            f"Set SOULKILLER_PROVIDER to one of: ollama, anthropic, openai, openrouter, nvidia, openclaw.\n"
+            f"Set RELIC_PROVIDER to one of: ollama, anthropic, openai, openrouter, nvidia, openclaw.\n"
             f"See docs/ADAPTERS.md for setup instructions."
         )

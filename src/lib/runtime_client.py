@@ -1,4 +1,4 @@
-"""Minimal RuntimeClient shim for Soulkiller OSS.
+"""Minimal RuntimeClient shim for Relic OSS.
 
 In production, OpenClaw provides a full runtime IPC client.
 This stub provides a no-op implementation for standalone usage.

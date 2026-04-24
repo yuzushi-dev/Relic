@@ -1,11 +1,11 @@
-"""Tests for soulkiller_reply_extractor - recent-exchanges context block."""
+"""Tests for relic_reply_extractor - recent-exchanges context block."""
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from soulkiller.soulkiller_reply_extractor import _build_context_block, build_prompt
+from relic.relic_reply_extractor import _build_context_block, build_prompt
 
 
 def _make_exchange(eid: int = 1, facet: str = "emotional.stress_response",

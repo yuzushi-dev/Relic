@@ -21,7 +21,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from soulkiller.demo_runner import _write_demo_db, _write_demo_jobs  # noqa: E402
+from relic.demo_runner import _write_demo_db, _write_demo_jobs  # noqa: E402
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
@@ -79,7 +79,7 @@ def build(out_dir: Path) -> None:
         _write_demo_db(tmp_path, seed, observations=[])
         _write_demo_jobs(tmp_path)
 
-        db = sqlite3.connect(str(tmp_path / "soulkiller.db"))
+        db = sqlite3.connect(str(tmp_path / "relic.db"))
         db.row_factory = sqlite3.Row
 
         # Build health payload
@@ -212,7 +212,7 @@ def build(out_dir: Path) -> None:
         db.close()
 
     # Inject into HTML
-    html_src = (ROOT / "src" / "soulkiller" / "soulkiller_webui.html").read_text()
+    html_src = (ROOT / "src" / "relic" / "relic_webui.html").read_text()
     injection = (
         "<script>\n"
         "window.RELIC_STATIC = "
@@ -225,20 +225,7 @@ def build(out_dir: Path) -> None:
     out_path.write_text(html_out, encoding="utf-8")
     print(f"Built: {out_path}  ({out_path.stat().st_size // 1024} KB)")
 
-    favicon_src = ROOT / "docs" / "soulkiller.svg"
-    if favicon_src.exists():
-        import base64, shutil
-        shutil.copy(favicon_src, out_dir / "favicon.svg")
-        b64 = base64.b64encode(favicon_src.read_bytes()).decode()
-        data_uri = f"data:image/svg+xml;base64,{b64}"
-        html_out = html_out.replace(
-            '<link rel="icon" type="image/svg+xml" href="favicon.svg">',
-            f'<link rel="icon" type="image/svg+xml" href="{data_uri}">',
-            1,
-        )
-        # re-write after favicon inline
-        out_path.write_text(html_out, encoding="utf-8")
-        print(f"Inlined favicon + copied: {out_dir / 'favicon.svg'}")
+
 
 
 def _entities(db: sqlite3.Connection) -> list[dict]:

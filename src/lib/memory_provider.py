@@ -1,23 +1,23 @@
-"""MemoryProvider - pluggable operational memory interface for Soulkiller.
+"""MemoryProvider - pluggable operational memory interface for Relic.
 
 Defines the contract that any memory provider must implement to integrate
-with Soulkiller agents. The default (no-op) provider is NullMemoryProvider.
+with Relic agents. The default (no-op) provider is NullMemoryProvider.
 
 The reference implementation is Amber (separate repo). Users who want a
-custom memory system implement MemoryProvider and configure Soulkiller to
-use it via the SOULKILLER_MEMORY_PROVIDER env var or runtime config.
+custom memory system implement MemoryProvider and configure Relic to
+use it via the RELIC_MEMORY_PROVIDER env var or runtime config.
 
 Provider registry
 -----------------
   null        - NullMemoryProvider (built-in, always available)
-  soulkiller  - SoulkillerMemoryProvider (built-in, reads from soulkiller.db)
+  relic  - RelicMemoryProvider (built-in, reads from relic.db)
   custom      - any importable class path, e.g. "mypackage.MyProvider"
 
 Usage
 -----
   from lib.memory_provider import load_memory_provider
 
-  provider = load_memory_provider()   # uses SOULKILLER_MEMORY_PROVIDER
+  provider = load_memory_provider()   # uses RELIC_MEMORY_PROVIDER
   bundle = provider.get_operational_memory(
       subject_id="demo-subject",
       query_text="current stress level",
@@ -108,7 +108,7 @@ class ProviderStatus:
 
 @runtime_checkable
 class MemoryProvider(Protocol):
-    """Structural protocol for Soulkiller memory providers.
+    """Structural protocol for Relic memory providers.
 
     Any class that implements these four methods satisfies the protocol,
     regardless of inheritance. This makes provider substitution easy:
@@ -186,7 +186,7 @@ class NullMemoryProvider:
     Used when no memory system is configured. Returns empty bundles and
     silently discards all writes. Always reports healthy.
 
-    This is Soulkiller's built-in default so agents can run without
+    This is Relic's built-in default so agents can run without
     requiring Amber or any external memory dependency.
     """
 
@@ -230,23 +230,23 @@ class NullMemoryProvider:
 # Provider loader
 # ---------------------------------------------------------------------------
 
-def _make_soulkiller_provider():
-    """Lazily import SoulkillerMemoryProvider to avoid circular imports."""
+def _make_relic_provider():
+    """Lazily import RelicMemoryProvider to avoid circular imports."""
     import os, sqlite3
     from pathlib import Path
-    data_dir = os.environ.get("SOULKILLER_DATA_DIR")
+    data_dir = os.environ.get("RELIC_DATA_DIR")
     if data_dir:
-        db_path = Path(data_dir) / "soulkiller.db"
+        db_path = Path(data_dir) / "relic.db"
     else:
         # Try common locations
         candidates = [
-            Path(__file__).resolve().parents[1] / "soulkiller" / "soulkiller.db",
+            Path(__file__).resolve().parents[1] / "relic" / "relic.db",
         ]
         db_path = next((p for p in candidates if p.exists()), candidates[0])
     db = sqlite3.connect(str(db_path))
     db.row_factory = sqlite3.Row
-    from lib.memory_context import SoulkillerMemoryProvider
-    return SoulkillerMemoryProvider(db=db)
+    from lib.memory_context import RelicMemoryProvider
+    return RelicMemoryProvider(db=db)
 
 
 _BUILTIN_PROVIDERS: dict[str, type] = {
@@ -259,11 +259,12 @@ def load_memory_provider(provider_name: str | None = None) -> MemoryProvider:
 
     Resolution order:
     1. ``provider_name`` argument (if given)
-    2. ``SOULKILLER_MEMORY_PROVIDER`` env var
+    2. ``RELIC_MEMORY_PROVIDER`` env var
     3. ``"null"`` (NullMemoryProvider)
 
-    For the ``"amber"`` provider, the ``amber`` package must be installed
-    and expose ``amber.provider.AmberMemoryProvider``.
+    For the ``"relic"`` provider (built-in), memory is loaded from the local
+    Relic data directory. For the ``"amber"`` provider, the ``amber`` package
+    must be installed and expose ``amber.provider.AmberMemoryProvider``.
 
     For custom providers, pass a dotted import path:
     ``"mypackage.module.MyProvider"``
@@ -278,13 +279,13 @@ def load_memory_provider(provider_name: str | None = None) -> MemoryProvider:
         ImportError: If the requested provider cannot be imported.
         TypeError:   If the resolved class does not satisfy MemoryProvider.
     """
-    name = provider_name or os.environ.get("SOULKILLER_MEMORY_PROVIDER", "null")
+    name = provider_name or os.environ.get("RELIC_MEMORY_PROVIDER", "null")
 
     if name in _BUILTIN_PROVIDERS:
         return _BUILTIN_PROVIDERS[name]()
 
-    if name == "soulkiller":
-        return _make_soulkiller_provider()
+    if name == "relic":
+        return _make_relic_provider()
 
     if name == "amber":
         try:
@@ -293,7 +294,7 @@ def load_memory_provider(provider_name: str | None = None) -> MemoryProvider:
         except ImportError as exc:
             raise ImportError(
                 "The 'amber' memory provider requires the amber package. "
-                "Install it with: pip install soulkiller-amber"
+                "Install it with: pip install relic-amber"
             ) from exc
     else:
         # Treat as a dotted class path: "mypackage.module.MyProvider"
@@ -302,7 +303,7 @@ def load_memory_provider(provider_name: str | None = None) -> MemoryProvider:
         except ValueError:
             raise ImportError(
                 f"Cannot resolve memory provider '{name}'. "
-                "Use a built-in name ('null', 'amber') or a dotted class path."
+                "Use a built-in name ('null', 'relic', 'amber') or a dotted class path."
             )
         import importlib
         module = importlib.import_module(module_path)

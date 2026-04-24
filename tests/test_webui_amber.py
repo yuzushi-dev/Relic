@@ -9,13 +9,13 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-AMBER_ROOT = ROOT.parent / "Amber-Soulkiller"
+AMBER_ROOT = ROOT.parent / "Amber-Relic"
 if AMBER_ROOT.exists() and str(AMBER_ROOT) not in sys.path:
     sys.path.insert(0, str(AMBER_ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 
 from fastapi.testclient import TestClient
-from soulkiller.webui import app
+from relic.webui import app
 
 @pytest.fixture
 def client():

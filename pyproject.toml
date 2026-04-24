@@ -3,7 +3,7 @@ requires = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "soulkiller"
+name = "relic"
 version = "0.9.0"
 description = "Longitudinal computational personality modeling from naturalistic digital trace data and wearable biofeedback."
 readme = "README.md"
@@ -33,13 +33,16 @@ all-providers = [
 keywords = ["agents", "personality-modeling", "reflective-systems", "demo"]
 
 [project.urls]
-Homepage = "https://github.com/yuzushi-dev/soulkiller"
-Documentation = "https://github.com/yuzushi-dev/soulkiller/tree/main/docs"
+Homepage = "https://github.com/yuzushi-dev/relic"
+Documentation = "https://github.com/yuzushi-dev/relic/tree/main/docs"
 
 [project.scripts]
-soulkiller-demo = "soulkiller.demo_runner:main"
-soulkiller-demo-ui = "soulkiller.demo_webui:main"
-soulkiller-webui = "soulkiller.webui:main"
+relic-demo = "relic.demo_runner:main"
+relic-demo-ui = "relic.demo_webui:main"
+relic-webui = "relic.webui:main"
+relic-checkin = "relic.checkin:main"
+relic-checkin-followup = "relic.checkin_followup:main"
+relic-healthcheck = "relic.healthcheck:main"
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

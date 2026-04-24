@@ -17,8 +17,8 @@
 ## Option A - Wizard (recommended)
 
 ```bash
-git clone https://github.com/yuzushi-dev/soulkiller
-cd soulkiller
+git clone https://github.com/yuzushi-dev/relic
+cd relic
 python install.py
 ```
 
@@ -65,11 +65,11 @@ See [Configuration](docs/CONFIGURATION.md) for a full description of every varia
 ### 3. Create the runtime data directory
 
 ```bash
-mkdir -p ~/.soulkiller/<your-subject-id>
-touch ~/.soulkiller/<your-subject-id>/inbox.jsonl
+mkdir -p ~/.relic/<your-subject-id>
+touch ~/.relic/<your-subject-id>/inbox.jsonl
 ```
 
-Set `SOULKILLER_DATA_DIR` in `.env` to this path.
+Set `RELIC_DATA_DIR` in `.env` to this path.
 
 ### 4. Compile and register hooks
 
@@ -77,15 +77,15 @@ Each hook is a TypeScript project. OpenClaw compiles it on registration.
 
 ```bash
 # Register with OpenClaw (OpenClaw compiles TypeScript internally - no npm step needed)
-openclaw hooks enable soulkiller-capture \
-  --path ./hooks/soulkiller-capture \
-  --env SOULKILLER_SUBJECT_ID=<your-subject-id> \
-  --env SOULKILLER_DATA_DIR=~/.soulkiller/<your-subject-id>
+openclaw hooks enable relic-capture \
+  --path ./hooks/relic-capture \
+  --env RELIC_SUBJECT_ID=<your-subject-id> \
+  --env RELIC_DATA_DIR=~/.relic/<your-subject-id>
 
-openclaw hooks enable soulkiller-bootstrap \
-  --path ./hooks/soulkiller-bootstrap \
-  --env SOULKILLER_SUBJECT_ID=<your-subject-id> \
-  --env SOULKILLER_DATA_DIR=~/.soulkiller/<your-subject-id>
+openclaw hooks enable relic-bootstrap \
+  --path ./hooks/relic-bootstrap \
+  --env RELIC_SUBJECT_ID=<your-subject-id> \
+  --env RELIC_DATA_DIR=~/.relic/<your-subject-id>
 ```
 
 ### 5. Register cron jobs
@@ -96,62 +96,62 @@ fixed schedule - it is triggered on-demand by the capture hook.
 ```bash
 PYTHON=$(which python3)
 REPO=$(pwd)
-DATA=~/.soulkiller/<your-subject-id>
-ENV="--env PYTHONPATH=$REPO/src --env SOULKILLER_DATA_DIR=$DATA"
+DATA=~/.relic/<your-subject-id>
+ENV="--env PYTHONPATH=$REPO/src --env RELIC_DATA_DIR=$DATA"
 
 # Core pipeline
-openclaw cron add soulkiller:extract \
-  --command "$PYTHON -m soulkiller.extract" \
+openclaw cron add relic:extract \
+  --command "$PYTHON -m relic.extract" \
   --cwd "$REPO" --schedule "0 */2 * * *" $ENV
 
-openclaw cron add soulkiller:checkin \
-  --command "$PYTHON -m soulkiller.checkin" \
+openclaw cron add relic:checkin \
+  --command "$PYTHON -m relic.checkin" \
   --cwd "$REPO" --schedule "*/30 9-22 * * *" $ENV
 
-openclaw cron add soulkiller:passive-scan \
-  --command "$PYTHON -m soulkiller.passive_scan" \
+openclaw cron add relic:passive-scan \
+  --command "$PYTHON -m relic.passive_scan" \
   --cwd "$REPO" --schedule "0 */6 * * *" $ENV
 
-openclaw cron add soulkiller:reply-extract \
-  --command "$PYTHON -m soulkiller.reply_extract" \
+openclaw cron add relic:reply-extract \
+  --command "$PYTHON -m relic.reply_extract" \
   --cwd "$REPO" --schedule "0 */6 * * *" $ENV
 
-openclaw cron add soulkiller:synthesize \
-  --command "$PYTHON -m soulkiller.synthesize" \
+openclaw cron add relic:synthesize \
+  --command "$PYTHON -m relic.synthesize" \
   --cwd "$REPO" --schedule "0 3 * * *" $ENV
 
-openclaw cron add soulkiller:profile-sync \
-  --command "$PYTHON -m soulkiller.profile_sync" \
+openclaw cron add relic:profile-sync \
+  --command "$PYTHON -m relic.profile_sync" \
   --cwd "$REPO" --schedule "30 3 * * *" $ENV
 
-openclaw cron add soulkiller:checkin-followup \
-  --command "$PYTHON -m soulkiller.checkin_followup" \
+openclaw cron add relic:checkin-followup \
+  --command "$PYTHON -m relic.checkin_followup" \
   --cwd "$REPO" --on-demand $ENV
 
 # Daily enrichment
-openclaw cron add soulkiller:entity-extract \
-  --command "$PYTHON -m soulkiller.entity_extract" \
+openclaw cron add relic:entity-extract \
+  --command "$PYTHON -m relic.entity_extract" \
   --cwd "$REPO" --schedule "0 4 * * *" $ENV
 
-openclaw cron add soulkiller:decisions \
-  --command "$PYTHON -m soulkiller.decisions" \
+openclaw cron add relic:decisions \
+  --command "$PYTHON -m relic.decisions" \
   --cwd "$REPO" --schedule "15 4 * * *" $ENV
 
-openclaw cron add soulkiller:healthcheck \
-  --command "$PYTHON -m soulkiller.healthcheck" \
+openclaw cron add relic:healthcheck \
+  --command "$PYTHON -m relic.healthcheck" \
   --cwd "$REPO" --schedule "0 4 * * *" $ENV
 
-openclaw cron add soulkiller:memory \
-  --command "$PYTHON -m soulkiller.memory" \
+openclaw cron add relic:memory \
+  --command "$PYTHON -m relic.memory" \
   --cwd "$REPO" --schedule "0 5 * * 0" $ENV
 
 # Weekly
-openclaw cron add soulkiller:liwc \
-  --command "$PYTHON -m soulkiller.liwc" \
+openclaw cron add relic:liwc \
+  --command "$PYTHON -m relic.liwc" \
   --cwd "$REPO" --schedule "0 3 * * 0" $ENV
 
-openclaw cron add soulkiller:stress-index \
-  --command "$PYTHON -m soulkiller.stress_index" \
+openclaw cron add relic:stress-index \
+  --command "$PYTHON -m relic.stress_index" \
   --cwd "$REPO" --schedule "0 6 * * 1" $ENV
 ```
 
@@ -163,7 +163,7 @@ For biofeedback, optional integrations, and all 13 monthly specialist analyzers 
 
 ```bash
 # Demo pipeline (no OpenClaw, no LLM required)
-python -m soulkiller.demo_runner --output-dir demo/generated
+python -m relic.demo_runner --output-dir demo/generated
 open demo/generated/demo_console.html
 
 # OpenClaw status
@@ -171,35 +171,35 @@ openclaw hooks status
 openclaw cron status
 
 # Inbox
-wc -l ~/.soulkiller/<subject-id>/inbox.jsonl
+wc -l ~/.relic/<subject-id>/inbox.jsonl
 ```
 
 ---
 
 ## From demo to live data
 
-The demo pipeline (`soulkiller-demo`) writes synthetic data into `demo/generated/soulkiller.db`.
-The live pipeline writes real data into `~/.soulkiller/<subject-id>/soulkiller.db`.
+The demo pipeline (`relic-demo`) writes synthetic data into `demo/generated/relic.db`.
+The live pipeline writes real data into `~/.relic/<subject-id>/relic.db`.
 These are separate files - the demo never touches your live database.
 
-To switch the webui from demo data to live data, change `SOULKILLER_DATA_DIR`:
+To switch the webui from demo data to live data, change `RELIC_DATA_DIR`:
 
 ```bash
 # demo data (synthetic, no OpenClaw required)
-SOULKILLER_DATA_DIR=demo/generated OPENCLAW_HOME=demo/generated python -m soulkiller.webui --port 8765
+RELIC_DATA_DIR=demo/generated OPENCLAW_HOME=demo/generated python -m relic.webui --port 8765
 
 # live data (requires installation + at least one extraction cycle)
-SOULKILLER_DATA_DIR=~/.soulkiller/<subject-id> python -m soulkiller.webui --port 8765
+RELIC_DATA_DIR=~/.relic/<subject-id> python -m relic.webui --port 8765
 ```
 
-If you installed via wizard, `.env` already has `SOULKILLER_DATA_DIR` set to your live directory:
+If you installed via wizard, `.env` already has `RELIC_DATA_DIR` set to your live directory:
 
 ```bash
-source .env && python -m soulkiller.webui --port 8765
+source .env && python -m relic.webui --port 8765
 ```
 
 The live database is populated by the cron pipeline. It will be empty until
-`soulkiller:extract` runs at least once and processes messages from `inbox.jsonl`.
+`relic:extract` runs at least once and processes messages from `inbox.jsonl`.
 
 ---
 
@@ -215,7 +215,7 @@ See [Adapters](docs/ADAPTERS.md) for how to wire up a provider.
 ## Import past messages (backfill)
 
 If you have existing messages you want the model to learn from, append them
-to `inbox.jsonl` in the format below. The `soulkiller:extract` cron will
+to `inbox.jsonl` in the format below. The `relic:extract` cron will
 process them on the next run.
 
 ```jsonl
@@ -223,5 +223,5 @@ process them on the next run.
 {"message_id":"msg-002","from":"telegram:<subject-id>","content":"...","channel_id":"telegram","received_at":"2026-01-02T09:15:00Z"}
 ```
 
-The `from` field must match `telegram:<SOULKILLER_SUBJECT_ID>` exactly.
+The `from` field must match `telegram:<RELIC_SUBJECT_ID>` exactly.
 `message_id` values must be unique across the file - duplicates are skipped.

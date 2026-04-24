@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Soulkiller installation wizard - Arasaka-style TUI.
+Relic installation wizard - Arasaka-style TUI.
 
-Guides you through connecting Soulkiller to your OpenClaw instance:
+Guides you through connecting Relic to your OpenClaw instance:
 subject configuration, runtime directory, hook compilation and registration,
 check-in schedule, past-message backfill, and cron setup.
 
@@ -82,11 +82,11 @@ def indent(text: str, n: int = 4) -> None:
 # ── Header ─────────────────────────────────────────────────────────────────────
 
 _LOGO = [
-    r" ____   ___  _   _ _     _  _____ _     _      _____ ____  ",
-    r"/ ___| / _ \| | | | |   | ||  ___| |   | |    | ____|  _ \ ",
-    r"\___ \| | | | | | | |   | || |_  | |   | |    |  _| | |_) |",
-    r" ___) | |_| | |_| | |___| ||  _| | |___| |___ | |___|  _ < ",
-    r"|____/ \___/ \___/|_____|_||_|   |_____|_____||_____|_| \_\\",
+    r" ____  _____ _     ___ ____ ",
+    r"|  _ \| ____| |   |_ _/ ___|",
+    r"| |_) |  _| | |    | | |    ",
+    r"|  _ < | |___| |___ | | |___",
+    r"|_| \_\_____|_____|___\____|",
 ]
 
 def header(step: int = 0, total: int = 0) -> None:
@@ -101,7 +101,7 @@ def header(step: int = 0, total: int = 0) -> None:
             tail = max(0, w - 4 - pad - len(line))
             print(f"  {GOLD}║{RST}{' ' * pad}{RED}{BOLD}{line}{RST}{' ' * tail}{GOLD}║{RST}")
     else:
-        logo = "SOULKILLER"
+        logo = "RELIC"
         pad = (w - 4 - len(logo)) // 2
         print(f"  {GOLD}║{RST}{' ' * pad}{RED}{BOLD}{logo}{RST}{' ' * (w - 4 - pad - len(logo))}{GOLD}║{RST}")
     print(f"  {GOLD}║{RST}{' ' * (w - 4)}{GOLD}║{RST}")
@@ -207,7 +207,7 @@ def step_welcome(state: State) -> None:
     header()
     indent(b("Installation Wizard"))
     nl()
-    indent(w("This wizard will guide you through configuring Soulkiller"))
+    indent(w("This wizard will guide you through configuring Relic"))
     indent(w("for your personal OpenClaw instance."))
     nl()
     hr("·")
@@ -216,7 +216,7 @@ def step_welcome(state: State) -> None:
     nl()
     for item in [
         "Subject identity and runtime data directory",
-        "OpenClaw hooks: soulkiller-capture · soulkiller-bootstrap",
+        "OpenClaw hooks: relic-capture · relic-bootstrap",
         "Check-in schedule (active hours and probe frequency)",
         "Past-message backfill - import existing signal into inbox",
         "Cron jobs: 6 core + 10 daily/weekly + 13 monthly specialist analyzers",
@@ -325,13 +325,13 @@ def step_datadir(state: State) -> None:
     header(3, TOTAL_STEPS)
     indent(b("Runtime Data Directory"))
     nl()
-    indent(m("Soulkiller stores its SQLite database, inbox, portraits, and logs here."))
+    indent(m("Relic stores its SQLite database, inbox, portraits, and logs here."))
     indent(m("This directory will be created if it does not exist."))
     nl()
     hr("·")
     nl()
 
-    default_dir = str(Path.home() / ".soulkiller" / state.subject_id)
+    default_dir = str(Path.home() / ".relic" / state.subject_id)
     raw = ask("Data directory path", default=default_dir)
     state.data_dir = str(Path(raw).expanduser().resolve())
     nl()
@@ -360,7 +360,7 @@ def step_openclaw(state: State) -> None:
     nl()
     indent(f"{GOLD}Hooks that will be registered:{RST}")
     nl()
-    for hook in ["soulkiller-capture", "soulkiller-bootstrap"]:
+    for hook in ["relic-capture", "relic-bootstrap"]:
         src = REPO_ROOT / "hooks" / hook
         exists = src.exists()
         icon = gr("✓") if exists else wa("⚠")
@@ -374,7 +374,7 @@ def step_checkin(state: State) -> None:
     header(5, TOTAL_STEPS)
     indent(b("Check-in Schedule"))
     nl()
-    indent(m("Soulkiller sends targeted personality-probe questions via your relational agent."))
+    indent(m("Relic sends targeted personality-probe questions via your relational agent."))
     indent(m("Configure when and how often probes are delivered."))
     nl()
     hr("·")
@@ -419,7 +419,7 @@ def step_integrations(state: State) -> None:
 
     indent(f"{GOLD}Passive observation  (relational agent){RST}")
     nl()
-    indent(m("If you have a relational agent in OpenClaw, Soulkiller can passively scan"))
+    indent(m("If you have a relational agent in OpenClaw, Relic can passively scan"))
     indent(m("its session transcripts for behavioral meta-signals every 6 hours."))
     nl()
     state.relational_agent = ask(
@@ -528,7 +528,7 @@ def step_backfill(state: State) -> None:
 
     nl()
     indent(m("Messages will be appended to inbox.jsonl in the data directory."))
-    indent(m("The soulkiller:extract cron will process them on first run (requires LLM)."))
+    indent(m("The relic:extract cron will process them on first run (requires LLM)."))
     nl()
 
     if state.backfill_count > 0:
@@ -586,21 +586,21 @@ def step_confirm(state: State) -> None:
     actions = [
         f"Create runtime directory  {MUT}{state.data_dir}{RST}",
         "Write .env",
-        "Compile + register hook: soulkiller-capture",
-        "Compile + register hook: soulkiller-bootstrap",
+        "Compile + register hook: relic-capture",
+        "Compile + register hook: relic-bootstrap",
     ]
     if state.run_backfill:
         actions.append(f"Import {state.backfill_count} messages → inbox.jsonl")
         if getattr(state, "run_backfill_preview", False):
             actions.append("Demo extraction preview (keyword heuristics)")
     for name, sched in [
-        ("soulkiller:extract",          "0 */2 * * *"),
-        ("soulkiller:checkin",          state.checkin_schedule),
-        ("soulkiller:passive-scan",     "0 */6 * * *"),
-        ("soulkiller:reply-extract",    "0 */6 * * *"),
-        ("soulkiller:synthesize",       "0 3 * * *"),
-        ("soulkiller:profile-sync",     "30 3 * * *"),
-        ("soulkiller:checkin-followup", "@manual"),
+        ("relic:extract",          "0 */2 * * *"),
+        ("relic:checkin",          state.checkin_schedule),
+        ("relic:passive-scan",     "0 */6 * * *"),
+        ("relic:reply-extract",    "0 */6 * * *"),
+        ("relic:synthesize",       "0 3 * * *"),
+        ("relic:profile-sync",     "30 3 * * *"),
+        ("relic:checkin-followup", "@manual"),
         ("+ 29 daily / weekly / monthly crons", "(see docs/CONFIGURATION.md)"),
     ]:
         actions.append(f"Create cron: {name}  {MUT}{sched}{RST}")
@@ -662,7 +662,7 @@ def step_install(state: State) -> None:
     indent(m("OpenClaw hooks"))
     nl()
 
-    for hook in ["soulkiller-capture", "soulkiller-bootstrap"]:
+    for hook in ["relic-capture", "relic-bootstrap"]:
         hook_dir = REPO_ROOT / "hooks" / hook
 
         # compile step (npm install + tsc if tsconfig present)
@@ -679,13 +679,13 @@ def step_install(state: State) -> None:
 
         # register with OpenClaw
         manual = (f"openclaw hooks enable {hook} --path {hook_dir}  "
-                  f"# SOULKILLER_SUBJECT_ID={state.subject_id}")
+                  f"# RELIC_SUBJECT_ID={state.subject_id}")
         task(
             f"Register hook: {hook}",
             lambda h=hook, hd=hook_dir, fb=manual: run_oc(
                 "hooks", "enable", h, "--path", str(hd),
-                "--env", f"SOULKILLER_SUBJECT_ID={state.subject_id}",
-                "--env", f"SOULKILLER_DATA_DIR={state.data_dir}",
+                "--env", f"RELIC_SUBJECT_ID={state.subject_id}",
+                "--env", f"RELIC_DATA_DIR={state.data_dir}",
                 manual=fb,
             ),
         )
@@ -725,7 +725,7 @@ def step_install(state: State) -> None:
         if getattr(state, "run_backfill_preview", False):
             def run_preview() -> None:
                 sys.path.insert(0, str(REPO_ROOT / "src"))
-                from soulkiller.demo_runner import _extract_synthetic_observations  # type: ignore
+                from relic.demo_runner import _extract_synthetic_observations  # type: ignore
                 inbox = Path(state.data_dir) / "inbox.jsonl"
                 messages = [
                     json.loads(l) for l in inbox.read_text(encoding="utf-8").splitlines()
@@ -756,15 +756,15 @@ def step_install(state: State) -> None:
     src_dir    = str(REPO_ROOT / "src")
     env_flags  = [
         f"PYTHONPATH={src_dir}",
-        f"SOULKILLER_DATA_DIR={state.data_dir}",
-        f"SOULKILLER_SUBJECT_ID={state.subject_id}",
-        f"SOULKILLER_SUBJECT_NAME={state.subject_name}",
-        f"SOULKILLER_FOLLOWUP_CRON=soulkiller:checkin-followup",
+        f"RELIC_DATA_DIR={state.data_dir}",
+        f"RELIC_SUBJECT_ID={state.subject_id}",
+        f"RELIC_SUBJECT_NAME={state.subject_name}",
+        f"RELIC_FOLLOWUP_CRON=relic:checkin-followup",
     ]
     if state.subject_telegram_id:
-        env_flags.append(f"SOULKILLER_TELEGRAM_ID={state.subject_telegram_id}")
+        env_flags.append(f"RELIC_TELEGRAM_ID={state.subject_telegram_id}")
     if state.relational_agent:
-        env_flags.append(f"SOULKILLER_RELATIONAL_AGENT={state.relational_agent}")
+        env_flags.append(f"RELIC_RELATIONAL_AGENT={state.relational_agent}")
 
     # name → (schedule, python module)
     # Full cron set - matches the whitepaper operational schedule.
@@ -772,47 +772,47 @@ def step_install(state: State) -> None:
     # but must exist as named crons so OpenClaw can invoke them by name.
     cron_defs: list[tuple[str, str, str]] = [
         # ── Core pipeline (always active) ────────────────────────────
-        ("soulkiller:extract",               "0 */2 * * *",          "soulkiller.extract"),
-        ("soulkiller:checkin",               state.checkin_schedule, "soulkiller.checkin"),
-        ("soulkiller:passive-scan",          "0 */6 * * *",          "soulkiller.passive_scan"),
-        ("soulkiller:reply-extract",         "0 */6 * * *",          "soulkiller.reply_extract"),
-        ("soulkiller:synthesize",            "0 3 * * *",            "soulkiller.synthesize"),
-        ("soulkiller:profile-sync",          "30 3 * * *",           "soulkiller.profile_sync"),
-        ("soulkiller:checkin-followup",      "@manual",              "soulkiller.checkin_followup"),
+        ("relic:extract",               "0 */2 * * *",          "relic.extract"),
+        ("relic:checkin",               state.checkin_schedule, "relic.checkin"),
+        ("relic:passive-scan",          "0 */6 * * *",          "relic.passive_scan"),
+        ("relic:reply-extract",         "0 */6 * * *",          "relic.reply_extract"),
+        ("relic:synthesize",            "0 3 * * *",            "relic.synthesize"),
+        ("relic:profile-sync",          "30 3 * * *",           "relic.profile_sync"),
+        ("relic:checkin-followup",      "@manual",              "relic.checkin_followup"),
         # ── Daily enrichment ─────────────────────────────────────────
-        ("soulkiller:entity-extract",        "0 4 * * *",            "soulkiller.entity_extract"),
-        ("soulkiller:decisions",             "15 4 * * *",           "soulkiller.decisions"),
-        ("soulkiller:healthcheck",           "0 4 * * *",            "soulkiller.healthcheck"),
-        ("soulkiller:memory",                "0 5 * * 0",            "soulkiller.memory"),
+        ("relic:entity-extract",        "0 4 * * *",            "relic.entity_extract"),
+        ("relic:decisions",             "15 4 * * *",           "relic.decisions"),
+        ("relic:healthcheck",           "0 4 * * *",            "relic.healthcheck"),
+        ("relic:memory",                "0 5 * * 0",            "relic.memory"),
         # ── Biofeedback (enable if hardware present) ─────────────────
-        ("soulkiller:biofeedback-pull",      "5 4 * * *",            "soulkiller.biofeedback"),
-        ("soulkiller:biofeedback-gadgetbridge", "10 4 * * *",        "soulkiller.biofeedback_gadgetbridge"),
-        ("soulkiller:biofeedback-gb-ingest", "@manual",              "soulkiller.biofeedback_gb_ingest"),
-        ("soulkiller:muse-aggregate",        "30 4 * * *",           "soulkiller.muse_aggregate"),
-        ("soulkiller:muse-recorder",         "@manual",              "soulkiller.muse_recorder"),
+        ("relic:biofeedback-pull",      "5 4 * * *",            "relic.biofeedback"),
+        ("relic:biofeedback-gadgetbridge", "10 4 * * *",        "relic.biofeedback_gadgetbridge"),
+        ("relic:biofeedback-gb-ingest", "@manual",              "relic.biofeedback_gb_ingest"),
+        ("relic:muse-aggregate",        "30 4 * * *",           "relic.muse_aggregate"),
+        ("relic:muse-recorder",         "@manual",              "relic.muse_recorder"),
         # ── Weekly analysis ───────────────────────────────────────────
-        ("soulkiller:liwc",                  "0 3 * * 0",            "soulkiller.liwc"),
-        ("soulkiller:stress-index",          "0 6 * * 1",            "soulkiller.stress_index"),
+        ("relic:liwc",                  "0 3 * * 0",            "relic.liwc"),
+        ("relic:stress-index",          "0 6 * * 1",            "relic.stress_index"),
         # ── Optional integrations ─────────────────────────────────────
-        ("soulkiller:budget-bridge",         "20 4 * * *",           "soulkiller.budget_bridge"),
-        ("soulkiller:voicenote",             "@manual",              "soulkiller.voicenote"),
-        ("soulkiller:domain-prober",         "@manual",              "soulkiller.domain_prober"),
-        ("soulkiller:backfill",              "@manual",              "soulkiller.backfill"),
-        ("soulkiller:motives",               "@manual",              "soulkiller.motives"),
+        ("relic:budget-bridge",         "20 4 * * *",           "relic.budget_bridge"),
+        ("relic:voicenote",             "@manual",              "relic.voicenote"),
+        ("relic:domain-prober",         "@manual",              "relic.domain_prober"),
+        ("relic:backfill",              "@manual",              "relic.backfill"),
+        ("relic:motives",               "@manual",              "relic.motives"),
         # ── Monthly specialist analyzers ──────────────────────────────
-        ("soulkiller:schemas",               "0 5 1 * *",            "soulkiller.schemas"),
-        ("soulkiller:goals",                 "30 5 1 * *",           "soulkiller.goals"),
-        ("soulkiller:sdt",                   "0 6 1 * *",            "soulkiller.sdt"),
-        ("soulkiller:portrait",              "0 6 1 * *",            "soulkiller.portrait"),
-        ("soulkiller:idiolect",              "0 4 1 * *",            "soulkiller.idiolect"),
-        ("soulkiller:caps",                  "30 5 2 * *",           "soulkiller.caps"),
-        ("soulkiller:attachment",            "0 5 3 * *",            "soulkiller.attachment"),
-        ("soulkiller:defenses",              "30 5 3 * *",           "soulkiller.defenses"),
-        ("soulkiller:narrative",             "0 6 3 * *",            "soulkiller.narrative"),
-        ("soulkiller:appraisal",             "30 4 5 * *",           "soulkiller.appraisal"),
-        ("soulkiller:mental-models",         "0 5 5 * *",            "soulkiller.mental_models"),
-        ("soulkiller:dual-process",          "30 5 5 * *",           "soulkiller.dual_process"),
-        ("soulkiller:constructs",            "0 6 5 * *",            "soulkiller.constructs"),
+        ("relic:schemas",               "0 5 1 * *",            "relic.schemas"),
+        ("relic:goals",                 "30 5 1 * *",           "relic.goals"),
+        ("relic:sdt",                   "0 6 1 * *",            "relic.sdt"),
+        ("relic:portrait",              "0 6 1 * *",            "relic.portrait"),
+        ("relic:idiolect",              "0 4 1 * *",            "relic.idiolect"),
+        ("relic:caps",                  "30 5 2 * *",           "relic.caps"),
+        ("relic:attachment",            "0 5 3 * *",            "relic.attachment"),
+        ("relic:defenses",              "30 5 3 * *",           "relic.defenses"),
+        ("relic:narrative",             "0 6 3 * *",            "relic.narrative"),
+        ("relic:appraisal",             "30 4 5 * *",           "relic.appraisal"),
+        ("relic:mental-models",         "0 5 5 * *",            "relic.mental_models"),
+        ("relic:dual-process",          "30 5 5 * *",           "relic.dual_process"),
+        ("relic:constructs",            "0 6 5 * *",            "relic.constructs"),
     ]
 
     for cron_name, schedule, module in cron_defs:
@@ -858,7 +858,7 @@ def step_done(state: State) -> None:
 
     next_steps = [
         ("Verify the demo pipeline",
-         "python -m soulkiller.demo_runner --output-dir demo/generated"),
+         "python -m relic.demo_runner --output-dir demo/generated"),
         ("Open the Arasaka demo console",
          "open demo/generated/demo_console.html"),
         ("Check hook status",
@@ -897,7 +897,7 @@ def step_done(state: State) -> None:
 
     hr("═")
     nl()
-    center(f"{GOLD}SECURE YOUR SOUL{RST}  {GOLDD}·{RST}  {MUT}荒坂 CORP · SOULKILLER{RST}")
+    center(f"{GOLD}SECURE YOUR SOUL{RST}  {GOLDD}·{RST}  {MUT}荒坂 CORP · RELIC{RST}")
     nl()
 
 
@@ -905,54 +905,54 @@ def step_done(state: State) -> None:
 
 def _build_env(state: State) -> str:
     lines = [
-        "# Soulkiller - generated by install.py",
+        "# Relic - generated by install.py",
         f"# OpenClaw {TESTED_OPENCLAW} · {time.strftime('%Y-%m-%d')}",
         "",
         "# ── Subject ──────────────────────────────────────────────",
-        f"SOULKILLER_SUBJECT_ID={state.subject_id}",
-        f"SOULKILLER_SUBJECT_NAME={state.subject_name}",
+        f"RELIC_SUBJECT_ID={state.subject_id}",
+        f"RELIC_SUBJECT_NAME={state.subject_name}",
     ]
     if state.subject_telegram_id:
-        lines.append(f"SOULKILLER_TELEGRAM_ID={state.subject_telegram_id}")
+        lines.append(f"RELIC_TELEGRAM_ID={state.subject_telegram_id}")
     lines += [
         "",
         "# ── Paths ────────────────────────────────────────────────",
-        f"SOULKILLER_DATA_DIR={state.data_dir}",
+        f"RELIC_DATA_DIR={state.data_dir}",
         f"OPENCLAW_HOME={state.openclaw_home}",
         f"OPENCLAW_BIN={state.openclaw_bin}",
         "",
         "# ── Check-in schedule ───────────────────────────────────",
-        f"SOULKILLER_CHECKIN_HOUR_START={state.checkin_hour_start}",
-        f"SOULKILLER_CHECKIN_HOUR_END={state.checkin_hour_end}",
-        f"SOULKILLER_CHECKIN_INTERVAL_MIN={state.checkin_interval_min}",
+        f"RELIC_CHECKIN_HOUR_START={state.checkin_hour_start}",
+        f"RELIC_CHECKIN_HOUR_END={state.checkin_hour_end}",
+        f"RELIC_CHECKIN_INTERVAL_MIN={state.checkin_interval_min}",
         f"# Resulting cron: {state.checkin_schedule}",
         "",
         "# ── Cron identifiers ────────────────────────────────────",
-        "SOULKILLER_FOLLOWUP_CRON=soulkiller:checkin-followup",
+        "RELIC_FOLLOWUP_CRON=relic:checkin-followup",
         "",
         "# ── Optional integrations ───────────────────────────────",
-        f"SOULKILLER_ENABLE_TELEGRAM={'true' if state.enable_telegram else 'false'}",
-        f"SOULKILLER_ENABLE_BIOFEEDBACK={'true' if state.enable_biofeedback else 'false'}",
+        f"RELIC_ENABLE_TELEGRAM={'true' if state.enable_telegram else 'false'}",
+        f"RELIC_ENABLE_BIOFEEDBACK={'true' if state.enable_biofeedback else 'false'}",
     ]
     if state.relational_agent:
         lines += [
             "",
             "# ── Relational agent ────────────────────────────────",
-            f"SOULKILLER_RELATIONAL_AGENT={state.relational_agent}",
+            f"RELIC_RELATIONAL_AGENT={state.relational_agent}",
         ]
         if state.relational_agent_ids:
-            lines.append(f"SOULKILLER_RELATIONAL_AGENT_IDS={state.relational_agent_ids}")
+            lines.append(f"RELIC_RELATIONAL_AGENT_IDS={state.relational_agent_ids}")
     lines += [
         "",
         "# ── LLM provider ────────────────────────────────────────",
-        "# Set these to connect Soulkiller to your LLM backend.",
+        "# Set these to connect Relic to your LLM backend.",
         "# See docs/ADAPTERS.md for the implementation contract.",
-        "SOULKILLER_MODEL=",
-        "SOULKILLER_PROVIDER=",
+        "RELIC_MODEL=",
+        "RELIC_PROVIDER=",
         "",
         "# ── Biofeedback (Zepp/Amazfit) ──────────────────────────",
-        "SOULKILLER_ZEPP_EMAIL=",
-        "SOULKILLER_ZEPP_PASSWORD=",
+        "RELIC_ZEPP_EMAIL=",
+        "RELIC_ZEPP_PASSWORD=",
     ]
     if state.enable_telegram or state.enable_biofeedback:
         lines += [
@@ -970,7 +970,7 @@ def _build_env(state: State) -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Soulkiller installation wizard.",
+        description="Relic installation wizard.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(

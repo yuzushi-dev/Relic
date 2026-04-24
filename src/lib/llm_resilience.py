@@ -1,7 +1,7 @@
-"""llm_resilience - resilient LLM call wrapper for Soulkiller OSS.
+"""llm_resilience - resilient LLM call wrapper for Relic OSS.
 
 Wraps ProviderLLMClient with exponential backoff retry logic.
-All soulkiller_* modules that need LLM completions import from here.
+All relic_* modules that need LLM completions import from here.
 
 Usage:
     from lib.llm_resilience import chat_completion_content
@@ -35,7 +35,7 @@ def chat_completion_content(
     max_tokens: int = 2048,
     temperature: float = 0.2,
     timeout: int = 60,
-    title: str = "soulkiller",
+    title: str = "relic",
     fallback_models: list[str] | None = None,
     allow_reasoning_fallback: bool = True,
 ) -> tuple[str, dict[str, Any]]:

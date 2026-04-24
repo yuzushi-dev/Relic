@@ -1,11 +1,15 @@
+import os
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parents[1] / "src" / "soulkiller"
+ROOT = Path(__file__).resolve().parents[1] / "src" / "relic"
 FORBIDDEN_MARKERS = [
-    "/home/example-user",
-    "123456789",
     "biofeedback_creds.json",
+    *[
+        marker
+        for marker in os.environ.get("RELIC_PRIVATE_MARKERS", "").splitlines()
+        if marker.strip()
+    ],
 ]
 
 

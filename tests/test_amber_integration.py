@@ -2,7 +2,7 @@
 
 Skipped automatically if the amber package is not installed / not on PYTHONPATH.
 Run with:
-    PYTHONPATH=src:../Amber-Soulkiller python3 -m pytest tests/test_amber_integration.py
+    PYTHONPATH=src:../Amber-Relic python3 -m pytest tests/test_amber_integration.py
 """
 
 from __future__ import annotations
@@ -14,8 +14,8 @@ from pathlib import Path
 
 import pytest
 
-# Try to locate Amber-Soulkiller next to soulkiller-oss
-_AMBER_ROOT = Path(__file__).resolve().parents[2] / "Amber-Soulkiller"
+# Try to locate Amber-Relic next to relic-oss
+_AMBER_ROOT = Path(__file__).resolve().parents[2] / "Amber-Relic"
 if _AMBER_ROOT.exists() and str(_AMBER_ROOT) not in sys.path:
     sys.path.insert(0, str(_AMBER_ROOT))
 
@@ -72,7 +72,7 @@ def test_env_var_selects_amber_provider():
     from lib.memory_provider import load_memory_provider
 
     with tempfile.TemporaryDirectory() as tmp:
-        os.environ["SOULKILLER_MEMORY_PROVIDER"] = "amber"
+        os.environ["RELIC_MEMORY_PROVIDER"] = "amber"
         os.environ["AMBER_DATA_DIR"] = tmp
         provider = load_memory_provider()
         assert type(provider).__name__ == "AmberMemoryProvider"

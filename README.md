@@ -330,6 +330,7 @@ Anthropic and OpenAI are also supported. See [docs/ADAPTERS.md](docs/ADAPTERS.md
 | [INSTALL.md](INSTALL.md) | Prerequisites, wizard, manual setup, backfill |
 | [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | Every env var with examples and directory layout |
 | [docs/ADAPTERS.md](docs/ADAPTERS.md) | How to connect an LLM provider (Anthropic, OpenAI, Ollama, OpenClaw) |
+| [docs/architecture/RELIC.md](docs/architecture/RELIC.md) | Full pipeline internals |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Dev setup, adding crons, sanitization rules, PR process |
 
 ---

@@ -1,4 +1,4 @@
-"""Minimal OpenClaw client shim for Soulkiller OSS.
+"""Minimal OpenClaw client shim for Relic OSS.
 
 In production, OpenClaw provides a full IPC client.
 This stub raises NotImplementedError so callers fail clearly.
@@ -19,7 +19,7 @@ class OpenClawClient:
     def run_agent_json(self, agent: str, message: str, thinking: str = "low") -> dict[str, Any]:
         """Send a message to an agent and return the JSON payload."""
         if not agent:
-            raise ValueError("SOULKILLER_RELATIONAL_AGENT is not configured")
+            raise ValueError("RELIC_RELATIONAL_AGENT is not configured")
         result = subprocess.run(
             [self.bin_path, "agent", "run", agent, "--message", message,
              "--thinking", thinking, "--output", "json"],

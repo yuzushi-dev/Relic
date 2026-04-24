@@ -8,7 +8,7 @@
  * Layer 1 (zstd archival), Layer 2 (schema codes), Layer 3 (macro dict)
  * sono omessi intenzionalmente: per gli hook serve solo il retrieval query-aware.
  *
- * Riduzione tipica su file Soulkiller: 80-98% su query targeted.
+ * Riduzione tipica su file Relic: 80-98% su query targeted.
  * Fallback: restituisce l'intero contenuto se nessun record supera il cutoff.
  */
 

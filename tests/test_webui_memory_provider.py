@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from fastapi.testclient import TestClient
-from soulkiller.webui import app
+from relic.webui import app
 
 @pytest.fixture
 def client():
@@ -20,7 +20,7 @@ def test_provider_status_returns_provider_name(client):
     data = resp.json()
     assert "provider" in data
     assert "healthy" in data
-    assert data["provider"] in ("null", "soulkiller", "amber", "error")
+    assert data["provider"] in ("null", "relic", "amber", "error")
 
 def test_inspect_returns_bundle_shape(client):
     resp = client.post("/api/memory/provider/inspect", json={
