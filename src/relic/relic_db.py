@@ -836,6 +836,38 @@ def init_db(path: Path | None = None) -> None:
             "CREATE INDEX IF NOT EXISTS idx_inquiry_evidence_case ON inquiry_evidence(case_id)"
         )
 
+        # Migration: biofeedback correlation tables (IMP-29)
+        conn.executescript("""
+            CREATE TABLE IF NOT EXISTS biofeedback_correlations (
+                id               INTEGER PRIMARY KEY AUTOINCREMENT,
+                signal_type      TEXT    NOT NULL,
+                facet_id         TEXT    NOT NULL,
+                lag_days         INTEGER NOT NULL,
+                n_pairs          INTEGER NOT NULL,
+                n_eff            REAL    NOT NULL,
+                rho              REAL    NOT NULL,
+                rho_ci_low       REAL    NOT NULL,
+                rho_ci_high      REAL    NOT NULL,
+                p_value          REAL    NOT NULL,
+                correlation_status TEXT  NOT NULL,
+                window_start     TEXT    NOT NULL,
+                window_end       TEXT    NOT NULL,
+                previous_status  TEXT,
+                computed_at      TEXT    NOT NULL
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_biofeedback_corr_key
+                ON biofeedback_correlations(signal_type, facet_id, lag_days);
+
+            CREATE TABLE IF NOT EXISTS biofeedback_correlation_readiness (
+                signal_type  TEXT    NOT NULL,
+                facet_id     TEXT    NOT NULL,
+                lag_days     INTEGER NOT NULL,
+                n_available  INTEGER NOT NULL,
+                last_updated TEXT    NOT NULL,
+                PRIMARY KEY (signal_type, facet_id, lag_days)
+            );
+        """)
+
         conn.commit()
         # Log to stderr to avoid polluting stdout when used as CLI
         import sys as _sys
