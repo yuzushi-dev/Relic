@@ -1,4 +1,4 @@
-"""Minimal structured logging shim for Soulkiller OSS."""
+"""Minimal structured logging shim for Relic OSS."""
 from __future__ import annotations
 
 import json

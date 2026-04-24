@@ -5,7 +5,7 @@
 
 import { readFileSync } from "node:fs";
 
-const SUBJECT_FROM = `telegram:${process.env.SOULKILLER_SUBJECT_ID || "demo-subject"}`;
+const SUBJECT_FROM = `telegram:${process.env.RELIC_SUBJECT_ID || "demo-subject"}`;
 
 interface InboxEntry {
   message_id: string;

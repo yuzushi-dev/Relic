@@ -1,12 +1,12 @@
-# Contributing to Soulkiller
+# Contributing to Relic
 
 ---
 
 ## Setup
 
 ```bash
-git clone https://github.com/yuzushi-dev/soulkiller
-cd soulkiller
+git clone https://github.com/yuzushi-dev/relic
+cd relic
 pip install -e .
 ```
 
@@ -44,11 +44,11 @@ All 15 tests must pass before submitting a PR. The test suite includes:
 ## Project structure
 
 ```
-src/soulkiller/          Core Python modules (soulkiller_*.py) + cron entrypoints
+src/relic/          Core Python modules (relic_*.py) + cron entrypoints
 src/lib/                 Runtime shims: config, log, LLM client, OpenClaw client
 hooks/                   OpenClaw integration hooks (TypeScript)
-  soulkiller-capture/    Message capture + delivery tracking
-  soulkiller-bootstrap/  PORTRAIT.md injection into agent sessions
+  relic-capture/    Message capture + delivery tracking
+  relic-bootstrap/  PORTRAIT.md injection into agent sessions
   shared/                Shared TS utilities (SMELT retrieval, last-message)
 docs/                    Whitepaper, architecture, configuration, adapter docs
 demo/                    Synthetic fixtures and expected demo outputs
@@ -60,19 +60,19 @@ install.py               Arasaka-style TUI installation wizard
 
 ## Adding a new cron
 
-Every cron is a thin entrypoint module in `src/soulkiller/` that imports and calls
-`main()` from the corresponding `soulkiller_*.py` module:
+Every cron is a thin entrypoint module in `src/relic/` that imports and calls
+`main()` from the corresponding `relic_*.py` module:
 
 ```python
-# src/soulkiller/my_cron.py
-"""Cron entrypoint: soulkiller:my-cron
+# src/relic/my_cron.py
+"""Cron entrypoint: relic:my-cron
 
-Invoked as: python -m soulkiller.my_cron
+Invoked as: python -m relic.my_cron
 Schedule:   0 5 * * *
 
 One-line description of what this cron does.
 """
-from soulkiller.soulkiller_my_module import main
+from relic.relic_my_module import main
 
 if __name__ == "__main__":
     main()
@@ -118,7 +118,7 @@ new pattern to watch for, add it there.
 1. Fork the repo and create a branch from `main`
 2. Make your changes
 3. Run `python -m pytest tests/ -v` - all tests must pass
-4. Run `python -m soulkiller.demo_runner --output-dir /tmp/sk_demo` - demo must complete
+4. Run `python -m relic.demo_runner --output-dir /tmp/sk_demo` - demo must complete
 5. Open a PR against `main` with a description of what and why
 
 There is no formal style guide. Match the style of the file you are editing.

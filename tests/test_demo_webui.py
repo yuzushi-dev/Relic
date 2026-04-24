@@ -1,7 +1,7 @@
 import json
 
-from soulkiller.demo_runner import run_demo
-from soulkiller.demo_webui import build_demo_console, write_all_demo_variants
+from relic.demo_runner import run_demo
+from relic.demo_webui import build_demo_console, write_all_demo_variants
 
 
 def test_demo_webui_builds_demo_console_html(tmp_path):
@@ -9,7 +9,7 @@ def test_demo_webui_builds_demo_console_html(tmp_path):
 
     html = build_demo_console(tmp_path)
 
-    assert "Soulkiller" in html
+    assert "Relic" in html
     assert "ENGRAMMATIC TRANSFER SYSTEM" in html
     assert "Demo Subject" in html
     assert "Behavioral Signal Snapshot" in html
@@ -23,7 +23,7 @@ def test_demo_webui_builds_console_from_demo_artifacts(tmp_path):
     summary = json.loads((tmp_path / "summary.json").read_text(encoding="utf-8"))
 
     assert summary["subject_name"] == "Demo Subject"
-    assert "# Soulkiller - Personality Model" in html
+    assert "# Relic - Personality Model" in html
     assert "# Portrait - Demo Subject" in html
     assert "event_log.sample.jsonl" in html
     assert "delivery_log.sample.jsonl" in html

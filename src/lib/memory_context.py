@@ -1,7 +1,7 @@
-"""memory_context - Soulkiller native operational memory layer.
+"""memory_context - Relic native operational memory layer.
 
 Builds a compact, psychologically-grounded context bundle for agent sessions
-by reading directly from Soulkiller's analytical database.
+by reading directly from Relic's analytical database.
 
 Sources (in priority order):
   hypotheses      - cross-facet behavioral patterns, confidence-scored
@@ -19,15 +19,15 @@ Design principles:
   - QueryRouter selects the right psychological dimensions for the query
 
 This module implements the MemoryProvider protocol defined in
-lib.memory_provider so it can be used as the native Soulkiller provider
+lib.memory_provider so it can be used as the native Relic provider
 without requiring any external package.
 
 Usage
 -----
     import sqlite3
-    from lib.memory_context import MemoryContextBuilder, SoulkillerMemoryProvider
+    from lib.memory_context import MemoryContextBuilder, RelicMemoryProvider
 
-    db = sqlite3.connect("soulkiller.db")
+    db = sqlite3.connect("relic.db")
     db.row_factory = sqlite3.Row
     builder = MemoryContextBuilder(db)
     ctx = builder.build(query_text="current priorities", agent_role="assistant")
@@ -149,7 +149,7 @@ class QueryRouter:
     """Routes a session query to the relevant psychological dimensions.
 
     Args:
-        db: sqlite3.Connection to soulkiller.db.
+        db: sqlite3.Connection to relic.db.
     """
 
     def __init__(self, db: sqlite3.Connection) -> None:
@@ -226,7 +226,7 @@ class DriftRetrieval:
     finding tensions and structural changes.
 
     Args:
-        db: sqlite3.Connection to soulkiller.db.
+        db: sqlite3.Connection to relic.db.
     """
 
     def __init__(self, db: sqlite3.Connection) -> None:
@@ -338,10 +338,10 @@ class DriftRetrieval:
 # ---------------------------------------------------------------------------
 
 class MemoryContextBuilder:
-    """Builds an operational memory context from Soulkiller's analytical data.
+    """Builds an operational memory context from Relic's analytical data.
 
     Args:
-        db:              sqlite3.Connection to soulkiller.db.
+        db:              sqlite3.Connection to relic.db.
         min_confidence:  Minimum confidence to include an item (default 0.6).
     """
 
@@ -529,17 +529,17 @@ class MemoryContextBuilder:
 
 
 # ---------------------------------------------------------------------------
-# SoulkillerMemoryProvider - implements MemoryProvider protocol
+# RelicMemoryProvider - implements MemoryProvider protocol
 # ---------------------------------------------------------------------------
 
-class SoulkillerMemoryProvider:
-    """Native Soulkiller implementation of the MemoryProvider protocol.
+class RelicMemoryProvider:
+    """Native Relic implementation of the MemoryProvider protocol.
 
-    Reads from a soulkiller.db SQLite connection and produces a MemoryBundle
+    Reads from a relic.db SQLite connection and produces a MemoryBundle
     compatible with lib.memory_provider without requiring the Amber package.
 
     Args:
-        db:              sqlite3.Connection to soulkiller.db.
+        db:              sqlite3.Connection to relic.db.
         min_confidence:  Minimum confidence threshold (default 0.6).
     """
 
@@ -559,7 +559,7 @@ class SoulkillerMemoryProvider:
         session_context: dict[str, Any],
         limit: int = 12,
     ):
-        """Return a MemoryBundle derived from Soulkiller's analytical model."""
+        """Return a MemoryBundle derived from Relic's analytical model."""
         from lib.memory_provider import MemoryBundle, MemoryItem
 
         ctx = self._builder.build(
@@ -593,8 +593,8 @@ class SoulkillerMemoryProvider:
         title: str = "",
         importance: float = 0.5,
     ) -> None:
-        # Not applicable for native Soulkiller provider - summaries are
-        # managed by soulkiller_synthesizer
+        # Not applicable for native Relic provider - summaries are
+        # managed by relic_synthesizer
         pass
 
     def review_memory_item(
@@ -603,17 +603,17 @@ class SoulkillerMemoryProvider:
         action: str,
         note: str = "",
     ) -> None:
-        # Review loop goes through Soulkiller's corrections table
+        # Review loop goes through Relic's corrections table
         pass
 
     def health_check(self):
-        """Check connectivity to soulkiller.db."""
+        """Check connectivity to relic.db."""
         from lib.memory_provider import ProviderStatus
         try:
             self._db.execute("SELECT 1 FROM hypotheses LIMIT 1")
-            return ProviderStatus(healthy=True, provider_name="soulkiller")
+            return ProviderStatus(healthy=True, provider_name="relic")
         except Exception as exc:
-            return ProviderStatus(healthy=False, provider_name="soulkiller", detail=str(exc))
+            return ProviderStatus(healthy=False, provider_name="relic", detail=str(exc))
 
 
 def _category_to_memory_type(category: str, facet_category: str | None) -> str:

@@ -51,28 +51,28 @@ jobs:
 
           entrypoints = [
               # core
-              "soulkiller.extract", "soulkiller.checkin", "soulkiller.passive_scan",
-              "soulkiller.reply_extract", "soulkiller.synthesize", "soulkiller.profile_sync",
-              "soulkiller.checkin_followup",
+              "relic.extract", "relic.checkin", "relic.passive_scan",
+              "relic.reply_extract", "relic.synthesize", "relic.profile_sync",
+              "relic.checkin_followup",
               # daily
-              "soulkiller.entity_extract", "soulkiller.decisions", "soulkiller.healthcheck",
-              "soulkiller.memory",
+              "relic.entity_extract", "relic.decisions", "relic.healthcheck",
+              "relic.memory",
               # biofeedback
-              "soulkiller.biofeedback", "soulkiller.biofeedback_gadgetbridge",
-              "soulkiller.biofeedback_gb_ingest", "soulkiller.muse_aggregate",
-              "soulkiller.muse_recorder",
+              "relic.biofeedback", "relic.biofeedback_gadgetbridge",
+              "relic.biofeedback_gb_ingest", "relic.muse_aggregate",
+              "relic.muse_recorder",
               # weekly
-              "soulkiller.liwc", "soulkiller.stress_index",
+              "relic.liwc", "relic.stress_index",
               # optional
-              "soulkiller.budget_bridge", "soulkiller.voicenote", "soulkiller.domain_prober",
-              "soulkiller.backfill", "soulkiller.motives",
+              "relic.budget_bridge", "relic.voicenote", "relic.domain_prober",
+              "relic.backfill", "relic.motives",
               # monthly
-              "soulkiller.schemas", "soulkiller.goals", "soulkiller.sdt", "soulkiller.portrait",
-              "soulkiller.idiolect", "soulkiller.caps", "soulkiller.attachment",
-              "soulkiller.defenses", "soulkiller.narrative", "soulkiller.appraisal",
-              "soulkiller.mental_models", "soulkiller.dual_process", "soulkiller.constructs",
+              "relic.schemas", "relic.goals", "relic.sdt", "relic.portrait",
+              "relic.idiolect", "relic.caps", "relic.attachment",
+              "relic.defenses", "relic.narrative", "relic.appraisal",
+              "relic.mental_models", "relic.dual_process", "relic.constructs",
               # demo
-              "soulkiller.demo_runner",
+              "relic.demo_runner",
           ]
 
           failed = []

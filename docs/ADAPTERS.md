@@ -1,8 +1,8 @@
 # Adapters
 
-Soulkiller's extraction, check-in, and synthesis crons all call an LLM via
+Relic's extraction, check-in, and synthesis crons all call an LLM via
 `ProviderLLMClient` in `src/lib/provider_llm_client.py`. The client dispatches
-to the correct backend based on `SOULKILLER_PROVIDER` (or inferred from the
+to the correct backend based on `RELIC_PROVIDER` (or inferred from the
 model name). No code changes needed - just set env vars.
 
 ---
@@ -23,13 +23,13 @@ ollama pull llama3              # or any supported model
 
 ```env
 # .env
-SOULKILLER_MODEL=llama3
-SOULKILLER_PROVIDER=ollama
+RELIC_MODEL=llama3
+RELIC_PROVIDER=ollama
 OLLAMA_BASE_URL=http://localhost:11434   # default, can omit
 ```
 
-If `SOULKILLER_PROVIDER` is not set and the model name is not recognized,
-Ollama is the fallback - so `SOULKILLER_MODEL=llama3` alone is enough.
+If `RELIC_PROVIDER` is not set and the model name is not recognized,
+Ollama is the fallback - so `RELIC_MODEL=llama3` alone is enough.
 
 ### Anthropic (Claude)
 
@@ -39,8 +39,8 @@ export ANTHROPIC_API_KEY=sk-ant-...
 ```
 
 ```env
-SOULKILLER_MODEL=claude-opus-4-6
-SOULKILLER_PROVIDER=anthropic
+RELIC_MODEL=claude-opus-4-6
+RELIC_PROVIDER=anthropic
 ```
 
 ### OpenAI (GPT / o-series)
@@ -51,8 +51,8 @@ export OPENAI_API_KEY=sk-...
 ```
 
 ```env
-SOULKILLER_MODEL=gpt-4o
-SOULKILLER_PROVIDER=openai
+RELIC_MODEL=gpt-4o
+RELIC_PROVIDER=openai
 ```
 
 ### OpenClaw (delegates to CLI)
@@ -60,9 +60,9 @@ SOULKILLER_PROVIDER=openai
 If your OpenClaw instance manages model access:
 
 ```env
-SOULKILLER_MODEL=claude-opus-4-6        # passed to openclaw agent run
-SOULKILLER_PROVIDER=openclaw
-SOULKILLER_RELATIONAL_AGENT=my-agent   # optional: specific agent to use
+RELIC_MODEL=claude-opus-4-6        # passed to openclaw agent run
+RELIC_PROVIDER=openclaw
+RELIC_RELATIONAL_AGENT=my-agent   # optional: specific agent to use
 OPENCLAW_BIN=openclaw                   # path to binary
 ```
 
@@ -70,7 +70,7 @@ OPENCLAW_BIN=openclaw                   # path to binary
 
 ## Provider inference
 
-If `SOULKILLER_PROVIDER` is not set, the client infers the provider from the
+If `RELIC_PROVIDER` is not set, the client infers the provider from the
 model name:
 
 | Model prefix | Inferred provider |
@@ -78,7 +78,7 @@ model name:
 | `claude-*` | `anthropic` |
 | `gpt-*`, `o1-*`, `o3-*`, `o4-*` | `openai` |
 | `llama*`, `mistral*`, `gemma*`, `phi*`, `qwen*`, `deepseek*` | `ollama` |
-| anything else | error - set `SOULKILLER_PROVIDER` explicitly |
+| anything else | error - set `RELIC_PROVIDER` explicitly |
 
 ---
 
@@ -86,12 +86,12 @@ model name:
 
 | Cron | Purpose | Typical prompt length |
 |---|---|---|
-| `soulkiller:extract` | Analyze a message for personality signals → structured observations | 400–800 tokens |
-| `soulkiller:checkin` | Generate a natural check-in question targeting a specific facet | 300–600 tokens |
-| `soulkiller:passive-scan` | Extract behavioral meta-signals from session transcripts | 600–1200 tokens |
-| `soulkiller:synthesize` | Cross-facet hypothesis generation from accumulated observations | 800–2000 tokens |
+| `relic:extract` | Analyze a message for personality signals → structured observations | 400–800 tokens |
+| `relic:checkin` | Generate a natural check-in question targeting a specific facet | 300–600 tokens |
+| `relic:passive-scan` | Extract behavioral meta-signals from session transcripts | 600–1200 tokens |
+| `relic:synthesize` | Cross-facet hypothesis generation from accumulated observations | 800–2000 tokens |
 
-`soulkiller:profile-sync` does not call the LLM - it formats existing data.
+`relic:profile-sync` does not call the LLM - it formats existing data.
 
 ---
 
@@ -110,7 +110,7 @@ print(c.complete('Reply with exactly: adapter ok'))
 Run the demo pipeline (no LLM, no network) to confirm imports are clean:
 
 ```bash
-python -m soulkiller.demo_runner --output-dir demo/generated
+python -m relic.demo_runner --output-dir demo/generated
 ```
 
 ---

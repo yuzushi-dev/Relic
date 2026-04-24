@@ -1,6 +1,6 @@
-"""Tests for MemoryContextBuilder - Soulkiller native memory layer.
+"""Tests for MemoryContextBuilder - Relic native memory layer.
 
-Reads from hypotheses, traits, facets, entities in soulkiller.db and
+Reads from hypotheses, traits, facets, entities in relic.db and
 produces a compact, psychologically-grounded context bundle for agents.
 
 No LLM required. No external deps beyond stdlib.
@@ -11,7 +11,7 @@ Covers:
 - Max item cap enforced
 - QueryRouter selects relevant psychological dimensions per query
 - DriftRetrieval expands from hypotheses to related facets
-- SoulkillerMemoryProvider satisfies MemoryProvider protocol
+- RelicMemoryProvider satisfies MemoryProvider protocol
 - Empty db returns gracefully
 """
 
@@ -288,18 +288,18 @@ def test_empty_db_drift_returns_empty(empty_db):
 
 
 # ---------------------------------------------------------------------------
-# SoulkillerMemoryProvider
+# RelicMemoryProvider
 # ---------------------------------------------------------------------------
 
-def test_soulkiller_provider_satisfies_memory_provider_protocol(populated_db):
-    from lib.memory_context import SoulkillerMemoryProvider
-    provider = SoulkillerMemoryProvider(db=populated_db)
+def test_relic_provider_satisfies_memory_provider_protocol(populated_db):
+    from lib.memory_context import RelicMemoryProvider
+    provider = RelicMemoryProvider(db=populated_db)
     assert isinstance(provider, MemoryProvider)
 
 
-def test_soulkiller_provider_returns_bundle(populated_db):
-    from lib.memory_context import SoulkillerMemoryProvider
-    provider = SoulkillerMemoryProvider(db=populated_db)
+def test_relic_provider_returns_bundle(populated_db):
+    from lib.memory_context import RelicMemoryProvider
+    provider = RelicMemoryProvider(db=populated_db)
     bundle = provider.get_operational_memory(
         subject_id="demo-subject",
         query_text="current psychological state",
@@ -310,12 +310,12 @@ def test_soulkiller_provider_returns_bundle(populated_db):
     assert hasattr(bundle, "priorities")
 
 
-def test_soulkiller_provider_health_check(populated_db):
-    from lib.memory_context import SoulkillerMemoryProvider
-    provider = SoulkillerMemoryProvider(db=populated_db)
+def test_relic_provider_health_check(populated_db):
+    from lib.memory_context import RelicMemoryProvider
+    provider = RelicMemoryProvider(db=populated_db)
     status = provider.health_check()
     assert status.healthy is True
-    assert status.provider_name == "soulkiller"
+    assert status.provider_name == "relic"
 
 
 def test_format_for_injection(populated_db):

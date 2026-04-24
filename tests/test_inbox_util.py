@@ -1,4 +1,4 @@
-"""Tests for soulkiller.inbox - generic inbox.jsonl append utility."""
+"""Tests for relic.inbox - generic inbox.jsonl append utility."""
 import json
 import sys
 from pathlib import Path
@@ -6,7 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from soulkiller.inbox import append_to_inbox
+from relic.inbox import append_to_inbox
 
 
 def test_append_creates_file(tmp_path):

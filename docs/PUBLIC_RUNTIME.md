@@ -19,6 +19,6 @@ The OSS repo uses public, demo-safe runtime artifact names instead of the origin
 ## Public Workflow
 
 1. Configure the demo environment from `demo/config.example.env`.
-2. Run `python -m soulkiller.demo_runner --output-dir demo/generated`.
+2. Run `python -m relic.demo_runner --output-dir demo/generated`.
 3. Inspect `model_profile.md`, `model_portrait.md`, and `summary.json`.
 4. Use the generated files for screenshots, examples, and reproducible verification.
