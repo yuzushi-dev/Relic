@@ -41,15 +41,15 @@
 
 Relic is a framework for longitudinal behavioral modeling of individual subjects, organized around a single research question:
 
-> Can an AI system build a deep, structured model of how a person thinks and behaves over time — remaining inspectable, theoretically grounded, and continuously updated — without requiring clinical access or invasive instrumentation?
+> Can an AI system build a deep, structured model of how a person thinks and behaves over time, remaining inspectable, theoretically grounded, and continuously updated, without requiring clinical access or invasive instrumentation?
 
 The system accumulates behavioral signal across five stages:
 
-1. **Capture** — messages, sessions, biofeedback, voice notes
-2. **Extract** — LLM-driven analysis into 60 structured personality facets
-3. **Accumulate** — weighted observations with confidence scores and temporal decay
-4. **Synthesize** — trait positions, cross-facet hypotheses, narrative portrait
-5. **Expose** — PORTRAIT.md injected into agent sessions at bootstrap
+1. **Capture**: messages, sessions, biofeedback, voice notes
+2. **Extract**: LLM-driven analysis into 60 structured personality facets
+3. **Accumulate**: weighted observations with confidence scores and temporal decay
+4. **Synthesize**: trait positions, cross-facet hypotheses, narrative portrait
+5. **Expose**: PORTRAIT.md injected into agent sessions at bootstrap
 
 The output is not a score. It is a continuously deepening behavioral portrait grounded in psychological theory.
 
@@ -59,12 +59,12 @@ The output is not a score. It is a continuously deepening behavioral portrait gr
 
 The 60-facet model is derived from established frameworks in cognitive and personality psychology:
 
-- **Cognitive Appraisal Theory** (Lazarus & Folkman) — appraisal patterns and stress-response facets
-- **Self-Determination Theory** (Deci & Ryan) — autonomy, competence, and relatedness dimensions
-- **Attachment Theory** (Bowlby / Ainsworth) — relational style and help-seeking facets
-- **Dual-Process Theory** (Kahneman) — System 1 / System 2 behavioral signatures
-- **CAPS** (Mischel & Shoda) — situation-behavior signature modeling
-- **LIWC** (Pennebaker et al.) — linguistic behavioral markers
+- **Cognitive Appraisal Theory** (Lazarus & Folkman): appraisal patterns and stress-response facets
+- **Self-Determination Theory** (Deci & Ryan): autonomy, competence, and relatedness dimensions
+- **Attachment Theory** (Bowlby / Ainsworth): relational style and help-seeking facets
+- **Dual-Process Theory** (Kahneman): System 1 / System 2 behavioral signatures
+- **CAPS** (Mischel & Shoda): situation-behavior signature modeling
+- **LIWC** (Pennebaker et al.): linguistic behavioral markers
 
 Each facet is represented as a continuous position on a theory-grounded bipolar spectrum, not a categorical label. Every trait carries a confidence score and an observation count; the system explicitly represents the limits of its own knowledge.
 
@@ -159,12 +159,12 @@ license        AGPL-3.0
 
 ## Quick Start
 
-Requirements: **Python 3.12+**, **OpenClaw 31.3.26**
+Requirements: **Python 3.12+**, **Hermes**
 
 Public branding note: prefer the `relic-*` commands and `python -m relic.*`.
 No `soulkiller-*` entrypoints were preserved. Migrate directly to the `relic-*` commands listed below.
 
-### Run the demo (no OpenClaw required)
+### Run the demo (no Hermes required)
 
 ```bash
 git clone https://github.com/yuzushi-dev/relic
@@ -190,13 +190,13 @@ demo/generated/
 
 ### Run the live monitoring UI
 
-The webui reads from `relic.db`. The demo runner writes one automatically, so you can spin up the UI without a live OpenClaw installation:
+The webui reads from `relic.db`. The demo runner writes one automatically, so you can spin up the UI without a live Hermes installation:
 
 ```bash
 pip install -e ".[webui]"
 
 relic-demo --output-dir demo/generated
-RELIC_DATA_DIR=demo/generated OPENCLAW_HOME=demo/generated python -m relic.webui --port 8765
+RELIC_DATA_DIR=demo/generated HERMES_HOME=demo/generated python -m relic.webui --port 8765
 ```
 
 Open `http://localhost:8765` to see the dashboard populated with synthetic demo data.
@@ -213,7 +213,7 @@ RELIC_DATA_DIR=~/.relic/<subject-id> python -m relic.webui --port 8765
 
 ---
 
-### Connect to your OpenClaw instance
+### Connect to your Hermes instance
 
 ```bash
 python install.py
@@ -221,7 +221,7 @@ python install.py
 
 The installation wizard will walk you through subject configuration, hook registration, and cron setup. Run `python install.py --dry-run` to preview without writing anything.
 
-**LLM provider** — the extraction pipeline requires a model. The easiest path is [Ollama](https://ollama.com) (local, no API key):
+**LLM provider**: the extraction pipeline requires a model. The easiest path is [Ollama](https://ollama.com) (local, no API key):
 
 ```bash
 ollama pull llama3
@@ -236,7 +236,7 @@ Anthropic and OpenAI are also supported. See [docs/ADAPTERS.md](docs/ADAPTERS.md
 The wizard configures:
 
 - Subject identity and runtime data directory
-- OpenClaw hooks: relic-capture · relic-bootstrap
+- Hermes hooks: relic-capture · relic-bootstrap
 - 36 cron jobs across core pipeline, daily enrichment, biofeedback, weekly analysis, and monthly specialist analyzers
 - Environment file (`.env`) with your full configuration
 
@@ -255,8 +255,8 @@ The rename may be a **breaking change** for existing installations and automatio
 | Path | Contents |
 |---|---|
 | `src/relic/` | Core Python modules + public demo utilities |
-| `src/lib/` | Runtime shims (log, config, OpenClaw client stubs) |
-| `hooks/` | OpenClaw integration hooks (TypeScript) |
+| `src/lib/` | Runtime shims (log, config, Hermes client stubs) |
+| `hooks/` | Hermes integration hooks (TypeScript) |
 | `docs/` | Architecture, whitepaper, design documents, runtime contract |
 | `demo/` | Synthetic fixtures and expected outputs |
 | `tests/` | Sanitization, packaging, demo, and repo-readiness tests |
@@ -267,7 +267,7 @@ The rename may be a **breaking change** for existing installations and automatio
 |---|---|
 | [INSTALL.md](INSTALL.md) | Prerequisites, wizard, manual setup, backfill |
 | [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | Every env var with examples and directory layout |
-| [docs/ADAPTERS.md](docs/ADAPTERS.md) | How to connect an LLM provider (Anthropic, OpenAI, Ollama, OpenClaw) |
+| [docs/ADAPTERS.md](docs/ADAPTERS.md) | How to connect an LLM provider (Anthropic, OpenAI, Ollama, Hermes) |
 | [docs/architecture/RELIC.md](docs/architecture/RELIC.md) | Full pipeline internals |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Dev setup, adding crons, sanitization rules, PR process |
 
@@ -292,12 +292,12 @@ python3 scripts/reproduce_evaluation.py --db path/to/relic.db --out out/
 
 Every architectural decision reflects five constraints:
 
-- **Theoretical grounding** — facets are derived from attachment theory, appraisal theory, SDT, dual-process cognition, and CAPS, not invented.
-- **Epistemic humility** — every trait carries a confidence score. The system explicitly represents what it does not know.
-- **Inspectability** — structured data, traceable decisions, outputs that can be read and questioned by the subject.
-- **Human readability** — PORTRAIT.md is written to be read by a person, not parsed by a machine.
-- **Consent and separation** — demo data and real behavioral data are architecturally separated. The subject controls the data.
-- **Epistemic accountability** — every inferred claim is subject to structured verification. A dedicated audit layer consolidates findings, eliminates noise, and maintains an inspectable ground-truth state distinct from raw inference output.
+- **Theoretical grounding**: facets are derived from attachment theory, appraisal theory, SDT, dual-process cognition, and CAPS, not invented.
+- **Epistemic humility**: every trait carries a confidence score. The system explicitly represents what it does not know.
+- **Inspectability**: structured data, traceable decisions, outputs that can be read and questioned by the subject.
+- **Human readability**: PORTRAIT.md is written to be read by a person, not parsed by a machine.
+- **Consent and separation**: demo data and real behavioral data are architecturally separated. The subject controls the data.
+- **Epistemic accountability**: every inferred claim is subject to structured verification. A dedicated audit layer consolidates findings, eliminates noise, and maintains an inspectable ground-truth state distinct from raw inference output.
 
 ---
 
@@ -317,13 +317,13 @@ Private databases, live credentials, personal logs, and raw behavioral data are 
 
 ## License
 
-[AGPL-3.0](LICENSE) — if you use this in a product or service, your modifications must be open source too.
+[AGPL-3.0](LICENSE): if you use this in a product or service, your modifications must be open source too.
 
 ---
 
 ## Lore
 
-The name comes from *Cyberpunk 2077*. **Relic** is a Black Program originally developed to map the human psyche into a structured digital form — and weaponized to create Mikoshi, a data fortress of captured minds with no exit. The philosophical problem the game surfaces — whether a perfect copy of a person *is* that person, and who controls the copy — is the tension this framework deliberately inhabits.
+The name comes from *Cyberpunk 2077*. **Relic** is a Black Program originally developed to map the human psyche into a structured digital form: and weaponized to create Mikoshi, a data fortress of captured minds with no exit. The philosophical problem the game surfaces: whether a perfect copy of a person *is* that person, and who controls the copy is the tension this framework deliberately inhabits.
 
 The framework draws from the same conceptual space: personality as structured, observable, persistent data. The difference is consent, transparency, and the knowledge that the model is not the person.
 
