@@ -1,17 +1,22 @@
+import os
 from pathlib import Path
-
 
 ROOT = Path(__file__).resolve().parents[1]
 DOC_DIRS = [
     ROOT / "docs",
     ROOT / "hooks",
 ]
-FORBIDDEN_MARKERS = [
-    "/home/example-user",
-    "123456789",
-    "ExamplePersonA",
-    "ExamplePersonB",
-    "ExamplePersonC",
+
+BASELINE_MARKERS = [
+    "@gmail.com",
+    "@hotmail.com",
+    "@yahoo.com",
+]
+
+FORBIDDEN_MARKERS = BASELINE_MARKERS + [
+    marker
+    for marker in os.environ.get("RELIC_PRIVATE_MARKERS", "").splitlines()
+    if marker.strip()
 ]
 
 

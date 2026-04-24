@@ -78,7 +78,7 @@ Not immortality. Not extraction. **A reflective architecture.**
 
 This project was previously published as **Soulkiller** and is being renamed to **Relic**.
 
-The rename may be a **breaking change** for existing installations and automation. Check imports, CLI commands, cron IDs, environment variables, hook names, data directories, and documentation links before upgrading. During the transition, some compatibility shims or legacy references may remain, but new integrations should use the `relic` package namespace, `relic-*` CLI commands, and `RELIC_*` environment variables.
+The rename may be a **breaking change** for existing installations and automation. Check imports, CLI commands, cron IDs, environment variables, hook names, data directories, and documentation links before upgrading. No compatibility shims were preserved. New integrations must use the `relic` package namespace, `relic-*` CLI commands, and `RELIC_*` environment variables.
 
 ---
 
@@ -227,7 +227,7 @@ license        AGPL-3.0
 Requirements: **Python 3.12+**, **OpenClaw 31.3.26**
 
 Public branding note: prefer the `relic-*` commands and `python -m relic.*`.
-Legacy `soulkiller-*` entrypoints may remain during the migration period, but should be treated as compatibility shims.
+No `soulkiller-*` entrypoints were preserved. Migrate directly to the `relic-*` commands listed below.
 
 ### Run the demo, the cool UI (no OpenClaw required)
 
@@ -330,7 +330,6 @@ Anthropic and OpenAI are also supported. See [docs/ADAPTERS.md](docs/ADAPTERS.md
 | [INSTALL.md](INSTALL.md) | Prerequisites, wizard, manual setup, backfill |
 | [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | Every env var with examples and directory layout |
 | [docs/ADAPTERS.md](docs/ADAPTERS.md) | How to connect an LLM provider (Anthropic, OpenAI, Ollama, OpenClaw) |
-| [docs/architecture/RELIC.md](docs/architecture/RELIC.md) | Full pipeline internals |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Dev setup, adding crons, sanitization rules, PR process |
 
 ---
