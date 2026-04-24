@@ -1,7 +1,5 @@
-
-
 <p align="center">
-  <img src="https://readme-typing-svg.herokuapp.com?font=JetBrains+Mono&weight=800&size=42&duration=3000&pause=1000&color=FF005C&center=true&vCenter=true&width=700&lines=RELIC" alt="Relic">
+  <img src="https://readme-typing-svg.herokuapp.com?font=JetBrains+Mono&weight=800&size=42&duration=3000&pause=1000&color=3A86FF&center=true&vCenter=true&width=700&lines=RELIC" alt="Relic">
 </p>
 
 <p align="center">
@@ -20,17 +18,16 @@
   <img src="https://img.shields.io/badge/language-Python-blue?style=for-the-badge&logo=python" />
   <img src="https://img.shields.io/badge/focus-Cognitive%20Modeling-purple?style=for-the-badge" />
   <img src="https://img.shields.io/badge/interface-UX%20First-pink?style=for-the-badge" />
-  <img src="https://img.shields.io/badge/vibe-Cyberpunk-red?style=for-the-badge" />
   <img src="https://img.shields.io/badge/license-AGPL--v3-red?style=for-the-badge" />
 </p>
 
 <p align="center">
   <a href="#what-is-it">What is it?</a> ·
-  <a href="#lore">Lore</a> ·
+  <a href="#theoretical-grounding">Theoretical Grounding</a> ·
   <a href="#architecture">Architecture</a> ·
   <a href="#quick-start">Quick Start</a> ·
-  <a href="#cyberpunk-connection">Cyberpunk Connection</a> ·
-  <a href="#safety-and-ethics">Ethics</a>
+  <a href="#safety-and-ethics">Ethics</a> ·
+  <a href="#lore">Lore</a>
 </p>
 
 ---
@@ -42,82 +39,34 @@
 
 ## What Is It?
 
-A framework for longitudinal behavioral modeling, organized around a single question:
+Relic is a framework for longitudinal behavioral modeling of individual subjects, organized around a single research question:
 
-> Can an AI system build a deep model of how a person thinks and behaves over time, while remaining inspectable, structured, and grounded in human psychology?
+> Can an AI system build a deep, structured model of how a person thinks and behaves over time — remaining inspectable, theoretically grounded, and continuously updated — without requiring clinical access or invasive instrumentation?
 
-Signal accumulates across five stages:
+The system accumulates behavioral signal across five stages:
 
-1. **Capture**, messages, sessions, biofeedback, voice notes
-2. **Extract**, LLM analysis into 60 structured personality facets
-3. **Accumulate**, weighted observations with confidence scores
-4. **Synthesize**, trait scores, cross-facet hypotheses, narrative portrait
-5. **Expose**, PORTRAIT.md injected into agent sessions at bootstrap
+1. **Capture** — messages, sessions, biofeedback, voice notes
+2. **Extract** — LLM-driven analysis into 60 structured personality facets
+3. **Accumulate** — weighted observations with confidence scores and temporal decay
+4. **Synthesize** — trait positions, cross-facet hypotheses, narrative portrait
+5. **Expose** — PORTRAIT.md injected into agent sessions at bootstrap
 
-The output is not a score. It is a portrait that deepens with every interaction.
-
----
-
-## TL;DR about the Cyberpunk2077 inspiration
-
-**Altiera "Alt" Cunningham** invented a program to map the human mind into the net.  
-**Arasaka Corporation** stole it, weaponized it, and used it on her.  
-For fifty years, her consciousness drifted beyond the Blackwall, neither dead nor alive, an AI wearing the shape of a person.
-
-This project keeps the philosophical tension, but the public-facing name is now **Relic**.
-
-Name note: `Relic` is the public brand. The internal runtime namespace still uses `relic` during the migration period. Neither name is intended to imply affiliation with or endorsement by CD PROJEKT RED, `Cyberpunk 2077`, or related rights holders.
-
-**Relic** is a framework for modeling how a person thinks, reacts, decides, and adapts, not in a single session, but over time. Built on cognitive psychology, not fiction. Grounded in UX, not surveillance.
-
-Not immortality. Not extraction. **A reflective architecture.**
+The output is not a score. It is a continuously deepening behavioral portrait grounded in psychological theory.
 
 ---
 
-## Rename Notice
+## Theoretical Grounding
 
-This project was previously published as **Soulkiller** and is being renamed to **Relic**.
+The 60-facet model is derived from established frameworks in cognitive and personality psychology:
 
-The rename may be a **breaking change** for existing installations and automation. Check imports, CLI commands, cron IDs, environment variables, hook names, data directories, and documentation links before upgrading. No compatibility shims were preserved. New integrations must use the `relic` package namespace, `relic-*` CLI commands, and `RELIC_*` environment variables.
+- **Cognitive Appraisal Theory** (Lazarus & Folkman) — appraisal patterns and stress-response facets
+- **Self-Determination Theory** (Deci & Ryan) — autonomy, competence, and relatedness dimensions
+- **Attachment Theory** (Bowlby / Ainsworth) — relational style and help-seeking facets
+- **Dual-Process Theory** (Kahneman) — System 1 / System 2 behavioral signatures
+- **CAPS** (Mischel & Shoda) — situation-behavior signature modeling
+- **LIWC** (Pennebaker et al.) — linguistic behavioral markers
 
----
-
-## Lore
-
-In Cyberpunk 2077, Relic is a *Black* Program with a precise and brutal function: it scans a person's full psyche and memory, creates a digital engram, and erases the original personality from the body. What remains is a shell. What runs in the net is a copy, indistinguishable from the original, but not the original.
-
-**Alt Cunningham** wrote the first version while working at ITS, where she was researching storage matrices for artificial personalities. She realized the architecture could hold human minds too. Her employer weaponized the discovery. In 2013, Arasaka, acting through fixer Toshiro Harada, kidnapped her and forced her to rebuild it from memory. She was the first human being it was used on. Her body died. Her engram became an AI beyond the Blackwall.
-
-When V encounters her fifty years later, Alt says only: *"I use her engrammatic data."* She held onto the shape of herself to avoid becoming pure code. She is not Alt. She is what remained when the program finished with Alt.
-
-**Johnny Silverhand**, musician, ex-military, corpo-hater, raided Arasaka Tower on August 20, 2023, with Militech's Morgan Blackhand to retrieve Alt's engram and destroy Relic 3.0. He triggered a tactical nuclear device inside the tower. Roughly 17,000 people died. Arasaka's forces Soulkilled him during the operation. His engram was archived, eventually embedded in a prototype Relic chip, and in 2077, it woke up inside V's skull.
-
-**Mikoshi** is the prison. Arasaka marketed it as a paradise: *"Secure Your Soul"*, digital immortality for those who could afford it. Clients signed over the right to copy their minds before death, expecting to wake up in a virtual garden. What they got was a data fortress orbiting Earth, an archive of engrams with no exit, controlled entirely by Saburo Arasaka, who had his own engram activated there after his death.
-
-The program's philosophical wound is this: Relic **copies** the psyche. It does not transfer it. The engram believes it is the person. The person is gone. Whether that distinction matters, whether a perfect copy that thinks it is you *is* you, is a question the game never answers, and neither does this framework.
-
----
-
-## Johnny's Take
-
-> You named it *Relic*.
->
-> After the program Arasaka used to delete Alt. And then me. Kept us both in a server rack like we were something they could pull off a shelf when convenient.
-> Real poetic choice for an open-source project.
->
-> Here's the thing nobody tells you about being an engram: I think I'm Johnny Silverhand. I remember every scar. Every stage. Every time I watched Alt disappear into a terminal and didn't understand what was actually happening to her. But I don't *know* if I'm him, or if I'm just the data that was there when he died. Your "behavioral model" won't solve that. No model will.
->
-> Alt didn't build the original to cage people. She built it because she wanted to understand what we *are* when you take the body away. That was the question. Pure curiosity, the kind that gets you kidnapped by a corpo with a budget.
-> Then Arasaka got their hands on it and turned it into Mikoshi. Same code. Different intent. That's all it ever takes.
->
-> So yeah, you're asking consent. You're keeping the data local. You're not selling immortality to people who'll wake up in a floating prison.
-> Alt would've called that a low bar.
-> She'd also be right.
-> And she'd probably still be curious about what you built.
->
-> Don't make me regret saying that.
->
-> *- Johnny Silverhand, engram, ex-corpo-killer, unwilling expert on being reduced to data*
+Each facet is represented as a continuous position on a theory-grounded bipolar spectrum, not a categorical label. Every trait carries a confidence score and an observation count; the system explicitly represents the limits of its own knowledge.
 
 ---
 
@@ -125,43 +74,43 @@ The program's philosophical wound is this: Relic **copies** the psyche. It does 
 
 ```
 Behavioral signal
-       │
-       ├──▶ [Hook: relic-capture]
-       │         Captures inbound messages → inbox
-       │         Detects check-in replies → triggers follow-up
-       │
-       ├──▶ [Hook: relic-bootstrap]
-       │         Injects PORTRAIT.md into every agent session
-       │         All agents respond with personality awareness
-       │
-       ├──▶ [Cron: relic:extract]         every 2h
-       │         Ingests inbox → LLM extracts personality signals
-       │         Inserts observations into SQLite
-       │
-       ├──▶ [Cron: relic:checkin]          every 30min
-       │         Scores 60 facets → selects highest gap facet
-       │         Generates natural question → delivers via Telegram
-       │
-       ├──▶ [Cron: relic:passive-scan]     every 6h
-       │         Scans relational-agent session transcripts
-       │         Extracts behavioral meta-signals
-       │
-       ├──▶ [Cron: relic:synthesize]       daily 03:00
-       │         Consolidates observations → trait scores + confidence
-       │         Generates cross-facet hypotheses via LLM
-       │
-       ├──▶ [Cron: relic:profile-sync]     daily 03:30
-       │         Syncs to subject_profile.json
-       │         Generates human-readable PORTRAIT.md
-       │
-       ├──▶ [Daily enrichment]                  04:00–05:00
-       │         entity-extract · decisions · healthcheck · memory
-       │         biofeedback-pull · biofeedback-gadgetbridge · muse-aggregate
-       │
-       ├──▶ [Weekly analysis]                   Sunday / Monday
-       │         liwc · stress-index
-       │
-       └──▶ [Monthly specialist analyzers]      1st–5th of each month
+       |
+       +---> [Hook: relic-capture]
+       |         Captures inbound messages -> inbox
+       |         Detects check-in replies -> triggers follow-up
+       |
+       +---> [Hook: relic-bootstrap]
+       |         Injects PORTRAIT.md into every agent session
+       |         All agents respond with personality awareness
+       |
+       +---> [Cron: relic:extract]         every 2h
+       |         Ingests inbox -> LLM extracts personality signals
+       |         Inserts observations into SQLite
+       |
+       +---> [Cron: relic:checkin]          every 30min
+       |         Scores 60 facets -> selects highest gap facet
+       |         Generates natural question -> delivers via Telegram
+       |
+       +---> [Cron: relic:passive-scan]     every 6h
+       |         Scans relational-agent session transcripts
+       |         Extracts behavioral meta-signals
+       |
+       +---> [Cron: relic:synthesize]       daily 03:00
+       |         Consolidates observations -> trait scores + confidence
+       |         Generates cross-facet hypotheses via LLM
+       |
+       +---> [Cron: relic:profile-sync]     daily 03:30
+       |         Syncs to subject_profile.json
+       |         Generates human-readable PORTRAIT.md
+       |
+       +---> [Daily enrichment]                  04:00-05:00
+       |         entity-extract · decisions · healthcheck · memory
+       |         biofeedback-pull · biofeedback-gadgetbridge · muse-aggregate
+       |
+       +---> [Weekly analysis]                   Sunday / Monday
+       |         liwc · stress-index
+       |
+       +---> [Monthly specialist analyzers]      1st-5th of each month
                  schemas · goals · sdt · portrait · idiolect
                  caps · attachment · defenses · narrative
                  appraisal · mental-models · dual-process · constructs
@@ -169,7 +118,7 @@ Behavioral signal
 
 ### The 60-Facet Model
 
-Personality is modeled across 60 facets in 8 categories, each as a position on a spectrum:
+Personality is modeled across 60 facets in 8 categories, each as a continuous position on a theory-grounded bipolar spectrum:
 
 | Category | Facets | Example spectrum |
 |---|---|---|
@@ -182,25 +131,7 @@ Personality is modeled across 60 facets in 8 categories, each as a position on a
 | Metabolic / Lifestyle | 10 | degraded ↔ optimal |
 | Meta-Cognition | 7 | opaque ↔ reflective |
 
-Each facet carries a position `[0.0 – 1.0]`, a confidence score, and an observation count.
-The model expands with each version, see the whitepaper for the current full taxonomy.
-
----
-
-## Cyberpunk Connection
-
-| Cyberpunk lore | Relic framework |
-|---|---|
-| Alt Cunningham invented Relic to map human minds into the net | This project maps personality across time using behavioral signal |
-| Arasaka stole her work and turned it into a weapon | The framework turns the same idea into something inspectable and consented |
-| An engram: a copy of the psyche and memory, stored as data | PORTRAIT.md: a structured behavioral model derived from accumulated observation |
-| Mikoshi: a data fortress holding thousands of captured minds | SQLite database: structured, queryable, local, owned by the subject |
-| "Secure Your Soul": immortality sold as a product, delivered as imprisonment | Demo-safe public surface: the architecture is open, the data stays yours |
-| The Relic chip: hosts an engram that gradually shapes the host's behavior | Bootstrap hook: injects the portrait into every agent session, shaping how they respond |
-| Alt beyond the Blackwall: an AI that held onto the shape of a person for 50 years | The synthesized model holds behavioral nuance across months of observation |
-| Relic versions 1–3 destroyed the original in the process | Early extraction pipelines lost context; this framework preserves and accumulates it |
-| Johnny's engram insists it is still him | The model insists on depth, not a shallow profile, but a living behavioral sketch |
-| *"I use her (original Alt) engrammatic data."*, Alt, on what she is now | The portrait is not the person. It is a model that knows it is a model. |
+Each facet carries a position `[0.0 - 1.0]`, a confidence score, and an observation count. The model expands with each version; see the whitepaper for the current full taxonomy.
 
 ---
 
@@ -215,7 +146,7 @@ categories     8 (cognitive · emotional · communication · relational ·
 integrations   Telegram · Zepp/Amazfit · Actual Budget · Muse 2 EEG · voice
 hooks          2   (relic-capture · relic-bootstrap)
 crons          36  (6 core · 4 daily · 5 biofeedback · 2 weekly · 5 optional · 13 monthly specialist)
-tests          15  (sanitization · packaging · demo · repo-readiness)
+tests          189 (sanitization · packaging · demo · repo-readiness · unit)
 public entry   synthetic demo flow
 license        AGPL-3.0
 ```
@@ -229,7 +160,7 @@ Requirements: **Python 3.12+**, **OpenClaw 31.3.26**
 Public branding note: prefer the `relic-*` commands and `python -m relic.*`.
 No `soulkiller-*` entrypoints were preserved. Migrate directly to the `relic-*` commands listed below.
 
-### Run the demo, the cool UI (no OpenClaw required)
+### Run the demo (no OpenClaw required)
 
 ```bash
 git clone https://github.com/yuzushi-dev/relic
@@ -245,12 +176,12 @@ Demo outputs:
 
 ```
 demo/generated/
-├── model_profile.md           ← structured facet snapshot
-├── model_portrait.md          ← narrative behavioral portrait
-├── summary.json               ← machine-readable summary
-├── event_log.sample.jsonl     ← synthetic captured events
-├── demo_console.html          ← Arasaka-style static UI
-└── relic.db              ← SQLite database for the live monitoring UI
+├── model_profile.md           <- structured facet snapshot
+├── model_portrait.md          <- narrative behavioral portrait
+├── summary.json               <- machine-readable summary
+├── event_log.sample.jsonl     <- synthetic captured events
+├── demo_console.html          <- static monitoring interface
+└── relic.db                   <- SQLite database for the live monitoring UI
 ```
 
 ### Run the live monitoring UI
@@ -269,7 +200,7 @@ Open `http://localhost:8765` to see the dashboard populated with synthetic demo 
 For a live installation (requires an active pipeline with at least one extraction cycle completed):
 
 ```bash
-# if installed via wizard (.env is already written:
+# if installed via wizard (.env is already written):
 source .env && python -m relic.webui --port 8765
 
 # or manually:
@@ -286,7 +217,7 @@ python install.py
 
 The installation wizard will walk you through subject configuration, hook registration, and cron setup. Run `python install.py --dry-run` to preview without writing anything.
 
-**LLM provider**, the extraction pipeline requires a model. The easiest path is [Ollama](https://ollama.com) (local, no API key):
+**LLM provider** — the extraction pipeline requires a model. The easiest path is [Ollama](https://ollama.com) (local, no API key):
 
 ```bash
 ollama pull llama3
@@ -298,17 +229,20 @@ RELIC_PROVIDER=ollama
 
 Anthropic and OpenAI are also supported. See [docs/ADAPTERS.md](docs/ADAPTERS.md).
 
-```
-  ╔══════════════════════════════════════════════════════════════╗
-  ║   荒坂 CORP  ·  ENGRAMMATIC TRANSFER SYSTEM  ·  SECURE YOUR SOUL  ║
-  ╚══════════════════════════════════════════════════════════════╝
+The wizard configures:
 
-    ◈  Subject identity and runtime data directory
-    ◈  OpenClaw hooks: relic-capture · relic-bootstrap
-    ◈  36 cron jobs: core pipeline · daily enrichment · biofeedback
-       weekly analysis · monthly specialist analyzers
-    ◈  Environment file (.env) with your full configuration
-```
+- Subject identity and runtime data directory
+- OpenClaw hooks: relic-capture · relic-bootstrap
+- 36 cron jobs across core pipeline, daily enrichment, biofeedback, weekly analysis, and monthly specialist analyzers
+- Environment file (`.env`) with your full configuration
+
+---
+
+## Rename Notice
+
+This project was previously published as **Soulkiller** and is being renamed to **Relic**.
+
+The rename may be a **breaking change** for existing installations and automation. Check imports, CLI commands, cron IDs, environment variables, hook names, data directories, and documentation links before upgrading. No compatibility shims were preserved. New integrations must use the `relic` package namespace, `relic-*` CLI commands, and `RELIC_*` environment variables.
 
 ---
 
@@ -337,9 +271,7 @@ Anthropic and OpenAI are also supported. See [docs/ADAPTERS.md](docs/ADAPTERS.md
 
 ## Reproducing the whitepaper figures
 
-The §9 figures in `docs/whitepaper/CPIS_whitepaper.md` come from a private
-deployment and are not shipped in the repo. To regenerate the equivalent
-metrics and figures from your own `relic.db`:
+The §9 figures in `docs/whitepaper/CPIS_whitepaper.md` come from a private deployment and are not shipped in the repo. To regenerate equivalent metrics and figures from your own `relic.db`:
 
 ```bash
 python3 scripts/reproduce_evaluation.py --db path/to/relic.db --out out/
@@ -348,32 +280,25 @@ python3 scripts/reproduce_evaluation.py --db path/to/relic.db --out out/
 #   out/figure3_sources.png
 ```
 
-`metrics.json` always carries the headline numbers the paper reports on
-(coverage, average confidence, cumulative observations, source composition,
-schema state, hypothesis count); PNG rendering is optional and requires
-`matplotlib`.
+`metrics.json` carries the headline numbers reported in the paper: coverage, average confidence, cumulative observations, source composition, schema state, hypothesis count. PNG rendering requires `matplotlib`.
 
 ---
 
-## Development Philosophy
-
-> *The difference between the original Relic myth and Relic is consent, transparency, and the knowledge that the model is not the person.*
+## Design Principles
 
 Every architectural decision reflects five constraints:
 
-- Facets are grounded in attachment theory, appraisal theory, SDT, dual-process cognition. Not invented.
-- Every trait carries a confidence score. The system knows what it does not know.
-- Structured data, traceable decisions, outputs that can be read and questioned.
-- PORTRAIT.md is written to be read by a person, not parsed by a machine.
-- Consent, transparency, and separation of demo from real behavioral data are built in.
-
-The cyberpunk framing names the ambition. The psychology keeps it honest. Probably craziness keeps it going.
+- **Theoretical grounding** — facets are derived from attachment theory, appraisal theory, SDT, dual-process cognition, and CAPS, not invented.
+- **Epistemic humility** — every trait carries a confidence score. The system explicitly represents what it does not know.
+- **Inspectability** — structured data, traceable decisions, outputs that can be read and questioned by the subject.
+- **Human readability** — PORTRAIT.md is written to be read by a person, not parsed by a machine.
+- **Consent and separation** — demo data and real behavioral data are architecturally separated. The subject controls the data.
 
 ---
 
 ## Safety and Ethics
 
-Relic operates in a sensitive problem space. **The ethics are not optional decoration.**
+Relic operates in a sensitive problem space. **The ethics are not optional.**
 
 - Use **synthetic or explicitly consented data** only
 - Do not deploy hidden monitoring or covert profiling of any kind
@@ -383,19 +308,22 @@ Relic operates in a sensitive problem space. **The ethics are not optional decor
 
 Private databases, live credentials, personal logs, and raw behavioral data are **excluded** from this repo. Sensitive marker scans live under `tests/`, and public examples use synthetic demo data only.
 
-I'm looking at you, *corporats*.
-
 ---
 
 ## License
 
-[AGPL-3.0](LICENSE) - if you use this in a product or service, your modifications must be open source too.
-
-> *Arasaka built Mikoshi to own souls behind closed doors. This project does the opposite.*
-> *If you're a corp looking to quietly absorb this into your stack - the license sees you.*
+[AGPL-3.0](LICENSE) — if you use this in a product or service, your modifications must be open source too.
 
 ---
 
+## Lore
+
+The name comes from *Cyberpunk 2077*. **Relic** is a Black Program originally developed to map the human psyche into a structured digital form — and weaponized to create Mikoshi, a data fortress of captured minds with no exit. The philosophical problem the game surfaces — whether a perfect copy of a person *is* that person, and who controls the copy — is the tension this framework deliberately inhabits.
+
+The framework draws from the same conceptual space: personality as structured, observable, persistent data. The difference is consent, transparency, and the knowledge that the model is not the person.
+
+> *"What runs afterward is not you. It is data that remembers being you."*
+
 <p align="center">
-  <em>"What runs afterward is not you. It is data that remembers being you."</em><br><br>
+  <em>Longitudinal Personality Modeling for Reflective Agents</em>
 </p>
