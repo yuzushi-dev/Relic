@@ -24,6 +24,7 @@ from typing import Any
 
 from lib.relic_debate import run_debate
 from lib.reviewer_workspace import export_debate
+from lib.telegram_notify import send_contested_keyboard
 
 SCRIPT = "relic_health_monitor"
 
@@ -342,6 +343,30 @@ def submit_paperclip_issue(report: str, severity: str, metrics: dict[str, Any],
         warn("paperclip_error", error=str(exc))
 
 
+# ── Contested keyboard ────────────────────────────────────────────────────────
+
+def _send_health_keyboard(severity: str) -> None:
+    token = os.environ.get('TELEGRAM_BOT_TOKEN', '')
+    chat_id = os.environ.get('RELIC_HEALTH_TELEGRAM_CHAT_ID', '')
+    thread_raw = os.environ.get('RELIC_HEALTH_TELEGRAM_THREAD_ID', '')
+    if not token or not chat_id:
+        return
+    thread_id = int(thread_raw) if thread_raw else None
+    options = {
+        "a": "Apply critical override (max 3 q/day, top 5 neglected facets)",
+        "b": "Monitor 7 more days, no override",
+        "c": "Apply degraded override (max 4 q/day, top 5 neglected facets)",
+    }
+    send_contested_keyboard(
+        token=token,
+        chat_id=chat_id,
+        thread_id=thread_id,
+        domain='health',
+        header=f'Severity: {severity.upper()} — Reviewer verdict pending.',
+        options=options,
+    )
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main() -> int:
@@ -379,6 +404,7 @@ def main() -> int:
         )
         _export_to_workspace(metrics, neglected, debate)
         submit_paperclip_issue(report, severity, metrics, neglected, debate)
+        _send_health_keyboard(severity)
         return 0
 
     finally:

@@ -91,9 +91,10 @@ def test_run_debate_handles_judge_json_error(monkeypatch):
     from lib.relic_debate import run_debate
 
     result = run_debate(domain="health", raw_data={}, metrics={}, report_text="")
-    # Should not raise; judge verdict falls back to monitor
-    assert result["judge"]["verdict"] == "monitor"
+    # Should not raise; when all roles fail (non-JSON), heuristic verdict is returned
+    assert result["judge"]["verdict"] in ("monitor", "intervene_soft")
     assert result["judge"]["confidence"] == 0.0
+    assert result["judge"]["llm_available"] is False
 
 
 def test_run_debate_domain_override_model(monkeypatch):

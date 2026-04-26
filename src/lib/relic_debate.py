@@ -173,15 +173,40 @@ def run_debate(
     judge_raw, judge_model = _call(domain, "judge", judge_input)
     parsed = _parse_judge_json(judge_raw)
 
+    judge_failed = not parsed or "unavailable" in judge_raw.lower()
+    if judge_failed:
+        # LLM unavailable or returned non-JSON — derive a safe default from pro/contra
+        pro_failed = "unavailable" in pro_text.lower()
+        contra_failed = "unavailable" in contra_text.lower()
+        if pro_failed and contra_failed:
+            heuristic_verdict = "monitor"
+            heuristic_rationale = "All debate roles unavailable (LLM error). Defaulting to monitor."
+        else:
+            # Pro ran → evidence of problem exists → err toward intervention
+            heuristic_verdict = "intervene_soft"
+            heuristic_rationale = (
+                f"Judge LLM unavailable ({judge_model}). "
+                "Heuristic: Pro argument present, defaulting to soft intervention. "
+                "Human review recommended."
+            )
+        warn("relic_debate", f"judge_failed domain={domain}",
+             raw=judge_raw[:200], model=judge_model)
+        parsed = {
+            "verdict": heuristic_verdict,
+            "rationale": heuristic_rationale,
+            "confidence": 0.0,
+        }
+
     return {
         "domain": domain,
         "pro": {"argument": pro_text, "model": pro_model},
         "contra": {"argument": contra_text, "model": contra_model},
         "judge": {
             "verdict": parsed.get("verdict", "monitor"),
-            "rationale": parsed.get("rationale", judge_raw[:300]),
+            "rationale": parsed.get("rationale", ""),
             "confidence": float(parsed.get("confidence", 0.0)),
             "model": judge_model,
+            "llm_available": not judge_failed,
         },
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }

@@ -28,6 +28,8 @@ STATE_FILE = RELIC_DIR / "contested_handler_state.json"
 DECISIONS_FILE = RELIC_DIR / "reviewer_decisions.jsonl"
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 
+from lib.telegram_notify import answer_callback_query
+
 # Map env var prefix → domain name
 _DOMAIN_ENV = {
     "health":    ("RELIC_HEALTH_TELEGRAM_CHAT_ID",    "RELIC_HEALTH_TELEGRAM_THREAD_ID"),
@@ -89,7 +91,8 @@ def _poll_updates(offset: int) -> list[dict]:
         return []
     url = (
         f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getUpdates"
-        f"?offset={offset}&timeout=5&allowed_updates=message"
+        f"?offset={offset}&timeout=5"
+        "&allowed_updates%5B%5D=message&allowed_updates%5B%5D=callback_query"
     )
     try:
         with urllib.request.urlopen(url, timeout=10) as r:
@@ -201,6 +204,30 @@ def main() -> int:
         if update_id > new_max_id:
             new_max_id = update_id
 
+        # Handle inline keyboard button presses (callback_query)
+        cbq = update.get("callback_query")
+        if cbq:
+            cdata = (cbq.get("data") or "").strip().lower()
+            cbq_id = cbq.get("id", "")
+            from_user = cbq.get("from", {}).get("id")
+            # callback_data format: "domain:option"
+            if ":" in cdata:
+                domain, option = cdata.split(":", 1)
+                option = option.strip()
+                if option in ("a", "b", "c") and domain in _ACTION_DISPATCH:
+                    dispatch = _ACTION_DISPATCH[domain]
+                    rationale = dispatch(option)
+                    _log_decision(domain, option, rationale, from_user)
+                    _log("INFO", "contested_resolved_keyboard",
+                         domain=domain, option=option.upper(), rationale=rationale)
+                    answer_callback_query(
+                        TELEGRAM_BOT_TOKEN, cbq_id,
+                        text=f"{domain.upper()} {option.upper()} acknowledged"
+                    )
+                    handled += 1
+            continue
+
+        # Handle plain text A/B/C messages (fallback for manual replies)
         msg = update.get("message", {})
         if not msg:
             continue
@@ -226,7 +253,7 @@ def main() -> int:
 
         rationale = dispatch(text)
         _log_decision(domain, text, rationale, from_user)
-        _log("INFO", "contested_resolved",
+        _log("INFO", "contested_resolved_text",
              domain=domain, option=text.upper(), rationale=rationale)
         handled += 1
 
