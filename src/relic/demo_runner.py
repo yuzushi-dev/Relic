@@ -714,7 +714,7 @@ def _write_demo_db(output_dir: Path, seed: dict, observations: list[dict]) -> No
         db.close()
 
     # Write a synthetic jobs.json so the webui cron panel shows demo data
-    # without touching ~/.openclaw.  Set OPENCLAW_HOME=<output_dir> when
+    # without touching ~/.hermes.  Set HERMES_HOME=<output_dir> when
     # launching the webui against demo data.
     _write_demo_jobs(output_dir)
 
@@ -744,8 +744,8 @@ _DEMO_CRON_JOBS = [
 def _write_demo_jobs(output_dir: Path) -> None:
     """Write a synthetic cron jobs.json for demo use.
 
-    Point OPENCLAW_HOME at output_dir when launching the webui so the cron
-    panel shows these entries instead of any real ~/.openclaw/cron/jobs.json.
+    Point HERMES_HOME at output_dir when launching the webui so the cron
+    panel shows these entries instead of any real ~/.hermes/cron/jobs.json.
     """
     now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
     jobs = []

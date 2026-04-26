@@ -1,6 +1,6 @@
 # Installation
 
-> Tested on **OpenClaw 31.3.26**. Other versions may work but are not verified.
+> Tested on **Hermes**. Requires a running Hermes instance for hooks and cron registration.
 
 ---
 
@@ -9,7 +9,7 @@
 | Requirement | Version | Notes |
 |---|---|---|
 | Python | 3.12+ | Standard library only for core modules |
-| OpenClaw | 31.3.26 | Required for hooks and cron registration |
+| Hermes | current | Required for hooks and cron registration |
 | Node.js | 18+ | Required only for hook compilation (TypeScript → JS) |
 
 ---
@@ -24,10 +24,10 @@ python install.py
 
 The wizard walks through 9 steps:
 
-1. Prerequisites check - Python, OpenClaw binary, version verification
+1. Prerequisites check - Python, Hermes binary, version verification
 2. Subject configuration - name, ID slug, Telegram sender ID
 3. Runtime data directory - where the database, inbox, and portraits live
-4. OpenClaw configuration - binary path, home directory, hooks directory
+4. Hermes configuration - binary path, home directory, hooks directory
 5. Check-in schedule - active hours and probe frequency
 6. Optional integrations - relational agent, Telegram, biofeedback
 7. Past-message backfill - import existing messages into the extraction inbox
@@ -73,16 +73,16 @@ Set `RELIC_DATA_DIR` in `.env` to this path.
 
 ### 4. Compile and register hooks
 
-Each hook is a TypeScript project. OpenClaw compiles it on registration.
+Each hook is a TypeScript project. Hermes compiles it on registration.
 
 ```bash
-# Register with OpenClaw (OpenClaw compiles TypeScript internally - no npm step needed)
-openclaw hooks enable relic-capture \
+# Register with Hermes (Hermes compiles TypeScript internally - no npm step needed)
+hermes hooks enable relic-capture \
   --path ./hooks/relic-capture \
   --env RELIC_SUBJECT_ID=<your-subject-id> \
   --env RELIC_DATA_DIR=~/.relic/<your-subject-id>
 
-openclaw hooks enable relic-bootstrap \
+hermes hooks enable relic-bootstrap \
   --path ./hooks/relic-bootstrap \
   --env RELIC_SUBJECT_ID=<your-subject-id> \
   --env RELIC_DATA_DIR=~/.relic/<your-subject-id>
@@ -100,57 +100,57 @@ DATA=~/.relic/<your-subject-id>
 ENV="--env PYTHONPATH=$REPO/src --env RELIC_DATA_DIR=$DATA"
 
 # Core pipeline
-openclaw cron add relic:extract \
+hermes cron add relic:extract \
   --command "$PYTHON -m relic.extract" \
   --cwd "$REPO" --schedule "0 */2 * * *" $ENV
 
-openclaw cron add relic:checkin \
+hermes cron add relic:checkin \
   --command "$PYTHON -m relic.checkin" \
   --cwd "$REPO" --schedule "*/30 9-22 * * *" $ENV
 
-openclaw cron add relic:passive-scan \
+hermes cron add relic:passive-scan \
   --command "$PYTHON -m relic.passive_scan" \
   --cwd "$REPO" --schedule "0 */6 * * *" $ENV
 
-openclaw cron add relic:reply-extract \
+hermes cron add relic:reply-extract \
   --command "$PYTHON -m relic.reply_extract" \
   --cwd "$REPO" --schedule "0 */6 * * *" $ENV
 
-openclaw cron add relic:synthesize \
+hermes cron add relic:synthesize \
   --command "$PYTHON -m relic.synthesize" \
   --cwd "$REPO" --schedule "0 3 * * *" $ENV
 
-openclaw cron add relic:profile-sync \
+hermes cron add relic:profile-sync \
   --command "$PYTHON -m relic.profile_sync" \
   --cwd "$REPO" --schedule "30 3 * * *" $ENV
 
-openclaw cron add relic:checkin-followup \
+hermes cron add relic:checkin-followup \
   --command "$PYTHON -m relic.checkin_followup" \
   --cwd "$REPO" --on-demand $ENV
 
 # Daily enrichment
-openclaw cron add relic:entity-extract \
+hermes cron add relic:entity-extract \
   --command "$PYTHON -m relic.entity_extract" \
   --cwd "$REPO" --schedule "0 4 * * *" $ENV
 
-openclaw cron add relic:decisions \
+hermes cron add relic:decisions \
   --command "$PYTHON -m relic.decisions" \
   --cwd "$REPO" --schedule "15 4 * * *" $ENV
 
-openclaw cron add relic:healthcheck \
+hermes cron add relic:healthcheck \
   --command "$PYTHON -m relic.healthcheck" \
   --cwd "$REPO" --schedule "0 4 * * *" $ENV
 
-openclaw cron add relic:memory \
+hermes cron add relic:memory \
   --command "$PYTHON -m relic.memory" \
   --cwd "$REPO" --schedule "0 5 * * 0" $ENV
 
 # Weekly
-openclaw cron add relic:liwc \
+hermes cron add relic:liwc \
   --command "$PYTHON -m relic.liwc" \
   --cwd "$REPO" --schedule "0 3 * * 0" $ENV
 
-openclaw cron add relic:stress-index \
+hermes cron add relic:stress-index \
   --command "$PYTHON -m relic.stress_index" \
   --cwd "$REPO" --schedule "0 6 * * 1" $ENV
 ```
@@ -162,13 +162,13 @@ For biofeedback, optional integrations, and all 13 monthly specialist analyzers 
 ## Verify the installation
 
 ```bash
-# Demo pipeline (no OpenClaw, no LLM required)
+# Demo pipeline (no Hermes, no LLM required)
 python -m relic.demo_runner --output-dir demo/generated
 open demo/generated/demo_console.html
 
-# OpenClaw status
-openclaw hooks status
-openclaw cron status
+# Hermes status
+hermes hooks status
+hermes cron status
 
 # Inbox
 wc -l ~/.relic/<subject-id>/inbox.jsonl
@@ -185,8 +185,8 @@ These are separate files - the demo never touches your live database.
 To switch the webui from demo data to live data, change `RELIC_DATA_DIR`:
 
 ```bash
-# demo data (synthetic, no OpenClaw required)
-RELIC_DATA_DIR=demo/generated OPENCLAW_HOME=demo/generated python -m relic.webui --port 8765
+# demo data (synthetic, no Hermes required)
+RELIC_DATA_DIR=demo/generated HERMES_HOME=demo/generated python -m relic.webui --port 8765
 
 # live data (requires installation + at least one extraction cycle)
 RELIC_DATA_DIR=~/.relic/<subject-id> python -m relic.webui --port 8765

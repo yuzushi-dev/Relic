@@ -111,9 +111,31 @@ Behavioral signal
        |         liwc · stress-index
        |
        +---> [Monthly specialist analyzers]      1st-5th of each month
-                 schemas · goals · sdt · portrait · idiolect
-                 caps · attachment · defenses · narrative
-                 appraisal · mental-models · dual-process · constructs
+       |         schemas · goals · sdt · portrait · idiolect
+       |         caps · attachment · defenses · narrative
+       |         appraisal · mental-models · dual-process · constructs
+       |
+       +---> [Cron: relic:biofeedback-correlation]  daily 04:15
+       |         Spearman rank correlation (non-parametric, tie-corrected)
+       |         Physiological signals (HRV, sleep stages, stress, SpO2)
+       |           × text-derived personality facet observations
+       |         Permutation p-value · bootstrap 95% CI · effective-N
+       |         Bonferroni-corrected across 42 signal–facet pairs
+       |         Detects bio-linguistic divergences (|bio − text| ≥ 0.5)
+       |
+       +---> [Paperclip: verification layer]         localhost:3100
+                 One company per deployment · four independent review teams
+                 Health Reviewer    (gemini_local) — evaluates confidence/coverage/loop-risk
+                 Humanness Reviewer (gemini_local) — detects AI-pattern degradation in agents
+                 Biofeedback Reviewer (gemini_local) — validates correlation findings
+                 Inquiry Reviewer   (gemini_local) — verifies behavioral hypotheses
+                 3-layer pipeline per team:
+                   1. Python Layer 1 — deterministic metrics + data preparation
+                   2. Pro/Contra/Judge LLM debate — role-differentiated structured deliberation
+                   3. Gemini reviewer — independent validation against formal rubrics
+                 Reviewer blind to analyst verdict; derives conclusions from raw data only
+                 CONTESTED cases escalated to human via Telegram with options A/B/C
+                 Audit trail: reviewer_decisions.jsonl (append-only, all decisions logged)
 ```
 
 ### The 60-Facet Model
@@ -137,6 +159,18 @@ Each facet carries a position `[0.0 - 1.0]`, a confidence score, and an observat
 
 A verification and audit layer operates across the pipeline as a whole. It consolidates candidate model findings, resolves noise through structured evidence review, and maintains a persistent, inspectable ground-truth state of inferred claims. This layer is architecturally separate from the inference modules that produce findings, and is capable of retroactive application to accumulated observations.
 
+**[Paperclip](https://github.com/paperclipai/paperclip)** (MIT) serves as the orchestration platform for this layer, hosting four independent teams: Health, Humanness, Biofeedback, and Inquiry.
+
+Each team runs a three-layer pipeline:
+
+1. **Python Layer 1** — deterministic metric computation, data aggregation, evidence preparation
+2. **Pro/Contra/Judge debate** — role-differentiated structured deliberation: three calls with distinct role-defining system prompts (Pro, Contra, Judge) force documentation of competing perspectives before the finding advances. Default configuration uses a single configurable model; per-role model overrides are supported via env vars
+3. **Gemini reviewer** — an independent Gemini agent receives the raw data and a formal review rubric; it derives its own verdict without seeing the analyst's recommendation (blind review). Convergence → finding applied; divergence → CONTESTED
+
+CONTESTED cases escalate to human via Telegram with concrete options (A: apply finding, B: reject, C: request more data). Reviewer decisions are logged in an append-only `reviewer_decisions.jsonl` audit trail.
+
+Setup is opt-in: `python3 scripts/setup_paperclip.py`. See [docs/PAPERCLIP_SETUP.md](docs/PAPERCLIP_SETUP.md) for full bootstrap instructions.
+
 ---
 
 ## Project Stats
@@ -150,7 +184,10 @@ categories     8 (cognitive · emotional · communication · relational ·
 integrations   Telegram · Zepp/Amazfit · Actual Budget · Muse 2 EEG · voice
 hooks          2   (relic-capture · relic-bootstrap)
 crons          36  (6 core · 4 daily · 5 biofeedback · 2 weekly · 5 optional · 13 monthly specialist)
-tests          189 (sanitization · packaging · demo · repo-readiness · unit)
+tests          219 (sanitization · packaging · demo · repo-readiness · unit · biofeedback-correlation)
+verification   Paperclip (MIT) · 4 teams (Health · Humanness · Bio · Inquiry)
+               3-layer pipeline: Python → Pro/Contra/Judge debate → Gemini blind review
+               audit trail: reviewer_decisions.jsonl · Telegram escalation for contested cases
 public entry   synthetic demo flow
 license        AGPL-3.0
 ```
@@ -238,7 +275,14 @@ The wizard configures:
 - Subject identity and runtime data directory
 - Hermes hooks: relic-capture · relic-bootstrap
 - 36 cron jobs across core pipeline, daily enrichment, biofeedback, weekly analysis, and monthly specialist analyzers
+- **Paperclip integration** (optional): creates a local Paperclip company with four analysis teams (Health, Humanness, Biofeedback, Inquiry); requires `npx paperclipai run` before or after install
 - Environment file (`.env`) with your full configuration
+
+To set up Paperclip separately after install:
+```bash
+npx paperclipai run          # start Paperclip server (localhost:3100)
+python3 scripts/setup_paperclip.py
+```
 
 ---
 
@@ -268,6 +312,7 @@ The rename may be a **breaking change** for existing installations and automatio
 | [INSTALL.md](INSTALL.md) | Prerequisites, wizard, manual setup, backfill |
 | [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | Every env var with examples and directory layout |
 | [docs/ADAPTERS.md](docs/ADAPTERS.md) | How to connect an LLM provider (Anthropic, OpenAI, Ollama, Hermes) |
+| [docs/PAPERCLIP_SETUP.md](docs/PAPERCLIP_SETUP.md) | Paperclip integration bootstrap, 3-layer pipeline, workspace setup |
 | [docs/architecture/RELIC.md](docs/architecture/RELIC.md) | Full pipeline internals |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Dev setup, adding crons, sanitization rules, PR process |
 
@@ -297,7 +342,7 @@ Every architectural decision reflects five constraints:
 - **Inspectability**: structured data, traceable decisions, outputs that can be read and questioned by the subject.
 - **Human readability**: PORTRAIT.md is written to be read by a person, not parsed by a machine.
 - **Consent and separation**: demo data and real behavioral data are architecturally separated. The subject controls the data.
-- **Epistemic accountability**: every inferred claim is subject to structured verification. A dedicated audit layer consolidates findings, eliminates noise, and maintains an inspectable ground-truth state distinct from raw inference output.
+- **Epistemic accountability**: every inferred claim is subject to structured verification. A dedicated audit layer (Paperclip) consolidates findings, eliminates noise, and maintains an inspectable ground-truth state distinct from raw inference output. Reviewer agents are architecturally separate from the inference pipeline that produced the findings.
 
 ---
 

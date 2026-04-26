@@ -183,6 +183,18 @@ class State:
     relational_agent_ids: str = ""
     enable_telegram: bool = False
     enable_biofeedback: bool = False
+    # paperclip
+    enable_paperclip: bool = False
+    paperclip_url: str = "http://localhost:3100"
+    paperclip_company_id: str = ""
+    paperclip_bio_analyst_key: str = ""
+    paperclip_bio_reviewer_id: str = ""
+    paperclip_inq_analyst_key: str = ""
+    paperclip_inq_reviewer_id: str = ""
+    paperclip_health_analyst_key: str = ""
+    paperclip_health_reviewer_id: str = ""
+    paperclip_humanness_analyst_key: str = ""
+    paperclip_humanness_reviewer_id: str = ""
     # backfill
     run_backfill: bool = False
     backfill_path: str = ""
@@ -408,6 +420,149 @@ def step_checkin(state: State) -> None:
            f"{state.checkin_hour_start}:00 – {state.checkin_hour_end}:59{RST}")
 
 
+
+def _try_paperclip_setup(state: State) -> None:
+    """Connect to Paperclip, create company + agents, store keys in state."""
+    import urllib.error, urllib.request, shutil, subprocess
+
+    def _papi(method: str, path: str, data: dict | None = None, token: str = "") -> dict:
+        import json as _j
+        body = _j.dumps(data).encode() if data is not None else None
+        hdrs: dict = {"Content-Type": "application/json"}
+        if token:
+            hdrs["Authorization"] = f"Bearer {token}"
+        req = urllib.request.Request(
+            f"{state.paperclip_url}/api{path}",
+            data=body, headers=hdrs, method=method,
+        )
+        with urllib.request.urlopen(req, timeout=8) as r:
+            raw = r.read()
+            return _j.loads(raw) if raw else {}
+
+    # Check connectivity
+    try:
+        health = _papi("GET", "/health")
+        indent(gr(f"  Paperclip {health.get('version','?')} — connected"))
+    except Exception:
+        nl()
+        indent(wa("  Paperclip not reachable at " + state.paperclip_url))
+        indent(m("  Start it with:  npx paperclipai run"))
+        indent(m("  Then run later: python3 scripts/setup_paperclip.py"))
+        state.enable_paperclip = False
+        return
+
+    # Which pipelines?
+    nl()
+    indent(m("Which pipelines should Paperclip manage?"))
+    indent(m("  [b] Biofeedback Correlation only"))
+    indent(m("  [i] Inquiry Verification only"))
+    indent(m("  [h] Health Monitor only"))
+    indent(m("  [a] All three  (default)"))
+    nl()
+    pipelines = ask("Pipelines", default="a").strip().lower()
+    if pipelines not in ("a", "b", "i", "h"):
+        pipelines = "a"
+
+    # Company name
+    company_name = ask("Company name", default="Relic")
+
+    # Create company
+    try:
+        company = _papi("POST", "/companies", {
+            "name": company_name,
+            "goal": (
+                "Scientific analysis of biofeedback/personality correlations "
+                "and adversarial verification of behavioral findings."
+            ),
+        })
+        state.paperclip_company_id = company["id"]
+        indent(gr(f"  Company '{company_name}' created"))
+    except Exception as exc:
+        indent(wa(f"  Failed to create company: {exc}"))
+        return
+
+    cid = state.paperclip_company_id
+    npx = shutil.which("npx") or "npx"
+
+    def _make_agent(spec: dict, hb: dict) -> str:
+        a = _papi("POST", f"/companies/{cid}/agents", spec)
+        _papi("PATCH", f"/agents/{a['id']}", {"runtimeConfig": {"heartbeat": hb}})
+        return a["id"], a.get("urlKey", "")
+
+    def _make_key(url_key: str, key_name: str) -> str:
+        out = subprocess.run(
+            [npx, "paperclipai", "agent", "local-cli", url_key,
+             "-C", cid, "--key-name", key_name,
+             "--no-install-skills", "--api-base", state.paperclip_url, "--json"],
+            capture_output=True, text=True,
+        )
+        if out.returncode == 0:
+            import json as _j
+            return _j.loads(out.stdout)["key"]["token"]
+        return ""
+
+    if pipelines in ("a", "b"):
+        aid, ukey = _make_agent(
+            {"name": "Biofeedback Analyst",
+             "capabilities": "Nightly Spearman correlation: physiological signals × personality facets.",
+             "adapterType": "process",
+             "adapterConfig": {"command": "python3", "args": ["-m", "relic.biofeedback_correlation"],
+                               "env": {"PYTHONPATH": "src"}, "timeoutSec": 600}},
+            {"enabled": True, "intervalSec": 86400, "maxConcurrentRuns": 1},
+        )
+        state.paperclip_bio_analyst_key = _make_key(ukey, "relic-bio-analyst")
+        rid, _ = _make_agent(
+            {"name": "Biofeedback Reviewer",
+             "capabilities": "Reviews biofeedback correlation results and flags findings.",
+             "adapterType": "gemini_local",
+             "adapterConfig": {"model": "gemini-2.5-flash", "timeoutSec": 300}},
+            {"enabled": True, "intervalSec": 600, "maxConcurrentRuns": 1},
+        )
+        state.paperclip_bio_reviewer_id = rid
+        indent(gr("  Biofeedback agents created"))
+
+    if pipelines in ("a", "i"):
+        aid, ukey = _make_agent(
+            {"name": "Inquiry Analyst",
+             "capabilities": "Adversarial hypothesis verification on behavioral observations.",
+             "adapterType": "process",
+             "adapterConfig": {"command": "python3", "args": ["-m", "relic.relic_inquiry_team"],
+                               "env": {"PYTHONPATH": "src", "RELIC_INQUIRY_TEAM": "true"},
+                               "timeoutSec": 600}},
+            {"enabled": True, "intervalSec": 86400, "maxConcurrentRuns": 1},
+        )
+        state.paperclip_inq_analyst_key = _make_key(ukey, "relic-inq-analyst")
+        rid, _ = _make_agent(
+            {"name": "Inquiry Reviewer",
+             "capabilities": "Reviews personality and behavioral findings, proposes verdicts.",
+             "adapterType": "gemini_local",
+             "adapterConfig": {"model": "gemini-2.5-flash", "timeoutSec": 300}},
+            {"enabled": True, "intervalSec": 600, "maxConcurrentRuns": 1},
+        )
+        state.paperclip_inq_reviewer_id = rid
+        indent(gr("  Inquiry agents created"))
+
+    if pipelines in ("a", "h"):
+        aid, ukey = _make_agent(
+            {"name": "Health Analyst",
+             "capabilities": "Every 12h: computes model health (confidence/coverage/loop-risk) and submits structured health issues.",
+             "adapterType": "process",
+             "adapterConfig": {"command": "python3", "args": ["-m", "relic.health_monitor"],
+                               "env": {"PYTHONPATH": "src"}, "timeoutSec": 120}},
+            {"enabled": True, "intervalSec": 43200, "maxConcurrentRuns": 1},
+        )
+        state.paperclip_health_analyst_key = _make_key(ukey, "relic-health-analyst")
+        rid, _ = _make_agent(
+            {"name": "Health Strategist",
+             "capabilities": "Reviews health reports, evaluates confidence/coverage trends and loop risk, proposes interventions.",
+             "adapterType": "gemini_local",
+             "adapterConfig": {"model": "gemini-2.5-flash", "timeoutSec": 300}},
+            {"enabled": True, "intervalSec": 600, "maxConcurrentRuns": 1},
+        )
+        state.paperclip_health_reviewer_id = rid
+        indent(gr("  Health agents created"))
+
+
 def step_integrations(state: State) -> None:
     header(6, TOTAL_STEPS)
     indent(b("Optional Integrations"))
@@ -450,6 +605,25 @@ def step_integrations(state: State) -> None:
     indent(m("Ingests HRV and sleep data as physiological signal."))
     nl()
     state.enable_biofeedback = confirm("Enable biofeedback integration?", default=False)
+
+    nl()
+    hr("·")
+    nl()
+
+    indent(f"{GOLD}Paperclip  (AI orchestration for analysis review){RST}")
+    nl()
+    indent(m("Creates a Paperclip company with Gemini review agents for the pipelines"))
+    indent(m("you enable. Requires Paperclip installed and running:"))
+    indent(m("  npm install -g paperclipai  →  npx paperclipai run"))
+    nl()
+    state.enable_paperclip = confirm("Enable Paperclip integration?", default=False)
+    if state.enable_paperclip:
+        state.paperclip_url = ask(
+            "Paperclip API URL",
+            default="http://localhost:3100",
+        )
+        nl()
+        _try_paperclip_setup(state)
 
 
 def step_backfill(state: State) -> None:
@@ -962,6 +1136,48 @@ def _build_env(state: State) -> str:
             "TELEGRAM_BOT_TOKEN=",
             "TELEGRAM_LOGS_CHAT_ID=",
             "TELEGRAM_LOGS_THREAD_ID=",
+        ]
+    if state.enable_paperclip and state.paperclip_company_id:
+        lines += [
+            "",
+            "# ── Paperclip ───────────────────────────────────────────",
+            f"PAPERCLIP_API_URL={state.paperclip_url}",
+            f"PAPERCLIP_COMPANY_ID={state.paperclip_company_id}",
+        ]
+        if state.paperclip_bio_analyst_key:
+            lines += [
+                f"PAPERCLIP_BIO_ANALYST_KEY={state.paperclip_bio_analyst_key}",
+                f"PAPERCLIP_BIO_REVIEWER_ID={state.paperclip_bio_reviewer_id}",
+            ]
+        if state.paperclip_inq_analyst_key:
+            lines += [
+                f"PAPERCLIP_INQ_ANALYST_KEY={state.paperclip_inq_analyst_key}",
+                f"PAPERCLIP_INQ_REVIEWER_ID={state.paperclip_inq_reviewer_id}",
+            ]
+        if state.paperclip_health_analyst_key:
+            lines += [
+                f"PAPERCLIP_HEALTH_ANALYST_KEY={state.paperclip_health_analyst_key}",
+                f"PAPERCLIP_HEALTH_REVIEWER_ID={state.paperclip_health_reviewer_id}",
+            ]
+        if state.paperclip_humanness_analyst_key:
+            lines += [
+                f"PAPERCLIP_HUMANNESS_ANALYST_KEY={state.paperclip_humanness_analyst_key}",
+                f"PAPERCLIP_HUMANNESS_REVIEWER_ID={state.paperclip_humanness_reviewer_id}",
+            ]
+    elif state.enable_paperclip:
+        lines += [
+            "",
+            "# ── Paperclip (run setup_paperclip.py to populate) ─────",
+            "PAPERCLIP_API_URL=http://localhost:3100",
+            "PAPERCLIP_COMPANY_ID=",
+            "PAPERCLIP_BIO_ANALYST_KEY=",
+            "PAPERCLIP_BIO_REVIEWER_ID=",
+            "PAPERCLIP_INQ_ANALYST_KEY=",
+            "PAPERCLIP_INQ_REVIEWER_ID=",
+            "PAPERCLIP_HEALTH_ANALYST_KEY=",
+            "PAPERCLIP_HEALTH_REVIEWER_ID=",
+            "PAPERCLIP_HUMANNESS_ANALYST_KEY=",
+            "PAPERCLIP_HUMANNESS_REVIEWER_ID=",
         ]
     return "\n".join(lines) + "\n"
 

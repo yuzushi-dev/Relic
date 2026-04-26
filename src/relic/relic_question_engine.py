@@ -22,6 +22,26 @@ import math
 from datetime import datetime, time, timedelta
 from pathlib import Path
 from typing import Any
+
+RELIC_DIR_QE = Path(os.environ.get("RELIC_DATA_DIR", "") or str(Path(__file__).resolve().parents[1] / "relic"))
+
+def _load_health_overrides() -> dict:
+    """Read RELIC_DIR/health_overrides.json if present and not expired."""
+    p = RELIC_DIR_QE / "health_overrides.json"
+    if not p.exists():
+        return {}
+    try:
+        with open(p) as _f:
+            data = json.load(_f)
+        exp = data.get("expires_at")
+        if exp:
+            from datetime import timezone as _tz
+            if datetime.fromisoformat(exp) < datetime.now(_tz.utc):
+                return {}
+        return data
+    except Exception:
+        return {}
+
 from zoneinfo import ZoneInfo
 
 from lib.log import info, warn, error
@@ -210,6 +230,9 @@ def compute_due(pc: dict[str, Any], now: datetime) -> tuple[bool, bool, str]:
 
     sent_today = int(pc.get("sent_today", 0) or 0)
     max_per_day = int(pc.get("target_max_per_day", 3) or 3)
+    _ho = _load_health_overrides()
+    if _ho.get("max_questions_per_day"):
+        max_per_day = max(max_per_day, int(_ho["max_questions_per_day"]))
     if sent_today >= max_per_day:
         return False, False, "daily_max_reached"
 
@@ -419,6 +442,15 @@ def run_relic_scoring(state: dict[str, Any], now: datetime, apply: bool = False,
         ranking.append(scored)
 
     ranking.sort(key=lambda x: x["score"], reverse=True)
+
+    # Health priority boost: bump neglected facets flagged by health_monitor
+    _health = _load_health_overrides()
+    _priority = set(_health.get("priority_facets", []))
+    if _priority:
+        for item in ranking:
+            if item.get("facet") in _priority:
+                item["score"] = min(1.0, item["score"] + 0.20)
+        ranking.sort(key=lambda x: x["score"], reverse=True)
 
     # Select candidate
     threshold = 0.15  # Lower than TGS (0.29) because we have 60 facets

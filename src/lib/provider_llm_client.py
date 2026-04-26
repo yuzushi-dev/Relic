@@ -28,9 +28,11 @@ from typing import Any
 
 def _infer_provider(model: str) -> str:
     m = model.lower()
-    # OpenRouter first (explicit prefix)
+    # Explicit provider prefixes
     if m.startswith("openrouter/"):
         return "openrouter"
+    if m.startswith("nvidia/"):
+        return "nvidia"
     # Local-first: common Ollama model prefixes
     if m.startswith(("llama", "mistral", "gemma", "phi", "qwen", "deepseek",
                       "codellama", "wizardlm", "dolphin", "nous")):

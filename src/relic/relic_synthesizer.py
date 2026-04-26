@@ -353,7 +353,12 @@ def synthesize_traits() -> dict[str, Any]:
                     continue
 
             # Compute trait values
-            confidence = compute_confidence(observations)
+            # IMP-14b: when loop_warning active, confidence uses only independent
+            # (non-session_behavioral) observations so the score reflects real
+            # evidence rather than inflated loop count.
+            independent_obs = [o for o in observations if o.get("source_type") != "session_behavioral"]
+            conf_obs = independent_obs if (loop_warning_active and independent_obs) else observations
+            confidence = compute_confidence(conf_obs)
             obs_count = len(observations)
 
             # Compute trait status

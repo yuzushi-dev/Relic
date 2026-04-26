@@ -32,6 +32,8 @@ import numpy as np
 import requests
 
 from lib.log import info, warn
+from lib.relic_debate import run_debate
+from lib.reviewer_workspace import export_debate
 
 SCRIPT = "relic_biofeedback_corr"
 
@@ -43,6 +45,12 @@ def _data_dir() -> Path:
 
 
 DB_PATH = _data_dir() / "relic.db"
+PAPERCLIP_WORKSPACE_ROOT = Path(
+    os.environ.get(
+        "PAPERCLIP_WORKSPACE_ROOT",
+        str(Path.home() / ".paperclip" / "instances" / "default" / "workspaces"),
+    )
+)
 
 N_MIN = 14               # minimum aligned pairs to compute a correlation
 RHO_MIN = 0.30           # minimum effect size (practical significance)
@@ -426,6 +434,116 @@ def _send_telegram(text: str) -> None:
         warn(SCRIPT, "telegram_error", error=str(exc))
 
 
+# ── Paperclip intake ──────────────────────────────────────────────────────────
+
+
+def _export_to_workspace(results: list[dict], divergences: list, debate: dict) -> None:
+    """Esporta risultati correlazione, readiness e dibattito nel workspace del reviewer."""
+    reviewer_id = os.getenv("PAPERCLIP_BIO_REVIEWER_ID", "")
+
+    corr_export = [
+        {
+            "signal_type": r.get("signal_type"),
+            "facet_id": r.get("facet_id"),
+            "lag_days": r.get("lag_days"),
+            "status": r.get("status"),
+            "rho": r.get("rho"),
+            "p_value": r.get("p_value"),
+            "n_pairs": r.get("n_pairs"),
+            "n_eff": r.get("n_eff"),
+        }
+        for r in results
+    ]
+    div_export = [
+        {
+            "signal_type": getattr(d, "signal_type", str(d)),
+            "facet_id": getattr(d, "facet_id", ""),
+            "lag_days": getattr(d, "lag_days", 0),
+            "old_status": getattr(d, "old_status", ""),
+            "new_status": getattr(d, "new_status", ""),
+        }
+        for d in divergences
+    ]
+    readiness: list[dict] = []
+    try:
+        db = get_db()
+        rows = db.execute(
+            "SELECT signal_type, facet_id, lag_days, n_available FROM "
+            "biofeedback_correlation_readiness ORDER BY n_available DESC"
+        ).fetchall()
+        db.close()
+        readiness = [
+            {"signal_type": r[0], "facet_id": r[1], "lag_days": r[2],
+             "n_available": r[3], "n_needed": N_MIN, "ready": r[3] >= N_MIN}
+            for r in rows
+        ]
+    except Exception:
+        pass
+
+    export_debate(
+        reviewer_id=reviewer_id,
+        debate=debate,
+        extra_files={
+            "correlation_results": corr_export,
+            "divergences": div_export,
+            "readiness": readiness,
+        },
+    )
+
+
+def _submit_paperclip_issue(
+    report: str,
+    results: list[dict],
+    divergences: list["Divergence"],
+    debate: dict,
+) -> None:
+    """Submit one summary issue to the Paperclip Biofeedback Reviewer."""
+    api_url = os.getenv("PAPERCLIP_API_URL", "http://localhost:3100")
+    company_id = os.getenv("PAPERCLIP_COMPANY_ID", "")
+    api_key = os.getenv("PAPERCLIP_BIO_ANALYST_KEY", "")
+    reviewer_id = os.getenv("PAPERCLIP_BIO_REVIEWER_ID", "")
+
+    if not company_id or not api_key:
+        return
+
+    confirmed = [r for r in results if r["status"] == "confirmed"]
+    today = date.today().isoformat()
+    title = (
+        f"[{today}] Biofeedback correlation — "
+        f"{len(confirmed)} confirmed, {len(divergences)} divergences"
+    )
+    debate_md = (
+        f"\n\n---\n## Internal Debate (Pro/Contra/Judge)\n\n"
+        f"**Pro** ({debate.get('pro', {}).get('model', '?')}):\n"
+        f"{debate.get('pro', {}).get('argument', '')}\n\n"
+        f"**Contra** ({debate.get('contra', {}).get('model', '?')}):\n"
+        f"{debate.get('contra', {}).get('argument', '')}\n\n"
+        f"**Judge verdict**: {debate.get('judge', {}).get('verdict', '?')} "
+        f"(confidence={debate.get('judge', {}).get('confidence', 0):.2f})\n"
+        f"{debate.get('judge', {}).get('rationale', '')}"
+    )
+    description = f"## Biofeedback Correlation — {today}\n\n```\n{report}\n```" + debate_md
+
+    payload: dict = {"title": title, "description": description}
+    if reviewer_id:
+        payload["assigneeAgentId"] = reviewer_id
+
+    import urllib.request as _urlreq, json as _json
+    body = _json.dumps(payload).encode()
+    req = _urlreq.Request(
+        f"{api_url}/api/companies/{company_id}/issues",
+        data=body,
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
+        method="POST",
+    )
+    try:
+        with _urlreq.urlopen(req, timeout=10) as r:
+            issue = _json.loads(r.read())
+            info(SCRIPT, f"paperclip_issue_created id={issue.get('id','?')[:8]}")
+    except Exception as exc:
+        warn(SCRIPT, "paperclip_issue_error", error=str(exc))
+
+
 def _format_report(
     results: list[dict],
     divergences: list[Divergence],
@@ -589,6 +707,21 @@ def run(dry_run: bool = False) -> None:
         print(report)
     else:
         _send_telegram(report)
+        _confirmed = [r for r in results if r.get("status") == "confirmed"]
+        debate = run_debate(
+            domain="bio",
+            raw_data={
+                "confirmed_count": len(_confirmed),
+                "divergences_count": len(divergences),
+                "confirmed": [{"signal": r.get("signal_type"), "facet": r.get("facet_id"),
+                                "rho": r.get("rho"), "p": r.get("p_value"), "n": r.get("n_pairs")}
+                               for r in _confirmed[:5]],
+            },
+            metrics={"n_results": len(results), "n_divergences": len(divergences)},
+            report_text=report,
+        )
+        _export_to_workspace(results, divergences, debate)
+        _submit_paperclip_issue(report, results, divergences, debate)
 
 
 def main() -> None:

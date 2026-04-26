@@ -6,6 +6,9 @@ __pycache__/
 .venv/
 venv/
 
+# Runtime-generated override snapshots
+src/relic/override_snapshots/
+
 *.db
 *.sqlite
 *.sqlite3

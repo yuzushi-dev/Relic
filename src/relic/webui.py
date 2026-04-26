@@ -33,13 +33,21 @@ def _resolve_db_path() -> Path:
     if data_dir:
         return Path(data_dir) / "relic.db"
     # fallback: repo-relative runtime/ directory (matches demo default)
-    return Path(__file__).resolve().parents[3] / "runtime" / "relic.db"
+    return Path(__file__).resolve().parents[2] / "runtime" / "relic.db"
 
 DB_PATH = _resolve_db_path()
 
-# JOBS_PATH is an OpenClaw-internal file. In OSS it may not exist;
-# endpoints that read it degrade gracefully.
-JOBS_PATH = Path(_os.environ.get("OPENCLAW_HOME", str(Path.home() / ".openclaw"))) / "cron" / "jobs.json"
+def _resolve_jobs_path() -> Path:
+    hermes_home = Path(_os.environ.get("HERMES_HOME", str(Path.home() / ".hermes")))
+    profile_file = hermes_home / "active_profile"
+    if profile_file.exists():
+        profile = profile_file.read_text().strip()
+        candidate = hermes_home / "profiles" / profile / "cron" / "jobs.json"
+        if candidate.exists():
+            return candidate
+    return hermes_home / "cron" / "jobs.json"
+
+JOBS_PATH = _resolve_jobs_path()
 
 app = FastAPI(title="Relic UI", docs_url=None, redoc_url=None)
 
@@ -134,28 +142,29 @@ def save_jobs(data: dict) -> None:
     JOBS_PATH.write_text(json.dumps(data, indent=2, ensure_ascii=False))
 
 
-def _ms_ago(ts_ms: int, now_ms: int) -> str:
-    delta = (now_ms - ts_ms) // 1000
-    if delta < 60:
-        return f"{delta}s ago"
-    if delta < 3600:
-        return f"{delta // 60}m ago"
-    if delta < 86400:
-        return f"{delta // 3600}h ago"
-    return f"{delta // 86400}d ago"
+def _iso_ago(iso_str: str, now: datetime) -> str:
+    try:
+        dt = datetime.fromisoformat(iso_str)
+        delta = int(now.timestamp() - dt.timestamp())
+        if delta < 60:   return f"{delta}s ago"
+        if delta < 3600: return f"{delta // 60}m ago"
+        if delta < 86400: return f"{delta // 3600}h ago"
+        return f"{delta // 86400}d ago"
+    except Exception:
+        return iso_str[:10]
 
 
-def _ms_from_now(ts_ms: int, now_ms: int) -> str:
-    delta = (ts_ms - now_ms) // 1000
-    if delta < 0:
-        return "overdue"
-    if delta < 60:
-        return f"in {delta}s"
-    if delta < 3600:
-        return f"in {delta // 60}m"
-    if delta < 86400:
-        return f"in {delta // 3600}h"
-    return f"in {delta // 86400}d"
+def _iso_from_now(iso_str: str, now: datetime) -> str:
+    try:
+        dt = datetime.fromisoformat(iso_str)
+        delta = int(dt.timestamp() - now.timestamp())
+        if delta < 0:    return "overdue"
+        if delta < 60:   return f"in {delta}s"
+        if delta < 3600: return f"in {delta // 60}m"
+        if delta < 86400: return f"in {delta // 3600}h"
+        return f"in {delta // 86400}d"
+    except Exception:
+        return iso_str[:10]
 
 
 class ToggleRequest(BaseModel):
@@ -186,27 +195,25 @@ class DecisionPatch(BaseModel):
 @app.get("/api/cron")
 def api_cron() -> list[dict]:
     data = load_jobs()
-    # Only expose relic-owned jobs - never leak unrelated cron entries.
-    jobs = [j for j in data.get("jobs", []) if j.get("id", "").startswith("relic:")]
-    now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+    # Relic jobs in Hermes have "relic:" in the name (e.g. "relic:healthcheck" or "wave2:relic:job").
+    jobs = [j for j in data.get("jobs", []) if "relic:" in j.get("name", "") and not j.get("name", "").startswith("wave1:")]
+    now = datetime.now(timezone.utc)
     for j in jobs:
-        s = j.get("state") or {}
-        last_ms = s.get("lastRunAtMs")
-        next_ms = s.get("nextRunAtMs")
-        j["_last_run_ago"] = _ms_ago(last_ms, now_ms) if last_ms else None
-        j["_next_run_in"] = _ms_from_now(next_ms, now_ms) if next_ms else None
+        j["_last_run_ago"] = _iso_ago(j["last_run_at"], now) if j.get("last_run_at") else None
+        j["_next_run_in"] = _iso_from_now(j["next_run_at"], now) if j.get("next_run_at") else None
+        sched = j.get("schedule") or {}
+        j["_schedule_expr"] = (sched.get("expr") or sched.get("display") or "-") if isinstance(sched, dict) else str(sched)
     return jobs
 
 
 @app.patch("/api/cron/{job_id}")
 def api_cron_toggle(job_id: str, body: ToggleRequest) -> dict:
-    if not job_id.startswith("relic:"):
-        raise HTTPException(status_code=403, detail="not a relic job")
     data = load_jobs()
     for job in data["jobs"]:
         if job["id"] == job_id:
+            if "relic:" not in job.get("name", ""):
+                raise HTTPException(status_code=403, detail="not a relic job")
             job["enabled"] = body.enabled
-            job["updatedAtMs"] = int(datetime.now(timezone.utc).timestamp() * 1000)
             save_jobs(data)
             return {"id": job_id, "enabled": body.enabled, "ok": True}
     raise HTTPException(status_code=404, detail="job not found")
@@ -797,206 +804,6 @@ def api_amber_review(memory_id: str, body: AmberReviewRequest) -> dict:
         db.close()
 
 
-# ── Amber ─────────────────────────────────────────────────────────────────────
-
-def _amber_db():
-    """Return an initialized AmberDB or None if amber is unavailable.
-
-    Requires AMBER_DATA_DIR env var to be set.
-    Returns None gracefully if not set or amber package not installed.
-    """
-    data_dir = _os.environ.get("AMBER_DATA_DIR", "")
-    if not data_dir:
-        return None
-    try:
-        import sys as _sys
-        try:
-            from amber.db import AmberDB
-        except ImportError:
-            _amber_root = Path(__file__).resolve().parents[3] / "Amber-Relic"
-            if _amber_root.exists() and str(_amber_root) not in _sys.path:
-                _sys.path.insert(0, str(_amber_root))
-            from amber.db import AmberDB
-        db = AmberDB(db_path=Path(data_dir) / "amber-operational.sqlite")
-        db.initialize()
-        return db
-    except Exception:
-        return None
-
-
-@app.get("/api/amber/status")
-def api_amber_status() -> dict:
-    db = _amber_db()
-    if db is None:
-        return {"available": False, "healthy": False, "detail": "amber not configured (set AMBER_DATA_DIR)"}
-    try:
-        import sys as _sys
-        try:
-            from amber.provider import AmberMemoryProvider
-        except ImportError:
-            _amber_root = Path(__file__).resolve().parents[3] / "Amber-Relic"
-            if _amber_root.exists() and str(_amber_root) not in _sys.path:
-                _sys.path.insert(0, str(_amber_root))
-            from amber.provider import AmberMemoryProvider
-        provider = AmberMemoryProvider(db=db)
-        status = provider.health_check()
-        row = db.conn.execute(
-            "SELECT COUNT(*) as n FROM operational_memory_items WHERE status='active'"
-        ).fetchone()
-        active_items = dict(row)["n"] if row else 0
-        return {
-            "available": True,
-            "healthy": status.healthy,
-            "detail": status.detail,
-            "active_items": active_items,
-        }
-    except Exception as exc:
-        return {"available": True, "healthy": False, "detail": str(exc)}
-    finally:
-        db.close()
-
-
-@app.get("/api/amber/items")
-def api_amber_items(
-    subject_id: str = "",
-    review_status: str = "",
-    memory_type: str = "",
-    limit: int = 100,
-) -> list[dict]:
-    db = _amber_db()
-    if db is None:
-        return []
-    try:
-        conditions: list[str] = ["status = 'active'"]
-        params: list[Any] = []
-        if subject_id:
-            conditions.append("subject_id = ?")
-            params.append(subject_id)
-        if review_status:
-            conditions.append("review_status = ?")
-            params.append(review_status)
-        if memory_type:
-            conditions.append("memory_type = ?")
-            params.append(memory_type)
-        rows = db.conn.execute(
-            f"""
-            SELECT id, subject_id, memory_type, title, content,
-                   origin_type, review_status, confidence, salience,
-                   last_seen_at, created_at
-            FROM operational_memory_items
-            WHERE {" AND ".join(conditions)}
-            ORDER BY confidence DESC, last_seen_at DESC
-            LIMIT ?
-            """,
-            (*params, limit),
-        ).fetchall()
-        return [dict(r) for r in rows]
-    finally:
-        db.close()
-
-
-@app.get("/api/amber/metrics")
-def api_amber_metrics(subject_id: str = "demo-subject") -> dict:
-    db = _amber_db()
-    if db is None:
-        return {}
-    try:
-        import sys as _sys
-        try:
-            from amber.metrics import QualityMetrics
-        except ImportError:
-            _amber_root = Path(__file__).resolve().parents[3] / "Amber-Relic"
-            if _amber_root.exists() and str(_amber_root) not in _sys.path:
-                _sys.path.insert(0, str(_amber_root))
-            from amber.metrics import QualityMetrics
-        return QualityMetrics(db).compute(subject_id)
-    except Exception:
-        return {}
-    finally:
-        db.close()
-
-
-@app.get("/api/amber/trace")
-def api_amber_trace(subject_id: str = "", limit: int = 20) -> list[dict]:
-    db = _amber_db()
-    if db is None:
-        return []
-    try:
-        conditions: list[str] = []
-        params: list[Any] = []
-        if subject_id:
-            conditions.append("subject_id = ?")
-            params.append(subject_id)
-        where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
-        rows = db.conn.execute(
-            f"""
-            SELECT id, subject_id, query_text, agent_role,
-                   selected_memory_ids_json, retrieval_summary_json, created_at
-            FROM memory_retrieval_logs
-            {where}
-            ORDER BY created_at DESC
-            LIMIT ?
-            """,
-            (*params, limit),
-        ).fetchall()
-        return [dict(r) for r in rows]
-    except Exception:
-        return []
-    finally:
-        db.close()
-
-
-_VALID_REVIEW_ACTIONS = frozenset(
-    {"confirm", "correct", "reject", "expire", "downgrade_confidence", "supersede"}
-)
-
-
-class AmberReviewRequest(BaseModel):
-    action: str
-    note: str = ""
-
-
-@app.post("/api/amber/items/{memory_id}/review")
-def api_amber_review(memory_id: str, body: AmberReviewRequest) -> dict:
-    if body.action not in _VALID_REVIEW_ACTIONS:
-        raise HTTPException(
-            status_code=422,
-            detail=f"Invalid action. Must be one of: {sorted(_VALID_REVIEW_ACTIONS)}",
-        )
-    db = _amber_db()
-    if db is None:
-        raise HTTPException(status_code=503, detail="amber not configured (set AMBER_DATA_DIR)")
-    try:
-        row = db.conn.execute(
-            "SELECT id FROM operational_memory_items WHERE id = ?", (memory_id,)
-        ).fetchone()
-        if not row:
-            raise HTTPException(status_code=404, detail="memory item not found")
-        import sys as _sys
-        try:
-            from amber.provider import AmberMemoryProvider
-        except ImportError:
-            _amber_root = Path(__file__).resolve().parents[3] / "Amber-Relic"
-            if _amber_root.exists() and str(_amber_root) not in _sys.path:
-                _sys.path.insert(0, str(_amber_root))
-            from amber.provider import AmberMemoryProvider
-        AmberMemoryProvider(db=db).review_memory_item(memory_id, body.action, body.note)
-        return {"ok": True, "memory_id": memory_id, "action": body.action}
-    finally:
-        db.close()
-
-
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Relic Web UI")
-    parser.add_argument("--port", type=int, default=8765)
-    parser.add_argument("--host", default="127.0.0.1")
-    args = parser.parse_args()
-    uvicorn.run(app, host=args.host, port=args.port)
-
-
-if __name__ == "__main__":
-    main()
-
 
 class InspectRequest(BaseModel):
     subject_id: str = "demo-subject"
@@ -1053,3 +860,16 @@ def api_memory_provider_inspect(body: InspectRequest) -> dict:
         return _bundle_to_dict(bundle)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Relic Web UI")
+    parser.add_argument("--port", type=int, default=8765)
+    parser.add_argument("--host", default="127.0.0.1")
+    args = parser.parse_args()
+    uvicorn.run(app, host=args.host, port=args.port)
+
+
+if __name__ == "__main__":
+    main()
+
+

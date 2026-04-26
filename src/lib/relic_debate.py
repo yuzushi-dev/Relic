@@ -1,0 +1,187 @@
+"""relic_debate — Pro/Contra/Judge LLM debate for analyst modules.
+
+Shared by health_monitor, humanness_analyst, and biofeedback_correlation.
+Each analyst calls run_debate() after computing metrics to produce a structured
+internal debate before submitting to the Paperclip reviewer.
+
+Models (all default to openrouter/openrouter/free):
+  Pro:    RELIC_<DOMAIN>_PRO_MODEL   → RELIC_INQUIRY_PRO_MODEL   → default
+  Contra: RELIC_<DOMAIN>_CONTRA_MODEL→ RELIC_INQUIRY_CONTRA_MODEL → default
+  Judge:  RELIC_<DOMAIN>_JUDGE_MODEL → RELIC_INQUIRY_MODEL        → default
+"""
+from __future__ import annotations
+
+import json
+import os
+import re
+from datetime import datetime, timezone
+from typing import Any
+
+from lib.llm_resilience import chat_completion_content
+from lib.log import warn
+
+_DEFAULT_FREE = "openrouter/openrouter/free"
+_LLM_TIMEOUT = 90
+
+_SYSTEM_PROMPTS: dict[str, dict[str, str]] = {
+    "health": {
+        "pro": (
+            "You are an expert psychological data quality analyst. "
+            "Argue that the metrics provided indicate a real degradation requiring intervention. "
+            "Be specific: cite metric values and thresholds. Do NOT hedge."
+        ),
+        "contra": (
+            "You are a cautious psychological data quality analyst. "
+            "Argue that intervention may be premature. "
+            "Consider: Is the trend improving? Are metrics borderline? Is sample size adequate? "
+            "Identify confounds or alternative explanations."
+        ),
+        "judge": (
+            "You are a senior data quality reviewer. "
+            "You have read Pro and Contra arguments about health metrics. "
+            "Synthesize and output STRICT JSON only:\n"
+            '{"verdict": "<intervene_strong|intervene_soft|monitor|no_action>", '
+            '"rationale": "<2 sentences>", "confidence": <0.0-1.0>}'
+        ),
+    },
+    "humanness": {
+        "pro": (
+            "You are an expert in conversational AI naturalness assessment. "
+            "Argue that the patterns in the AI companion's messages indicate it is sounding "
+            "artificial, robotic, or sycophantic and needs correction. "
+            "Cite specific patterns from the metrics and sample messages."
+        ),
+        "contra": (
+            "You are a conversational AI naturalness reviewer. "
+            "Argue that the flagged patterns may be within natural variation or contextually appropriate. "
+            "Consider: Does the context justify these patterns? Are the sample sizes sufficient? "
+            "Could this be the AI's genuine style rather than a bug?"
+        ),
+        "judge": (
+            "You are a senior conversational AI evaluator. "
+            "You have read Pro and Contra arguments about naturalness patterns. "
+            "Synthesize and output STRICT JSON only:\n"
+            '{"verdict": "<intervene_strong|intervene_soft|monitor|no_action>", '
+            '"rationale": "<2 sentences>", "confidence": <0.0-1.0>}'
+        ),
+    },
+    "bio": (
+        {
+            "pro": (
+                "You are an expert in psychophysiological correlation analysis. "
+                "Argue that the biofeedback correlation results are statistically robust "
+                "and represent real signal. Cite rho values, p-values, and sample sizes. "
+                "Argue that divergences represent meaningful signal shifts."
+            ),
+            "contra": (
+                "You are a skeptical biostatistician. "
+                "Challenge the validity of the correlations. Consider: "
+                "Are sample sizes near the minimum threshold? Are there multiple comparison issues? "
+                "Could divergences be noise? Are there alternative explanations?"
+            ),
+            "judge": (
+                "You are a senior psychophysiology researcher. "
+                "You have read Pro and Contra arguments about biofeedback correlations. "
+                "Synthesize and output STRICT JSON only:\n"
+                '{"verdict": "<intervene_strong|intervene_soft|monitor|no_action>", '
+                '"rationale": "<2 sentences>", "confidence": <0.0-1.0>}'
+            ),
+        }
+    ),
+}
+
+
+def _get_model(domain: str, role: str) -> str:
+    domain_upper = domain.upper()
+    role_upper = role.upper()
+    # Per-domain override takes priority
+    env_key = f"RELIC_{domain_upper}_{role_upper}_MODEL"
+    if role == "judge":
+        # Judge uses RELIC_<DOMAIN>_JUDGE_MODEL or RELIC_INQUIRY_MODEL
+        val = os.environ.get(env_key) or os.environ.get("RELIC_INQUIRY_MODEL", _DEFAULT_FREE)
+    elif role == "pro":
+        val = os.environ.get(env_key) or os.environ.get("RELIC_INQUIRY_PRO_MODEL", _DEFAULT_FREE)
+    else:
+        val = os.environ.get(env_key) or os.environ.get("RELIC_INQUIRY_CONTRA_MODEL", _DEFAULT_FREE)
+    return val or _DEFAULT_FREE
+
+
+def _parse_judge_json(raw: str) -> dict[str, Any]:
+    s = raw.strip()
+    if s.startswith("```"):
+        lines = s.split("\n")
+        s = "\n".join(lines[1:] if lines[0].startswith("```") else lines)
+        if s.rstrip().endswith("```"):
+            s = s.rstrip()[:-3].strip()
+    m = re.search(r"\{[\s\S]*\}", s)
+    if m:
+        try:
+            return json.loads(m.group())
+        except json.JSONDecodeError:
+            pass
+    return {}
+
+
+def _call(domain: str, role: str, user_content: str) -> tuple[str, str]:
+    model = _get_model(domain, role)
+    prompts = _SYSTEM_PROMPTS.get(domain, _SYSTEM_PROMPTS["health"])
+    system_prompt = prompts[role]
+    try:
+        content, _ = chat_completion_content(
+            model=model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_content},
+            ],
+            max_tokens=512,
+            temperature=0.3,
+            timeout=_LLM_TIMEOUT,
+            title=f"debate/{domain}/{role.capitalize()}",
+        )
+        return content, model
+    except Exception as exc:
+        warn("relic_debate", f"{role}_error domain={domain}", error=str(exc))
+        return f"[{role} unavailable: {exc}]", model
+
+
+def run_debate(
+    domain: str,
+    raw_data: dict[str, Any],
+    metrics: dict[str, Any],
+    report_text: str,
+) -> dict[str, Any]:
+    """Run a Pro/Contra/Judge debate for the given domain and data.
+
+    Returns a structured debate dict ready to be included in a Paperclip issue
+    and written to the reviewer workspace as debate.json.
+    """
+    context = (
+        f"Domain: {domain}\n\n"
+        f"Metrics:\n{json.dumps(metrics, indent=2)}\n\n"
+        f"Raw data summary:\n{json.dumps(raw_data, indent=2, default=str)}\n\n"
+        f"Report:\n{report_text[:1500]}"
+    )
+
+    pro_text, pro_model = _call(domain, "pro", context)
+    contra_text, contra_model = _call(domain, "contra", context)
+
+    judge_input = (
+        f"{context}\n\n"
+        f"--- PRO ARGUMENT ---\n{pro_text}\n\n"
+        f"--- CONTRA ARGUMENT ---\n{contra_text}"
+    )
+    judge_raw, judge_model = _call(domain, "judge", judge_input)
+    parsed = _parse_judge_json(judge_raw)
+
+    return {
+        "domain": domain,
+        "pro": {"argument": pro_text, "model": pro_model},
+        "contra": {"argument": contra_text, "model": contra_model},
+        "judge": {
+            "verdict": parsed.get("verdict", "monitor"),
+            "rationale": parsed.get("rationale", judge_raw[:300]),
+            "confidence": float(parsed.get("confidence", 0.0)),
+            "model": judge_model,
+        },
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }

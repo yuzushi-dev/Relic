@@ -9,6 +9,8 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from fastapi.testclient import TestClient
 from relic.webui import app
+from relic.webui import DB_PATH
+from relic.webui import _resolve_db_path
 
 @pytest.fixture
 def client():
@@ -47,3 +49,9 @@ def test_inspect_bundle_values_are_lists(client):
     data = resp.json()
     assert isinstance(data["constraints"], list)
     assert isinstance(data["trace"], list)
+
+
+def test_db_path_defaults_to_repo_runtime_dir(monkeypatch):
+    monkeypatch.delenv("RELIC_DATA_DIR", raising=False)
+    assert _resolve_db_path() == ROOT / "runtime" / "relic.db"
+    assert DB_PATH == ROOT / "runtime" / "relic.db"

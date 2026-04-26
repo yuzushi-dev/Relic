@@ -93,6 +93,12 @@ _TG_THREAD = os.environ.get(
     "TELEGRAM_INQUIRY_THREAD_ID",
     os.environ.get("TELEGRAM_LOGS_THREAD_ID", ""),
 )
+_PAPERCLIP_WORKSPACE_ROOT = Path(
+    os.environ.get(
+        "PAPERCLIP_WORKSPACE_ROOT",
+        str(Path.home() / ".paperclip" / "instances" / "default" / "workspaces"),
+    )
+)
 
 
 # ── JSON helpers ─────────────────────────────────────────────────────────────
@@ -751,6 +757,94 @@ def run_inquiry(
     }
 
 
+# ── Paperclip intake ──────────────────────────────────────────────────────────
+
+
+def _export_to_workspace(results: list[dict], conn: "sqlite3.Connection") -> None:
+    """Esporta hypotheses con testo completo nel workspace del reviewer."""
+    reviewer_id = os.environ.get("PAPERCLIP_INQ_REVIEWER_ID", "")
+    if not reviewer_id:
+        return
+    ws = _PAPERCLIP_WORKSPACE_ROOT / reviewer_id
+    if not ws.exists():
+        return
+
+    h_ids = [r["hypothesis_id"] for r in results if "hypothesis_id" in r]
+    if not h_ids:
+        return
+
+    placeholders = ",".join("?" * len(h_ids))
+    rows = conn.execute(
+        f"SELECT id, hypothesis, status, confidence, "
+        f"supporting_observations, contradicting_observations "
+        f"FROM hypotheses WHERE id IN ({placeholders})",
+        h_ids,
+    ).fetchall()
+
+    batch = []
+    for row in rows:
+        h_id = row[0]
+        result = next((r for r in results if r.get("hypothesis_id") == h_id), {})
+        batch.append({
+            "id": h_id,
+            "hypothesis": row[1],
+            "current_status": row[2],
+            "confidence": row[3],
+            "conflict": result.get("conflict", False),
+        })
+
+    (ws / "hypotheses_batch.json").write_text(
+        json.dumps(batch, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+    info(SCRIPT, f"workspace_exported reviewer={reviewer_id[:8]} hypotheses={len(batch)}")
+
+
+def _submit_paperclip_inquiry_batch(results: list[dict]) -> None:
+    """Submit inquiry batch results as a Paperclip issue for the Inquiry Reviewer."""
+    api_url = os.environ.get("PAPERCLIP_API_URL", "http://localhost:3100")
+    company_id = os.environ.get("PAPERCLIP_COMPANY_ID", "")
+    api_key = os.environ.get("PAPERCLIP_INQ_ANALYST_KEY", "")
+    reviewer_id = os.environ.get("PAPERCLIP_INQ_REVIEWER_ID", "")
+
+    if not company_id or not api_key:
+        return
+
+    verdicts = [r["verdict"] for r in results]
+    today = datetime.now(timezone.utc).date().isoformat()
+    title = (
+        f"[{today}] Inquiry batch — "
+        f"{verdicts.count('verified')} verified, "
+        f"{verdicts.count('contested')} contested, "
+        f"{verdicts.count('needs_human')} needs_human"
+    )
+
+    rows = "\n".join(
+        f"- h#{r['hypothesis_id']} case={r.get('case_id','?')} "
+        f"conflict={r.get('conflict',False)}"
+        for r in results
+    )
+    description = f"## Inquiry Verification Batch — {today}\n\n{rows}"
+
+    payload: dict = {"title": title, "description": description}
+    if reviewer_id:
+        payload["assigneeId"] = reviewer_id
+
+    import urllib.request as _urlreq, json as _json
+    body = _json.dumps(payload).encode()
+    req = _urlreq.Request(
+        f"{api_url}/api/companies/{company_id}/issues",
+        data=body,
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
+        method="POST",
+    )
+    try:
+        with _urlreq.urlopen(req, timeout=10) as r:
+            issue = _json.loads(r.read())
+            info(SCRIPT, f"paperclip_issue_created id={issue.get('id','?')[:8]}")
+    except Exception as exc:
+        warn(SCRIPT, "paperclip_issue_error", error=str(exc))
+
+
 # ── CLI ───────────────────────────────────────────────────────────────────────
 
 def main() -> int:
@@ -812,6 +906,10 @@ def main() -> int:
              contested=verdicts.count("contested"),
              inconclusive=verdicts.count("inconclusive"),
              needs_human=verdicts.count("needs_human"))
+
+        if not args.dry_run:
+            _export_to_workspace(results, conn)
+            _submit_paperclip_inquiry_batch(results)
 
         return 0
     finally:
