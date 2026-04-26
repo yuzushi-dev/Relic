@@ -261,6 +261,18 @@ def apply_remediation(metrics: dict[str, Any], neglected: list[dict[str, Any]],
          priority_facets=priority_facets, expires_at=expires_at)
 
 
+# ── Last-run cache (for contested handler) ────────────────────────────────────
+
+def _save_last_run(metrics: dict[str, Any], neglected: list[dict[str, Any]]) -> None:
+    path = RELIC_DIR / "last_health_run.json"
+    RELIC_DIR.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({
+        "saved_at": datetime.now(timezone.utc).isoformat(),
+        "metrics": metrics,
+        "neglected": neglected,
+    }, indent=2))
+
+
 # ── Paperclip submission ──────────────────────────────────────────────────────
 
 
@@ -351,6 +363,9 @@ def main() -> int:
              neglected_count=len(neglected))
 
         report = format_report(metrics, neglected, severity)
+
+        # Cache last run so relic_contested_handler can apply overrides from human responses
+        _save_last_run(metrics, neglected)
 
         if severity == "healthy":
             info("health_ok", msg="all metrics within thresholds — no issue submitted")
