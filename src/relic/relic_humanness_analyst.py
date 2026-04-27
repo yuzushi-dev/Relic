@@ -23,8 +23,9 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
-from lib.relic_debate import run_debate
+from lib.relic_debate import run_debate, verdict_to_severity
 from lib.reviewer_workspace import export_debate
+from lib.telegram_notify import send_action_notification
 
 SCRIPT = "relic_humanness_analyst"
 
@@ -493,6 +494,43 @@ def submit_paperclip_issue(
         _log("WARN", "paperclip_error", error=str(exc))
 
 
+# ── Autonomous action + notification ──────────────────────────────────────────
+
+def _auto_apply_and_notify(
+    metrics: dict[str, Any],
+    analyst_severity: str,
+    debate: dict[str, Any],
+) -> None:
+    judge = debate.get('judge', {})
+    verdict = judge.get('verdict', 'monitor')
+    confidence = float(judge.get('confidence', 0.0))
+    llm_available = judge.get('llm_available', True)
+    severity = verdict_to_severity(verdict)
+
+    apply_remediation(metrics, severity or 'good')
+
+    token = os.environ.get('TELEGRAM_BOT_TOKEN', '')
+    chat_id = os.environ.get('RELIC_HUMANNESS_TELEGRAM_CHAT_ID', '')
+    thread_raw = os.environ.get('RELIC_HUMANNESS_TELEGRAM_THREAD_ID', '')
+    if not token or not chat_id:
+        return
+    thread_id = int(thread_raw) if thread_raw else None
+
+    action = severity or 'monitor'
+    details: list[str] = []
+    if severity in ('critical', 'degraded'):
+        details = [
+            f'emdash={metrics.get("emdash_rate", 0):.3f}  bullet={_fmt_pct(metrics.get("bullet_rate", 0))}',
+            f'aff_q={_fmt_pct(metrics.get("aff_q_rate", 0))}  length_ratio={metrics.get("avg_length_ratio", 0):.2f}x',
+        ]
+
+    send_action_notification(
+        token=token, chat_id=chat_id, thread_id=thread_id,
+        domain='humanness', action=action, verdict=verdict,
+        confidence=confidence, details=details, llm_available=llm_available,
+    )
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main() -> int:
@@ -533,6 +571,7 @@ def main() -> int:
     )
     _export_to_workspace(samples, metrics, debate)
     submit_paperclip_issue(report, severity, metrics, debate)
+    _auto_apply_and_notify(metrics, severity, debate)
     return 0
 
 

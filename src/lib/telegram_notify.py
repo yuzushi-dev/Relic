@@ -90,3 +90,34 @@ def answer_callback_query(token: str, callback_query_id: str, text: str = "") ->
         "text": text,
         "show_alert": False,
     })
+
+
+def send_action_notification(
+    token: str,
+    chat_id: str,
+    thread_id: int | None,
+    domain: str,
+    action: str,
+    verdict: str,
+    confidence: float,
+    details: list[str],
+    llm_available: bool = True,
+) -> dict | None:
+    """Notify that an override was auto-applied (or not) by the autonomous pipeline."""
+    status_line = {
+        "critical":  "Applied CRITICAL override",
+        "degraded":  "Applied DEGRADED override",
+        "clear":     "Cleared override (returning to defaults)",
+        "monitor":   "Monitoring — no override applied",
+    }.get(action, f"Action: {action}")
+
+    llm_note = "" if llm_available else "\n⚠️ Judge LLM unavailable — heuristic applied"
+    details_str = "\n".join(f"  · {d}" for d in details)
+
+    text = (
+        f"<b>[{domain.upper()}]</b> {status_line}\n"
+        f"Judge: <code>{verdict}</code> (confidence: {confidence:.2f}){llm_note}\n"
+        f"{details_str}\n"
+        f"\n<i>Rollback: python3 -m relic.override_manager rollback {domain}</i>"
+    )
+    return send_message(token, chat_id, text, thread_id=thread_id)

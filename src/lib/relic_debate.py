@@ -21,6 +21,20 @@ from lib.llm_resilience import chat_completion_content
 from lib.log import warn
 
 _DEFAULT_FREE = "openrouter/openrouter/free"
+
+# Maps Judge verdict to override severity. None = no override. "clear" = remove override.
+VERDICT_TO_SEVERITY: dict[str, str | None] = {
+    "intervene_strong": "critical",
+    "intervene_soft":   "degraded",
+    "monitor":          None,
+    "no_action":        "clear",
+}
+
+
+def verdict_to_severity(verdict: str) -> str | None:
+    """Return override severity for a debate verdict, or None to skip."""
+    return VERDICT_TO_SEVERITY.get(verdict)
+
 _LLM_TIMEOUT = 90
 
 _SYSTEM_PROMPTS: dict[str, dict[str, str]] = {
@@ -140,8 +154,27 @@ def _call(domain: str, role: str, user_content: str) -> tuple[str, str]:
         )
         return content, model
     except Exception as exc:
-        warn("relic_debate", f"{role}_error domain={domain}", error=str(exc))
-        return f"[{role} unavailable: {exc}]", model
+        warn("relic_debate", f"{role}_error domain={domain} attempt=1", error=str(exc))
+        # Retry up to 3 times with simple backoff
+        import time
+        for attempt in range(2, 4):
+            time.sleep(2 ** attempt)
+            try:
+                content2, _ = chat_completion_content(
+                    model=model,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_content},
+                    ],
+                    max_tokens=512,
+                    temperature=0.3,
+                    timeout=_LLM_TIMEOUT,
+                    title=f"debate/{domain}/{role.capitalize()}/retry{attempt}",
+                )
+                return content2, model
+            except Exception as exc2:
+                warn("relic_debate", f"{role}_error domain={domain} attempt={attempt}", error=str(exc2))
+        return f"[{role} unavailable after 3 attempts]", model
 
 
 def run_debate(
