@@ -50,6 +50,7 @@ from typing import Any
 
 from lib.llm_resilience import chat_completion_content
 from lib.log import error, info, warn
+from lib.telegram_notify import send_action_notification
 from relic_db import (
     DB_PATH,
     get_db,
@@ -718,33 +719,25 @@ def run_inquiry(
 
         # Update hypothesis
         new_conf = hypothesis["confidence"]
-        if verdict == "verified":
+        effective_verdict = "contested" if verdict == "needs_human" else verdict
+        if effective_verdict == "verified":
             new_conf = min(0.99, new_conf + DELTA_VERIFIED)
-        elif verdict == "contested":
+        elif effective_verdict == "contested":
             new_conf = max(0.05, new_conf + DELTA_CONTESTED)
 
         upsert_hypothesis(
             hypothesis=h_text,
-            status=verdict,
+            status=effective_verdict,
             confidence=new_conf,
             hypothesis_id=h_id,
             conn=conn,
         )
         conn.commit()
 
-        # Human review notification
+        # Autonomous: needs_human → treated as contested (no human gate)
         if requires_human:
-            msg = _format_telegram_dossier(
-                hypothesis=hypothesis,
-                subclaims=subclaims,
-                pro_results=pro_results,
-                contra_results=contra_results,
-                det=det,
-                verdict=verdict,
-                rationale=rationale,
-            )
-            _send_telegram(msg)
-            info(SCRIPT, "human_review_notified", hypothesis_id=h_id)
+            info(SCRIPT, "needs_human_auto_contested", hypothesis_id=h_id,
+                 rationale="autonomous mode: needs_human downgraded to contested")
 
     return {
         "hypothesis_id": h_id,

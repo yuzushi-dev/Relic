@@ -32,7 +32,8 @@ import numpy as np
 import requests
 
 from lib.log import info, warn
-from lib.relic_debate import run_debate
+from lib.relic_debate import run_debate, verdict_to_severity
+from lib.telegram_notify import send_action_notification
 from lib.reviewer_workspace import export_debate
 
 SCRIPT = "relic_biofeedback_corr"
@@ -706,7 +707,6 @@ def run(dry_run: bool = False) -> None:
     if dry_run:
         print(report)
     else:
-        _send_telegram(report)
         _confirmed = [r for r in results if r.get("status") == "confirmed"]
         debate = run_debate(
             domain="bio",
@@ -722,6 +722,35 @@ def run(dry_run: bool = False) -> None:
         )
         _export_to_workspace(results, divergences, debate)
         _submit_paperclip_issue(report, results, divergences, debate)
+        _auto_notify_bio(debate, _confirmed, divergences)
+
+
+def _auto_notify_bio(
+    debate: dict,
+    confirmed: list[dict],
+    divergences: list[dict],
+) -> None:
+    import os
+    from pathlib import Path
+    judge = debate.get('judge', {})
+    verdict = judge.get('verdict', 'monitor')
+    confidence = float(judge.get('confidence', 0.0))
+    llm_available = judge.get('llm_available', True)
+    action = verdict_to_severity(verdict) or 'monitor'
+    token = os.environ.get('TELEGRAM_BOT_TOKEN', '')
+    chat_id = os.environ.get('RELIC_CORR_TELEGRAM_CHAT_ID', '')
+    thread_raw = os.environ.get('RELIC_CORR_TELEGRAM_THREAD_ID', '')
+    if not token or not chat_id:
+        return
+    thread_id = int(thread_raw) if thread_raw else None
+    details = [
+        f'{len(confirmed)} confirmed correlations, {len(divergences)} divergences',
+    ]
+    send_action_notification(
+        token=token, chat_id=chat_id, thread_id=thread_id,
+        domain='bio', action=action, verdict=verdict,
+        confidence=confidence, details=details, llm_available=llm_available,
+    )
 
 
 def main() -> None:
