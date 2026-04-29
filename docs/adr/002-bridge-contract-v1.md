@@ -21,7 +21,7 @@ Version `v1` of the bridge contract allows only `PORTRAIT.md` to cross the defau
 - `PROFILE.md`
 - layer 2 trait dumps
 - layer 3 specialist outputs
-- private Gumi state files
+- private companion state files
 
 ## Enforcement
 

@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 
 
-DEFAULT_ARTIFACTS_ROOT = Path("/home/cristina/docs/plans/live-artifacts")
+DEFAULT_ARTIFACTS_ROOT = Path(os.environ.get("RELIC_ARTIFACTS_ROOT", "/tmp/relic-artifacts"))
 DEFAULT_TARGET = "telegram:-1003733933010:142"
 
 
@@ -77,7 +77,7 @@ def build_report_text(snapshot_dir: Path) -> str:
             f"- artifact_gate: {artifact_gate}",
             f"- Wave1-3 ownership: canonical_disabled={canonical_disabled}/17 hermes_active={hermes_active}/17",
             f"- user-facing: checkin_crontab={user_paths['crontab_checkin_present']} followup_crontab={user_paths['crontab_checkin_followup_present']} proactive_crontab={user_paths['crontab_proactive_present']}",
-            f"- canonical store: checkin={user_paths['canonical_jobs_json_checkin_enabled']} followup={user_paths['canonical_jobs_json_checkin_followup_enabled']} proactive_placeholder={user_paths['canonical_jobs_json_gumi_proactive_enabled']}",
+            f"- canonical store: checkin={user_paths['canonical_jobs_json_checkin_enabled']} followup={user_paths['canonical_jobs_json_checkin_followup_enabled']} proactive_placeholder={user_paths['canonical_jobs_json_companion_proactive_enabled']}",
             f"- canonical sync rows: {sync_rows}",
             f"- artifacts: {snapshot_dir}",
         ]

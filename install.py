@@ -495,7 +495,7 @@ def _try_paperclip_setup(state: State) -> None:
             "timeoutSec": timeout_sec,
             "command": os.environ.get(
                 "PAPERCLIP_GEMINI_FALLBACK_COMMAND",
-                "/home/cristina/.paperclip/bin/paperclip-gemini-fallback",
+                "paperclip-gemini-fallback",
             ),
             "env": {
                 "PAPERCLIP_HERMES_FALLBACKS": os.environ.get(

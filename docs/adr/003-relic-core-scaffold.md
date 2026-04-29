@@ -15,7 +15,7 @@ Adopt the new `src/relic_core` package as the canonical extraction target.
 
 - It gives the migration a stable namespace that does not imply Hermes ownership.
 - It allows gradual extraction via compatibility re-exports before deeper refactors.
-- It avoids mutating the private downstream `workspace-gumi` assumptions during the first pass.
+- It avoids mutating the private downstream `workspace-companion` assumptions during the first pass.
 
 ## Alternatives Considered
 

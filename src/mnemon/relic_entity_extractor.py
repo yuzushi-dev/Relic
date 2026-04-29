@@ -229,7 +229,7 @@ Return JSON with this exact structure:
       "name": "exact name as used",
       "label": "short role/description (e.g. 'compagna', 'robot aspirapolvere', 'progetto AI')",
       "description": "1 sentence about this entity in context",
-      "relation_to_daniele": "partner|colleague|friend|project|tool|place|other",
+      "relation_to_subject": "partner|colleague|friend|project|tool|place|other",
       "sentiment": 0.0-1.0,
       "dynamic": "brief note on the relationship dynamic"
     }}
@@ -303,7 +303,7 @@ def process_batch(messages: list[dict], model: str, db) -> tuple[int, int]:
         entity_id_map[name] = eid
 
         # Upsert relation to the subject
-        rel = ent.get("relation_to_daniele", "other")
+        rel = ent.get("relation_to_subject", "other")
         dynamic = ent.get("dynamic")
         sentiment = ent.get("sentiment")
         evidence = ent.get("description", "")

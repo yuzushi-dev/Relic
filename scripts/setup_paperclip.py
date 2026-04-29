@@ -45,7 +45,7 @@ def _gemini_agent_config(timeout_sec: int = 300) -> dict:
         "timeoutSec": timeout_sec,
         "command": os.environ.get(
             "PAPERCLIP_GEMINI_FALLBACK_COMMAND",
-            "/home/cristina/.paperclip/bin/paperclip-gemini-fallback",
+            "paperclip-gemini-fallback",
         ),
         "env": {
             "PAPERCLIP_HERMES_FALLBACKS": os.environ.get(
