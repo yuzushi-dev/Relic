@@ -8,7 +8,7 @@ def test_pyproject_contains_public_package_metadata():
     pyproject = ROOT / "pyproject.toml"
     assert pyproject.exists()
     text = pyproject.read_text(encoding="utf-8")
-    assert 'name = "mnemon"' in text
+    assert 'name = "relic-mnemon"' in text
     assert 'mnemon-demo = "mnemon.demo_runner:main"' in text
     assert 'mnemon-demo-ui = "mnemon.demo_webui:main"' in text
     assert 'mnemon-webui = "mnemon.webui:main"' in text
