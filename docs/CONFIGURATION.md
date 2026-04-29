@@ -254,8 +254,8 @@ RELIC_SUBJECT_NAME=Alice
 RELIC_TELEGRAM_ID=123456789
 
 # Paths
-RELIC_DATA_DIR=/home/alice/.relic/alice
-OPENCLAW_HOME=/home/alice/.openclaw
+RELIC_DATA_DIR=~/.relic/alice
+OPENCLAW_HOME=~/.openclaw
 OPENCLAW_BIN=openclaw
 
 # Check-in schedule

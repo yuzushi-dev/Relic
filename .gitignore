@@ -14,6 +14,7 @@ src/relic/override_snapshots/
 *.sqlite3
 *.jsonl
 !datasets/**/*.jsonl
+reviewer_decisions.jsonl
 
 biofeedback_creds.json
 biofeedback.credentials.json
