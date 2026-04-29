@@ -502,7 +502,7 @@ def _try_paperclip_setup(state: State) -> None:
                     "PAPERCLIP_HERMES_FALLBACKS",
                     "ollama-cloud:gpt-oss:20b,openrouter:openrouter/free",
                 ),
-                "PAPERCLIP_HERMES_FALLBACK_TIMEOUT_SEC": "60",
+                "PAPERCLIP_HERMES_FALLBACK_TIMEOUT_SEC": "180",
                 "PAPERCLIP_HERMES_FALLBACK_MAX_TURNS": "12",
             },
         }
@@ -917,7 +917,7 @@ def step_install(state: State) -> None:
         if getattr(state, "run_backfill_preview", False):
             def run_preview() -> None:
                 sys.path.insert(0, str(REPO_ROOT / "src"))
-                from relic.demo_runner import _extract_synthetic_observations  # type: ignore
+                from mnemon.demo_runner import _extract_synthetic_observations  # type: ignore
                 inbox = Path(state.data_dir) / "inbox.jsonl"
                 messages = [
                     json.loads(l) for l in inbox.read_text(encoding="utf-8").splitlines()

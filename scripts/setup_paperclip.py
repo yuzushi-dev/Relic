@@ -52,7 +52,7 @@ def _gemini_agent_config(timeout_sec: int = 300) -> dict:
                 "PAPERCLIP_HERMES_FALLBACKS",
                 "ollama-cloud:gpt-oss:20b,openrouter:openrouter/free",
             ),
-            "PAPERCLIP_HERMES_FALLBACK_TIMEOUT_SEC": "60",
+            "PAPERCLIP_HERMES_FALLBACK_TIMEOUT_SEC": "180",
             "PAPERCLIP_HERMES_FALLBACK_MAX_TURNS": "12",
         },
     }

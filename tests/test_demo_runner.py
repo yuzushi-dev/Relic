@@ -16,7 +16,7 @@ def test_demo_runner_creates_expected_outputs(tmp_path):
         [
             sys.executable,
             "-m",
-            "relic.demo_runner",
+            "mnemon.demo_runner",
             "--output-dir",
             str(tmp_path),
         ],

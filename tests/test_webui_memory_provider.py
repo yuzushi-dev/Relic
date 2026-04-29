@@ -8,9 +8,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from fastapi.testclient import TestClient
-from relic.webui import app
-from relic.webui import DB_PATH
-from relic.webui import _resolve_db_path
+from mnemon.webui import app
+from mnemon.webui import DB_PATH
+from mnemon.webui import _resolve_db_path
 
 @pytest.fixture
 def client():

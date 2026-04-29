@@ -1,7 +1,7 @@
 import json
 
-from relic.demo_runner import run_demo
-from relic.demo_webui import build_demo_console, write_all_demo_variants
+from mnemon.demo_runner import run_demo
+from mnemon.demo_webui import build_demo_console, write_all_demo_variants
 
 
 def test_demo_webui_builds_demo_console_html(tmp_path):

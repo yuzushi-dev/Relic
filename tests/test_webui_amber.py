@@ -15,7 +15,7 @@ if AMBER_ROOT.exists() and str(AMBER_ROOT) not in sys.path:
 sys.path.insert(0, str(ROOT / "src"))
 
 from fastapi.testclient import TestClient
-from relic.webui import app
+from mnemon.webui import app
 
 @pytest.fixture
 def client():

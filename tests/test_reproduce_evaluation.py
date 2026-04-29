@@ -14,7 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "reproduce_evaluation.py"
-DEMO_DB = ROOT / "src" / "relic" / "relic.db"
+DEMO_DB = ROOT / "src" / "mnemon" / "relic.db"
 
 
 def test_script_file_exists() -> None:

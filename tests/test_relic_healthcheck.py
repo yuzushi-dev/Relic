@@ -5,7 +5,7 @@ from pathlib import Path
 
 from datetime import datetime, timedelta, timezone
 
-from relic import relic_healthcheck
+from mnemon import relic_healthcheck
 
 
 def _init_db(path: Path) -> None:

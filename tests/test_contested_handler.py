@@ -16,7 +16,7 @@ os.environ.setdefault("RELIC_HEALTH_TELEGRAM_THREAD_ID", "599")
 def tmp_relic(tmp_path, monkeypatch):
     monkeypatch.setenv("RELIC_DATA_DIR", str(tmp_path))
     import importlib
-    import relic.relic_contested_handler as mod
+    import mnemon.relic_contested_handler as mod
     importlib.reload(mod)
     yield tmp_path
 
@@ -25,7 +25,7 @@ def test_build_thread_map_returns_health_entry(monkeypatch):
     monkeypatch.setenv("RELIC_HEALTH_TELEGRAM_CHAT_ID", "-1003733933010")
     monkeypatch.setenv("RELIC_HEALTH_TELEGRAM_THREAD_ID", "599")
     import importlib
-    import relic.relic_contested_handler as mod
+    import mnemon.relic_contested_handler as mod
     importlib.reload(mod)
     tmap = mod._build_thread_map()
     assert ("-1003733933010", 599) in tmap
@@ -36,7 +36,7 @@ def test_build_thread_map_skips_missing_env(monkeypatch):
     monkeypatch.delenv("RELIC_CORR_TELEGRAM_CHAT_ID", raising=False)
     monkeypatch.delenv("RELIC_CORR_TELEGRAM_THREAD_ID", raising=False)
     import importlib
-    import relic.relic_contested_handler as mod
+    import mnemon.relic_contested_handler as mod
     importlib.reload(mod)
     tmap = mod._build_thread_map()
     assert "bio" not in tmap.values()
@@ -45,7 +45,7 @@ def test_build_thread_map_skips_missing_env(monkeypatch):
 def test_state_roundtrip(tmp_path, monkeypatch):
     monkeypatch.setenv("RELIC_DATA_DIR", str(tmp_path))
     import importlib
-    import relic.relic_contested_handler as mod
+    import mnemon.relic_contested_handler as mod
     importlib.reload(mod)
 
     mod._save_state({"last_update_id": 99})
@@ -55,7 +55,7 @@ def test_state_roundtrip(tmp_path, monkeypatch):
 def test_load_state_defaults_to_zero(tmp_path, monkeypatch):
     monkeypatch.setenv("RELIC_DATA_DIR", str(tmp_path))
     import importlib
-    import relic.relic_contested_handler as mod
+    import mnemon.relic_contested_handler as mod
     importlib.reload(mod)
 
     assert mod._load_state()["last_update_id"] == 0
@@ -64,7 +64,7 @@ def test_load_state_defaults_to_zero(tmp_path, monkeypatch):
 def test_log_rollback_appends_jsonl(tmp_path, monkeypatch):
     monkeypatch.setenv("RELIC_DATA_DIR", str(tmp_path))
     import importlib
-    import relic.relic_contested_handler as mod
+    import mnemon.relic_contested_handler as mod
     importlib.reload(mod)
 
     mod._log_rollback("health", "Rolled back to snapshot 20260426_063720", from_user=42)
@@ -80,7 +80,7 @@ def test_log_rollback_appends_jsonl(tmp_path, monkeypatch):
 def test_do_rollback_no_snapshots(tmp_path, monkeypatch):
     monkeypatch.setenv("RELIC_DATA_DIR", str(tmp_path))
     import importlib
-    import relic.relic_contested_handler as mod
+    import mnemon.relic_contested_handler as mod
     importlib.reload(mod)
 
     result = mod._do_rollback("health")
@@ -90,7 +90,7 @@ def test_do_rollback_no_snapshots(tmp_path, monkeypatch):
 def test_do_rollback_with_snapshot(tmp_path, monkeypatch):
     monkeypatch.setenv("RELIC_DATA_DIR", str(tmp_path))
     import importlib
-    import relic.relic_contested_handler as mod
+    import mnemon.relic_contested_handler as mod
     importlib.reload(mod)
 
     # Create a snapshot directory and file

@@ -51,28 +51,28 @@ jobs:
 
           entrypoints = [
               # core
-              "relic.extract", "relic.checkin", "relic.passive_scan",
-              "relic.reply_extract", "relic.synthesize", "relic.profile_sync",
-              "relic.checkin_followup",
+              "mnemon.extract", "mnemon.checkin", "mnemon.passive_scan",
+              "mnemon.reply_extract", "mnemon.synthesize", "mnemon.profile_sync",
+              "mnemon.checkin_followup",
               # daily
-              "relic.entity_extract", "relic.decisions", "relic.healthcheck",
-              "relic.memory",
+              "mnemon.entity_extract", "mnemon.decisions", "mnemon.healthcheck",
+              "mnemon.memory",
               # biofeedback
-              "relic.biofeedback", "relic.biofeedback_gadgetbridge",
-              "relic.biofeedback_gb_ingest", "relic.muse_aggregate",
-              "relic.muse_recorder",
+              "mnemon.biofeedback", "mnemon.biofeedback_gadgetbridge",
+              "mnemon.biofeedback_gb_ingest", "mnemon.muse_aggregate",
+              "mnemon.muse_recorder",
               # weekly
-              "relic.liwc", "relic.stress_index",
+              "mnemon.liwc", "mnemon.stress_index",
               # optional
-              "relic.budget_bridge", "relic.voicenote", "relic.domain_prober",
-              "relic.backfill", "relic.motives",
+              "mnemon.budget_bridge", "mnemon.voicenote", "mnemon.domain_prober",
+              "mnemon.backfill", "mnemon.motives",
               # monthly
-              "relic.schemas", "relic.goals", "relic.sdt", "relic.portrait",
-              "relic.idiolect", "relic.caps", "relic.attachment",
-              "relic.defenses", "relic.narrative", "relic.appraisal",
-              "relic.mental_models", "relic.dual_process", "relic.constructs",
+              "mnemon.schemas", "mnemon.goals", "mnemon.sdt", "mnemon.portrait",
+              "mnemon.idiolect", "mnemon.caps", "mnemon.attachment",
+              "mnemon.defenses", "mnemon.narrative", "mnemon.appraisal",
+              "mnemon.mental_models", "mnemon.dual_process", "mnemon.constructs",
               # demo
-              "relic.demo_runner",
+              "mnemon.demo_runner",
           ]
 
           failed = []

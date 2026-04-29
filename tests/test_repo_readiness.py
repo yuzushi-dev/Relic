@@ -20,6 +20,6 @@ def test_readme_contains_public_quickstart():
 
 
 def test_webui_and_moodboard_assets_exist():
-    assert (ROOT / "src" / "relic" / "relic_webui.html").exists()
+    assert (ROOT / "src" / "mnemon" / "relic_webui.html").exists()
     assert (ROOT / "docs" / "design" / "2026-04-08-arasaka-ui-moodboard.md").exists()
     assert (ROOT / "docs" / "design" / "arasaka-ui-moodboard.svg").exists()

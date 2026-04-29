@@ -8,7 +8,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
-from relic.relic_override_store import (
+from mnemon.relic_override_store import (
     MAX_SNAPSHOTS,
     snapshot_before_write,
     list_snapshots,

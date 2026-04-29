@@ -7,7 +7,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
-from relic.relic_humanness_analyst import (
+from mnemon.relic_humanness_analyst import (
     EMDASH_RATE_WARN, EMDASH_RATE_CRIT,
     BULLET_RATE_WARN, BULLET_RATE_CRIT,
     BOT_PHRASE_RATE_WARN, BOT_PHRASE_RATE_CRIT,
@@ -282,9 +282,9 @@ def test_format_report_good_status():
 # ── apply_remediation ─────────────────────────────────────────────────────────
 
 def test_apply_remediation_degraded_writes_file(tmp_path, monkeypatch):
-    monkeypatch.setattr("relic.relic_humanness_analyst.HUMANNESS_OVERRIDES_FILE",
+    monkeypatch.setattr("mnemon.relic_humanness_analyst.HUMANNESS_OVERRIDES_FILE",
                         tmp_path / "humanness_overrides.json")
-    monkeypatch.setattr("relic.relic_humanness_analyst.RELIC_DIR", tmp_path)
+    monkeypatch.setattr("mnemon.relic_humanness_analyst.RELIC_DIR", tmp_path)
 
     metrics = _make_metrics()
     apply_remediation(metrics, "degraded")
@@ -299,9 +299,9 @@ def test_apply_remediation_degraded_writes_file(tmp_path, monkeypatch):
 
 
 def test_apply_remediation_critical_includes_emoji_cap(tmp_path, monkeypatch):
-    monkeypatch.setattr("relic.relic_humanness_analyst.HUMANNESS_OVERRIDES_FILE",
+    monkeypatch.setattr("mnemon.relic_humanness_analyst.HUMANNESS_OVERRIDES_FILE",
                         tmp_path / "humanness_overrides.json")
-    monkeypatch.setattr("relic.relic_humanness_analyst.RELIC_DIR", tmp_path)
+    monkeypatch.setattr("mnemon.relic_humanness_analyst.RELIC_DIR", tmp_path)
 
     metrics = _make_metrics(emoji_mono=EMOJI_MONO_CRIT + 0.01)
     apply_remediation(metrics, "critical")
@@ -312,8 +312,8 @@ def test_apply_remediation_critical_includes_emoji_cap(tmp_path, monkeypatch):
 def test_apply_remediation_good_removes_file(tmp_path, monkeypatch):
     override_file = tmp_path / "humanness_overrides.json"
     override_file.write_text('{"severity":"degraded"}')
-    monkeypatch.setattr("relic.relic_humanness_analyst.HUMANNESS_OVERRIDES_FILE", override_file)
-    monkeypatch.setattr("relic.relic_humanness_analyst.RELIC_DIR", tmp_path)
+    monkeypatch.setattr("mnemon.relic_humanness_analyst.HUMANNESS_OVERRIDES_FILE", override_file)
+    monkeypatch.setattr("mnemon.relic_humanness_analyst.RELIC_DIR", tmp_path)
 
     apply_remediation(_base_metrics(), "good")
     assert not override_file.exists()
@@ -321,17 +321,17 @@ def test_apply_remediation_good_removes_file(tmp_path, monkeypatch):
 
 def test_apply_remediation_good_no_file_no_error(tmp_path, monkeypatch):
     override_file = tmp_path / "humanness_overrides.json"
-    monkeypatch.setattr("relic.relic_humanness_analyst.HUMANNESS_OVERRIDES_FILE", override_file)
-    monkeypatch.setattr("relic.relic_humanness_analyst.RELIC_DIR", tmp_path)
+    monkeypatch.setattr("mnemon.relic_humanness_analyst.HUMANNESS_OVERRIDES_FILE", override_file)
+    monkeypatch.setattr("mnemon.relic_humanness_analyst.RELIC_DIR", tmp_path)
 
     apply_remediation(_base_metrics(), "good")  # non deve sollevare eccezioni
     assert not override_file.exists()
 
 
 def test_apply_remediation_length_ratio_sets_max_chars(tmp_path, monkeypatch):
-    monkeypatch.setattr("relic.relic_humanness_analyst.HUMANNESS_OVERRIDES_FILE",
+    monkeypatch.setattr("mnemon.relic_humanness_analyst.HUMANNESS_OVERRIDES_FILE",
                         tmp_path / "humanness_overrides.json")
-    monkeypatch.setattr("relic.relic_humanness_analyst.RELIC_DIR", tmp_path)
+    monkeypatch.setattr("mnemon.relic_humanness_analyst.RELIC_DIR", tmp_path)
 
     metrics = _base_metrics(avg_length_ratio=LENGTH_RATIO_WARN + 0.5,
                             aff_q_rate=AFF_Q_RATE_WARN + 0.1)

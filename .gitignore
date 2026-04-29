@@ -7,7 +7,7 @@ __pycache__/
 venv/
 
 # Runtime-generated override snapshots
-src/relic/override_snapshots/
+src/mnemon/override_snapshots/
 
 *.db
 *.sqlite
@@ -58,7 +58,7 @@ AGENTS.local.md
 *.local.md
 
 # Private operator tools (not part of the public OSS surface)
-src/relic/social_drafter.py
+src/mnemon/social_drafter.py
 tests/test_social_drafter.py
 
 # Internal and non-essential documents (not needed to spin up or use the project)

@@ -6,7 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from relic.inbox import append_to_inbox
+from mnemon.inbox import append_to_inbox
 
 
 def test_append_creates_file(tmp_path):

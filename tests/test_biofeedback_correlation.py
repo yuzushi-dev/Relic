@@ -11,7 +11,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
-from relic.relic_biofeedback_correlation import (
+from mnemon.relic_biofeedback_correlation import (
     ALPHA_CORRECTED,
     N_MIN,
     RHO_MIN,

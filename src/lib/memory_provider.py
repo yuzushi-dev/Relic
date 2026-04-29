@@ -10,7 +10,7 @@ use it via the RELIC_MEMORY_PROVIDER env var or runtime config.
 Provider registry
 -----------------
   null        - NullMemoryProvider (built-in, always available)
-  relic  - RelicMemoryProvider (built-in, reads from relic.db)
+  relic  - RelicMemoryProvider (built-in, reads from mnemon.db)
   custom      - any importable class path, e.g. "mypackage.MyProvider"
 
 Usage

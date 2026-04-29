@@ -8,7 +8,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
-from relic.relic_health_monitor import (
+from mnemon.relic_health_monitor import (
     COVERAGE_CRIT,
     COVERAGE_WARN,
     AVG_CONF_WARN,
@@ -235,12 +235,12 @@ def test_format_report_shows_neglected_facets():
 
 import tempfile, json as _json
 from pathlib import Path as _Path
-from relic.relic_health_monitor import apply_remediation, HEALTH_OVERRIDES_FILE, RELIC_DIR
+from mnemon.relic_health_monitor import apply_remediation, HEALTH_OVERRIDES_FILE, RELIC_DIR
 
 
 def test_apply_remediation_writes_file_when_critical(tmp_path, monkeypatch):
-    monkeypatch.setattr("relic.relic_health_monitor.RELIC_DIR", tmp_path)
-    monkeypatch.setattr("relic.relic_health_monitor.HEALTH_OVERRIDES_FILE",
+    monkeypatch.setattr("mnemon.relic_health_monitor.RELIC_DIR", tmp_path)
+    monkeypatch.setattr("mnemon.relic_health_monitor.HEALTH_OVERRIDES_FILE",
                         tmp_path / "health_overrides.json")
     metrics = {"avg_confidence": 0.2, "coverage_pct": 0.4, "bootstrap_loop_risk": 0.8,
                "obs_7d_total": 100, "obs_7d_ai_mediated": 80, "obs_7d_independent": 20}
@@ -257,7 +257,7 @@ def test_apply_remediation_writes_file_when_critical(tmp_path, monkeypatch):
 
 
 def test_apply_remediation_degraded_sets_4_questions(tmp_path, monkeypatch):
-    monkeypatch.setattr("relic.relic_health_monitor.HEALTH_OVERRIDES_FILE",
+    monkeypatch.setattr("mnemon.relic_health_monitor.HEALTH_OVERRIDES_FILE",
                         tmp_path / "health_overrides.json")
     metrics = {"avg_confidence": 0.32, "coverage_pct": 0.55, "bootstrap_loop_risk": 0.65,
                "obs_7d_total": 50, "obs_7d_ai_mediated": 33, "obs_7d_independent": 17}
@@ -270,7 +270,7 @@ def test_apply_remediation_degraded_sets_4_questions(tmp_path, monkeypatch):
 def test_apply_remediation_healthy_removes_file(tmp_path, monkeypatch):
     override_file = tmp_path / "health_overrides.json"
     override_file.write_text('{"severity": "critical"}')
-    monkeypatch.setattr("relic.relic_health_monitor.HEALTH_OVERRIDES_FILE", override_file)
+    monkeypatch.setattr("mnemon.relic_health_monitor.HEALTH_OVERRIDES_FILE", override_file)
     metrics = {"avg_confidence": 0.6, "coverage_pct": 0.75, "bootstrap_loop_risk": 0.3,
                "obs_7d_total": 50, "obs_7d_ai_mediated": 15, "obs_7d_independent": 35}
     apply_remediation(metrics, [], "healthy")
@@ -279,7 +279,7 @@ def test_apply_remediation_healthy_removes_file(tmp_path, monkeypatch):
 
 def test_apply_remediation_healthy_no_file_no_error(tmp_path, monkeypatch):
     override_file = tmp_path / "health_overrides.json"
-    monkeypatch.setattr("relic.relic_health_monitor.HEALTH_OVERRIDES_FILE", override_file)
+    monkeypatch.setattr("mnemon.relic_health_monitor.HEALTH_OVERRIDES_FILE", override_file)
     metrics = {"avg_confidence": 0.6, "coverage_pct": 0.75, "bootstrap_loop_risk": 0.3,
                "obs_7d_total": 50, "obs_7d_ai_mediated": 15, "obs_7d_independent": 35}
     apply_remediation(metrics, [], "healthy")  # file non esiste, non deve esplodere
