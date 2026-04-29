@@ -10,7 +10,7 @@
 
 Relic is a personality modeling system that builds a comprehensive, confidence-scored psychological profile of the subject through two complementary channels: active questioning (targeted check-in questions via Telegram) and passive observation (extracting behavioral signals from natural conversations and agent interaction sessions).
 
-The system models personality across 60 facets organized into 9 categories, each represented as a position on a spectrum (e.g., "impulsivo" to "deliberato" for decision speed). Over time, it accumulates observations, synthesizes them into trait scores with confidence levels, and generates cross-facet hypotheses about behavioral patterns.
+The system models personality across 60 facets organized into 8 categories, each represented as a position on a spectrum (e.g., "impulsivo" to "deliberato" for decision speed). Over time, it accumulates observations, synthesizes them into trait scores with confidence levels, and generates cross-facet hypotheses about behavioral patterns.
 
 ### What it replaced
 
@@ -27,11 +27,12 @@ Telegram messages the configured subject
        |
        +---> [Hook: relic-capture] (message:received + message:sent)
        |         Appends to inbox.jsonl,
-       |         detects check-in replies → captures reply to DB at hook-time → triggers follow-up,
+       |         captures pending check-in replies into checkin_exchanges,
+       |         then triggers follow-up,
        |         tracks delivery success/failure
        |
        +---> [Hook: relic-bootstrap] (agent:bootstrap)
-       |         Injects PORTRAIT.md into every agent session so all
+       |         Injects PROFILE.md into every agent session so all
        |         agents have personality awareness
        |
        +---> [Cron: relic:extract] every 2h
@@ -58,25 +59,29 @@ Telegram messages the configured subject
 
 ### Data flow in detail
 
-1. **Capture** (`relic-capture` hook, `message:received`): Every Telegram message the configured subject (user ID demo-subject) is captured and appended as a JSON line to `inbox.jsonl`. If a `pending-checkin.json` signal file exists (written by the check-in cron), the hook captures the reply into the DB at hook-time (before follow-up is triggered), then triggers the follow-up path to send a brief acknowledgment.
+1. **Capture** (`relic-capture` hook, `message:received`): Every Telegram message the configured subject (user ID demo-subject) is captured and appended as a JSON line to `inbox.jsonl`. If a valid `pending-checkin.json` signal file exists (written by the check-in cron), the hook also captures the reply immediately into `checkin_exchanges.reply_text` and `reply_captured_at`, then triggers the follow-up path. This keeps active elicitation temporally tight and prevents ordinary relational continuity from depending on a later batch extractor.
 
 2. **Delivery tracking** (`relic-capture` hook, `message:sent`): Outbound messages the configured subject are logged to `relic/delivery.jsonl` with success/failure status and message preview.
 
-3. **Bootstrap injection** (`relic-bootstrap` hook, `agent:bootstrap`): On every agent session start, this hook reads `PORTRAIT.md` and injects it as a virtual `PERSONALITY_MODEL.md` bootstrap file. This gives all configured agents personality awareness without manual context injection. Sub-agents and internal relic crons are excluded.
+3. **Bootstrap injection** (`relic-bootstrap` hook, `agent:bootstrap`): On every agent session start, this hook reads `PROFILE.md` and injects it as a virtual `PERSONALITY_MODEL.md` bootstrap file. This gives all configured agents personality awareness without manual context injection. Sub-agents and internal relic crons are excluded.
 
-4. **Extraction** (`relic:extract` cron, every 2h): Reads new lines from `inbox.jsonl`, inserts them into the SQLite `inbox` table (deduplicating by `message_id`), then batches up to 20 unprocessed messages into LLM calls. The LLM analyzes each message for personality signals - what it reveals about cognitive style, emotional tendencies, communication preferences, etc. Extracted signals become `observations` in the database. The extractor may also correlate incoming messages with pending check-in questions as a fallback/backfill mechanism; the primary check-in reply capture happens at hook-time in `relic-capture`. LLM calls have a 90-second timeout.
+4. **Extraction** (`relic:extract` cron, every 2h): Reads new lines from `inbox.jsonl`, inserts them into the SQLite `inbox` table (deduplicating by `message_id`), then batches up to 20 unprocessed messages into LLM calls. The LLM analyzes each message for personality signals - what it reveals about cognitive style, emotional tendencies, communication preferences, etc. Extracted signals become `observations` in the database. The extractor retains a legacy fallback matcher for uncaptured historical check-in replies, but that path is no longer the primary correlation mechanism. LLM calls have a 90-second timeout.
 
-5. **Active questioning** (`relic:checkin` cron, every 30min 9-22h): The question engine scores all 60 facets and selects the one with the highest Facet Gap Score. A cron agent generates a natural-sounding question targeting that facet and sends it via Telegram. The exchange is recorded in `checkin_exchanges` and a `pending-checkin.json` signal file is written for the capture hook's follow-up trigger.
+5. **Active questioning** (`relic:checkin` cron, every 30min 9-22h): The question engine scores all 60 facets and selects the one with the highest Facet Gap Score. A cron agent generates a natural-sounding question targeting that facet and sends it via Telegram. The exchange is recorded in `checkin_exchanges` and a `pending-checkin.json` signal file is written for the follow-up hook.
 
-6. **Passive observation** (`relic:passive-scan` cron, every 6h): Scans recent relational-agent session transcripts. By default it reads `agents/<relational-agent>/sessions/*.jsonl`, but the target session roots can be overridden via `RELIC_RELATIONAL_AGENT_IDS` (comma-separated agent ids). Extracts user messages and behavioral patterns (how the subject responds to agent suggestions, what he accepts/rejects, emotional markers). Sessions larger than 3MB are skipped, max 10 messages per session, max 20 messages per run, with a 4-minute hard time cap and 90-second per-call LLM timeout.
+6. **Check-in follow-up** (`relic:checkin-followup` cron, every 30min 9-23h plus hook-time trigger): Follow-ups operate on exchanges whose replies have already been captured into `checkin_exchanges`. This keeps the conversational path separate from downstream inferential extraction and preserves the traceability of `question -> reply -> follow-up`.
 
-7. **Synthesis** (`relic:synthesize` cron, daily 03:00): Processes all observations for each facet. Computes a weighted average position on each spectrum (accounting for signal strength and recency), calculates a confidence score based on observation count and consistency, and calls the LLM to identify cross-facet hypotheses. A model snapshot is saved for tracking evolution over time. LLM calls have a 120-second timeout.
+7. **Passive observation** (`relic:passive-scan` cron, every 6h): Scans recent relational-agent session transcripts. By default it reads `agents/<relational-agent>/sessions/*.jsonl`, but the target session roots can be overridden via `RELIC_RELATIONAL_AGENT_IDS` (comma-separated agent ids). Extracts user messages and behavioral patterns (how the subject responds to agent suggestions, what he accepts/rejects, emotional markers). Sessions larger than 3MB are skipped, max 10 messages per session, max 20 messages per run, with a 4-minute hard time cap and 90-second per-call LLM timeout.
 
-8. **Profile sync** (`relic:profile-sync` cron, daily 03:30): Maps Relic traits back to `demo_profile.json` categories and generates human-readable `PROFILE.md` summary.
+8. **Synthesis** (`relic:synthesize` cron, daily 03:00): Processes all observations for each facet. Computes a weighted average position on each spectrum (accounting for signal strength and recency), calculates a confidence score based on observation count and consistency, and calls the LLM to identify cross-facet hypotheses. A model snapshot is saved for tracking evolution over time. LLM calls have a 120-second timeout.
+
+9. **Reply inference** (`relic:reply-extract` cron, every 6h): Converts already-captured check-in replies into `checkin_reply` observations and marks them as extracted. This job exists to enrich the model layer, not to provide the primary source of relational continuity.
+
+10. **Profile sync** (`relic:profile-sync` cron, daily 03:30): Maps Relic traits back to `demo_profile.json` categories and generates human-readable `PROFILE.md` summary.
 
 ---
 
-## 3. The 60-Facet Taxonomy
+## 3. The 54-Facet Taxonomy
 
 Each facet is a dimension of personality modeled as a position on a spectrum between two poles. Three facets (`values.core_values`, `aesthetic.music_taste`, `meta_cognition.cognitive_biases`) are non-linear - they accumulate textual evidence lists instead of a numeric position.
 
@@ -316,8 +321,9 @@ A TypeScript hook with two handlers:
    ```
 
 2. **Follow-up trigger**: After inbox capture, the hook checks for `pending-checkin.json`. If a signal file exists and was written within the last 4 hours, it:
-   - Captures the reply into the DB at hook-time (`capture-reply`) and deletes the signal file (prevents duplicate triggers)
-   - Triggers the follow-up cron immediately (default: `relic:checkin-followup`) to send the acknowledgment message
+   - Deletes the signal file first (prevents duplicate triggers)
+   - Spawns a fire-and-forget `openclaw agent` with a prompt to: (a) record the reply via `relic_db.py capture-reply`, (b) send a brief acknowledgment message the configured subject via `openclaw message send` with `--reply-to` for threading
+   - The follow-up prompt enforces: max 1 sentence under 80 characters, informal Italian, no follow-up questions, no emoji
 
 **`handleSent`** (outbound messages the configured subject):
 
@@ -340,13 +346,13 @@ The JSONL inbox file is append-only. Deduplication happens at the database level
 **File**: `workspace/hooks/relic-bootstrap/handler.ts`
 **Event**: `agent:bootstrap`
 
-Fires on every agent session start. Reads `$RELIC_DATA_DIR/PORTRAIT.md` and injects it as a virtual bootstrap file named `PERSONALITY_MODEL.md` into the agent's context.
+Fires on every agent session start. Reads `$RELIC_DATA_DIR/PROFILE.md` and injects it as a virtual bootstrap file named `PERSONALITY_MODEL.md` into the agent's context.
 
 **Exclusions**:
 - Sub-agent sessions (agent name contains `:subagent:`) - they inherit from the parent
 - Internal relic crons (session prompt contains `relic_`) - prevents circular personality injection during extraction/synthesis
 
-If `PORTRAIT.md` doesn't exist or is empty, the hook silently skips injection.
+If `PROFILE.md` doesn't exist or is empty, the hook silently skips injection.
 
 ### 5.2 Extractor (`relic_extractor.py`)
 
@@ -748,7 +754,7 @@ A 14-day-old observation has half the weight of a fresh one. A 28-day-old observ
 | Directory | Files | Events | Purpose |
 |-----------|-------|--------|---------|
 | `workspace/hooks/relic-capture/` | `HOOK.md`, `handler.ts` | `message:received`, `message:sent` | Inbox capture, follow-up trigger, delivery tracking |
-| `workspace/hooks/relic-bootstrap/` | `HOOK.md`, `handler.ts` | `agent:bootstrap` | Injects PORTRAIT.md into agent sessions |
+| `workspace/hooks/relic-bootstrap/` | `HOOK.md`, `handler.ts` | `agent:bootstrap` | Injects PROFILE.md into agent sessions |
 
 ### Data (in `$RELIC_DATA_DIR/`)
 
@@ -758,8 +764,7 @@ A 14-day-old observation has half the weight of a fresh one. A 28-day-old observ
 | `inbox.jsonl` | Append-only message buffer from capture hook |
 | `delivery.jsonl` | Outbound message delivery log |
 | `pending-checkin.json` | Signal file: check-in cron writes, capture hook reads/deletes |
-| `PROFILE.md` | Human-readable facet-level snapshot (generated by profile sync) |
-| `PORTRAIT.md` | Narrative portrait (injected by bootstrap hook as `PERSONALITY_MODEL.md`) |
+| `PROFILE.md` | Human-readable model snapshot (also injected by bootstrap hook) |
 | `passive-observer-state.json` | Session scan offset tracking |
 | `dumps/windows_cache.jsonl` | Cached window message data for extraction (written by `parse`, read by `extract` and `extract-memory`) |
 | `dumps/import_state.db` | State tracking DB for dump import: parsed files, windows with personality + memory extraction status |
@@ -782,7 +787,7 @@ A 14-day-old observation has half the weight of a fresh one. A 28-day-old observ
 | `relic:checkin` | `*/30 9-22 * * *` | Active questioning (uses relic engine) |
 | `relic:extract` | `15 */2 * * *` | Inbox ingestion + signal extraction |
 | `relic:passive-scan` | `45 */6 * * *` | Session transcript observation |
-| `relic:reply-extract` | `0 */6 * * *` | Extract observations from captured check-in replies (`reply_text` present, `observations_extracted=0`) |
+| `relic:reply-extract` | `0 */6 * * *` | Process pending check-in replies |
 | `relic:synthesize` | `0 3 * * *` | Daily trait consolidation |
 | `relic:profile-sync` | `30 3 * * *` | Profile JSON + PROFILE.md sync |
 | `relic:healthcheck` | `0 4 * * *` | System health monitoring |

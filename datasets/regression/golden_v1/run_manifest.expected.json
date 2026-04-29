@@ -1,0 +1,19 @@
+{
+  "golden_version": "v1",
+  "subject_id": "shadow-subject",
+  "observation_match_rule": {
+    "identity_fields": ["facet_id", "source_ref"],
+    "equivalent_if": "identity matches and extracted_signal strings are byte-equal"
+  },
+  "bit_exact_layers": ["observations", "traits", "artifact_gate"],
+  "tolerance_layers": {
+    "portrait": {
+      "owner": "migration-team",
+      "rule": "semantic review only; file presence and title must be exact"
+    },
+    "hypotheses": {
+      "owner": "migration-team",
+      "rule": "empty list or byte-equal JSON"
+    }
+  }
+}

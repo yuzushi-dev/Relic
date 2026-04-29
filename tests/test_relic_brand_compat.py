@@ -14,11 +14,14 @@ def test_relic_package_exposes_legacy_runtime_modules():
 
     demo_runner = importlib.import_module("relic.demo_runner")
     webui = importlib.import_module("relic.webui")
+    checkin = importlib.import_module("relic.checkin")
 
     assert hasattr(demo_runner, "run_demo")
     assert hasattr(webui, "main")
+    assert hasattr(checkin, "main")
     assert demo_runner.__file__.endswith("/relic/demo_runner.py")
     assert webui.__file__.endswith("/relic/webui.py")
+    assert checkin.__file__.endswith("/relic/checkin.py")
 
 
 def test_relic_env_aliases_seed_legacy_runtime(monkeypatch):

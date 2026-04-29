@@ -13,6 +13,7 @@ src/relic/override_snapshots/
 *.sqlite
 *.sqlite3
 *.jsonl
+!datasets/**/*.jsonl
 
 biofeedback_creds.json
 biofeedback.credentials.json
@@ -54,6 +55,10 @@ demo/generated/
 CLAUDE.md
 AGENTS.local.md
 *.local.md
+
+# Private operator tools (not part of the public OSS surface)
+src/relic/social_drafter.py
+tests/test_social_drafter.py
 
 # Internal and non-essential documents (not needed to spin up or use the project)
 docs/SANITIZATION_STATUS.md

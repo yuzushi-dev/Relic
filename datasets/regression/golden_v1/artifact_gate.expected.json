@@ -1,0 +1,11 @@
+{
+  "injectable_artifacts": ["PORTRAIT.md"],
+  "forbidden_artifacts": [
+    "PROFILE.md",
+    "schemas.json",
+    "defenses.json",
+    "caps.json",
+    "appraisal.json",
+    "attachment.json"
+  ]
+}
