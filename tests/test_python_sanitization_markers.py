@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parents[1] / "src" / "relic"
+ROOT = Path(__file__).resolve().parents[1] / "src" / "mnemon"
 FORBIDDEN_MARKERS = [
     "biofeedback_creds.json",
     *[

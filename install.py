@@ -524,7 +524,7 @@ def _try_paperclip_setup(state: State) -> None:
             {"name": "Biofeedback Analyst",
              "capabilities": "Nightly Spearman correlation: physiological signals × personality facets.",
              "adapterType": "process",
-             "adapterConfig": {"command": "python3", "args": ["-m", "relic.biofeedback_correlation"],
+             "adapterConfig": {"command": "python3", "args": ["-m", "mnemon.biofeedback_correlation"],
                                "env": {"PYTHONPATH": "src"}, "timeoutSec": 600}},
             {"enabled": True, "intervalSec": 86400, "maxConcurrentRuns": 1},
         )
@@ -544,7 +544,7 @@ def _try_paperclip_setup(state: State) -> None:
             {"name": "Inquiry Analyst",
              "capabilities": "Adversarial hypothesis verification on behavioral observations.",
              "adapterType": "process",
-             "adapterConfig": {"command": "python3", "args": ["-m", "relic.relic_inquiry_team"],
+             "adapterConfig": {"command": "python3", "args": ["-m", "mnemon.relic_inquiry_team"],
                                "env": {"PYTHONPATH": "src", "RELIC_INQUIRY_TEAM": "true"},
                                "timeoutSec": 600}},
             {"enabled": True, "intervalSec": 86400, "maxConcurrentRuns": 1},
@@ -565,7 +565,7 @@ def _try_paperclip_setup(state: State) -> None:
             {"name": "Health Analyst",
              "capabilities": "Every 12h: computes model health (confidence/coverage/loop-risk) and submits structured health issues.",
              "adapterType": "process",
-             "adapterConfig": {"command": "python3", "args": ["-m", "relic.health_monitor"],
+             "adapterConfig": {"command": "python3", "args": ["-m", "mnemon.health_monitor"],
                                "env": {"PYTHONPATH": "src"}, "timeoutSec": 120}},
             {"enabled": True, "intervalSec": 43200, "maxConcurrentRuns": 1},
         )
@@ -592,7 +592,7 @@ def step_integrations(state: State) -> None:
 
     indent(f"{GOLD}Passive observation  (relational agent){RST}")
     nl()
-    indent(m("If you have a relational agent in OpenClaw, Relic can passively scan"))
+    indent(m("If you have a relational agent in Hermes, Relic can passively scan"))
     indent(m("its session transcripts for behavioral meta-signals every 6 hours."))
     nl()
     state.relational_agent = ask(
@@ -611,7 +611,7 @@ def step_integrations(state: State) -> None:
     indent(f"{GOLD}Telegram delivery{RST}")
     nl()
     indent(m("Enables live check-in delivery via Telegram."))
-    indent(m("Requires a Telegram channel configured in your OpenClaw instance."))
+    indent(m("Requires a Telegram channel configured in your Hermes instance."))
     nl()
     state.enable_telegram = confirm("Enable Telegram check-ins?", default=False)
     nl()
@@ -751,8 +751,8 @@ def step_confirm(state: State) -> None:
         ("Subject ID",         state.subject_id),
         ("Telegram ID",        state.subject_telegram_id or m("(not set)")),
         ("Data directory",     state.data_dir),
-        ("OpenClaw binary",    state.openclaw_bin),
-        ("OpenClaw home",      state.openclaw_home),
+        ("Hermes binary",    state.hermes_bin),
+        ("Hermes home",      state.hermes_home),
         ("Hooks directory",    state.hooks_dir),
         ("Check-in window",    f"{state.checkin_hour_start}:00 – {state.checkin_hour_end}:59  "
                                f"every {state.checkin_interval_min} min"),
@@ -828,7 +828,7 @@ def step_install(state: State) -> None:
             return False
 
     def run_oc(*args: str, manual: str = "") -> None:
-        result = subprocess.run([state.openclaw_bin, *args],
+        result = subprocess.run([state.hermes_bin, *args],
                                 capture_output=True, text=True)
         if result.returncode != 0:
             msg = (result.stderr or result.stdout).strip()[:120]
@@ -851,7 +851,7 @@ def step_install(state: State) -> None:
 
     # ── 3. Hooks ───────────────────────────────────────────────────────────────
     nl()
-    indent(m("OpenClaw hooks"))
+    indent(m("Hermes hooks"))
     nl()
 
     for hook in ["relic-capture", "relic-bootstrap"]:
@@ -869,8 +869,8 @@ def step_install(state: State) -> None:
 
         task(f"Compile hook: {hook}", compile_hook)
 
-        # register with OpenClaw
-        manual = (f"openclaw hooks enable {hook} --path {hook_dir}  "
+        # register with Hermes
+        manual = (f"hermes hooks enable {hook} --path {hook_dir}  "
                   f"# RELIC_SUBJECT_ID={state.subject_id}")
         task(
             f"Register hook: {hook}",
@@ -941,7 +941,7 @@ def step_install(state: State) -> None:
 
     # ── 5. Cron jobs ───────────────────────────────────────────────────────────
     nl()
-    indent(m("OpenClaw cron jobs"))
+    indent(m("Hermes cron jobs"))
     nl()
 
     python_bin = sys.executable
@@ -961,50 +961,50 @@ def step_install(state: State) -> None:
     # name → (schedule, python module)
     # Full cron set - matches the whitepaper operational schedule.
     # @manual crons are registered on-demand; they have no fixed schedule
-    # but must exist as named crons so OpenClaw can invoke them by name.
+    # but must exist as named crons so Hermes can invoke them by name.
     cron_defs: list[tuple[str, str, str]] = [
         # ── Core pipeline (always active) ────────────────────────────
-        ("relic:extract",               "0 */2 * * *",          "relic.extract"),
-        ("relic:checkin",               state.checkin_schedule, "relic.checkin"),
-        ("relic:passive-scan",          "0 */6 * * *",          "relic.passive_scan"),
-        ("relic:reply-extract",         "0 */6 * * *",          "relic.reply_extract"),
-        ("relic:synthesize",            "0 3 * * *",            "relic.synthesize"),
-        ("relic:profile-sync",          "30 3 * * *",           "relic.profile_sync"),
-        ("relic:checkin-followup",      "@manual",              "relic.checkin_followup"),
+        ("relic:extract",               "0 */2 * * *",          "mnemon.extract"),
+        ("relic:checkin",               state.checkin_schedule, "mnemon.checkin"),
+        ("relic:passive-scan",          "0 */6 * * *",          "mnemon.passive_scan"),
+        ("relic:reply-extract",         "0 */6 * * *",          "mnemon.reply_extract"),
+        ("relic:synthesize",            "0 3 * * *",            "mnemon.synthesize"),
+        ("relic:profile-sync",          "30 3 * * *",           "mnemon.profile_sync"),
+        ("relic:checkin-followup",      "@manual",              "mnemon.checkin_followup"),
         # ── Daily enrichment ─────────────────────────────────────────
-        ("relic:entity-extract",        "0 4 * * *",            "relic.entity_extract"),
-        ("relic:decisions",             "15 4 * * *",           "relic.decisions"),
-        ("relic:healthcheck",           "0 4 * * *",            "relic.healthcheck"),
-        ("relic:memory",                "0 5 * * 0",            "relic.memory"),
+        ("relic:entity-extract",        "0 4 * * *",            "mnemon.entity_extract"),
+        ("relic:decisions",             "15 4 * * *",           "mnemon.decisions"),
+        ("relic:healthcheck",           "0 4 * * *",            "mnemon.healthcheck"),
+        ("relic:memory",                "0 5 * * 0",            "mnemon.memory"),
         # ── Biofeedback (enable if hardware present) ─────────────────
-        ("relic:biofeedback-pull",      "5 4 * * *",            "relic.biofeedback"),
-        ("relic:biofeedback-gadgetbridge", "10 4 * * *",        "relic.biofeedback_gadgetbridge"),
-        ("relic:biofeedback-gb-ingest", "@manual",              "relic.biofeedback_gb_ingest"),
-        ("relic:muse-aggregate",        "30 4 * * *",           "relic.muse_aggregate"),
-        ("relic:muse-recorder",         "@manual",              "relic.muse_recorder"),
+        ("relic:biofeedback-pull",      "5 4 * * *",            "mnemon.biofeedback"),
+        ("relic:biofeedback-gadgetbridge", "10 4 * * *",        "mnemon.biofeedback_gadgetbridge"),
+        ("relic:biofeedback-gb-ingest", "@manual",              "mnemon.biofeedback_gb_ingest"),
+        ("relic:muse-aggregate",        "30 4 * * *",           "mnemon.muse_aggregate"),
+        ("relic:muse-recorder",         "@manual",              "mnemon.muse_recorder"),
         # ── Weekly analysis ───────────────────────────────────────────
-        ("relic:liwc",                  "0 3 * * 0",            "relic.liwc"),
-        ("relic:stress-index",          "0 6 * * 1",            "relic.stress_index"),
+        ("relic:liwc",                  "0 3 * * 0",            "mnemon.liwc"),
+        ("relic:stress-index",          "0 6 * * 1",            "mnemon.stress_index"),
         # ── Optional integrations ─────────────────────────────────────
-        ("relic:budget-bridge",         "20 4 * * *",           "relic.budget_bridge"),
-        ("relic:voicenote",             "@manual",              "relic.voicenote"),
-        ("relic:domain-prober",         "@manual",              "relic.domain_prober"),
-        ("relic:backfill",              "@manual",              "relic.backfill"),
-        ("relic:motives",               "@manual",              "relic.motives"),
+        ("relic:budget-bridge",         "20 4 * * *",           "mnemon.budget_bridge"),
+        ("relic:voicenote",             "@manual",              "mnemon.voicenote"),
+        ("relic:domain-prober",         "@manual",              "mnemon.domain_prober"),
+        ("relic:backfill",              "@manual",              "mnemon.backfill"),
+        ("relic:motives",               "@manual",              "mnemon.motives"),
         # ── Monthly specialist analyzers ──────────────────────────────
-        ("relic:schemas",               "0 5 1 * *",            "relic.schemas"),
-        ("relic:goals",                 "30 5 1 * *",           "relic.goals"),
-        ("relic:sdt",                   "0 6 1 * *",            "relic.sdt"),
-        ("relic:portrait",              "0 6 1 * *",            "relic.portrait"),
-        ("relic:idiolect",              "0 4 1 * *",            "relic.idiolect"),
-        ("relic:caps",                  "30 5 2 * *",           "relic.caps"),
-        ("relic:attachment",            "0 5 3 * *",            "relic.attachment"),
-        ("relic:defenses",              "30 5 3 * *",           "relic.defenses"),
-        ("relic:narrative",             "0 6 3 * *",            "relic.narrative"),
-        ("relic:appraisal",             "30 4 5 * *",           "relic.appraisal"),
-        ("relic:mental-models",         "0 5 5 * *",            "relic.mental_models"),
-        ("relic:dual-process",          "30 5 5 * *",           "relic.dual_process"),
-        ("relic:constructs",            "0 6 5 * *",            "relic.constructs"),
+        ("relic:schemas",               "0 5 1 * *",            "mnemon.schemas"),
+        ("relic:goals",                 "30 5 1 * *",           "mnemon.goals"),
+        ("relic:sdt",                   "0 6 1 * *",            "mnemon.sdt"),
+        ("relic:portrait",              "0 6 1 * *",            "mnemon.portrait"),
+        ("relic:idiolect",              "0 4 1 * *",            "mnemon.idiolect"),
+        ("relic:caps",                  "30 5 2 * *",           "mnemon.caps"),
+        ("relic:attachment",            "0 5 3 * *",            "mnemon.attachment"),
+        ("relic:defenses",              "30 5 3 * *",           "mnemon.defenses"),
+        ("relic:narrative",             "0 6 3 * *",            "mnemon.narrative"),
+        ("relic:appraisal",             "30 4 5 * *",           "mnemon.appraisal"),
+        ("relic:mental-models",         "0 5 5 * *",            "mnemon.mental_models"),
+        ("relic:dual-process",          "30 5 5 * *",           "mnemon.dual_process"),
+        ("relic:constructs",            "0 6 5 * *",            "mnemon.constructs"),
     ]
 
     for cron_name, schedule, module in cron_defs:
@@ -1014,7 +1014,7 @@ def step_install(state: State) -> None:
             env_args += ["--env", ev]
         sched_args = ["--schedule", schedule] if schedule != "@manual" else ["--on-demand"]
         manual_cmd = (
-            f"openclaw cron add {cron_name} --command \"{cmd}\" "
+            f"hermes cron add {cron_name} --command \"{cmd}\" "
             f"--cwd \"{REPO_ROOT}\" --schedule \"{schedule}\""
         )
         task(
@@ -1050,13 +1050,13 @@ def step_done(state: State) -> None:
 
     next_steps = [
         ("Verify the demo pipeline",
-         "python -m relic.demo_runner --output-dir demo/generated"),
+         "python -m mnemon.demo_runner --output-dir demo/generated"),
         ("Open the Arasaka demo console",
          "open demo/generated/demo_console.html"),
         ("Check hook status",
-         "openclaw hooks status"),
+         "hermes hooks status"),
         ("Check cron status",
-         "openclaw cron status"),
+         "hermes cron status"),
     ]
     if state.run_backfill and state.backfill_count:
         next_steps.insert(2, (
@@ -1083,7 +1083,7 @@ def step_done(state: State) -> None:
         for s in state.manual_steps:
             indent(f"  {WARN}▶{RST}  {WHT}{s}{RST}")
         nl()
-        indent(m("These commands failed during installation - OpenClaw may require"))
+        indent(m("These commands failed during installation - Hermes may require"))
         indent(m("a different syntax on your version. See hooks/*/HOOK.md for details."))
         nl()
 

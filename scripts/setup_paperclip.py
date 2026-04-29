@@ -95,7 +95,7 @@ BIO_AGENTS = [
             "adapterType": "process",
             "adapterConfig": {
                 "command": "python3",
-                "args": ["-m", "relic.biofeedback_correlation"],
+                "args": ["-m", "mnemon.biofeedback_correlation"],
                 "env": _agent_env(),
                 "timeoutSec": 600,
             },
@@ -133,7 +133,7 @@ INQ_AGENTS = [
             "adapterType": "process",
             "adapterConfig": {
                 "command": "python3",
-                "args": ["-m", "relic.relic_inquiry_team"],
+                "args": ["-m", "mnemon.relic_inquiry_team"],
                 "env": _agent_env({"RELIC_INQUIRY_TEAM": "true"}),
                 "timeoutSec": 600,
             },
@@ -173,7 +173,7 @@ HEALTH_AGENTS = [
             "adapterType": "process",
             "adapterConfig": {
                 "command": "python3",
-                "args": ["-m", "relic.health_monitor"],
+                "args": ["-m", "mnemon.health_monitor"],
                 "env": _agent_env(),
                 "timeoutSec": 120,
             },
@@ -215,7 +215,7 @@ HUMANNESS_AGENTS = [
             "adapterType": "process",
             "adapterConfig": {
                 "command": "python3",
-                "args": ["-m", "relic.humanness_monitor"],
+                "args": ["-m", "mnemon.humanness_monitor"],
                 "env": _agent_env(),
                 "timeoutSec": 120,
             },
@@ -256,7 +256,7 @@ DIRECTOR_AGENTS = [
             "adapterType": "process",
             "adapterConfig": {
                 "command": "python3",
-                "args": ["-m", "relic.strategic_director"],
+                "args": ["-m", "mnemon.strategic_director"],
                 "env": _agent_env(),
                 "timeoutSec": 600,
             },

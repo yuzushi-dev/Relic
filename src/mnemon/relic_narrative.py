@@ -67,7 +67,7 @@ Return JSON:
   "narrative_coherence": 0.70,
   "confidence": 0.65,
   "dominant_theme": "Costruisce sistemi autonomi per ridurre dipendenza e caos",
-  "agency_evidence": "Actively builds OpenClaw, starts therapy, adopts Fluoxetine - all proactive choices",
+  "agency_evidence": "Actively builds Hermes, starts therapy, adopts Fluoxetine - all proactive choices",
   "redemptive_evidence": "Describes Fluoxetine+therapy as 'lighter and less irritable' - positive reframing of mental health work",
   "nuclear_episodes": [
     {{"type": "turning_point", "content": "Inizio terapia psicologica e Fluoxetina - scelta proattiva di cambiamento"}},

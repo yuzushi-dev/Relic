@@ -10,8 +10,8 @@ from pathlib import Path
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run an offline OpenClaw vs Hermes shadow comparison.")
-    parser.add_argument("--openclaw-data-dir", required=True, help="Canonical OpenClaw RELIC_DATA_DIR")
+    parser = argparse.ArgumentParser(description="Run an offline canonical vs Hermes shadow comparison.")
+    parser.add_argument("--canonical-data-dir", required=True, help="Canonical RELIC_DATA_DIR")
     parser.add_argument("--hermes-data-dir", required=True, help="Hermes shadow RELIC_DATA_DIR")
     parser.add_argument("--out-dir", required=True, help="Directory where exports and comparison report should be written")
     parser.add_argument("--golden-dir", required=True, help="Golden regression corpus directory")
@@ -20,7 +20,7 @@ def main() -> int:
 
     repo_root = Path(__file__).resolve().parents[2]
     out_dir = Path(args.out_dir)
-    openclaw_out = out_dir / "openclaw"
+    canonical_out = out_dir / "canonical"
     hermes_out = out_dir / "hermes"
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -29,9 +29,9 @@ def main() -> int:
             sys.executable,
             str(repo_root / "scripts" / "export_shadow_artifacts.py"),
             "--data-dir",
-            str(Path(args.openclaw_data_dir)),
+            str(Path(args.canonical_data_dir)),
             "--out-dir",
-            str(openclaw_out),
+            str(canonical_out),
         ],
         [
             sys.executable,
@@ -44,8 +44,8 @@ def main() -> int:
         [
             sys.executable,
             str(repo_root / "scripts" / "migration" / "shadow_compare.py"),
-            "--openclaw-dir",
-            str(openclaw_out),
+            "--canonical-dir",
+            str(canonical_out),
             "--hermes-dir",
             str(hermes_out),
             "--out-dir",

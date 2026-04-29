@@ -28,7 +28,7 @@ def _seed_shadow_data_dir(base_dir: Path) -> None:
                 "migration.risk_sensitivity",
                 "session_behavioral",
                 "session:session-001:2",
-                "Keep OpenClaw active.",
+                "Keep canonical active.",
                 "The subject explicitly prioritizes zero-loss, reversible migration steps.",
                 0.78,
                 0.91,

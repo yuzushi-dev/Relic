@@ -45,8 +45,8 @@ All 15 tests must pass before submitting a PR. The test suite includes:
 
 ```
 src/relic/          Core Python modules (relic_*.py) + cron entrypoints
-src/lib/                 Runtime shims: config, log, LLM client, OpenClaw client
-hooks/                   OpenClaw integration hooks (TypeScript)
+src/lib/                 Runtime shims: config, log, LLM client, Hermes client
+hooks/                   Hermes integration hooks (TypeScript)
   relic-capture/    Message capture + delivery tracking
   relic-bootstrap/  PORTRAIT.md injection into agent sessions
   shared/                Shared TS utilities (SMELT retrieval, last-message)

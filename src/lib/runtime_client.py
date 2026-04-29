@@ -1,6 +1,6 @@
 """Minimal RuntimeClient shim for Relic OSS.
 
-In production, OpenClaw provides a full runtime IPC client.
+In production, Hermes provides a full runtime IPC client.
 This stub provides a no-op implementation for standalone usage.
 """
 from __future__ import annotations

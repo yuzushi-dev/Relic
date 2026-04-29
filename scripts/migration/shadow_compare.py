@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare canonical OpenClaw artifacts against Hermes shadow artifacts."""
+"""Compare canonical artifacts against Hermes shadow artifacts."""
 
 from __future__ import annotations
 
@@ -33,52 +33,52 @@ def _observation_map(rows: list[dict[str, Any]], identity_fields: list[str]) -> 
     return mapped
 
 
-def _observations_equivalent(openclaw_row: dict[str, Any], hermes_row: dict[str, Any]) -> bool:
-    return str(openclaw_row.get("extracted_signal", "")) == str(hermes_row.get("extracted_signal", ""))
+def _observations_equivalent(canonical_row: dict[str, Any], hermes_row: dict[str, Any]) -> bool:
+    return str(canonical_row.get("extracted_signal", "")) == str(hermes_row.get("extracted_signal", ""))
 
 
 def _compare_observations(
-    openclaw_rows: list[dict[str, Any]],
+    canonical_rows: list[dict[str, Any]],
     hermes_rows: list[dict[str, Any]],
     *,
     identity_fields: list[str],
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
-    openclaw_map = _observation_map(openclaw_rows, identity_fields)
+    canonical_map = _observation_map(canonical_rows, identity_fields)
     hermes_map = _observation_map(hermes_rows, identity_fields)
 
     missing: list[dict[str, Any]] = []
     unexpected: list[dict[str, Any]] = []
     mismatches: list[dict[str, Any]] = []
 
-    for identity, row in openclaw_map.items():
+    for identity, row in canonical_map.items():
         shadow = hermes_map.get(identity)
         if shadow is None:
-            missing.append({"identity": list(identity), "openclaw": row})
+            missing.append({"identity": list(identity), "canonical": row})
             continue
         if not _observations_equivalent(row, shadow):
             mismatches.append(
                 {
                     "identity": list(identity),
-                    "openclaw": row,
+                    "canonical": row,
                     "hermes": shadow,
                 }
             )
 
     for identity, row in hermes_map.items():
-        if identity not in openclaw_map:
+        if identity not in canonical_map:
             unexpected.append({"identity": list(identity), "hermes": row})
 
     return missing, unexpected, mismatches
 
 
-def _compare_traits(openclaw_traits: dict[str, Any], hermes_traits: dict[str, Any]) -> list[dict[str, Any]]:
+def _compare_traits(canonical_traits: dict[str, Any], hermes_traits: dict[str, Any]) -> list[dict[str, Any]]:
     diffs: list[dict[str, Any]] = []
-    all_keys = sorted(set(openclaw_traits) | set(hermes_traits))
+    all_keys = sorted(set(canonical_traits) | set(hermes_traits))
     for key in all_keys:
-        left = openclaw_traits.get(key)
+        left = canonical_traits.get(key)
         right = hermes_traits.get(key)
         if left != right:
-            diffs.append({"trait_id": key, "openclaw": left, "hermes": right})
+            diffs.append({"trait_id": key, "canonical": left, "hermes": right})
     return diffs
 
 
@@ -103,7 +103,7 @@ def _artifact_gate_status(golden_dir: Path, repo_root: Path) -> dict[str, Any]:
 def build_report(
     *,
     run_id: str,
-    openclaw_dir: Path,
+    canonical_dir: Path,
     hermes_dir: Path,
     golden_dir: Path,
     repo_root: Path,
@@ -111,23 +111,23 @@ def build_report(
     manifest = _load_json(golden_dir / "run_manifest.expected.json")
     identity_fields = list(manifest["observation_match_rule"]["identity_fields"])
 
-    openclaw_observations = _load_jsonl(openclaw_dir / "observations.jsonl")
+    canonical_observations = _load_jsonl(canonical_dir / "observations.jsonl")
     hermes_observations = _load_jsonl(hermes_dir / "observations.jsonl")
     missing, unexpected, mismatches = _compare_observations(
-        openclaw_observations,
+        canonical_observations,
         hermes_observations,
         identity_fields=identity_fields,
     )
 
-    openclaw_traits = _load_json(openclaw_dir / "traits.json")
+    canonical_traits = _load_json(canonical_dir / "traits.json")
     hermes_traits = _load_json(hermes_dir / "traits.json")
-    trait_differences = _compare_traits(openclaw_traits, hermes_traits)
+    trait_differences = _compare_traits(canonical_traits, hermes_traits)
 
-    openclaw_portrait = (openclaw_dir / "PORTRAIT.md").read_text(encoding="utf-8")
+    canonical_portrait = (canonical_dir / "PORTRAIT.md").read_text(encoding="utf-8")
     hermes_portrait = (hermes_dir / "PORTRAIT.md").read_text(encoding="utf-8")
     portrait_status = {
-        "status": "match" if openclaw_portrait == hermes_portrait else "mismatch",
-        "openclaw_path": str(openclaw_dir / "PORTRAIT.md"),
+        "status": "match" if canonical_portrait == hermes_portrait else "mismatch",
+        "canonical_path": str(canonical_dir / "PORTRAIT.md"),
         "hermes_path": str(hermes_dir / "PORTRAIT.md"),
     }
 
@@ -144,12 +144,12 @@ def build_report(
     return {
         "run_id": run_id,
         "started_at": datetime.now(timezone.utc).isoformat(),
-        "canonical_runtime": "openclaw",
+        "canonical_runtime": "canonical",
         "shadow_runtime": "hermes",
         "session_source": "hermes",
         "observation_match_rule": manifest["observation_match_rule"],
         "observation_counts": {
-            "openclaw": len(openclaw_observations),
+            "canonical": len(canonical_observations),
             "hermes": len(hermes_observations),
             "mismatch_count": len(mismatches),
         },
@@ -164,8 +164,8 @@ def build_report(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Compare canonical OpenClaw artifacts against Hermes shadow artifacts.")
-    parser.add_argument("--openclaw-dir", required=True, help="Directory containing canonical OpenClaw artifacts")
+    parser = argparse.ArgumentParser(description="Compare canonical artifacts against Hermes shadow artifacts.")
+    parser.add_argument("--canonical-dir", required=True, help="Directory containing canonical artifacts")
     parser.add_argument("--hermes-dir", required=True, help="Directory containing Hermes shadow artifacts")
     parser.add_argument("--out-dir", required=True, help="Directory where comparison artifacts should be written")
     parser.add_argument("--golden-dir", required=True, help="Golden regression corpus directory")
@@ -178,7 +178,7 @@ def main() -> int:
 
     report = build_report(
         run_id=args.run_id,
-        openclaw_dir=Path(args.openclaw_dir),
+        canonical_dir=Path(args.canonical_dir),
         hermes_dir=Path(args.hermes_dir),
         golden_dir=Path(args.golden_dir),
         repo_root=repo_root,

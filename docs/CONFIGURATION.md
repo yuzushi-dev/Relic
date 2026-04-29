@@ -8,7 +8,7 @@ source .env          # bash
 set -a && source .env && set +a    # export all
 ```
 
-OpenClaw crons receive their env vars directly via `--env` flags at
+Hermes crons receive their env vars directly via `--env` flags at
 registration time (set by the installer). You do not need to load `.env`
 for cron jobs.
 
@@ -33,7 +33,7 @@ RELIC_TELEGRAM_ID=123456789
 ```
 Numeric Telegram sender ID of the subject. Used by the check-in delivery
 system to route outbound questions to the correct Telegram user. Obtain it
-from your Telegram client or by inspecting a raw message event in OpenClaw.
+from your Telegram client or by inspecting a raw message event in Hermes.
 Optional - leave blank if you are not using Telegram check-ins.
 
 Note: message filtering in the capture hook is controlled by
@@ -187,7 +187,7 @@ If `RELIC_MODEL` is empty, any cron that calls the LLM raises a clear
 ```env
 RELIC_RELATIONAL_AGENT=my-agent
 ```
-OpenClaw agent name used for passive observation (`relic:passive-scan`)
+Hermes agent name used for passive observation (`relic:passive-scan`)
 and stress probes (`relic:checkin`). The passive scanner reads this
 agent's session transcripts. Leave blank to disable passive observation.
 
@@ -205,7 +205,7 @@ also scanned. If omitted, only `RELIC_RELATIONAL_AGENT` is scanned.
 RELIC_ENABLE_TELEGRAM=true
 ```
 Enables live check-in delivery via Telegram. Requires a Telegram channel
-configured in OpenClaw. When `false`, the check-in cron generates the
+configured in Hermes. When `false`, the check-in cron generates the
 question but does not send it.
 
 ```env

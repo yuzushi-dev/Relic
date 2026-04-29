@@ -52,9 +52,9 @@ def build_report_text(snapshot_dir: Path) -> str:
     artifact_gate = shadow_report.get("artifact_gate_status", {}).get("status", "unknown")
     rollback_required = shadow_report.get("rollback_required", True)
 
-    wave_openclaw = baseline_manifest["wave_1_3"]["openclaw_enabled"]
+    wave_canonical = baseline_manifest["wave_1_3"]["canonical_enabled"]
     wave_hermes = baseline_manifest["wave_1_3"]["hermes_active"]
-    openclaw_disabled = sum(1 for values in wave_openclaw.values() if values == [False])
+    canonical_disabled = sum(1 for values in wave_canonical.values() if values == [False])
     hermes_active = sum(1 for active in wave_hermes.values() if active)
 
     user_paths = baseline_manifest["user_facing_paths"]
@@ -71,13 +71,13 @@ def build_report_text(snapshot_dir: Path) -> str:
         [
             f"Daily migration report {snapshot_name}",
             f"- shadow rollback_required: {'yes' if rollback_required else 'no'}",
-            f"- observations: openclaw={obs['openclaw']} hermes={obs['hermes']} mismatches={obs['mismatch_count']}",
+            f"- observations: canonical={obs['canonical']} hermes={obs['hermes']} mismatches={obs['mismatch_count']}",
             f"- trait_differences: {trait_diff_count}",
             f"- portrait_status: {portrait_status}",
             f"- artifact_gate: {artifact_gate}",
-            f"- Wave1-3 ownership: openclaw_disabled={openclaw_disabled}/17 hermes_active={hermes_active}/17",
+            f"- Wave1-3 ownership: canonical_disabled={canonical_disabled}/17 hermes_active={hermes_active}/17",
             f"- user-facing: checkin_crontab={user_paths['crontab_checkin_present']} followup_crontab={user_paths['crontab_checkin_followup_present']} proactive_crontab={user_paths['crontab_proactive_present']}",
-            f"- openclaw store: checkin={user_paths['openclaw_jobs_json_checkin_enabled']} followup={user_paths['openclaw_jobs_json_checkin_followup_enabled']} proactive_placeholder={user_paths['openclaw_jobs_json_gumi_proactive_enabled']}",
+            f"- canonical store: checkin={user_paths['canonical_jobs_json_checkin_enabled']} followup={user_paths['canonical_jobs_json_checkin_followup_enabled']} proactive_placeholder={user_paths['canonical_jobs_json_gumi_proactive_enabled']}",
             f"- canonical sync rows: {sync_rows}",
             f"- artifacts: {snapshot_dir}",
         ]

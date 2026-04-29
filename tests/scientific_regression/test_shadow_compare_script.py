@@ -43,12 +43,12 @@ def _write_artifact_set(base_dir: Path, *, observation_signal: str, trait_score:
 
 
 def test_shadow_compare_treats_provenance_enriched_backfill_as_equivalent(tmp_path: Path) -> None:
-    openclaw_dir = tmp_path / "openclaw"
+    canonical_dir = tmp_path / "canonical"
     hermes_dir = tmp_path / "hermes"
     out_dir = tmp_path / "out"
     portrait = (GOLDEN / "PORTRAIT.expected.md").read_text(encoding="utf-8")
 
-    openclaw_dir.mkdir(parents=True, exist_ok=True)
+    canonical_dir.mkdir(parents=True, exist_ok=True)
     hermes_dir.mkdir(parents=True, exist_ok=True)
     canonical_observation = {
         "facet_id": "migration.risk_sensitivity",
@@ -66,7 +66,7 @@ def test_shadow_compare_treats_provenance_enriched_backfill_as_equivalent(tmp_pa
         "context_metadata": {
             "channel": "telegram",
             "provenance": {
-                "source_runtime": "openclaw",
+                "source_runtime": "canonical",
                 "source_session_id": "session-001",
                 "source_message_ref": "2",
                 "source_timestamp": "2026-04-19T10:00:00+00:00",
@@ -78,7 +78,7 @@ def test_shadow_compare_treats_provenance_enriched_backfill_as_equivalent(tmp_pa
         },
         "created_at": "2026-04-19T12:00:00+00:00",
     }
-    (openclaw_dir / "observations.jsonl").write_text(
+    (canonical_dir / "observations.jsonl").write_text(
         json.dumps(canonical_observation, ensure_ascii=False) + "\n",
         encoding="utf-8",
     )
@@ -93,17 +93,17 @@ def test_shadow_compare_treats_provenance_enriched_backfill_as_equivalent(tmp_pa
             "evidence_count": 1,
         }
     }
-    (openclaw_dir / "traits.json").write_text(json.dumps(traits) + "\n", encoding="utf-8")
+    (canonical_dir / "traits.json").write_text(json.dumps(traits) + "\n", encoding="utf-8")
     (hermes_dir / "traits.json").write_text(json.dumps(traits) + "\n", encoding="utf-8")
-    (openclaw_dir / "PORTRAIT.md").write_text(portrait, encoding="utf-8")
+    (canonical_dir / "PORTRAIT.md").write_text(portrait, encoding="utf-8")
     (hermes_dir / "PORTRAIT.md").write_text(portrait, encoding="utf-8")
 
     result = subprocess.run(
         [
             sys.executable,
             str(SCRIPT),
-            "--openclaw-dir",
-            str(openclaw_dir),
+            "--canonical-dir",
+            str(canonical_dir),
             "--hermes-dir",
             str(hermes_dir),
             "--out-dir",
@@ -127,13 +127,13 @@ def test_shadow_compare_treats_provenance_enriched_backfill_as_equivalent(tmp_pa
 
 
 def test_shadow_compare_script_generates_zero_mismatch_report(tmp_path: Path) -> None:
-    openclaw_dir = tmp_path / "openclaw"
+    canonical_dir = tmp_path / "canonical"
     hermes_dir = tmp_path / "hermes"
     out_dir = tmp_path / "out"
     portrait = (GOLDEN / "PORTRAIT.expected.md").read_text(encoding="utf-8")
 
     _write_artifact_set(
-        openclaw_dir,
+        canonical_dir,
         observation_signal="The subject explicitly prioritizes zero-loss, reversible migration steps.",
         trait_score=0.91,
         portrait=portrait,
@@ -149,8 +149,8 @@ def test_shadow_compare_script_generates_zero_mismatch_report(tmp_path: Path) ->
         [
             sys.executable,
             str(SCRIPT),
-            "--openclaw-dir",
-            str(openclaw_dir),
+            "--canonical-dir",
+            str(canonical_dir),
             "--hermes-dir",
             str(hermes_dir),
             "--out-dir",
@@ -169,10 +169,10 @@ def test_shadow_compare_script_generates_zero_mismatch_report(tmp_path: Path) ->
     assert result.returncode == 0, result.stderr
     report = json.loads((out_dir / "shadow_report.json").read_text(encoding="utf-8"))
     assert report["run_id"] == "shadow-ok"
-    assert report["canonical_runtime"] == "openclaw"
+    assert report["canonical_runtime"] == "canonical"
     assert report["shadow_runtime"] == "hermes"
     assert report["session_source"] == "hermes"
-    assert report["observation_counts"]["openclaw"] == 1
+    assert report["observation_counts"]["canonical"] == 1
     assert report["observation_counts"]["hermes"] == 1
     assert report["observation_counts"]["mismatch_count"] == 0
     assert report["missing_from_shadow"] == []
@@ -184,12 +184,12 @@ def test_shadow_compare_script_generates_zero_mismatch_report(tmp_path: Path) ->
 
 
 def test_shadow_compare_script_reports_observation_and_trait_mismatches(tmp_path: Path) -> None:
-    openclaw_dir = tmp_path / "openclaw"
+    canonical_dir = tmp_path / "canonical"
     hermes_dir = tmp_path / "hermes"
     out_dir = tmp_path / "out"
 
     _write_artifact_set(
-        openclaw_dir,
+        canonical_dir,
         observation_signal="The subject explicitly prioritizes zero-loss, reversible migration steps.",
         trait_score=0.91,
         portrait="# Portrait\n\nStable canonical portrait.\n",
@@ -205,8 +205,8 @@ def test_shadow_compare_script_reports_observation_and_trait_mismatches(tmp_path
         [
             sys.executable,
             str(SCRIPT),
-            "--openclaw-dir",
-            str(openclaw_dir),
+            "--canonical-dir",
+            str(canonical_dir),
             "--hermes-dir",
             str(hermes_dir),
             "--out-dir",

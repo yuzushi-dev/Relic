@@ -13,7 +13,7 @@ GATE_PATH = ROOT / "hooks" / "shared" / "artifact-gate.ts"
 def test_golden_v1_required_files_exist() -> None:
     required = [
         GOLDEN / "messages.jsonl",
-        GOLDEN / "sessions" / "openclaw" / "session-001.jsonl",
+        GOLDEN / "sessions" / "canonical" / "session-001.jsonl",
         GOLDEN / "sessions" / "hermes" / "sessions.json",
         GOLDEN / "sessions" / "hermes" / "session-001.jsonl",
         GOLDEN / "run_manifest.expected.json",

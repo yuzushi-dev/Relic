@@ -5,7 +5,7 @@ Status: Accepted
 
 ## Context
 
-The migration work requires a public `relic_core` package boundary, but the starting branch did not contain a first-class implementation package. The current `relic` package still mixes scientific logic, runtime-oriented utilities, and OpenClaw-facing entrypoints.
+The migration work requires a public `relic_core` package boundary, but the starting branch did not contain a first-class implementation package. The current `relic` package still mixes scientific logic, runtime-oriented utilities, and Hermes-facing entrypoints.
 
 ## Decision
 
@@ -13,7 +13,7 @@ Adopt the new `src/relic_core` package as the canonical extraction target.
 
 ## Rationale
 
-- It gives the migration a stable namespace that does not imply OpenClaw ownership.
+- It gives the migration a stable namespace that does not imply Hermes ownership.
 - It allows gradual extraction via compatibility re-exports before deeper refactors.
 - It avoids mutating the private downstream `workspace-gumi` assumptions during the first pass.
 

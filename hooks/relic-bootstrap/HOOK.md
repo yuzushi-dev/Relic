@@ -1,7 +1,7 @@
 ---
 name: relic-bootstrap
 description: "Injects current personality model into agent bootstrap context"
-metadata: {"openclaw":{"emoji":"🧬","events":["agent:bootstrap"]}}
+metadata: {"hermes":{"emoji":"🧬","events":["agent:bootstrap"]}}
 ---
 
 # Relic Bootstrap Hook
@@ -29,5 +29,5 @@ bootstrap context, so all agents are personality-aware without extra prompting.
 No configuration needed. Enable with:
 
 ```bash
-openclaw hooks enable relic-bootstrap
+hermes hooks enable relic-bootstrap
 ```

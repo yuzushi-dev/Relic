@@ -28,7 +28,7 @@ LLM_TIMEOUT = 300
 SUBJECT_FROM_ID = "demo-subject"
 
 SDT_PROMPT = """You are assessing the subject's Basic Psychological Needs satisfaction for the period {period}.
-the subject is Italian, 30s, tech worker building an AI automation platform (OpenClaw).
+the subject is Italian, 30s, tech worker building an AI automation platform (Hermes).
 
 Based on his recent messages and decisions, assess his NEED SATISFACTION in each domain.
 Scale: -1.0 (completely frustrated/thwarted) to +1.0 (fully satisfied).
@@ -53,7 +53,7 @@ Return a JSON array with exactly 3 objects (one per domain):
     "autonomy_satisfaction": 0.7,
     "competence_satisfaction": 0.8,
     "relatedness_satisfaction": -0.2,
-    "autonomy_evidence": "Building OpenClaw independently, makes all technical decisions",
+    "autonomy_evidence": "Building Hermes independently, makes all technical decisions",
     "competence_evidence": "Solving complex distributed systems problems",
     "relatedness_evidence": "Mentions working alone, limited collaboration"
   }},

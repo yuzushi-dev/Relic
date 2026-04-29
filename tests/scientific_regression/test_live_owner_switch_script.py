@@ -10,12 +10,12 @@ ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "scripts" / "migration" / "live_owner_switch.py"
 
 
-def _write_openclaw_jobs(path: Path) -> None:
+def _write_canonical_jobs(path: Path) -> None:
     payload = {
         "version": 1,
         "jobs": [
             {
-                "id": "openclaw-job",
+                "id": "canonical-job",
                 "name": "relic:artifact-gate-check",
                 "enabled": True,
                 "state": {"lastStatus": "ok"},
@@ -43,9 +43,9 @@ def _write_hermes_jobs(path: Path) -> None:
 
 
 def test_live_owner_switch_promote_then_rollback(tmp_path: Path) -> None:
-    openclaw_jobs = tmp_path / "openclaw-jobs.json"
+    canonical_jobs = tmp_path / "canonical-jobs.json"
     hermes_jobs = tmp_path / "hermes-jobs.json"
-    _write_openclaw_jobs(openclaw_jobs)
+    _write_canonical_jobs(canonical_jobs)
     _write_hermes_jobs(hermes_jobs)
 
     promote = subprocess.run(
@@ -53,12 +53,12 @@ def test_live_owner_switch_promote_then_rollback(tmp_path: Path) -> None:
             sys.executable,
             str(SCRIPT),
             "promote",
-            "--openclaw-jobs",
-            str(openclaw_jobs),
+            "--canonical-jobs",
+            str(canonical_jobs),
             "--hermes-jobs",
             str(hermes_jobs),
-            "--openclaw-job-id",
-            "openclaw-job",
+            "--canonical-job-id",
+            "canonical-job",
             "--hermes-job-id",
             "hermes-job",
         ],
@@ -69,15 +69,15 @@ def test_live_owner_switch_promote_then_rollback(tmp_path: Path) -> None:
     )
 
     assert promote.returncode == 0, promote.stderr
-    promoted_openclaw = json.loads(openclaw_jobs.read_text(encoding="utf-8"))
+    promoted_canonical = json.loads(canonical_jobs.read_text(encoding="utf-8"))
     promoted_hermes = json.loads(hermes_jobs.read_text(encoding="utf-8"))
-    assert promoted_openclaw["jobs"][0]["enabled"] is False
+    assert promoted_canonical["jobs"][0]["enabled"] is False
     assert promoted_hermes["jobs"][0]["enabled"] is True
     assert promoted_hermes["jobs"][0]["state"] == "scheduled"
     summary = json.loads(promote.stdout)
     assert summary["mode"] == "promote"
     assert summary["dry_run"] is False
-    assert summary["openclaw_after"]["enabled"] is False
+    assert summary["canonical_after"]["enabled"] is False
     assert summary["hermes_after"]["enabled"] is True
 
     rollback = subprocess.run(
@@ -85,12 +85,12 @@ def test_live_owner_switch_promote_then_rollback(tmp_path: Path) -> None:
             sys.executable,
             str(SCRIPT),
             "rollback",
-            "--openclaw-jobs",
-            str(openclaw_jobs),
+            "--canonical-jobs",
+            str(canonical_jobs),
             "--hermes-jobs",
             str(hermes_jobs),
-            "--openclaw-job-id",
-            "openclaw-job",
+            "--canonical-job-id",
+            "canonical-job",
             "--hermes-job-id",
             "hermes-job",
         ],
@@ -101,23 +101,23 @@ def test_live_owner_switch_promote_then_rollback(tmp_path: Path) -> None:
     )
 
     assert rollback.returncode == 0, rollback.stderr
-    rolled_openclaw = json.loads(openclaw_jobs.read_text(encoding="utf-8"))
+    rolled_canonical = json.loads(canonical_jobs.read_text(encoding="utf-8"))
     rolled_hermes = json.loads(hermes_jobs.read_text(encoding="utf-8"))
-    assert rolled_openclaw["jobs"][0]["enabled"] is True
+    assert rolled_canonical["jobs"][0]["enabled"] is True
     assert rolled_hermes["jobs"][0]["enabled"] is False
     assert rolled_hermes["jobs"][0]["state"] == "paused"
     summary = json.loads(rollback.stdout)
     assert summary["mode"] == "rollback"
-    assert summary["openclaw_after"]["enabled"] is True
+    assert summary["canonical_after"]["enabled"] is True
     assert summary["hermes_after"]["enabled"] is False
 
 
 def test_live_owner_switch_dry_run_does_not_modify_files(tmp_path: Path) -> None:
-    openclaw_jobs = tmp_path / "openclaw-jobs.json"
+    canonical_jobs = tmp_path / "canonical-jobs.json"
     hermes_jobs = tmp_path / "hermes-jobs.json"
-    _write_openclaw_jobs(openclaw_jobs)
+    _write_canonical_jobs(canonical_jobs)
     _write_hermes_jobs(hermes_jobs)
-    before_openclaw = openclaw_jobs.read_text(encoding="utf-8")
+    before_canonical = canonical_jobs.read_text(encoding="utf-8")
     before_hermes = hermes_jobs.read_text(encoding="utf-8")
 
     result = subprocess.run(
@@ -126,12 +126,12 @@ def test_live_owner_switch_dry_run_does_not_modify_files(tmp_path: Path) -> None
             str(SCRIPT),
             "promote",
             "--dry-run",
-            "--openclaw-jobs",
-            str(openclaw_jobs),
+            "--canonical-jobs",
+            str(canonical_jobs),
             "--hermes-jobs",
             str(hermes_jobs),
-            "--openclaw-job-id",
-            "openclaw-job",
+            "--canonical-job-id",
+            "canonical-job",
             "--hermes-job-id",
             "hermes-job",
         ],
@@ -142,11 +142,11 @@ def test_live_owner_switch_dry_run_does_not_modify_files(tmp_path: Path) -> None
     )
 
     assert result.returncode == 0, result.stderr
-    assert openclaw_jobs.read_text(encoding="utf-8") == before_openclaw
+    assert canonical_jobs.read_text(encoding="utf-8") == before_canonical
     assert hermes_jobs.read_text(encoding="utf-8") == before_hermes
     summary = json.loads(result.stdout)
     assert summary["dry_run"] is True
-    assert summary["openclaw_before"]["enabled"] is True
-    assert summary["openclaw_after"]["enabled"] is False
+    assert summary["canonical_before"]["enabled"] is True
+    assert summary["canonical_after"]["enabled"] is False
     assert summary["hermes_before"]["enabled"] is False
     assert summary["hermes_after"]["enabled"] is True

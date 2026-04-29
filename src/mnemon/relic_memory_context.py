@@ -11,7 +11,7 @@ context from Relic's analytical model output:
   - Contextually relevant entities
 
 The output is suitable for injection into agent prompts via
-relic-bootstrap or any OpenClaw session hook.
+relic-bootstrap or any Hermes session hook.
 
 Cron: relic:memory-context, on-demand or before each agent session
 

@@ -5,7 +5,7 @@ ADR 001 established that `hooks/shared/artifact-gate.ts` must contain
 only ['PORTRAIT.md'] in INJECTABLE_ARTIFACTS. The source-level tests in
 tests/test_artifact_gate.py pin this at development time; this script
 re-checks the invariant at runtime against whatever tree the live
-OpenClaw hooks are loaded from.
+Hermes hooks are loaded from.
 
 Exits non-zero (with a structured message) if the whitelist drifted.
 Intended to run weekly as cron `relic:artifact-gate-check`.

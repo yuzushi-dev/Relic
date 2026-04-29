@@ -28,7 +28,7 @@ def _seed_data_dir(base_dir: Path, *, signal: str, trait_score: float, portrait:
                 "migration.risk_sensitivity",
                 "session_behavioral",
                 "session:session-001:2",
-                "Keep OpenClaw active.",
+                "Keep canonical active.",
                 signal,
                 0.78,
                 0.91,
@@ -58,13 +58,13 @@ def _seed_data_dir(base_dir: Path, *, signal: str, trait_score: float, portrait:
 
 
 def test_shadow_run_script_exports_both_sides_and_generates_report(tmp_path: Path) -> None:
-    openclaw_data = tmp_path / "openclaw_data"
+    canonical_data = tmp_path / "canonical_data"
     hermes_data = tmp_path / "hermes_data"
     out_dir = tmp_path / "shadow_out"
     portrait = (GOLDEN / "PORTRAIT.expected.md").read_text(encoding="utf-8")
 
     _seed_data_dir(
-        openclaw_data,
+        canonical_data,
         signal="The subject explicitly prioritizes zero-loss, reversible migration steps.",
         trait_score=0.91,
         portrait=portrait,
@@ -80,8 +80,8 @@ def test_shadow_run_script_exports_both_sides_and_generates_report(tmp_path: Pat
         [
             sys.executable,
             str(SCRIPT),
-            "--openclaw-data-dir",
-            str(openclaw_data),
+            "--canonical-data-dir",
+            str(canonical_data),
             "--hermes-data-dir",
             str(hermes_data),
             "--out-dir",
@@ -98,7 +98,7 @@ def test_shadow_run_script_exports_both_sides_and_generates_report(tmp_path: Pat
     )
 
     assert result.returncode == 0, result.stderr
-    assert (out_dir / "openclaw" / "observations.jsonl").is_file()
+    assert (out_dir / "canonical" / "observations.jsonl").is_file()
     assert (out_dir / "hermes" / "observations.jsonl").is_file()
     report = json.loads((out_dir / "shadow_report.json").read_text(encoding="utf-8"))
     assert report["run_id"] == "shadow-run-ok"

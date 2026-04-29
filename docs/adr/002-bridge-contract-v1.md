@@ -5,7 +5,7 @@ Status: Accepted
 
 ## Context
 
-Relic artifacts must cross from the scientific core into a live companion/runtime layer without leaking raw DB state or private relational memory. The current runtime already enforces a narrow `PORTRAIT.md` bootstrap surface in OpenClaw-era hooks. The migration needs the same boundary stated independently of OpenClaw.
+Relic artifacts must cross from the scientific core into a live companion/runtime layer without leaking raw DB state or private relational memory. The current runtime already enforces a narrow `PORTRAIT.md` bootstrap surface in Hermes-era hooks. The migration needs the same boundary stated independently of Hermes.
 
 ## Decision
 

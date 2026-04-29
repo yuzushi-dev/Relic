@@ -506,7 +506,7 @@ def main() -> int:
     run_start = _time.monotonic()
 
     config = get_config()
-    client = RuntimeClient(config.openclaw_bin)
+    client = RuntimeClient(config.hermes_bin)
     state = load_state()
 
     # Find recent conversational session files from configured relational agents.

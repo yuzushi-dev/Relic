@@ -1,2 +1,2 @@
 {"role":"assistant","content":"I can run a shadow comparison against the canonical observer.","timestamp":"2026-04-19T09:04:55+00:00"}
-{"role":"user","content":"Run Hermes only in shadow until observations match the canonical OpenClaw run.","timestamp":"2026-04-19T09:05:00+00:00"}
+{"role":"user","content":"Run Hermes only in shadow until observations match the canonical Hermes run.","timestamp":"2026-04-19T09:05:00+00:00"}

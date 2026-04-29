@@ -1,7 +1,7 @@
 ---
 name: relic-capture
 description: "Captures messages and tracks delivery for personality modeling"
-metadata: {"openclaw":{"emoji":"🧠","events":["message:received","message:sent"]}}
+metadata: {"hermes":{"emoji":"🧠","events":["message:received","message:sent"]}}
 ---
 
 # Relic Message Capture & Delivery Hook
@@ -24,5 +24,5 @@ modeling system.
 Enable with:
 
 ```bash
-openclaw hooks enable relic-capture
+hermes hooks enable relic-capture
 ```

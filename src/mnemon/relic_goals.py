@@ -43,17 +43,17 @@ Return JSON:
 {{
   "goals": [
     {{
-      "goal_text": "Completare OpenClaw come piattaforma autonoma",
+      "goal_text": "Completare Hermes come piattaforma autonoma",
       "domain": "tech",
       "horizon": "long",
       "progress": 0.5,
       "priority_rank": 1,
-      "supporting_evidence": "Menziona OpenClaw in ogni sessione di lavoro"
+      "supporting_evidence": "Menziona Hermes in ogni sessione di lavoro"
     }}
   ],
   "goal_conflicts": [
     {{
-      "goal_a": "Completare OpenClaw",
+      "goal_a": "Completare Hermes",
       "goal_b": "Passare più tempo con a close contact",
       "conflict_type": "time_energy",
       "severity": 0.7,

@@ -220,7 +220,7 @@ def main() -> int:
     parser.add_argument("--source-type", required=True)
     parser.add_argument("--out-dir", required=True)
     parser.add_argument("--batch-id", required=True)
-    parser.add_argument("--source-runtime", default="openclaw")
+    parser.add_argument("--source-runtime", default="canonical")
     args = parser.parse_args()
 
     summary = run_backfill(

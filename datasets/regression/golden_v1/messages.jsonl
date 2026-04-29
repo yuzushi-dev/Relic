@@ -1,2 +1,2 @@
-{"message_id":"msg-001","role":"user","content":"Keep OpenClaw active and do not lose any Relic or memory data.","timestamp":"2026-04-19T09:00:00+00:00"}
-{"message_id":"msg-002","role":"user","content":"Run Hermes only in shadow until observations match the canonical OpenClaw run.","timestamp":"2026-04-19T09:05:00+00:00"}
+{"message_id":"msg-001","role":"user","content":"Keep Hermes active and do not lose any Relic or memory data.","timestamp":"2026-04-19T09:00:00+00:00"}
+{"message_id":"msg-002","role":"user","content":"Run Hermes only in shadow until observations match the canonical Hermes run.","timestamp":"2026-04-19T09:05:00+00:00"}

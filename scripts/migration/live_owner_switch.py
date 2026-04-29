@@ -27,7 +27,7 @@ def _find_job(jobs: list[dict[str, Any]], job_id: str) -> dict[str, Any]:
     raise SystemExit(f"job not found: {job_id}")
 
 
-def _snapshot_openclaw(job: dict[str, Any]) -> dict[str, Any]:
+def _snapshot_canonical(job: dict[str, Any]) -> dict[str, Any]:
     return {
         "id": job.get("id"),
         "name": job.get("name"),
@@ -48,16 +48,16 @@ def _snapshot_hermes(job: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _apply_promote(openclaw_job: dict[str, Any], hermes_job: dict[str, Any]) -> None:
-    openclaw_job["enabled"] = False
+def _apply_promote(canonical_job: dict[str, Any], hermes_job: dict[str, Any]) -> None:
+    canonical_job["enabled"] = False
     hermes_job["enabled"] = True
     hermes_job["state"] = "scheduled"
     hermes_job["paused_at"] = None
     hermes_job["paused_reason"] = None
 
 
-def _apply_rollback(openclaw_job: dict[str, Any], hermes_job: dict[str, Any]) -> None:
-    openclaw_job["enabled"] = True
+def _apply_rollback(canonical_job: dict[str, Any], hermes_job: dict[str, Any]) -> None:
+    canonical_job["enabled"] = True
     hermes_job["enabled"] = False
     hermes_job["state"] = "paused"
     hermes_job["paused_at"] = _now_iso()
@@ -66,53 +66,53 @@ def _apply_rollback(openclaw_job: dict[str, Any], hermes_job: dict[str, Any]) ->
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Prepare or apply a reversible owner switch for one OpenClaw/Hermes Wave 1 job pair."
+        description="Prepare or apply a reversible owner switch for one canonical/Hermes Wave 1 job pair."
     )
     parser.add_argument("mode", choices=["status", "promote", "rollback"])
-    parser.add_argument("--openclaw-jobs", type=Path, required=True)
+    parser.add_argument("--canonical-jobs", type=Path, required=True)
     parser.add_argument("--hermes-jobs", type=Path, required=True)
-    parser.add_argument("--openclaw-job-id", required=True)
+    parser.add_argument("--canonical-job-id", required=True)
     parser.add_argument("--hermes-job-id", required=True)
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
-    openclaw_payload = _load_json(args.openclaw_jobs)
+    canonical_payload = _load_json(args.canonical_jobs)
     hermes_payload = _load_json(args.hermes_jobs)
 
-    openclaw_jobs = openclaw_payload.get("jobs")
+    canonical_jobs = canonical_payload.get("jobs")
     hermes_jobs = hermes_payload.get("jobs")
-    if not isinstance(openclaw_jobs, list) or not isinstance(hermes_jobs, list):
+    if not isinstance(canonical_jobs, list) or not isinstance(hermes_jobs, list):
         raise SystemExit("unsupported jobs file structure")
 
-    openclaw_job = _find_job(openclaw_jobs, args.openclaw_job_id)
+    canonical_job = _find_job(canonical_jobs, args.canonical_job_id)
     hermes_job = _find_job(hermes_jobs, args.hermes_job_id)
 
-    before_openclaw = _snapshot_openclaw(openclaw_job)
+    before_canonical = _snapshot_canonical(canonical_job)
     before_hermes = _snapshot_hermes(hermes_job)
 
-    planned_openclaw = deepcopy(openclaw_job)
+    planned_canonical = deepcopy(canonical_job)
     planned_hermes = deepcopy(hermes_job)
 
     if args.mode == "promote":
-        _apply_promote(planned_openclaw, planned_hermes)
+        _apply_promote(planned_canonical, planned_hermes)
     elif args.mode == "rollback":
-        _apply_rollback(planned_openclaw, planned_hermes)
+        _apply_rollback(planned_canonical, planned_hermes)
 
-    after_openclaw = _snapshot_openclaw(planned_openclaw)
+    after_canonical = _snapshot_canonical(planned_canonical)
     after_hermes = _snapshot_hermes(planned_hermes)
 
     if args.mode != "status" and not args.dry_run:
-        openclaw_job.update(planned_openclaw)
+        canonical_job.update(planned_canonical)
         hermes_job.update(planned_hermes)
         hermes_payload["updated_at"] = _now_iso()
-        _save_json(args.openclaw_jobs, openclaw_payload)
+        _save_json(args.canonical_jobs, canonical_payload)
         _save_json(args.hermes_jobs, hermes_payload)
 
     summary = {
         "mode": args.mode,
         "dry_run": args.dry_run,
-        "openclaw_before": before_openclaw,
-        "openclaw_after": after_openclaw,
+        "canonical_before": before_canonical,
+        "canonical_after": after_canonical,
         "hermes_before": before_hermes,
         "hermes_after": after_hermes,
     }

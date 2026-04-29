@@ -11,7 +11,7 @@ from relic_core.interfaces import SessionMessage, SessionRecord
 
 
 class HermesSessionSource:
-    """Read Hermes transcript state without assuming OpenClaw agent directories."""
+    """Read Hermes transcript state without assuming legacy agent directories."""
 
     def __init__(
         self,

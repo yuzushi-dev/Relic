@@ -240,7 +240,7 @@ def _make_relic_provider():
     else:
         # Try common locations
         candidates = [
-            Path(__file__).resolve().parents[1] / "relic" / "relic.db",
+            Path(__file__).resolve().parents[1] / "mnemon" / "relic.db",
         ]
         db_path = next((p for p in candidates if p.exists()), candidates[0])
     db = sqlite3.connect(str(db_path))

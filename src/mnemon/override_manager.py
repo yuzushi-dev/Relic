@@ -1,10 +1,10 @@
 """CLI per gestire override e rollback dei monitor Paperclip.
 
 Usage:
-  python3 -m relic.override_manager status
-  python3 -m relic.override_manager list [team]
-  python3 -m relic.override_manager rollback <team> [--to TIMESTAMP]
-  python3 -m relic.override_manager clear <team>
+  python3 -m mnemon.override_manager status
+  python3 -m mnemon.override_manager list [team]
+  python3 -m mnemon.override_manager rollback <team> [--to TIMESTAMP]
+  python3 -m mnemon.override_manager clear <team>
 
 Teams: health, humanness
 """
@@ -17,7 +17,7 @@ from pathlib import Path
 
 RELIC_DIR = Path(
     os.environ.get("RELIC_DATA_DIR")
-    or str(Path(__file__).resolve().parents[1] / "relic")
+    or str(Path(__file__).resolve().parent)
 )
 
 TEAMS: dict[str, Path] = {
@@ -102,11 +102,11 @@ def main() -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "Esempi:\n"
-            "  python3 -m relic.override_manager status\n"
-            "  python3 -m relic.override_manager list humanness\n"
-            "  python3 -m relic.override_manager rollback humanness\n"
-            "  python3 -m relic.override_manager rollback humanness --to 20260424_080000\n"
-            "  python3 -m relic.override_manager clear health\n"
+            "  python3 -m mnemon.override_manager status\n"
+            "  python3 -m mnemon.override_manager list humanness\n"
+            "  python3 -m mnemon.override_manager rollback humanness\n"
+            "  python3 -m mnemon.override_manager rollback humanness --to 20260424_080000\n"
+            "  python3 -m mnemon.override_manager clear health\n"
         ),
     )
     sub = parser.add_subparsers(dest="cmd")

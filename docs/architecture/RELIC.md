@@ -322,7 +322,7 @@ A TypeScript hook with two handlers:
 
 2. **Follow-up trigger**: After inbox capture, the hook checks for `pending-checkin.json`. If a signal file exists and was written within the last 4 hours, it:
    - Deletes the signal file first (prevents duplicate triggers)
-   - Spawns a fire-and-forget `openclaw agent` with a prompt to: (a) record the reply via `relic_db.py capture-reply`, (b) send a brief acknowledgment message the configured subject via `openclaw message send` with `--reply-to` for threading
+   - Spawns a fire-and-forget `hermes agent` with a prompt to: (a) record the reply via `relic_db.py capture-reply`, (b) send a brief acknowledgment message the configured subject via `hermes message send` with `--reply-to` for threading
    - The follow-up prompt enforces: max 1 sentence under 80 characters, informal Italian, no follow-up questions, no emoji
 
 **`handleSent`** (outbound messages the configured subject):
@@ -448,7 +448,7 @@ The cron agent executes a 6-step process:
 
 4. **Compose message**: Using the `selected_facet` and `question_hint`, composes a short Italian message (max 1-2 sentences, under 120 characters) that sounds like a friend texting - concrete, specific, no abstractions or coaching language. Explicitly avoids binary "A or B?" quiz-style questions.
 
-5. **Send**: Delivers via `openclaw message send --channel telegram --target demo-subject`.
+5. **Send**: Delivers via `hermes message send --channel telegram --target demo-subject`.
 
 6. **Record**: Calls `relic_db.py record-checkin --facet <id> --question <text> --message-id <telegram_msg_id>` to log the exchange in the database. This also writes `pending-checkin.json` as a signal file for the follow-up hook.
 
@@ -774,8 +774,8 @@ A 14-day-old observation has half the weight of a fresh one. A 28-day-old observ
 | Module | Used by | Purpose |
 |--------|---------|---------|
 | `lib/log.py` | All scripts | Structured JSON logging |
-| `lib/config.py` | Extractor, observer | OpenClaw binary path, timezone |
-| `lib/openclaw_client.py` | Extractor, observer, synthesizer | `run_agent_json()` for LLM calls, `send_message()` for Telegram |
+| `lib/config.py` | Extractor, observer | Hermes binary path, timezone |
+| `lib/hermes_client.py` | Extractor, observer, synthesizer | `run_profile_json()` for LLM calls, `run_cron()` for scheduled tasks |
 | `relic_topic_gap_score.py` | Question engine (fallback) | Legacy 5-topic scorer |
 
 ---
