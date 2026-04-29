@@ -6,13 +6,13 @@ from the model name). Supported providers:
   anthropic   - requires: pip install anthropic  + ANTHROPIC_API_KEY
   openai      - requires: pip install openai     + OPENAI_API_KEY
   ollama      - no extra deps (stdlib urllib)    + Ollama running locally
-  openclaw    - delegates to the openclaw CLI    + OPENCLAW_BIN in PATH
   openrouter  - uses OpenRouter API (OpenAI-compatible) + OPENROUTER_API_KEY
+  nvidia      - NVIDIA NIM API (OpenAI-compatible) + NVIDIA_NIM_API_KEY
 
 Set in .env:
 
   RELIC_MODEL=claude-opus-4-6
-  RELIC_PROVIDER=anthropic        # or openai / ollama / openclaw
+  RELIC_PROVIDER=anthropic        # or openai / ollama / openrouter / nvidia
 """
 from __future__ import annotations
 
@@ -43,6 +43,19 @@ def _infer_provider(model: str) -> str:
         return "openai"
     # Unknown model - default to ollama (works for any model pulled locally)
     return "ollama"
+
+
+def normalize_model_name(model: str) -> str:
+    """Normalize legacy model ids and reject routes known to be unsafe."""
+    normalized = model.strip()
+    if normalized == "openrouter/openrouter/free":
+        return "openrouter/free"
+    if normalized == "openrouter/auto":
+        raise RuntimeError(
+            "openrouter/auto is disabled for Relic jobs. Use openrouter/free "
+            "only for slow, rate-limited background work."
+        )
+    return normalized
 
 
 # ── Anthropic ──────────────────────────────────────────────────────────────────
@@ -87,19 +100,42 @@ def _complete_openai(model: str, prompt: str) -> str:
 # ── Ollama (stdlib, no extra deps) ─────────────────────────────────────────────
 
 def _complete_ollama(model: str, prompt: str) -> str:
+    import subprocess
+
     base = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
     url = f"{base}/api/generate"
     payload = json.dumps({"model": model, "prompt": prompt, "stream": False}).encode()
-    req = urllib.request.Request(
-        url, data=payload, headers={"Content-Type": "application/json"}
-    )
     try:
-        with urllib.request.urlopen(req, timeout=120) as resp:
-            data = json.loads(resp.read().decode())
-    except urllib.error.URLError as exc:
+        result = subprocess.run(
+            [
+                "curl",
+                "-sS",
+                "-m",
+                os.environ.get("OLLAMA_TIMEOUT_SEC", "120"),
+                url,
+                "-H",
+                "Content-Type: application/json",
+                "--data-binary",
+                "@-",
+            ],
+            input=payload,
+            capture_output=True,
+            timeout=float(os.environ.get("OLLAMA_TIMEOUT_SEC", "120")) + 5,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
         raise RuntimeError(
             f"Ollama request failed: {exc}\n"
             f"Is Ollama running at {base}? Start it with: ollama serve"
+        ) from exc
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"Ollama request failed: {(result.stderr or result.stdout).decode(errors='replace')[:200]}"
+        )
+    try:
+        data = json.loads(result.stdout.decode())
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(
+            f"Ollama returned non-JSON response: {result.stdout.decode(errors='replace')[:200]}"
         ) from exc
     return data.get("response", "")
 
@@ -166,46 +202,13 @@ def _complete_nvidia(model: str, prompt: str) -> str:
     return resp.choices[0].message.content or ""
 
 
-# ── OpenClaw (delegates to CLI) ────────────────────────────────────────────────
-
-def _complete_openclaw(model: str, prompt: str) -> str:
-    import subprocess
-
-    bin_path = os.environ.get("OPENCLAW_BIN", "openclaw")
-    agent = os.environ.get("RELIC_RELATIONAL_AGENT", "")
-    # openclaw agent [--agent <id>] --message <text> --json
-    cmd = [bin_path, "agent"]
-    if agent:
-        cmd += ["--agent", agent]
-    cmd += ["--message", prompt, "--json"]
-
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
-    except FileNotFoundError:
-        raise RuntimeError(
-            f"OpenClaw binary not found: '{bin_path}'. "
-            "Set OPENCLAW_BIN in your .env file."
-        ) from None
-    if result.returncode != 0:
-        raise RuntimeError(
-            f"openclaw agent failed (exit {result.returncode}): "
-            f"{(result.stderr or result.stdout).strip()[:200]}"
-        )
-    try:
-        data = json.loads(result.stdout)
-        # OpenClaw JSON response: {"response": "..."} or {"message": "..."}
-        return data.get("response") or data.get("message") or result.stdout.strip()
-    except json.JSONDecodeError:
-        return result.stdout.strip()
-
-
 # ── Public client ──────────────────────────────────────────────────────────────
 
 class ProviderLLMClient:
     """Multi-provider LLM client. Reads RELIC_MODEL and RELIC_PROVIDER."""
 
     def __init__(self, model: str | None = None, provider: str | None = None) -> None:
-        self.model = model or os.environ.get("RELIC_MODEL", "")
+        self.model = normalize_model_name(model or os.environ.get("RELIC_MODEL", ""))
         self.provider = provider or os.environ.get("RELIC_PROVIDER", "")
 
     def complete(self, prompt: str, **kwargs: Any) -> str:
@@ -228,11 +231,9 @@ class ProviderLLMClient:
             return _complete_openrouter(self.model, prompt)
         if provider in ("nvidia", "nvidia-nim"):
             return _complete_nvidia(self.model, prompt)
-        if provider == "openclaw":
-            return _complete_openclaw(self.model, prompt)
 
         raise RuntimeError(
             f"Unknown provider '{provider}' for model='{self.model}'.\n"
-            f"Set RELIC_PROVIDER to one of: ollama, anthropic, openai, openrouter, nvidia, openclaw.\n"
+            f"Set RELIC_PROVIDER to one of: ollama, anthropic, openai, openrouter, nvidia.\n"
             f"See docs/ADAPTERS.md for setup instructions."
         )

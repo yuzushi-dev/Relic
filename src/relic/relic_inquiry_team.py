@@ -50,7 +50,7 @@ from typing import Any
 
 from lib.llm_resilience import chat_completion_content
 from lib.log import error, info, warn
-from lib.telegram_notify import send_action_notification
+from lib.telegram_notify import send_message
 from relic_db import (
     DB_PATH,
     get_db,
@@ -77,11 +77,11 @@ MAX_OBS_FOR_LLM = 30
 MAX_EPISODES_FOR_LLM = 10
 
 # LLM models (can override via env)
-_DEFAULT_MODEL = os.environ.get("RELIC_INQUIRY_MODEL", "openrouter/openrouter/free")
+_DEFAULT_MODEL = os.environ.get("RELIC_INQUIRY_MODEL", "openrouter/free")
 _PRO_MODEL = os.environ.get("RELIC_INQUIRY_PRO_MODEL", _DEFAULT_MODEL)
 _CONTRA_MODEL = os.environ.get(
     "RELIC_INQUIRY_CONTRA_MODEL",
-    os.environ.get("RELIC_INQUIRY_MODEL", "openrouter/openrouter/free"),
+    os.environ.get("RELIC_INQUIRY_MODEL", "openrouter/free"),
 )
 
 # Telegram
@@ -739,6 +739,8 @@ def run_inquiry(
             info(SCRIPT, "needs_human_auto_contested", hypothesis_id=h_id,
                  rationale="autonomous mode: needs_human downgraded to contested")
 
+
+
     return {
         "hypothesis_id": h_id,
         "case_id": case_id,
@@ -899,6 +901,19 @@ def main() -> int:
              contested=verdicts.count("contested"),
              inconclusive=verdicts.count("inconclusive"),
              needs_human=verdicts.count("needs_human"))
+
+        if not args.dry_run and _TG_TOKEN and _TG_CHAT:
+            tg_thread = int(_TG_THREAD) if _TG_THREAD else None
+            nh = verdicts.count("needs_human")
+            nh_note = f"\n⚠️ {nh} ipotesi richiedono revisione umana" if nh else ""
+            summary_text = (
+                f"<b>[INQUIRY] Batch completato</b>\n"
+                f"Tot: {len(results)} · ✅ {verdicts.count('verified')} · "
+                f"⚔️ {verdicts.count('contested')} · "
+                f"❓ {verdicts.count('inconclusive')} · "
+                f"👤 {nh}{nh_note}"
+            )
+            send_message(_TG_TOKEN, _TG_CHAT, summary_text, thread_id=tg_thread)
 
         if not args.dry_run:
             _export_to_workspace(results, conn)

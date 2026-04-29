@@ -68,6 +68,12 @@ _BOT_PATTERNS = [
     r"\bnon esitare\b",
     r"\bfammi sapere\b",
     r"\bspero di esserti stat[ao]\b",
+    r"^\s*fatto[.!:,\s]",
+    r"\bfammi pensare ad alta voce\b",
+    r"\bin sintesi\b",
+    r"\bla mia onesta risposta\b",
+    r"\bsulla tua proposta\b",
+    r"\bquello che voglio fare\b",
 ]
 BOT_PHRASE_RE = re.compile("|".join(_BOT_PATTERNS), re.I | re.M)
 

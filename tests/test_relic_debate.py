@@ -117,3 +117,42 @@ def test_run_debate_domain_override_model(monkeypatch):
     run_debate(domain="bio", raw_data={}, metrics={}, report_text="")
     assert "bio/pro-override" in used_models
     assert "shared/pro" not in used_models
+
+
+def test_run_debate_passes_free_fallback_models(monkeypatch):
+    monkeypatch.setenv("RELIC_INQUIRY_MODEL", "llama3.2:3b")
+
+    calls: list[dict] = []
+
+    def _fake(model, messages, **kwargs):
+        calls.append({"model": model, "fallback_models": kwargs.get("fallback_models")})
+        if "Judge" in kwargs.get("title", ""):
+            return (json.dumps({"verdict": "monitor", "rationale": "r", "confidence": 0.5}), {})
+        return ("ok", {})
+
+    monkeypatch.setattr(f"{DEBATE_MODULE}.chat_completion_content", _fake)
+
+    from lib.relic_debate import run_debate
+
+    run_debate(domain="humanness", raw_data={}, metrics={}, report_text="")
+    assert calls
+    assert any("qwen3.5:397b-cloud" in c["fallback_models"] for c in calls)
+    assert any("nvidia/meta/llama-3.3-70b-instruct" in c["fallback_models"] for c in calls)
+    assert any("smollm2:1.7b-instruct-q3_K_S" in c["fallback_models"] for c in calls)
+
+
+def test_run_debate_does_not_retry_role_after_resilience_failure(monkeypatch):
+    calls: list[str] = []
+
+    def _fake(model, messages, **kwargs):
+        calls.append(kwargs.get("title", ""))
+        raise RuntimeError("404 page not found")
+
+    monkeypatch.setattr(f"{DEBATE_MODULE}.chat_completion_content", _fake)
+
+    from lib.relic_debate import run_debate
+
+    result = run_debate(domain="humanness", raw_data={}, metrics={}, report_text="")
+    assert len(calls) == 3
+    assert result["judge"]["verdict"] == "monitor"
+    assert result["judge"]["llm_available"] is False

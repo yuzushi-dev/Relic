@@ -27,7 +27,7 @@ from lib.log import info, warn, error
 
 SCRIPT = "relic_synthesizer"
 LLM_TIMEOUT_SECONDS = 120  # Synthesis is a heavier call
-DEFAULT_MODEL = "openrouter/openrouter/free"
+DEFAULT_MODEL = "openrouter/free"
 
 
 def _call_llm_direct(prompt: str, model: str) -> dict[str, Any]:
@@ -413,7 +413,7 @@ def synthesize_traits() -> dict[str, Any]:
 _DOMAIN_KEYWORDS: dict[str, list[str]] = {
     "tech":          ["python", "code", "bug", "server", "api", "deploy", "git",
                       "docker", "script", "database", "cron", "error", "debug",
-                      "function", "module", "build", "test", "linux", "openclaw"],
+                      "function", "module", "build", "test", "linux", "hermes"],
     "emotional":     ["sento", "triste", "felice", "ansia", "paura", "stanco",
                       "frustrato", "arrabbiato", "contento", "preoccupato",
                       "stress", "umore", "emozione", "feel", "sad", "happy"],
@@ -692,7 +692,7 @@ def main() -> int:
 
     parser = argparse.ArgumentParser(description='Relic Synthesizer')
     parser.add_argument('--model', type=str, default=DEFAULT_MODEL,
-                        help='LLM model for hypothesis generation (e.g., openrouter/openrouter/free)')
+                        help='LLM model for hypothesis generation (e.g., openrouter/free)')
     args = parser.parse_args()
 
     # Step 1: Synthesize traits

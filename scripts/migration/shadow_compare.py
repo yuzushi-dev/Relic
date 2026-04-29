@@ -172,7 +172,7 @@ def main() -> int:
     parser.add_argument("--run-id", required=True, help="Stable identifier for this shadow comparison run")
     args = parser.parse_args()
 
-    repo_root = Path(__file__).resolve().parents[1]
+    repo_root = Path(__file__).resolve().parents[2]
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 

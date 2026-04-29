@@ -4,10 +4,12 @@ Shared by health_monitor, humanness_analyst, and biofeedback_correlation.
 Each analyst calls run_debate() after computing metrics to produce a structured
 internal debate before submitting to the Paperclip reviewer.
 
-Models (all default to openrouter/openrouter/free):
+Models (all default to openrouter/free):
   Pro:    RELIC_<DOMAIN>_PRO_MODEL   → RELIC_INQUIRY_PRO_MODEL   → default
   Contra: RELIC_<DOMAIN>_CONTRA_MODEL→ RELIC_INQUIRY_CONTRA_MODEL → default
   Judge:  RELIC_<DOMAIN>_JUDGE_MODEL → RELIC_INQUIRY_MODEL        → default
+  Fallbacks: RELIC_<DOMAIN>_<ROLE>_FALLBACK_MODELS →
+             RELIC_INQUIRY_FALLBACK_MODELS → built-in free fallbacks
 """
 from __future__ import annotations
 
@@ -20,7 +22,12 @@ from typing import Any
 from lib.llm_resilience import chat_completion_content
 from lib.log import warn
 
-_DEFAULT_FREE = "openrouter/openrouter/free"
+_DEFAULT_FREE = "openrouter/free"
+_DEFAULT_FALLBACKS = (
+    "qwen3.5:397b-cloud",
+    "nvidia/meta/llama-3.3-70b-instruct",
+    "smollm2:1.7b-instruct-q3_K_S",
+)
 
 # Maps Judge verdict to override severity. None = no override. "clear" = remove override.
 VERDICT_TO_SEVERITY: dict[str, str | None] = {
@@ -120,6 +127,18 @@ def _get_model(domain: str, role: str) -> str:
     return val or _DEFAULT_FREE
 
 
+def _get_fallback_models(domain: str, role: str, primary: str) -> list[str]:
+    domain_upper = domain.upper()
+    role_upper = role.upper()
+    raw = (
+        os.environ.get(f"RELIC_{domain_upper}_{role_upper}_FALLBACK_MODELS")
+        or os.environ.get("RELIC_INQUIRY_FALLBACK_MODELS")
+        or ",".join(_DEFAULT_FALLBACKS)
+    )
+    fallback_models = [m.strip() for m in raw.split(",") if m.strip()]
+    return [m for m in fallback_models if m != primary]
+
+
 def _parse_judge_json(raw: str) -> dict[str, Any]:
     s = raw.strip()
     if s.startswith("```"):
@@ -138,6 +157,7 @@ def _parse_judge_json(raw: str) -> dict[str, Any]:
 
 def _call(domain: str, role: str, user_content: str) -> tuple[str, str]:
     model = _get_model(domain, role)
+    fallback_models = _get_fallback_models(domain, role, model)
     prompts = _SYSTEM_PROMPTS.get(domain, _SYSTEM_PROMPTS["health"])
     system_prompt = prompts[role]
     try:
@@ -151,30 +171,18 @@ def _call(domain: str, role: str, user_content: str) -> tuple[str, str]:
             temperature=0.3,
             timeout=_LLM_TIMEOUT,
             title=f"debate/{domain}/{role.capitalize()}",
+            fallback_models=fallback_models,
         )
         return content, model
     except Exception as exc:
-        warn("relic_debate", f"{role}_error domain={domain} attempt=1", error=str(exc))
-        # Retry up to 3 times with simple backoff
-        import time
-        for attempt in range(2, 4):
-            time.sleep(2 ** attempt)
-            try:
-                content2, _ = chat_completion_content(
-                    model=model,
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_content},
-                    ],
-                    max_tokens=512,
-                    temperature=0.3,
-                    timeout=_LLM_TIMEOUT,
-                    title=f"debate/{domain}/{role.capitalize()}/retry{attempt}",
-                )
-                return content2, model
-            except Exception as exc2:
-                warn("relic_debate", f"{role}_error domain={domain} attempt={attempt}", error=str(exc2))
-        return f"[{role} unavailable after 3 attempts]", model
+        warn(
+            "relic_debate",
+            f"{role}_error domain={domain}",
+            model=model,
+            fallback_models=fallback_models,
+            error=str(exc),
+        )
+        return f"[{role} unavailable]", model
 
 
 def run_debate(

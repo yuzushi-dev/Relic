@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SCRIPT = ROOT / "scripts" / "shadow_compare.py"
+SCRIPT = ROOT / "scripts" / "migration" / "shadow_compare.py"
 GOLDEN = ROOT / "datasets" / "regression" / "golden_v1"
 
 

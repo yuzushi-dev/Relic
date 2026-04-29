@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Relic Passive Observer - extracts personality signals from session transcripts.
 
-Scans OpenClaw relational-agent session transcripts for behavioral signals in the subject's messages
+Scans Hermes agent session transcripts for behavioral signals in the subject's messages
 and interaction patterns. Focuses on meta-signals (communication patterns,
 decision signals, emotional markers) rather than raw content already captured
 by the inbox hook.
@@ -17,7 +17,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
-from lib.config import get_config, load_nanobot_config, openclaw_home
+from lib.config import get_config, load_nanobot_config, hermes_home
 from lib.log import info, warn, error
 from lib.runtime_client import RuntimeClient
 
@@ -39,7 +39,7 @@ PASSIVE_DEFAULT_MODEL = "google-aistudio/gemini-2.5-flash"
 def resolve_session_dirs() -> list[Path]:
     raw = os.environ.get("RELIC_RELATIONAL_AGENT_IDS", "")
     agent_ids = [part.strip() for part in raw.split(",") if part.strip()] or DEFAULT_RELATIONAL_AGENT_IDS
-    return [openclaw_home() / "agents" / agent_id / "sessions" for agent_id in agent_ids]
+    return [hermes_home() / "profiles" / agent_id / "sessions" for agent_id in agent_ids]
 
 
 def load_state() -> dict[str, Any]:

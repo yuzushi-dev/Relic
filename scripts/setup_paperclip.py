@@ -15,10 +15,47 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
+
+
+def _agent_env(extra: dict | None = None) -> dict:
+    """Build env dict for a Paperclip process agent.
+
+    Always injects RELIC_DATA_DIR (if set in the parent env) so agents can
+    write override files and state to the correct location rather than
+    falling back to the source tree.
+    """
+    env: dict = {"PYTHONPATH": "src"}
+    relic_data_dir = os.environ.get("RELIC_DATA_DIR", "")
+    if relic_data_dir:
+        env["RELIC_DATA_DIR"] = relic_data_dir
+    if extra:
+        env.update(extra)
+    return env
+
+
+def _gemini_agent_config(timeout_sec: int = 300) -> dict:
+    """Gemini primary with Paperclip-managed Hermes fallback on quota limits."""
+    return {
+        "model": "gemini-2.5-flash",
+        "timeoutSec": timeout_sec,
+        "command": os.environ.get(
+            "PAPERCLIP_GEMINI_FALLBACK_COMMAND",
+            "/home/cristina/.paperclip/bin/paperclip-gemini-fallback",
+        ),
+        "env": {
+            "PAPERCLIP_HERMES_FALLBACKS": os.environ.get(
+                "PAPERCLIP_HERMES_FALLBACKS",
+                "ollama-cloud:gpt-oss:20b,openrouter:openrouter/free",
+            ),
+            "PAPERCLIP_HERMES_FALLBACK_TIMEOUT_SEC": "60",
+            "PAPERCLIP_HERMES_FALLBACK_MAX_TURNS": "12",
+        },
+    }
 
 
 # ── API helpers ───────────────────────────────────────────────────────────────
@@ -59,7 +96,7 @@ BIO_AGENTS = [
             "adapterConfig": {
                 "command": "python3",
                 "args": ["-m", "relic.biofeedback_correlation"],
-                "env": {"PYTHONPATH": "src"},
+                "env": _agent_env(),
                 "timeoutSec": 600,
             },
         },
@@ -76,7 +113,7 @@ BIO_AGENTS = [
                 "inconclusive findings for human attention."
             ),
             "adapterType": "gemini_local",
-            "adapterConfig": {"model": "gemini-2.5-flash", "timeoutSec": 300},
+            "adapterConfig": _gemini_agent_config(300),
         },
         "heartbeat": {"enabled": True, "intervalSec": 600, "maxConcurrentRuns": 1},
         "key_name": None,
@@ -97,7 +134,7 @@ INQ_AGENTS = [
             "adapterConfig": {
                 "command": "python3",
                 "args": ["-m", "relic.relic_inquiry_team"],
-                "env": {"PYTHONPATH": "src", "RELIC_INQUIRY_TEAM": "true"},
+                "env": _agent_env({"RELIC_INQUIRY_TEAM": "true"}),
                 "timeoutSec": 600,
             },
         },
@@ -114,7 +151,7 @@ INQ_AGENTS = [
                 "confirmed/inconclusive/false-positive verdicts."
             ),
             "adapterType": "gemini_local",
-            "adapterConfig": {"model": "gemini-2.5-flash", "timeoutSec": 300},
+            "adapterConfig": _gemini_agent_config(300),
         },
         "heartbeat": {"enabled": True, "intervalSec": 600, "maxConcurrentRuns": 1},
         "key_name": None,
@@ -137,7 +174,7 @@ HEALTH_AGENTS = [
             "adapterConfig": {
                 "command": "python3",
                 "args": ["-m", "relic.health_monitor"],
-                "env": {"PYTHONPATH": "src"},
+                "env": _agent_env(),
                 "timeoutSec": 120,
             },
         },
@@ -154,7 +191,7 @@ HEALTH_AGENTS = [
                 "to stabilize the model."
             ),
             "adapterType": "gemini_local",
-            "adapterConfig": {"model": "gemini-2.5-flash", "timeoutSec": 300},
+            "adapterConfig": _gemini_agent_config(300),
         },
         "heartbeat": {"enabled": True, "intervalSec": 600, "maxConcurrentRuns": 1},
         "key_name": None,
@@ -179,7 +216,7 @@ HUMANNESS_AGENTS = [
             "adapterConfig": {
                 "command": "python3",
                 "args": ["-m", "relic.humanness_monitor"],
-                "env": {"PYTHONPATH": "src"},
+                "env": _agent_env(),
                 "timeoutSec": 120,
             },
         },
@@ -197,12 +234,182 @@ HUMANNESS_AGENTS = [
                 "Proposes specific interventions: forbidden phrases, persona updates, style overlays."
             ),
             "adapterType": "gemini_local",
-            "adapterConfig": {"model": "gemini-2.5-flash", "timeoutSec": 300},
+            "adapterConfig": _gemini_agent_config(300),
         },
         "heartbeat": {"enabled": True, "intervalSec": 600, "maxConcurrentRuns": 1},
         "key_name": None,
     },
 ]
+
+
+DIRECTOR_AGENTS = [
+    {
+        "slug": "strategic_director",
+        "spec": {
+            "name": "Strategic Director",
+            "capabilities": (
+                "Synthesizes weekly findings from all four operational teams (Health, "
+                "Humanness, Biofeedback, Inquiry). Identifies convergences and contradictions, "
+                "assesses scientific validity, and produces a DIRECTION.md with concrete "
+                "objectives for the next cycle."
+            ),
+            "adapterType": "process",
+            "adapterConfig": {
+                "command": "python3",
+                "args": ["-m", "relic.strategic_director"],
+                "env": _agent_env(),
+                "timeoutSec": 600,
+            },
+        },
+        "heartbeat": {"enabled": True, "intervalSec": 604800, "maxConcurrentRuns": 1},
+        "key_name": None,
+    },
+]
+
+CEO_AGENTS = [
+    {
+        "slug": "ceo",
+        "spec": {
+            "name": "CEO",
+            "role": "ceo",
+            "capabilities": (
+                "Reads daily digests from all operational and research teams "
+                "(Health, Humanness, Biofeedback, Inquiry, R&D, Dev, Manuscript, Docs). "
+                "Identifies priorities, resolves conflicts between teams, assigns new issues "
+                "to the appropriate team, and posts a brief daily status summary."
+            ),
+            "adapterType": "gemini_local",
+            "adapterConfig": _gemini_agent_config(300),
+        },
+        "heartbeat": {"enabled": True, "intervalSec": 86400, "maxConcurrentRuns": 1},
+        "key_name": None,
+    },
+]
+
+RD_AGENTS = [
+    {
+        "slug": "rd_analyst",
+        "spec": {
+            "name": "R&D Analyst",
+            "role": "engineer",
+            "capabilities": (
+                "Scans ArXiv and Reddit every 5 hours for papers and discussions relevant to Relic. "
+                "Relevance criteria: computational personality modeling, biofeedback×AI "
+                "correlations (HRV/sleep/stress), multi-agent coordination, LLM humanness "
+                "and AI-pattern detection, companion AI and relational agents. "
+                "Summarizes each relevant finding in a structured Paperclip issue with: "
+                "title, source URL, one-paragraph summary, and relevance tag."
+            ),
+            "adapterType": "gemini_local",
+            "adapterConfig": _gemini_agent_config(600),
+        },
+        "heartbeat": {"enabled": True, "intervalSec": 18000, "maxConcurrentRuns": 1},
+        "key_name": None,
+    },
+]
+
+DEV_AGENTS = [
+    {
+        "slug": "dev_planner",
+        "spec": {
+            "name": "Dev Planner",
+            "role": "engineer",
+            "capabilities": (
+                "Reads open issues tagged for the Dev team in the Relic OSS repository "
+                "(src/relic/, src/lib/, tests/). Produces a structured implementation plan "
+                "for each issue: files to change, approach, edge cases, test strategy. "
+                "Assigns the plan as a sub-issue to Dev Engineer for execution."
+            ),
+            "adapterType": "codex_local",
+            "adapterConfig": {"model": "gpt-5.4-mini", "timeoutSec": 300},
+        },
+        "heartbeat": {"enabled": True, "intervalSec": 43200, "maxConcurrentRuns": 1},
+        "key_name": None,
+    },
+    {
+        "slug": "dev_engineer",
+        "spec": {
+            "name": "Dev Engineer",
+            "role": "engineer",
+            "capabilities": (
+                "Implements code changes in the Relic OSS repository based on plans "
+                "produced by Dev Planner. Writes or updates src/relic/, src/lib/, and "
+                "tests/ files. Runs pytest before marking an issue resolved. "
+                "Never commits directly to master — opens a branch and reports diff."
+            ),
+            "adapterType": "gemini_local",
+            "adapterConfig": _gemini_agent_config(600),
+        },
+        "heartbeat": {"enabled": True, "intervalSec": 43200, "maxConcurrentRuns": 1},
+        "key_name": None,
+    },
+]
+
+MANUSCRIPT_AGENTS = [
+    {
+        "slug": "manuscript_editor",
+        "spec": {
+            "name": "Manuscript Editor",
+            "role": "pm",
+            "capabilities": (
+                "Maintains the PACMHCI manuscript at ~/relic-paper-package/. "
+                "Reads open issues from Health, Humanness, Biofeedback, Inquiry, and R&D teams. "
+                "Updates pacmhci-manuscript-draft-v1.md only when new findings differ from "
+                "what is already written — no rewrites for style, only delta-driven additions. "
+                "Logs every change as a brief note in the issue thread."
+            ),
+            "adapterType": "gemini_local",
+            "adapterConfig": _gemini_agent_config(600),
+        },
+        "heartbeat": {"enabled": True, "intervalSec": 604800, "maxConcurrentRuns": 1},
+        "key_name": None,
+    },
+]
+
+DOCS_AGENTS = [
+    {
+        "slug": "docs_writer",
+        "spec": {
+            "name": "Docs Writer",
+            "role": "designer",
+            "capabilities": (
+                "Maintains documentation for the Relic OSS project. "
+                "Public docs (README, usage guides, .env.example): must never contain PII, "
+                "real names, absolute paths, or private credentials. "
+                "Internal technical docs (architecture, design decisions, module guides): "
+                "kept in docs/ and updated when source code changes. "
+                "Triggered by Dev Engineer issues or structural changes in src/."
+            ),
+            "adapterType": "gemini_local",
+            "adapterConfig": _gemini_agent_config(300),
+        },
+        "heartbeat": {"enabled": True, "intervalSec": 604800, "maxConcurrentRuns": 1},
+        "key_name": None,
+    },
+]
+
+COMITATO_AGENTS = [
+    {
+        "slug": "comitato",
+        "spec": {
+            "name": "Comitato",
+            "role": "pm",
+            "capabilities": (
+                "Reviews R&D innovation proposals ([Proposal] issues). "
+                "Evaluates each proposal on 3 criteria: relevance to Relic goals "
+                "(personality, humanness, biofeedback), technical feasibility in the "
+                "current codebase, and clear priority over existing work. "
+                "Approved proposals become [Dev] issues for the Dev team. "
+                "Rejected proposals receive a detailed explanation."
+            ),
+            "adapterType": "gemini_local",
+            "adapterConfig": _gemini_agent_config(300),
+        },
+        "heartbeat": {"enabled": True, "intervalSec": 21600, "maxConcurrentRuns": 1},
+        "key_name": None,
+    },
+]
+
 
 
 # ── Setup flow ────────────────────────────────────────────────────────────────
@@ -220,21 +427,33 @@ def check_paperclip(base_url: str) -> str:
         sys.exit(1)
 
 
+_VALID_CHOICES = frozenset("abihndcrvmok")
+
+
 def ask_pipelines() -> str:
     print()
     print("Which pipelines do you want to enable?")
+    print("  ── Operational teams (process adapters) ──")
     print("  [b]  Biofeedback Correlation  — nightly HRV/sleep/stress × personality")
     print("  [i]  Inquiry Verification     — structured deliberation hypothesis verification")
     print("  [h]  Health Monitor           — every 12h confidence/coverage/loop-risk")
     print("  [n]  Humanness Monitor        — daily AI-pattern detection + LLM-as-judge review")
-    print("  [a]  All four                 (default)")
+    print("  [d]  Strategic Director       — weekly synthesis + direction across all teams")
+    print("  ── Management & research (gemini_local / codex_local) ──")
+    print("  [c]  CEO                      — daily cross-team coordination (gemini_local)")
+    print("  [r]  R&D Analyst              — every 5h ArXiv scan + proposals (gemini_local)")
+    print("  [k]  Comitato                 — every 6h R&D proposal review (gemini_local)")
+    print("  [v]  Dev Team                 — every 12h planner (codex_local) + engineer (gemini_local)")
+    print("  [m]  Manuscript Editor        — weekly delta-driven manuscript updates (gemini_local)")
+    print("  [o]  Docs Writer              — weekly OSS + internal docs (gemini_local)")
+    print("  [a]  All                      (default)")
     print("  [q]  Skip / quit")
     print()
     choice = input("Choice [a]: ").strip().lower() or "a"
     if choice == "q":
         print("Skipped.")
         sys.exit(0)
-    if choice not in ("a", "b", "i", "h", "n"):
+    if choice not in _VALID_CHOICES:
         print(f"Unknown choice '{choice}'. Defaulting to all.")
         choice = "a"
     return choice
@@ -346,6 +565,44 @@ def print_env(base_url: str, company_id: str, agents: dict[str, dict], choice: s
         if hu_r.get("id"):
             print(f"PAPERCLIP_HUMANNESS_REVIEWER_ID={hu_r['id']}")
 
+    if choice in ("a", "d"):
+        sd = agents.get("strategic_director", {})
+        if sd.get("id"):
+            print(f"PAPERCLIP_DIRECTOR_ID={sd['id']}")
+
+    if choice in ("a", "c"):
+        ceo = agents.get("ceo", {})
+        if ceo.get("id"):
+            print(f"PAPERCLIP_CEO_ID={ceo['id']}")
+
+    if choice in ("a", "r"):
+        rd = agents.get("rd_analyst", {})
+        if rd.get("id"):
+            print(f"PAPERCLIP_RD_ANALYST_ID={rd['id']}")
+
+    if choice in ("a", "v"):
+        dp = agents.get("dev_planner", {})
+        de = agents.get("dev_engineer", {})
+        if dp.get("id"):
+            print(f"PAPERCLIP_DEV_PLANNER_ID={dp['id']}")
+        if de.get("id"):
+            print(f"PAPERCLIP_DEV_ENGINEER_ID={de['id']}")
+
+    if choice in ("a", "m"):
+        me = agents.get("manuscript_editor", {})
+        if me.get("id"):
+            print(f"PAPERCLIP_MANUSCRIPT_ID={me['id']}")
+
+    if choice in ("a", "o"):
+        dw = agents.get("docs_writer", {})
+        if dw.get("id"):
+            print(f"PAPERCLIP_DOCS_ID={dw['id']}")
+
+    if choice in ("a", "k"):
+        co = agents.get("comitato", {})
+        if co.get("id"):
+            print(f"PAPERCLIP_COMITATO_ID={co['id']}")
+
     print("─" * 60)
     print()
     print("Paperclip UI: http://localhost:3100")
@@ -386,7 +643,20 @@ def main() -> None:
         defs += HEALTH_AGENTS
     if choice in ("a", "n"):
         defs += HUMANNESS_AGENTS
-
+    if choice in ("a", "d"):
+        defs += DIRECTOR_AGENTS
+    if choice in ("a", "c"):
+        defs += CEO_AGENTS
+    if choice in ("a", "r"):
+        defs += RD_AGENTS
+    if choice in ("a", "v"):
+        defs += DEV_AGENTS
+    if choice in ("a", "m"):
+        defs += MANUSCRIPT_AGENTS
+    if choice in ("a", "o"):
+        defs += DOCS_AGENTS
+    if choice in ("a", "k"):
+        defs += COMITATO_AGENTS
     print("Creating agents…")
     agents = create_agents(base_url, company_id, defs)
 

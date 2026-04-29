@@ -21,7 +21,7 @@ import time
 from typing import Any
 
 from lib.log import info, warn, error
-from lib.provider_llm_client import ProviderLLMClient
+from lib.provider_llm_client import ProviderLLMClient, normalize_model_name
 
 # ── Retry config ───────────────────────────────────────────────────────────────
 
@@ -59,10 +59,11 @@ def chat_completion_content(
     # ProviderLLMClient.complete() takes a prompt; we build it here.
     prompt = _messages_to_prompt(messages)
 
-    models_to_try = [model] + (fallback_models or [])
+    models_to_try = _unique_models([model] + (fallback_models or []))
     last_exc: Exception | None = None
 
     for model_candidate in models_to_try:
+        model_candidate = normalize_model_name(model_candidate)
         client = ProviderLLMClient(model=model_candidate)
         for attempt in range(1, _MAX_ATTEMPTS + 1):
             try:
@@ -94,6 +95,24 @@ def chat_completion_content(
                         error=str(exc)[:200],
                     )
                     break  # skip retries for this model, move to fallback
+
+                if _is_rate_limit_error(exc) and model_candidate == "openrouter/free":
+                    warn(
+                        script=title,
+                        event="llm_rate_limited_no_fast_retry",
+                        model=model_candidate,
+                        error=str(exc)[:200],
+                    )
+                    break  # OpenRouter free is intentionally retried by slow scheduling.
+
+                if _is_provider_unavailable_error(exc):
+                    warn(
+                        script=title,
+                        event="llm_provider_unavailable_no_fast_retry",
+                        model=model_candidate,
+                        error=str(exc)[:200],
+                    )
+                    break  # Move to fallback instead of amplifying a dead endpoint.
 
                 if is_last_attempt:
                     warn(
@@ -152,3 +171,28 @@ def _is_reasoning_error(exc: Exception) -> bool:
     """Return True if the exception looks like a reasoning-model refusal."""
     msg = str(exc).lower()
     return any(k in msg for k in ("thinking", "reasoning", "extended output", "budget"))
+
+
+def _is_rate_limit_error(exc: Exception) -> bool:
+    """Return True if the exception looks like provider quota/rate limiting."""
+    msg = str(exc).lower()
+    return any(k in msg for k in ("rate limit", "rate_limit", "quota", "capacity", "429", "403", "limit exceeded"))
+
+
+def _is_provider_unavailable_error(exc: Exception) -> bool:
+    """Return True for endpoint failures that should fall through immediately."""
+    msg = str(exc).lower()
+    return any(k in msg for k in ("404 page not found", "operation timed out", "timed out", "timeout"))
+
+
+def _unique_models(models: list[str]) -> list[str]:
+    """Preserve order while removing duplicate model ids after normalization."""
+    seen: set[str] = set()
+    result: list[str] = []
+    for model in models:
+        normalized = normalize_model_name(model)
+        if normalized in seen:
+            continue
+        seen.add(normalized)
+        result.append(normalized)
+    return result

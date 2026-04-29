@@ -100,6 +100,17 @@ def test_score_bot_patterns_bot_phrases():
     assert m["bot_phrase_rate"] == pytest.approx(2 / 4, abs=1e-4)
 
 
+def test_score_bot_patterns_detects_technical_mode_fillers():
+    msgs = _pairs([
+        "Fatto. Ho aggiunto la sezione World a SOUL.md.",
+        "Fammi pensare ad alta voce. Secondo me sì.",
+        "In sintesi: la pipeline funziona ma il dato non basta.",
+        "Risposta naturale senza formula di apertura.",
+    ])
+    m = score_bot_patterns(msgs)
+    assert m["bot_phrase_rate"] == pytest.approx(3 / 4, abs=1e-4)
+
+
 def test_score_bot_patterns_aff_q():
     msgs = _pairs([
         "Ho pensato a lungo a questa cosa. Ti è capitato lo stesso?",

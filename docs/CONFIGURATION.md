@@ -62,15 +62,15 @@ Expected contents after first run:
 ```
 
 ```env
-OPENCLAW_HOME=~/.openclaw
+HERMES_HOME=~/.hermes
 ```
-Root directory of your OpenClaw installation. Used to resolve the default
-hooks directory and OpenClaw runtime paths.
+Root directory of your Hermes installation. Used to resolve the default
+hooks directory and Hermes runtime paths.
 
 ```env
-OPENCLAW_BIN=openclaw
+HERMES_BIN=hermes
 ```
-Path or name of the OpenClaw CLI binary. Override if it is not in `PATH`.
+Path or name of the Hermes CLI binary. Override if it is not in `PATH`.
 
 ---
 
@@ -90,8 +90,8 @@ RELIC_CHECKIN_INTERVAL_MIN=30
 ```env
 RELIC_FOLLOWUP_CRON=relic:checkin-followup
 ```
-OpenClaw cron name that the capture hook invokes when a check-in reply is
-detected. Must match the cron name registered with OpenClaw. Default is
+Hermes cron name that the capture hook invokes when a check-in reply is
+detected. Must match the cron name registered with Hermes. Default is
 `relic:checkin-followup`.
 
 ---
@@ -255,8 +255,8 @@ RELIC_TELEGRAM_ID=123456789
 
 # Paths
 RELIC_DATA_DIR=~/.relic/alice
-OPENCLAW_HOME=~/.openclaw
-OPENCLAW_BIN=openclaw
+HERMES_HOME=~/.hermes
+HERMES_BIN=hermes
 
 # Check-in schedule
 RELIC_CHECKIN_HOUR_START=9

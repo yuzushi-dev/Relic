@@ -22,7 +22,7 @@ from lib.log import info, warn
 
 SCRIPT = "relic_caps"
 DB_PATH = Path(os.environ.get("RELIC_DATA_DIR") or str(Path(__file__).resolve().parents[1] / "relic")) / "relic.db"
-DEFAULT_MODEL = "openrouter/openrouter/free"
+DEFAULT_MODEL = "openrouter/free"
 LLM_TIMEOUT = 600
 SAMPLE_LIMIT = 12
 

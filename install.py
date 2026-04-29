@@ -2,11 +2,11 @@
 """
 Relic installation wizard - Arasaka-style TUI.
 
-Guides you through connecting Relic to your OpenClaw instance:
+Guides you through connecting Relic to your Hermes instance:
 subject configuration, runtime directory, hook compilation and registration,
 check-in schedule, past-message backfill, and cron setup.
 
-Tested on OpenClaw 31.3.26.
+Tested on Hermes Agent 0.11.0.
 
 Usage:
     python install.py
@@ -27,7 +27,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent
-TESTED_OPENCLAW = "31.3.26"
+TESTED_HERMES = "0.11.0"
 TOTAL_STEPS = 9
 
 # ── ANSI palette ───────────────────────────────────────────────────────────────
@@ -171,8 +171,8 @@ class State:
     subject_telegram_id: str = ""
     # paths
     data_dir: str = ""
-    openclaw_bin: str = "openclaw"
-    openclaw_home: str = ""
+    hermes_bin: str = "hermes"
+    hermes_home: str = ""
     hooks_dir: str = ""
     # check-in schedule
     checkin_hour_start: int = 9
@@ -201,8 +201,8 @@ class State:
     backfill_count: int = 0
     # runtime
     dry_run: bool = False
-    openclaw_ok: bool = False
-    openclaw_version: str = ""
+    hermes_ok: bool = False
+    hermes_version: str = ""
     failed_steps: list[str] = field(default_factory=list)
     manual_steps: list[str] = field(default_factory=list)
 
@@ -220,7 +220,7 @@ def step_welcome(state: State) -> None:
     indent(b("Installation Wizard"))
     nl()
     indent(w("This wizard will guide you through configuring Relic"))
-    indent(w("for your personal OpenClaw instance."))
+    indent(w("for your personal Hermes instance."))
     nl()
     hr("·")
     nl()
@@ -228,7 +228,7 @@ def step_welcome(state: State) -> None:
     nl()
     for item in [
         "Subject identity and runtime data directory",
-        "OpenClaw hooks: relic-capture · relic-bootstrap",
+        "Hermes hooks: relic-capture · relic-bootstrap",
         "Check-in schedule (active hours and probe frequency)",
         "Past-message backfill - import existing signal into inbox",
         "Cron jobs: 6 core + 10 daily/weekly + 13 monthly specialist analyzers",
@@ -238,7 +238,7 @@ def step_welcome(state: State) -> None:
     nl()
     hr("·")
     nl()
-    indent(f"{MUT}Tested on OpenClaw {TESTED_OPENCLAW}.{RST}")
+    indent(f"{MUT}Tested on Hermes Agent {TESTED_HERMES}.{RST}")
     indent(f"{MUT}Other versions may work but are not verified.{RST}")
     if state.dry_run:
         nl()
@@ -259,10 +259,10 @@ def step_prereqs(state: State) -> None:
     checks.append((f"Python {major}.{minor}", py_ok,
                    "" if py_ok else "Python 3.12+ required"))
 
-    bin_path = shutil.which(state.openclaw_bin)
-    oc_found = bin_path is not None
-    checks.append((f"openclaw binary ({state.openclaw_bin})", oc_found,
-                   "" if oc_found else f"'{state.openclaw_bin}' not found in PATH"))
+    bin_path = shutil.which(state.hermes_bin)
+    hermes_found = bin_path is not None
+    checks.append((f"hermes binary ({state.hermes_bin})", hermes_found,
+                   "" if hermes_found else f"'{state.hermes_bin}' not found in PATH"))
 
     # check Node/npm for hook compilation
     node_path = shutil.which("node")
@@ -270,23 +270,23 @@ def step_prereqs(state: State) -> None:
     checks.append(("node  (hook compilation)", node_ok,
                    "" if node_ok else "node not found - hooks will not be compiled"))
 
-    if oc_found:
+    if hermes_found:
         try:
-            result = subprocess.run([state.openclaw_bin, "--version"],
+            result = subprocess.run([state.hermes_bin, "--version"],
                                     capture_output=True, text=True, timeout=5)
             raw = (result.stdout + result.stderr).strip()
             m_ver = re.search(r"(\d+\.\d+\.\d+)", raw)
             ver = m_ver.group(1) if m_ver else raw[:20]
-            state.openclaw_version = ver
-            ver_ok = ver == TESTED_OPENCLAW
-            state.openclaw_ok = True
-            checks.append((f"OpenClaw version {ver}", ver_ok,
-                            f"Tested on {TESTED_OPENCLAW}; this version is untested"
+            state.hermes_version = ver
+            ver_ok = ver == TESTED_HERMES
+            state.hermes_ok = True
+            checks.append((f"Hermes Agent version {ver}", ver_ok,
+                            f"Tested on {TESTED_HERMES}; this version is untested"
                             if not ver_ok else ""))
         except Exception as e:
-            checks.append(("OpenClaw version", False, str(e)))
+            checks.append(("Hermes Agent version", False, str(e)))
     else:
-        state.openclaw_ok = False
+        state.hermes_ok = False
 
     for label, ok, note in checks:
         icon   = gr("✓") if ok else (wa("⚠") if note else r("✗"))
@@ -296,14 +296,14 @@ def step_prereqs(state: State) -> None:
             indent(f"     {MUT}{note}{RST}")
     nl()
 
-    if not py_ok or not oc_found:
+    if not py_ok or not hermes_found:
         hr(); nl()
         indent(r("One or more required components are missing."))
         indent(m("Resolve the issues above and re-run the installer."))
         nl(); sys.exit(1)
 
-    if oc_found and state.openclaw_version != TESTED_OPENCLAW:
-        if not confirm("OpenClaw version is untested. Continue anyway?"):
+    if hermes_found and state.hermes_version != TESTED_HERMES:
+        if not confirm("Hermes Agent version is untested. Continue anyway?"):
             abort()
 
 
@@ -350,23 +350,23 @@ def step_datadir(state: State) -> None:
     indent(f"  {MUT}Resolved:{RST}  {WHT}{state.data_dir}{RST}")
 
 
-def step_openclaw(state: State) -> None:
+def step_hermes(state: State) -> None:
     header(4, TOTAL_STEPS)
-    indent(b("OpenClaw Configuration"))
+    indent(b("Hermes Configuration"))
     nl()
-    indent(m("Hooks will be compiled (TypeScript → JS) and registered with your OpenClaw instance."))
+    indent(m("Hooks will be compiled (TypeScript → JS) and registered with your Hermes instance."))
     nl()
     hr("·")
     nl()
 
-    state.openclaw_bin = ask("OpenClaw binary", default=state.openclaw_bin) or "openclaw"
+    state.hermes_bin = ask("Hermes binary", default=state.hermes_bin) or "hermes"
     nl()
-    default_home = os.environ.get("OPENCLAW_HOME", str(Path.home() / ".openclaw"))
-    state.openclaw_home = ask("OpenClaw home directory", default=default_home)
+    default_home = os.environ.get("HERMES_HOME", str(Path.home() / ".hermes"))
+    state.hermes_home = ask("Hermes home directory", default=default_home)
     nl()
-    default_hooks = str(Path(state.openclaw_home) / "hooks")
+    default_hooks = str(Path(state.hermes_home) / "hooks")
     state.hooks_dir = ask(
-        "OpenClaw hooks directory  (hook folders will be linked here)",
+        "Hermes hooks directory  (hook folders will be linked here)",
         default=default_hooks,
     )
     nl()
@@ -378,7 +378,7 @@ def step_openclaw(state: State) -> None:
         icon = gr("✓") if exists else wa("⚠")
         indent(f"  {icon}  {WHT}{hook}{RST}  {MUT}{src}{RST}")
     nl()
-    indent(m("Each hook folder contains a handler.ts that OpenClaw compiles on registration."))
+    indent(m("Each hook folder contains a handler.ts that Hermes compiles on registration."))
     indent(m("Your subject ID and data dir will be written to the hook env at install time."))
 
 
@@ -489,6 +489,24 @@ def _try_paperclip_setup(state: State) -> None:
         _papi("PATCH", f"/agents/{a['id']}", {"runtimeConfig": {"heartbeat": hb}})
         return a["id"], a.get("urlKey", "")
 
+    def _gemini_agent_config(timeout_sec: int = 300) -> dict:
+        return {
+            "model": "gemini-2.5-flash",
+            "timeoutSec": timeout_sec,
+            "command": os.environ.get(
+                "PAPERCLIP_GEMINI_FALLBACK_COMMAND",
+                "/home/cristina/.paperclip/bin/paperclip-gemini-fallback",
+            ),
+            "env": {
+                "PAPERCLIP_HERMES_FALLBACKS": os.environ.get(
+                    "PAPERCLIP_HERMES_FALLBACKS",
+                    "ollama-cloud:gpt-oss:20b,openrouter:openrouter/free",
+                ),
+                "PAPERCLIP_HERMES_FALLBACK_TIMEOUT_SEC": "60",
+                "PAPERCLIP_HERMES_FALLBACK_MAX_TURNS": "12",
+            },
+        }
+
     def _make_key(url_key: str, key_name: str) -> str:
         out = subprocess.run(
             [npx, "paperclipai", "agent", "local-cli", url_key,
@@ -515,7 +533,7 @@ def _try_paperclip_setup(state: State) -> None:
             {"name": "Biofeedback Reviewer",
              "capabilities": "Reviews biofeedback correlation results and flags findings.",
              "adapterType": "gemini_local",
-             "adapterConfig": {"model": "gemini-2.5-flash", "timeoutSec": 300}},
+             "adapterConfig": _gemini_agent_config(300)},
             {"enabled": True, "intervalSec": 600, "maxConcurrentRuns": 1},
         )
         state.paperclip_bio_reviewer_id = rid
@@ -536,7 +554,7 @@ def _try_paperclip_setup(state: State) -> None:
             {"name": "Inquiry Reviewer",
              "capabilities": "Reviews personality and behavioral findings, proposes verdicts.",
              "adapterType": "gemini_local",
-             "adapterConfig": {"model": "gemini-2.5-flash", "timeoutSec": 300}},
+             "adapterConfig": _gemini_agent_config(300)},
             {"enabled": True, "intervalSec": 600, "maxConcurrentRuns": 1},
         )
         state.paperclip_inq_reviewer_id = rid
@@ -556,7 +574,7 @@ def _try_paperclip_setup(state: State) -> None:
             {"name": "Health Strategist",
              "capabilities": "Reviews health reports, evaluates confidence/coverage trends and loop risk, proposes interventions.",
              "adapterType": "gemini_local",
-             "adapterConfig": {"model": "gemini-2.5-flash", "timeoutSec": 300}},
+             "adapterConfig": _gemini_agent_config(300)},
             {"enabled": True, "intervalSec": 600, "maxConcurrentRuns": 1},
         )
         state.paperclip_health_reviewer_id = rid
@@ -1080,7 +1098,7 @@ def step_done(state: State) -> None:
 def _build_env(state: State) -> str:
     lines = [
         "# Relic - generated by install.py",
-        f"# OpenClaw {TESTED_OPENCLAW} · {time.strftime('%Y-%m-%d')}",
+        f"# Hermes Agent {TESTED_HERMES} · {time.strftime('%Y-%m-%d')}",
         "",
         "# ── Subject ──────────────────────────────────────────────",
         f"RELIC_SUBJECT_ID={state.subject_id}",
@@ -1092,8 +1110,8 @@ def _build_env(state: State) -> str:
         "",
         "# ── Paths ────────────────────────────────────────────────",
         f"RELIC_DATA_DIR={state.data_dir}",
-        f"OPENCLAW_HOME={state.openclaw_home}",
-        f"OPENCLAW_BIN={state.openclaw_bin}",
+        f"HERMES_HOME={state.hermes_home}",
+        f"HERMES_BIN={state.hermes_bin}",
         "",
         "# ── Check-in schedule ───────────────────────────────────",
         f"RELIC_CHECKIN_HOUR_START={state.checkin_hour_start}",
@@ -1202,7 +1220,7 @@ def main() -> None:
         step_prereqs(state)
         step_subject(state)
         step_datadir(state)
-        step_openclaw(state)
+        step_hermes(state)
         step_checkin(state)
         step_integrations(state)
         step_backfill(state)

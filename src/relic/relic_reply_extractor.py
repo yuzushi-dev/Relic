@@ -33,7 +33,7 @@ from lib.log import info, warn, error
 
 SCRIPT = "relic_reply_extractor"
 DB_PATH = Path(os.environ.get("RELIC_DATA_DIR") or str(Path(__file__).resolve().parents[1] / "relic")) / "relic.db"
-DEFAULT_MODEL = "openrouter/openrouter/free"
+DEFAULT_MODEL = "openrouter/free"
 LLM_TIMEOUT_SECONDS = 180
 BATCH_SIZE = 5  # process N exchanges per LLM call
 

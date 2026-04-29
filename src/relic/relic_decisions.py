@@ -33,7 +33,7 @@ from lib.log import info, warn
 SCRIPT = "relic_decisions"
 DB_PATH = Path(os.environ.get("RELIC_DATA_DIR") or str(Path(__file__).resolve().parents[1] / "relic")) / "relic.db"
 STATE_FILE = Path(os.environ.get("RELIC_DATA_DIR") or str(Path(__file__).resolve().parents[1] / "relic")) / "decisions-state.json"
-DEFAULT_MODEL = "openrouter/openrouter/free"
+DEFAULT_MODEL = "openrouter/free"
 LLM_TIMEOUT_SECONDS = 90
 BATCH_SIZE = 15
 

@@ -190,26 +190,26 @@ TELEGRAM_INQUIRY_THREAD_ID=
 
 ## Debate system configuration
 
-The Pro/Contra/Judge debate uses LLMs configured per domain. By default all roles use `openrouter/openrouter/free`. Override per domain:
+The Pro/Contra/Judge debate uses LLMs configured per domain. By default all roles use `openrouter/free`. Override per domain:
 
 ```env
 # Per-role models (fall back to RELIC_INQUIRY_* if domain-specific not set)
-RELIC_HEALTH_PRO_MODEL=openrouter/openrouter/free
-RELIC_HEALTH_CONTRA_MODEL=openrouter/openrouter/free
-RELIC_HEALTH_JUDGE_MODEL=openrouter/openrouter/free
+RELIC_HEALTH_PRO_MODEL=openrouter/free
+RELIC_HEALTH_CONTRA_MODEL=openrouter/free
+RELIC_HEALTH_JUDGE_MODEL=openrouter/free
 
-RELIC_HUMANNESS_PRO_MODEL=openrouter/openrouter/free
-RELIC_HUMANNESS_CONTRA_MODEL=openrouter/openrouter/free
-RELIC_HUMANNESS_JUDGE_MODEL=openrouter/openrouter/free
+RELIC_HUMANNESS_PRO_MODEL=openrouter/free
+RELIC_HUMANNESS_CONTRA_MODEL=openrouter/free
+RELIC_HUMANNESS_JUDGE_MODEL=openrouter/free
 
-RELIC_BIO_PRO_MODEL=openrouter/openrouter/free
-RELIC_BIO_CONTRA_MODEL=openrouter/openrouter/free
-RELIC_BIO_JUDGE_MODEL=openrouter/openrouter/free
+RELIC_BIO_PRO_MODEL=openrouter/free
+RELIC_BIO_CONTRA_MODEL=openrouter/free
+RELIC_BIO_JUDGE_MODEL=openrouter/free
 
 # Inquiry uses RELIC_INQUIRY_* as canonical names
-RELIC_INQUIRY_PRO_MODEL=openrouter/openrouter/free
-RELIC_INQUIRY_CONTRA_MODEL=openrouter/openrouter/free
-RELIC_INQUIRY_MODEL=openrouter/openrouter/free
+RELIC_INQUIRY_PRO_MODEL=openrouter/free
+RELIC_INQUIRY_CONTRA_MODEL=openrouter/free
+RELIC_INQUIRY_MODEL=openrouter/free
 ```
 
 Provider routing is determined by model string prefix:

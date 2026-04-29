@@ -55,17 +55,6 @@ RELIC_MODEL=gpt-4o
 RELIC_PROVIDER=openai
 ```
 
-### OpenClaw (delegates to CLI)
-
-If your OpenClaw instance manages model access:
-
-```env
-RELIC_MODEL=claude-opus-4-6        # passed to openclaw agent run
-RELIC_PROVIDER=openclaw
-RELIC_RELATIONAL_AGENT=my-agent   # optional: specific agent to use
-OPENCLAW_BIN=openclaw                   # path to binary
-```
-
 ---
 
 ## Provider inference

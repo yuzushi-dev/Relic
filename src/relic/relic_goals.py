@@ -20,7 +20,7 @@ from relic_run_guard import should_skip, mark_ran
 
 SCRIPT = "relic_goals"
 DB_PATH = Path(os.environ.get("RELIC_DATA_DIR") or str(Path(__file__).resolve().parents[1] / "relic")) / "relic.db"
-DEFAULT_MODEL = "openrouter/openrouter/free"
+DEFAULT_MODEL = "openrouter/free"
 LLM_TIMEOUT = 600
 SUBJECT_FROM_ID = "demo-subject"
 

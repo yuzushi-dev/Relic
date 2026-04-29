@@ -64,7 +64,7 @@ def _state_path() -> Path:
     data_dir = os.environ.get("RELIC_DATA_DIR")
     if data_dir:
         return Path(data_dir) / "relic-adaptive-state.json"
-    return Path.home() / ".openclaw/workspace/memory/relic_adaptive_state.json"
+    return Path.home() / ".hermes/workspace/memory/relic_adaptive_state.json"
 
 
 def _default_state() -> dict[str, Any]:

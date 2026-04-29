@@ -38,9 +38,9 @@ BATCH_SIZE = 3   # 3 messages per LLM call - 3x throughput vs single-message bat
 LLM_TIMEOUT_SECONDS = 180  # 3 minutes per batch
 DEFAULT_MODEL = "google-aistudio/gemini-2.5-flash"  # Free via AI Studio, rate-limited only
 STRICT_JSON_FALLBACK_MODELS = (
-    "openrouter/openrouter/free",  # Fast fallback when Gemini hits rate limits
-    "openrouter/openrouter/free",  # Slow but very reliable JSON
-    "openrouter/openrouter/free",
+    "openrouter/free",  # Fast fallback when Gemini hits rate limits
+    "openrouter/free",  # Slow but very reliable JSON
+    "openrouter/free",
     "bailian/qwen3.5-plus",
 )
 
@@ -133,8 +133,6 @@ def extract_signals(messages: list[dict[str, Any]], client: RuntimeClient,
     prompt = build_extraction_prompt(messages, facets)
 
     try:
-        # Always use direct HTTP - openclaw agent path times out too often.
-        # Fall back to agent only if no providers are configured.
         if not model:
             model = DEFAULT_MODEL
         signals = extract_signals_direct(messages, facets, model)
@@ -436,7 +434,7 @@ def main() -> int:
         return 0
 
     config = get_config()
-    client = RuntimeClient(config.openclaw_bin)
+    client = RuntimeClient(config.hermes_bin)
 
     # Step 1: Ingest inbox.jsonl into DB
     ingest_inbox_jsonl()

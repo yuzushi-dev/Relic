@@ -5,7 +5,7 @@
  * session's bootstrap context.
  */
 
-// Local minimal type definition (replaces dismantled openclaw/hooks package)
+// Local minimal type definition (Hermes hook handler contract)
 type HookEvent = Record<string, unknown> & {
   type?: string;
   action?: string;
@@ -35,8 +35,8 @@ const handler: HookHandler = async (event) => {
 
   const fs = await import('node:fs/promises');
   const dataDir = process.env.RELIC_DATA_DIR || (() => {
-    const openclawHome = process.env.OPENCLAW_HOME || process.env.HOME || '';
-    return `${openclawHome}/.openclaw/runtime/relic`;
+    const hermesHome = process.env.HERMES_HOME || process.env.HOME || '';
+    return `${hermesHome}/.hermes/runtime/relic`;
   })();
   if (!isInjectableArtifact(BOOTSTRAP_ARTIFACT)) return;
   const profilePath = `${dataDir}/${BOOTSTRAP_ARTIFACT}`;

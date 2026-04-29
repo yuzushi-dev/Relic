@@ -38,7 +38,7 @@ from lib.log import info, warn, error
 
 SCRIPT = "relic_budget_bridge"
 LLM_TIMEOUT_SECONDS = 120
-DEFAULT_MODEL = "openrouter/openrouter/free"
+DEFAULT_MODEL = "openrouter/free"
 
 EXPORTS_DIR = Path(__file__).resolve().parents[1] / "deploy" / "actual-budget" / "exports"
 DB_PATH = Path(os.environ.get("RELIC_DATA_DIR") or str(Path(__file__).resolve().parents[1] / "relic")) / "relic.db"

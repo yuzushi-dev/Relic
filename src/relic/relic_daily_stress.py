@@ -25,7 +25,7 @@ from pathlib import Path
 
 from lib.config import get_config
 from lib.log import info, warn
-from lib.openclaw_client import OpenClawClient
+from lib.hermes_client import HermesClient
 
 SCRIPT = "relic_daily_stress"
 DB_PATH = Path(_os.environ.get("RELIC_DATA_DIR") or str(Path(__file__).resolve().parents[1] / "relic")) / "relic.db"
@@ -287,12 +287,12 @@ def _build_relational_probe_prompt(stress_index: float, dominant: str, scores: d
 def _send_telegram_alert(stress_index: float, stress_level: str, dominant: str,
                           scores: dict, date_str: str) -> None:
     prompt = _build_relational_probe_prompt(stress_index, dominant, scores, date_str)
-    client = OpenClawClient(APP_CONFIG.openclaw_bin)
+    client = HermesClient()
 
     message: str | None = None
     try:
         relational_agent = _os.environ.get("RELIC_RELATIONAL_AGENT", "")
-        payload = client.run_agent_json(agent=relational_agent, message=prompt, thinking="low")
+        payload = client.run_profile_json(profile=relational_agent, message=prompt)
         for entry in reversed(payload.get("payloads", [])):
             text = (entry.get("text") or "").strip()
             if text and len(text) >= 8:

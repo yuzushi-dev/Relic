@@ -29,7 +29,7 @@ from lib.log import info, warn, error
 
 SCRIPT = "relic_entity_extractor"
 LLM_TIMEOUT_SECONDS = 150
-DEFAULT_MODEL = "openrouter/openrouter/free"
+DEFAULT_MODEL = "openrouter/free"
 BATCH_SIZE = 10          # inbox messages per LLM call
 STATE_FILE = Path(os.environ.get("RELIC_DATA_DIR") or str(Path(__file__).resolve().parents[1] / "relic")) / "entity-extractor-state.json"
 DB_PATH = Path(os.environ.get("RELIC_DATA_DIR") or str(Path(__file__).resolve().parents[1] / "relic")) / "relic.db"
@@ -390,7 +390,7 @@ def main() -> int:
 
     parser = argparse.ArgumentParser(description="Relic Entity & Episode Extractor")
     parser.add_argument("--model", default=DEFAULT_MODEL,
-                        help="LLM model (e.g., openrouter/openrouter/free)")
+                        help="LLM model (e.g., openrouter/free)")
     parser.add_argument("--backfill", action="store_true",
                         help="Reprocess all inbox messages from the beginning")
     args = parser.parse_args()

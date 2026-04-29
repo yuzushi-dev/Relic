@@ -29,7 +29,7 @@ from relic_run_guard import should_skip, mark_ran
 
 SCRIPT = "relic_narrative"
 DB_PATH = Path(os.environ.get("RELIC_DATA_DIR") or str(Path(__file__).resolve().parents[1] / "relic")) / "relic.db"
-DEFAULT_MODEL = "openrouter/openrouter/free"
+DEFAULT_MODEL = "openrouter/free"
 LLM_TIMEOUT = 300
 
 NARRATIVE_PROMPT = """You are a narrative psychologist applying Dan McAdams' Life Story Model to the subject (Italian, 30s, tech worker).

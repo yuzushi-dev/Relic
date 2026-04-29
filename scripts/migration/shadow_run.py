@@ -18,7 +18,7 @@ def main() -> int:
     parser.add_argument("--run-id", required=True, help="Stable identifier for this shadow run")
     args = parser.parse_args()
 
-    repo_root = Path(__file__).resolve().parents[1]
+    repo_root = Path(__file__).resolve().parents[2]
     out_dir = Path(args.out_dir)
     openclaw_out = out_dir / "openclaw"
     hermes_out = out_dir / "hermes"
@@ -43,7 +43,7 @@ def main() -> int:
         ],
         [
             sys.executable,
-            str(repo_root / "scripts" / "shadow_compare.py"),
+            str(repo_root / "scripts" / "migration" / "shadow_compare.py"),
             "--openclaw-dir",
             str(openclaw_out),
             "--hermes-dir",

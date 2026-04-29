@@ -1,7 +1,6 @@
 """Minimal config shim for Relic OSS.
 
-In production, OpenClaw provides a full nanobot config system.
-This stub reads configuration from environment variables.
+Reads configuration from environment variables.
 """
 from __future__ import annotations
 
@@ -19,7 +18,7 @@ class _Config:
         self.subject_name = os.environ.get("RELIC_SUBJECT_NAME", "Demo Subject")
         self.model = os.environ.get("RELIC_MODEL", "")
         self.provider = os.environ.get("RELIC_PROVIDER", "")
-        self.openclaw_bin = os.environ.get("OPENCLAW_BIN", "openclaw")
+        self.hermes_bin = os.environ.get("HERMES_BIN", "hermes")
         self.relational_agent = os.environ.get("RELIC_RELATIONAL_AGENT", "")
         self.relational_agent_ids = [
             x.strip()
@@ -32,8 +31,8 @@ class _Config:
 
 
 def _default_data_dir() -> str:
-    openclaw_home = os.environ.get("OPENCLAW_HOME", os.environ.get("HOME", ""))
-    return str(Path(openclaw_home) / ".openclaw" / "runtime" / "relic")
+    hermes_home = os.environ.get("HERMES_HOME", os.environ.get("HOME", ""))
+    return str(Path(hermes_home) / ".hermes" / "runtime" / "relic")
 
 
 _CONFIG: _Config | None = None
@@ -47,18 +46,18 @@ def get_config() -> _Config:
 
 
 def load_nanobot_config(path: str | None = None) -> dict[str, Any]:
-    """Return a minimal nanobot-compatible config dict from env vars."""
+    """Return a minimal config dict from env vars."""
     cfg = get_config()
     return {
         "model": cfg.model,
         "provider": cfg.provider,
         "subject_id": cfg.subject_id,
         "subject_name": cfg.subject_name,
-        "openclaw_bin": cfg.openclaw_bin,
+        "hermes_bin": cfg.hermes_bin,
         "data_dir": str(cfg.data_dir),
     }
 
 
-def openclaw_home() -> Path:
-    home = os.environ.get("OPENCLAW_HOME", os.environ.get("HOME", ""))
-    return Path(home) / ".openclaw"
+def hermes_home() -> Path:
+    home = os.environ.get("HERMES_HOME", os.environ.get("HOME", ""))
+    return Path(home) / ".hermes"

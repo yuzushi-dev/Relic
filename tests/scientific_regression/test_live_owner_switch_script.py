@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SCRIPT = ROOT / "scripts" / "live_owner_switch.py"
+SCRIPT = ROOT / "scripts" / "migration" / "live_owner_switch.py"
 
 
 def _write_openclaw_jobs(path: Path) -> None:

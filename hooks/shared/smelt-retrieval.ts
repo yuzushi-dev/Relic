@@ -2,7 +2,7 @@
  * SMELT Layer 4 - Query-Conditioned Retrieval (TypeScript port)
  *
  * Porta il Layer 4 di SMELT (github.com/TooCas/SMELT) in TypeScript per
- * l'uso negli hook OpenClaw. Riceve markdown come stringa + query dell'utente,
+ * l'uso negli hook Hermes. Riceve markdown come stringa + query dell'utente,
  * restituisce solo le sezioni rilevanti via TF-IDF con weighting strutturale.
  *
  * Layer 1 (zstd archival), Layer 2 (schema codes), Layer 3 (macro dict)

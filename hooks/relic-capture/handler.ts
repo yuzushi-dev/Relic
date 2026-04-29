@@ -9,22 +9,22 @@
  *   3. Tracks delivery success/failure for check-in messages
  */
 
-import type { HookHandler } from 'openclaw/hooks';
+import type { HookHandler } from 'hermes/hooks';
 
 const SUBJECT_ID = process.env.RELIC_SUBJECT_ID || 'demo-subject';
 const REPLY_WINDOW_MS = 4 * 60 * 60 * 1000;
-const OPENCLAW_BIN = process.env.OPENCLAW_BIN || 'openclaw';
+const HERMES_BIN = process.env.HERMES_BIN || 'hermes';
 
 function relicDir(): string {
   if (process.env.RELIC_DATA_DIR) return process.env.RELIC_DATA_DIR;
-  const openclawHome = process.env.OPENCLAW_HOME || process.env.HOME || '';
-  return `${openclawHome}/.openclaw/runtime/relic`;
+  const hermesHome = process.env.HERMES_HOME || process.env.HOME || '';
+  return `${hermesHome}/.hermes/runtime/relic`;
 }
 
 function scriptsDir(): string {
   if (process.env.RELIC_SCRIPTS_DIR) return process.env.RELIC_SCRIPTS_DIR;
-  const openclawHome = process.env.OPENCLAW_HOME || process.env.HOME || '';
-  return `${openclawHome}/.openclaw/runtime/relic`;
+  const hermesHome = process.env.HERMES_HOME || process.env.HOME || '';
+  return `${hermesHome}/.hermes/runtime/relic`;
 }
 
 async function handleReceived(event: any): Promise<void> {
@@ -79,7 +79,7 @@ async function handleReceived(event: any): Promise<void> {
     // Exchange-id association is handled internally by relic:checkin-followup.
     const followupCron = process.env.RELIC_FOLLOWUP_CRON || 'relic:checkin-followup';
     const { spawn: spawnCron } = await import('node:child_process');
-    const cronChild = spawnCron(OPENCLAW_BIN, [
+    const cronChild = spawnCron(HERMES_BIN, [
       'cron', 'run', followupCron, '--force',
     ], { detached: true, stdio: 'ignore' });
     cronChild.unref();

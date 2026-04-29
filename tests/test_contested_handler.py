@@ -7,7 +7,6 @@ from pathlib import Path
 
 import pytest
 
-os.environ.setdefault("RELIC_DATA_DIR", "/tmp/relic_handler_test")
 os.environ.setdefault("TELEGRAM_BOT_TOKEN", "fake-token")
 os.environ.setdefault("RELIC_HEALTH_TELEGRAM_CHAT_ID", "-1003733933010")
 os.environ.setdefault("RELIC_HEALTH_TELEGRAM_THREAD_ID", "599")
