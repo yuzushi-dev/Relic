@@ -1,0 +1,37 @@
+{
+  "schema_version": "0.1.0",
+  "pack_id": "PCP-001",
+  "session_id": "SES-001",
+  "turn_id": "TURN-001",
+  "created_at": "2026-05-02T18:00:00Z",
+  "task_type": "architecture_research",
+  "roleplay_level": "normal",
+  "continuity_mode": "compact",
+  "disclosure_required": false,
+  "system_sources": {
+    "soul_version": "sha256:demo-soul",
+    "memory_snapshot_hash": "sha256:demo-memory",
+    "user_snapshot_hash": "sha256:demo-user",
+    "active_provider": "hindsight",
+    "project_context_hash": "sha256:demo-agents"
+  },
+  "continuity_items": [
+    {
+      "id": "DIARY-001",
+      "type": "open_thread",
+      "mode": "compact",
+      "content_redacted": "Roleplay is core to Gumi, but must be Hermes-native and controllable."
+    }
+  ],
+  "memory_candidates": [],
+  "knowledge_candidates": [],
+  "blocked_items": [
+    {
+      "id": "DIARY-002",
+      "source": "diary",
+      "reason": "user_disabled_roleplay_for_scope"
+    }
+  ],
+  "injected_context_redacted": "GUMI CONTEXT PACK: roleplay normal; continuity compact; open thread PR22 Hermes-native roleplay.",
+  "input_hash": "sha256:demo-input"
+}
