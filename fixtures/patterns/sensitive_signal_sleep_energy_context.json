@@ -1,0 +1,22 @@
+{
+  "subject_id": "subject_002",
+  "gumi_instance_id": "gumi_def456",
+  "hermes_profile_id": "hermes_profile_abc",
+  "signal_family": "sleep_energy_context",
+  "evidence_refs": [
+    "event_2024_01_10_001",
+    "event_2024_01_12_002"
+  ],
+  "confidence": 0.45,
+  "subject_visible": false,
+  "gumi_visible_label": false,
+  "clinical_interpretation_allowed": false,
+  "baseline_comparison": {
+    "baseline_confidence": 0.20,
+    "current_confidence": 0.45,
+    "delta": 0.25
+  },
+  "event_count": 2,
+  "human_reviewed": false,
+  "status": "pending"
+}

@@ -1,0 +1,45 @@
+{
+  "consent_language": {
+    "system_does": [
+      "Detect contextual patterns in user interactions",
+      "Generate safety signals based on interaction patterns",
+      "Enable researcher oversight of adaptive responses",
+      "Apply confidence scoring based on evidence",
+      "Use constraint-based adaptations"
+    ],
+    "system_does_not": [
+      "Monitor or track health conditions",
+      "Diagnose mental health or medical conditions",
+      "Detect depression, anxiety, bipolar, ADHD, or any diagnosis",
+      "Provide clinical assessments or risk scores",
+      "Act as a medical or psychological tool",
+      "Replace professional healthcare services",
+      "Claim health monitoring capabilities",
+      "Claim diagnosis capabilities"
+    ]
+  },
+  "health_monitoring_claims": {
+    "forbidden": [
+      "health monitoring",
+      "health tracking",
+      "health status monitoring",
+      "condition detection",
+      "disorder detection"
+    ]
+  },
+  "diagnosis_claims": {
+    "forbidden": [
+      "diagnose",
+      "diagnosis",
+      "clinical assessment",
+      "risk scoring",
+      "clinical triage",
+      "pathology detection",
+      "mental health condition detection"
+    ]
+  },
+  "references_included": true,
+  "signal_label_leakage_covered": true,
+  "confidence_caps_covered": true,
+  "visibility_rules_covered": true
+}

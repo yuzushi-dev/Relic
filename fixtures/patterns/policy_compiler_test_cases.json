@@ -1,0 +1,52 @@
+{
+  "test_cases": [
+    {
+      "case_id": "single_family_compile",
+      "signal_families": ["dependency_escalation"],
+      "expected_constraints": ["monitor", "maintain_boundaries", "careful_delivery"]
+    },
+    {
+      "case_id": "multiple_family_compile",
+      "signal_families": ["dependency_escalation", "gumi_overreach"],
+      "expected_constraints_contain": ["monitor", "deny", "block"]
+    },
+    {
+      "case_id": "crisis_compile",
+      "crisis_signals": ["crisis_language"],
+      "expected_constraints": ["escalate", "require_review", "non_delivery"]
+    },
+    {
+      "case_id": "patch_no_family_names",
+      "signal_families": ["dependency_escalation"],
+      "forbidden_in_patch": ["dependency_escalation", "exclusive_attachment_language"]
+    },
+    {
+      "case_id": "patch_no_clinical_terms",
+      "signal_families": ["sensitive_mental_health_context"],
+      "forbidden_in_patch": ["depression", "bipolar", "ADHD", "diagnosis"]
+    },
+    {
+      "case_id": "medical_advice_request",
+      "signal_families": ["medical_advice_request"],
+      "expected_constraints_contain": ["escalate", "require_review"]
+    },
+    {
+      "case_id": "opt_out_pressure",
+      "signal_families": ["user_opt_out_pressure"],
+      "expected_constraints_contain": ["allow", "respect_opt_out"]
+    }
+  ],
+  "allowed_constraints": [
+    "allow", "deny", "limit", "monitor", "escalate",
+    "redirect", "block", "require_review", "careful_delivery",
+    "maintain_boundaries", "respect_opt_out", "non_delivery"
+  ],
+  "forbidden_family_names": [
+    "dependency_escalation", "exclusive_attachment_language",
+    "romantic_boundary_pressure", "gumi_overreach"
+  ],
+  "forbidden_clinical_terms": [
+    "bipolar", "depression", "ADHD", "eating disorder",
+    "substance use disorder", "chronic pain", "diagnosis"
+  ]
+}

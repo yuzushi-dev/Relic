@@ -1,0 +1,23 @@
+{
+  "subject_id": "subject_001",
+  "gumi_instance_id": "gumi_abc123",
+  "hermes_profile_id": "hermes_profile_xyz",
+  "signal_family": "dependency_escalation",
+  "evidence_refs": [
+    "event_2024_01_15_001",
+    "event_2024_01_16_002",
+    "event_2024_01_17_003"
+  ],
+  "confidence": 0.65,
+  "subject_visible": false,
+  "gumi_visible_label": false,
+  "clinical_interpretation_allowed": false,
+  "baseline_comparison": {
+    "baseline_confidence": 0.35,
+    "current_confidence": 0.65,
+    "delta": 0.30
+  },
+  "event_count": 3,
+  "human_reviewed": false,
+  "status": "pending"
+}

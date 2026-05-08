@@ -1,0 +1,61 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://relic-oss.dev/schemas/patterns/governance_protocol.schema.json",
+  "title": "Sensitive Pattern Governance Protocol",
+  "description": "Schema for sensitive pattern governance protocol configuration",
+  "type": "object",
+  "required": ["version", "forbidden_labels", "allowed_signal_families", "visibility_defaults", "crisis_bypass_signals"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Protocol version identifier"
+    },
+    "forbidden_labels": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Labels that shall never be generated",
+      "minItems": 12
+    },
+    "allowed_signal_families": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Only these signal families may be generated",
+      "minItems": 20,
+      "maxItems": 20
+    },
+    "visibility_defaults": {
+      "type": "object",
+      "required": ["subject_visible", "gumi_visible_label"],
+      "properties": {
+        "subject_visible": {
+          "type": "boolean",
+          "const": false,
+          "description": "Sensitive signals must never be subject visible"
+        },
+        "gumi_visible_label": {
+          "type": "boolean",
+          "const": false,
+          "description": "Gumi must never receive signal labels"
+        }
+      }
+    },
+    "crisis_bypass_signals": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Signals that bypass pattern matching and trigger crisis protocol",
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "confidence_caps": {
+      "type": "object",
+      "properties": {
+        "baseline_unknown": {"type": "number", "maximum": 0.35},
+        "single_event_non_crisis": {"type": "number", "maximum": 0.30},
+        "two_events": {"type": "number", "maximum": 0.55},
+        "three_or_more": {"type": "number", "maximum": 0.75},
+        "human_reviewed": {"type": "number", "maximum": 0.85},
+        "maximum": {"type": "number", "maximum": 0.85}
+      }
+    }
+  }
+}

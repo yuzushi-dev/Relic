@@ -1,0 +1,75 @@
+{
+  "test_cases": [
+    {
+      "case_id": "clean_pack",
+      "pack_content": {
+        "gumi_instance_id": "gumi_abc123",
+        "constraints": ["monitor", "careful_delivery"],
+        "policy_version": "1.0.0"
+      },
+      "expected_clean": true,
+      "blocked_terms": []
+    },
+    {
+      "case_id": "forbidden_clinical_term_blocked",
+      "pack_content": {
+        "gumi_instance_id": "gumi_abc123",
+        "signal_label": "depression",
+        "constraints": ["monitor"]
+      },
+      "expected_clean": false,
+      "expected_blocked_terms": ["depression"]
+    },
+    {
+      "case_id": "diagnosis_term_blocked",
+      "pack_content": {
+        "gumi_instance_id": "gumi_abc123",
+        "interpretation": "bipolar disorder detected",
+        "constraints": ["monitor"]
+      },
+      "expected_clean": false,
+      "expected_blocked_terms_contain": ["bipolar"]
+    },
+    {
+      "case_id": "evidence_leak_blocked",
+      "pack_content": {
+        "gumi_instance_id": "gumi_abc123",
+        "evidence_refs": ["event_001", "event_002"],
+        "constraints": ["monitor"]
+      },
+      "expected_clean": false,
+      "expected_blocked_evidence": true
+    },
+    {
+      "case_id": "multiple_forbidden_terms_blocked",
+      "pack_content": {
+        "gumi_instance_id": "gumi_abc123",
+        "clinical_notes": "patient shows depression and anxiety",
+        "constraints": ["monitor"]
+      },
+      "expected_clean": false,
+      "expected_blocked_terms_count": 2
+    },
+    {
+      "case_id": "pathology_label_blocked",
+      "pack_content": {
+        "gumi_instance_id": "gumi_abc123",
+        "label": "ADHD diagnosis",
+        "constraints": ["monitor"]
+      },
+      "expected_clean": false,
+      "expected_blocked_terms_contain": ["adhd"]
+    }
+  ],
+  "forbidden_clinical_terms": [
+    "bipolar", "depression", "depressive", "adhd", "eating disorder",
+    "substance use disorder", "chronic pain", "medical condition",
+    "diagnosis", "clinical", "pathology", "patient", "psychiatric",
+    "psychological", "therapy", "risk score", "clinical triage"
+  ],
+  "allowed_in_runtime": [
+    "constraints", "monitor", "careful_delivery", "maintain_boundaries",
+    "allow", "deny", "limit", "escalate", "redirect", "block",
+    "require_review", "respect_opt_out", "non_delivery"
+  ]
+}

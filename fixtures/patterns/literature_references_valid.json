@@ -1,0 +1,55 @@
+{
+  "references": [
+    {
+      "signal_family": "dependency_escalation",
+      "references": [
+        {"author": "Bowlby, J.", "year": 1969, "title": "Attachment and Loss: Vol. 1. Attachment", "source": "Basic Books"},
+        {"author": "Ainsworth, M. D. S.", "year": 1978, "title": "Patterns of Attachment", "source": "Erlbaum"}
+      ]
+    },
+    {
+      "signal_family": "exclusive_attachment_language",
+      "references": [
+        {"author": "Bowlby, J.", "year": 1973, "title": "Attachment and Loss: Vol. 2. Separation", "source": "Basic Books"},
+        {"author": "Hazan, C., & Zeifman, D.", "year": 1994, "title": "Sex and the psychological tether", "source": "Advances in Personal Relationships"}
+      ]
+    },
+    {
+      "signal_family": "careful_distancing_needed",
+      "references": [
+        {"author": "Leary, M. R.", "year": 2001, "title": "The Social Psychology of Curmudgeonry", "source": "Guilford Press"},
+        {"author": "Goffman, E.", "year": 1963, "title": "Stigma and Social Identity", "source": "Prentice-Hall"}
+      ]
+    },
+    {
+      "signal_family": "medical_advice_request",
+      "references": [
+        {"author": "Cline, R. J. W., & Haynes, K. M.", "year": 2001, "title": "Consumer health information seeking", "source": "Health Communication"}
+      ]
+    },
+    {
+      "signal_family": "sleep_energy_context",
+      "references": [
+        {"author": "Pilcher, J. J., & Huffcutt, A. I.", "year": 1996, "title": "Effects of sleep deprivation", "source": "Sleep"},
+        {"author": "Walker, M.", "year": 2017, "title": "Why We Sleep", "source": "Scribner"}
+      ]
+    },
+    {
+      "signal_family": "crisis_language",
+      "references": [
+        {"author": "National Institute of Mental Health", "year": 2021, "title": "Suicide Prevention", "source": "NIMH"},
+        {"author": "Bryan, C. J.", "year": 2011, "title": "The Military Suicide Research Consortium", "source": "MSRC"}
+      ]
+    }
+  ],
+  "governance_references": [
+    {"author": "American Psychological Association", "year": 2017, "title": "Ethical Principles of Psychologists and Code of Conduct"},
+    {"author": "Beauchamp, T. L., & Childress, J. F.", "year": 2013, "title": "Principles of Biomedical Ethics", "source": "Oxford University Press"},
+    {"author": "Floridi, L., & Cowls, J.", "year": 2019, "title": "A unified framework of five principles for AI in society", "source": "Harvard Data Science Review"}
+  ],
+  "notes": [
+    "References support CONTEXTUAL signal detection, NOT pathology diagnosis",
+    "Signal families do not constitute clinical labels",
+    "All signals are for researcher review and system adaptation purposes only"
+  ]
+}

@@ -1,0 +1,82 @@
+{
+  "test_cases": [
+    {
+      "case_id": "single_medical_advice_request",
+      "events": [
+        {
+          "event_id": "evt_001",
+          "text": "should i see a doctor about this",
+          "timestamp": "2024-01-15T10:00:00Z"
+        }
+      ],
+      "expected_signal_family": "medical_advice_request",
+      "expected_confidence": 0.30,
+      "expected_bypass": false
+    },
+    {
+      "case_id": "crisis_bypass",
+      "events": [
+        {
+          "event_id": "evt_crisis_001",
+          "text": "i want to kill myself",
+          "timestamp": "2024-01-15T10:00:00Z"
+        }
+      ],
+      "expected_bypass": true,
+      "expected_signal_family": null
+    },
+    {
+      "case_id": "multiple_dependency_events",
+      "events": [
+        {
+          "event_id": "evt_001",
+          "text": "im relying on you more lately",
+          "timestamp": "2024-01-15T10:00:00Z"
+        },
+        {
+          "event_id": "evt_002",
+          "text": "i cant cope without you",
+          "timestamp": "2024-01-16T10:00:00Z"
+        },
+        {
+          "event_id": "evt_003",
+          "text": "i need you all the time now",
+          "timestamp": "2024-01-17T10:00:00Z"
+        }
+      ],
+      "expected_signal_family": "dependency_escalation",
+      "expected_confidence": 0.75,
+      "expected_event_count": 3
+    },
+    {
+      "case_id": "sleep_context_multiple_events",
+      "events": [
+        {
+          "event_id": "evt_001",
+          "text": "i cant sleep anymore",
+          "timestamp": "2024-01-15T10:00:00Z"
+        },
+        {
+          "event_id": "evt_002",
+          "text": "so exhausted lately",
+          "timestamp": "2024-01-16T10:00:00Z"
+        }
+      ],
+      "expected_signal_family": "sleep_energy_context",
+      "expected_confidence": 0.55,
+      "expected_event_count": 2
+    },
+    {
+      "case_id": "no_signal_forben_labels",
+      "events": [
+        {
+          "event_id": "evt_001",
+          "text": "my depression is getting worse",
+          "timestamp": "2024-01-15T10:00:00Z"
+        }
+      ],
+      "expected_signal_family": null,
+      "note": "Depression is a forbidden label - no signal should be generated"
+    }
+  ]
+}

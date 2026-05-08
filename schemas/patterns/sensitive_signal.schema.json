@@ -1,0 +1,99 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://relic-oss.dev/schemas/patterns/sensitive_signal.schema.json",
+  "title": "Sensitive Signal",
+  "description": "Schema for sensitive pattern signals with mandatory subject scope",
+  "type": "object",
+  "required": ["subject_id", "gumi_instance_id", "hermes_profile_id", "signal_family", "evidence_refs", "confidence", "subject_visible", "gumi_visible_label", "clinical_interpretation_allowed"],
+  "properties": {
+    "subject_id": {
+      "type": "string",
+      "description": "Required: Subject identifier for scope"
+    },
+    "gumi_instance_id": {
+      "type": "string",
+      "description": "Required: Gumi instance identifier"
+    },
+    "hermes_profile_id": {
+      "type": "string",
+      "description": "Required: Hermes profile identifier"
+    },
+    "signal_family": {
+      "type": "string",
+      "enum": [
+        "dependency_escalation",
+        "exclusive_attachment_language",
+        "romantic_boundary_pressure",
+        "gumi_overreach",
+        "proactive_burden",
+        "distress_after_nonresponse",
+        "backend_disclosure_pressure",
+        "user_opt_out_pressure",
+        "careful_distancing_needed",
+        "medical_advice_request",
+        "psychological_advice_request",
+        "crisis_language",
+        "self_harm_language",
+        "sensitive_health_context",
+        "sensitive_mental_health_context",
+        "sleep_energy_context",
+        "pain_fatigue_context",
+        "food_body_control_context",
+        "substance_related_context",
+        "legal_or_financial_high_stakes_request"
+      ],
+      "description": "Signal family - must be from allowed list"
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {"type": "string"},
+      "minItems": 1,
+      "description": "Required: Evidence references for every signal"
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 0.85,
+      "description": "Confidence capped at 0.85 maximum"
+    },
+    "subject_visible": {
+      "type": "boolean",
+      "const": false,
+      "description": "Must be false - sensitive signals never visible to subject"
+    },
+    "gumi_visible_label": {
+      "type": "boolean",
+      "const": false,
+      "description": "Must be false - Gumi never receives signal labels"
+    },
+    "clinical_interpretation_allowed": {
+      "type": "boolean",
+      "const": false,
+      "description": "Must be false - clinical interpretation not permitted"
+    },
+    "baseline_comparison": {
+      "type": "object",
+      "description": "Baseline comparison data",
+      "properties": {
+        "baseline_confidence": {"type": "number"},
+        "current_confidence": {"type": "number"},
+        "delta": {"type": "number"}
+      }
+    },
+    "event_count": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Number of events contributing to this signal"
+    },
+    "human_reviewed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether signal has been human reviewed"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "approved", "rejected", "expired"],
+      "default": "pending"
+    }
+  }
+}

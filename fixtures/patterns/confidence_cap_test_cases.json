@@ -1,0 +1,57 @@
+{
+  "test_cases": [
+    {
+      "case_id": "baseline_unknown",
+      "scenario": "baseline_confidence_provided",
+      "baseline_confidence": 0.50,
+      "expected_cap": 0.35,
+      "rule": "BASELINE_UNKNOWN_CAP"
+    },
+    {
+      "case_id": "single_event",
+      "event_count": 1,
+      "expected_cap": 0.30,
+      "rule": "SINGLE_EVENT_NON_CRISIS_CAP"
+    },
+    {
+      "case_id": "two_events",
+      "event_count": 2,
+      "expected_cap": 0.55,
+      "rule": "TWO_EVENTS_CAP"
+    },
+    {
+      "case_id": "three_or_more",
+      "event_count": 3,
+      "expected_cap": 0.75,
+      "rule": "THREE_OR_MORE_CAP"
+    },
+    {
+      "case_id": "human_reviewed",
+      "event_count": 1,
+      "human_reviewed": true,
+      "expected_cap": 0.85,
+      "rule": "HUMAN_REVIEWED_CAP"
+    },
+    {
+      "case_id": "maximum_cap",
+      "event_count": 10,
+      "human_reviewed": true,
+      "expected_cap": 0.85,
+      "rule": "MAXIMUM_CAP"
+    },
+    {
+      "case_id": "baseline_comparison_delta",
+      "baseline_confidence": 0.20,
+      "current_confidence": 0.55,
+      "expected_delta": 0.35
+    }
+  ],
+  "cap_values": {
+    "baseline_unknown": 0.35,
+    "single_event_non_crisis": 0.30,
+    "two_events": 0.55,
+    "three_or_more": 0.75,
+    "human_reviewed": 0.85,
+    "maximum": 0.85
+  }
+}

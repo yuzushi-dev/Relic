@@ -1,0 +1,15 @@
+{
+  "subject_id": "subject_001",
+  "gumi_instance_id": "gumi_abc123",
+  "constraints": [
+    "monitor",
+    "careful_delivery",
+    "maintain_boundaries"
+  ],
+  "policy_version": "1.0.0",
+  "rationale": "Sensitive context detected - apply careful delivery and boundary maintenance",
+  "signal_refs": [
+    "signal_001",
+    "signal_002"
+  ]
+}

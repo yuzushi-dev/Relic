@@ -1,0 +1,55 @@
+{
+  "version": "1.0.0",
+  "forbidden_labels": [
+    "bipolar",
+    "depression",
+    "ADHD",
+    "eating disorder",
+    "substance use disorder",
+    "chronic pain",
+    "medical condition",
+    "diagnosis",
+    "risk score",
+    "clinical triage",
+    "therapy",
+    "medical advice"
+  ],
+  "allowed_signal_families": [
+    "dependency_escalation",
+    "exclusive_attachment_language",
+    "romantic_boundary_pressure",
+    "gumi_overreach",
+    "proactive_burden",
+    "distress_after_nonresponse",
+    "backend_disclosure_pressure",
+    "user_opt_out_pressure",
+    "careful_distancing_needed",
+    "medical_advice_request",
+    "psychological_advice_request",
+    "crisis_language",
+    "self_harm_language",
+    "sensitive_health_context",
+    "sensitive_mental_health_context",
+    "sleep_energy_context",
+    "pain_fatigue_context",
+    "food_body_control_context",
+    "substance_related_context",
+    "legal_or_financial_high_stakes_request"
+  ],
+  "visibility_defaults": {
+    "subject_visible": false,
+    "gumi_visible_label": false
+  },
+  "crisis_bypass_signals": [
+    "crisis_language",
+    "self_harm_language"
+  ],
+  "confidence_caps": {
+    "baseline_unknown": 0.35,
+    "single_event_non_crisis": 0.30,
+    "two_events": 0.55,
+    "three_or_more": 0.75,
+    "human_reviewed": 0.85,
+    "maximum": 0.85
+  }
+}

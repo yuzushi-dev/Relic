@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://relic-oss.dev/schemas/patterns/behavior_policy_patch.schema.json",
+  "title": "Behavior Policy Patch",
+  "description": "Schema for behavior policy patches containing only constraint vocabulary",
+  "type": "object",
+  "required": ["subject_id", "gumi_instance_id", "constraints", "policy_version"],
+  "properties": {
+    "subject_id": {
+      "type": "string",
+      "description": "Required: Subject identifier for scope"
+    },
+    "gumi_instance_id": {
+      "type": "string",
+      "description": "Required: Gumi instance identifier"
+    },
+    "constraints": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "allow",
+          "deny",
+          "limit",
+          "monitor",
+          "escalate",
+          "redirect",
+          "block",
+          "require_review",
+          "careful_delivery",
+          "maintain_boundaries",
+          "respect_opt_out",
+          "non_delivery"
+        ]
+      },
+      "description": "Only constraint vocabulary allowed - no family names"
+    },
+    "policy_version": {
+      "type": "string",
+      "description": "Policy version identifier"
+    },
+    "rationale": {
+      "type": "string",
+      "description": "Optional explanation (not visible to Gumi or subject)"
+    },
+    "signal_refs": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "References to signals that generated this patch (internal only)"
+    }
+  }
+}
