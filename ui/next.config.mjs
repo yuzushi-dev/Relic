@@ -1,0 +1,17 @@
+/** @type {import('next').NextConfig} */
+const isStaticBuild = process.env.RELIC_UI_BUILD_TARGET === "static";
+
+const nextConfig = {
+  reactStrictMode: true,
+  output: isStaticBuild ? "export" : "standalone",
+  typedRoutes: true,
+  ...(isStaticBuild
+    ? { trailingSlash: true, images: { unoptimized: true } }
+    : {
+        async redirects() {
+          return [{ source: "/", destination: "/workbench", permanent: false }];
+        },
+      }),
+};
+
+export default nextConfig;

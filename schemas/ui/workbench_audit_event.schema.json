@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relic.local/schemas/ui/workbench_audit_event.schema.json",
+  "title": "Workbench Audit Event",
+  "description": "Data contract for workbench audit events (PR27N).",
+  "type": "object",
+  "required": [
+    "audit_id",
+    "subject_id",
+    "actor_type",
+    "actor_id",
+    "action",
+    "timestamp"
+  ],
+  "properties": {
+    "audit_id": {
+      "type": "string"
+    },
+    "subject_id": {
+      "type": ["string", "null"],
+      "description": "Subject scope, if applicable."
+    },
+    "actor_type": {
+      "type": "string",
+      "enum": ["researcher", "system", "cron"]
+    },
+    "actor_id": {
+      "type": "string",
+      "description": "ID of the actor."
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "raw_content_accessed",
+        "subject_paused",
+        "gumi_mode_changed",
+        "cron_rate_limit_changed",
+        "artifact_quarantined",
+        "inference_rejected",
+        "correction_applied",
+        "export_generated",
+        "hermes_profile_provisioned"
+      ]
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "diff_ref": {
+      "type": ["string", "null"]
+    }
+  },
+  "additionalProperties": false
+}

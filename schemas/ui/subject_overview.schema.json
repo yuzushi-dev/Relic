@@ -1,0 +1,205 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relic.local/schemas/ui/subject_overview.schema.json",
+  "title": "Relic Researcher Workbench — Subject Overview",
+  "description": "Data contract for the Subject Overview page (PR27C). subject_id and experiment_id are required; absence of active_gumi_instance triggers BLOCKED_MISSING_GUMI_INSTANCE.",
+  "type": "object",
+  "required": [
+    "subject_id",
+    "experiment_id",
+    "subject_status",
+    "consent_status",
+    "active_condition",
+    "bootstrap_status",
+    "active_gumi_instance",
+    "hermes_profile_status",
+    "last_user_interaction",
+    "last_gumi_initiative",
+    "last_relic_extraction",
+    "last_synthesis",
+    "last_correction",
+    "active_cron_modes",
+    "risk_summary",
+    "pending_review_count",
+    "pause_state"
+  ],
+  "properties": {
+    "subject_id": {
+      "type": "string",
+      "description": "Unique subject identifier. Required; page is inaccessible without it."
+    },
+    "experiment_id": {
+      "type": "string",
+      "description": "Parent experiment identifier."
+    },
+    "subject_status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "baseline_in_progress",
+        "baseline_complete",
+        "gumi_seed_generated",
+        "gumi_seed_reviewed",
+        "hermes_profile_provisioned",
+        "intro_composed",
+        "intro_sent",
+        "active",
+        "archived",
+        "withdrawn"
+      ],
+      "description": "Current subject lifecycle status."
+    },
+    "consent_status": {
+      "type": "string",
+      "enum": ["pending", "consented", "withdrawn", "expired"],
+      "description": "Current consent state for this subject."
+    },
+    "active_condition": {
+      "type": "string",
+      "description": "Experimental condition the subject is assigned to."
+    },
+    "bootstrap_status": {
+      "type": "string",
+      "enum": ["not_started", "in_progress", "complete"],
+      "description": "Bootstrap completion state."
+    },
+    "active_gumi_instance": {
+      "type": ["string", "null"],
+      "description": "Name/id of the active Gumi instance. Null triggers BLOCKED_MISSING_GUMI_INSTANCE degraded state."
+    },
+    "hermes_profile_status": {
+      "type": "object",
+      "required": ["profile_name", "provisioned"],
+      "properties": {
+        "profile_name": {
+          "type": "string",
+          "description": "Hermes profile identifier."
+        },
+        "provisioned": {
+          "type": "boolean",
+          "description": "Whether the Hermes profile is provisioned and active."
+        },
+        "hermes_home": {
+          "type": "string",
+          "description": "Filesystem path to the Hermes profile directory."
+        }
+      },
+      "description": "Active Hermes profile status. Must be visible on the page."
+    },
+    "last_user_interaction": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of the most recent user-initiated interaction."
+    },
+    "last_gumi_initiative": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of the most recent proactive Gumi initiative."
+    },
+    "last_relic_extraction": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of the most recent Relic memory extraction."
+    },
+    "last_synthesis": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of the most recent synthesis run."
+    },
+    "last_correction": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of the most recent researcher correction."
+    },
+    "active_cron_modes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of currently active cron mode identifiers for this subject."
+    },
+    "risk_summary": {
+      "type": "object",
+      "required": ["severity", "flag_count"],
+      "properties": {
+        "severity": {
+          "type": "string",
+          "enum": ["none", "low", "medium", "high", "critical"],
+          "description": "Aggregated risk severity level."
+        },
+        "flag_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total number of active risk flags."
+        },
+        "flags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of active risk flag identifiers."
+        }
+      },
+      "description": "Aggregated risk summary for this subject."
+    },
+    "pending_review_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of inference items pending researcher review."
+    },
+    "pause_state": {
+      "type": "object",
+      "required": [
+        "pause_all",
+        "pause_proactive",
+        "pause_checkin",
+        "pause_followup",
+        "pause_images",
+        "pause_audio",
+        "pause_music",
+        "pause_diegetic_life",
+        "pause_relic_ingestion"
+      ],
+      "properties": {
+        "pause_all": {
+          "type": "boolean",
+          "description": "Suspend all Gumi output and ingestion for this subject."
+        },
+        "pause_proactive": {
+          "type": "boolean",
+          "description": "Suppress proactive Gumi initiatives."
+        },
+        "pause_checkin": {
+          "type": "boolean",
+          "description": "Suppress scheduled check-in messages."
+        },
+        "pause_followup": {
+          "type": "boolean",
+          "description": "Suppress follow-up prompts."
+        },
+        "pause_images": {
+          "type": "boolean",
+          "description": "Suppress image generation and delivery."
+        },
+        "pause_audio": {
+          "type": "boolean",
+          "description": "Suppress audio message delivery."
+        },
+        "pause_music": {
+          "type": "boolean",
+          "description": "Suppress music generation and delivery."
+        },
+        "pause_diegetic_life": {
+          "type": "boolean",
+          "description": "Suppress diegetic-life background events."
+        },
+        "pause_relic_ingestion": {
+          "type": "boolean",
+          "description": "Suspend Relic memory extraction for this subject."
+        }
+      },
+      "description": "Subject-scoped pause flags. Each flag is independently toggleable. Pause actions must not affect other subjects (BLOCKED_PAUSE_NOT_SUBJECT_SCOPED)."
+    }
+  },
+  "additionalProperties": false
+}

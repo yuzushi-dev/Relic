@@ -1,0 +1,8 @@
+{
+  "states": [
+    "ok",
+    "privacy_block",
+    "lineage_missing",
+    "replay_failure"
+  ]
+}

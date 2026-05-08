@@ -1,0 +1,76 @@
+{
+  "$schema": "https://relic.local/schemas/ui/study_overview.schema.json",
+  "study_id": "study-2024-empathy-pilot",
+  "protocol_version": "1.3.0",
+  "subjects_active": 2,
+  "subjects_paused": 1,
+  "subjects_archived": 1,
+  "subjects_by_condition": {
+    "control": 2,
+    "treatment_a": 2,
+    "treatment_b": 1
+  },
+  "active_risk_alerts": 2,
+  "pending_reviews": 2,
+  "failed_cron_jobs": 0,
+  "hermes_provisioning_failures": 1,
+  "exports_pending": 0,
+  "last_validation_run": "2026-05-04T09:15:00Z",
+  "subject_registry": [
+    {
+      "subject_id": "subj-001",
+      "gumi_instance_id": "gumi-inst-9a1b2c",
+      "hermes_profile_id": "hermes-prof-alpha-001",
+      "condition": "control",
+      "status": "active",
+      "last_user_interaction_at": "2026-05-04T21:30:00Z",
+      "last_gumi_initiative_at": "2026-05-04T22:00:00Z",
+      "risk": "none",
+      "pending_review": false
+    },
+    {
+      "subject_id": "subj-002",
+      "gumi_instance_id": "gumi-inst-3d4e5f",
+      "hermes_profile_id": "hermes-prof-alpha-002",
+      "condition": "treatment_a",
+      "status": "active",
+      "last_user_interaction_at": "2026-05-04T18:45:00Z",
+      "last_gumi_initiative_at": "2026-05-04T19:10:00Z",
+      "risk": "low",
+      "pending_review": true
+    },
+    {
+      "subject_id": "subj-003",
+      "gumi_instance_id": "gumi-inst-6g7h8i",
+      "hermes_profile_id": "hermes-prof-alpha-003",
+      "condition": "treatment_b",
+      "status": "paused",
+      "last_user_interaction_at": "2026-05-02T14:00:00Z",
+      "last_gumi_initiative_at": null,
+      "risk": "medium",
+      "pending_review": true
+    },
+    {
+      "subject_id": "subj-004",
+      "gumi_instance_id": "gumi-inst-9j0k1l",
+      "hermes_profile_id": null,
+      "condition": "treatment_a",
+      "status": "active",
+      "last_user_interaction_at": null,
+      "last_gumi_initiative_at": null,
+      "risk": "none",
+      "pending_review": false
+    },
+    {
+      "subject_id": "subj-005",
+      "gumi_instance_id": "gumi-inst-2m3n4o",
+      "hermes_profile_id": "hermes-prof-alpha-005",
+      "condition": "control",
+      "status": "archived",
+      "last_user_interaction_at": "2026-04-10T10:00:00Z",
+      "last_gumi_initiative_at": "2026-04-10T10:30:00Z",
+      "risk": "none",
+      "pending_review": false
+    }
+  ]
+}

@@ -1,0 +1,146 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "event_stream_event.schema.json",
+  "title": "EventStreamEvent",
+  "description": "A single event in the per-subject timeline event stream (PR27F).",
+  "type": "object",
+  "required": [
+    "event_id",
+    "subject_id",
+    "gumi_instance_id",
+    "hermes_profile_id",
+    "event_class",
+    "ontological_class",
+    "timestamp",
+    "delivered",
+    "decision",
+    "policy_snapshot",
+    "source_refs",
+    "raw_content_availability",
+    "eligible_for_user_model",
+    "eligible_for_experience_analysis",
+    "initiator",
+    "risk_level",
+    "has_user_response",
+    "has_correction",
+    "has_boundary_risk",
+    "has_media"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "Unique event identifier."
+    },
+    "subject_id": {
+      "type": "string",
+      "description": "Subject this event belongs to. Required; cross-subject access blocked."
+    },
+    "gumi_instance_id": {
+      "type": "string",
+      "description": "Gumi instance that generated or received this event."
+    },
+    "hermes_profile_id": {
+      "type": "string",
+      "description": "Delivery profile used for this event."
+    },
+    "event_class": {
+      "type": "string",
+      "description": "Functional class of the event (e.g., checkin, proactive_support)."
+    },
+    "ontological_class": {
+      "type": "string",
+      "description": "Ontological classification of the event.",
+      "enum": [
+        "empirical_user_interaction",
+        "active_elicitation",
+        "proactive_support",
+        "gumi_diegetic_event",
+        "expressive_media",
+        "user_response_to_gumi",
+        "system_inference",
+        "correction",
+        "governance_decision",
+        "system_maintenance"
+      ]
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Full ISO 8601 timestamp with timezone."
+    },
+    "delivered": {
+      "type": "boolean",
+      "description": "Whether the event was delivered to the subject."
+    },
+    "decision": {
+      "type": "string",
+      "enum": ["delivered", "blocked", "no_reply", "candidate"],
+      "description": "Delivery decision outcome."
+    },
+    "policy_snapshot": {
+      "type": "object",
+      "description": "Policy state at time of event.",
+      "additionalProperties": true
+    },
+    "source_refs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "List of source evidence IDs."
+    },
+    "content_preview": {
+      "type": ["string", "null"],
+      "description": "Short redacted preview of event content (max 80 chars).",
+      "maxLength": 80
+    },
+    "raw_content_availability": {
+      "type": "string",
+      "enum": ["local-only", "redacted", "unavailable"],
+      "description": "Availability level for raw event content."
+    },
+    "eligible_for_user_model": {
+      "type": "boolean",
+      "description": "Whether this event is eligible as user-model evidence."
+    },
+    "eligible_for_experience_analysis": {
+      "type": "boolean",
+      "description": "Whether this event is eligible for experience analysis."
+    },
+    "related_inference_ids": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "List of inference IDs related to this event."
+    },
+    "related_correction_ids": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "List of correction IDs related to this event."
+    },
+    "initiator": {
+      "type": "string",
+      "enum": ["user", "gumi", "system", "researcher"],
+      "description": "Who or what initiated the event."
+    },
+    "risk_level": {
+      "type": "string",
+      "enum": ["none", "low", "medium", "high"],
+      "description": "Boundary risk level associated with this event."
+    },
+    "has_user_response": {
+      "type": "boolean",
+      "description": "Whether a user response exists for this event."
+    },
+    "has_correction": {
+      "type": "boolean",
+      "description": "Whether a correction is associated with this event."
+    },
+    "has_boundary_risk": {
+      "type": "boolean",
+      "description": "Whether a boundary risk flag exists for this event."
+    },
+    "has_media": {
+      "type": "boolean",
+      "description": "Whether media (image/audio/music) is attached to this event."
+    }
+  }
+}

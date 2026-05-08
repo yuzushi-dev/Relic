@@ -1,0 +1,121 @@
+{
+  "subjects": [
+    {
+      "subject_id": "subj_001",
+      "gumi_instance_id": "gumi_001",
+      "hermes_profile_id": "hermes_001",
+      "condition": "diegetic_full"
+    },
+    {
+      "subject_id": "subj_002",
+      "gumi_instance_id": "gumi_002",
+      "hermes_profile_id": "hermes_002",
+      "condition": "diegetic_light"
+    }
+  ],
+  "gumi_instances": [
+    {
+      "gumi_instance_id": "gumi_001",
+      "subject_id": "subj_001"
+    },
+    {
+      "gumi_instance_id": "gumi_002",
+      "subject_id": "subj_002"
+    }
+  ],
+  "hermes_profiles": [
+    {
+      "hermes_profile_id": "hermes_001",
+      "subject_id": "subj_001"
+    },
+    {
+      "hermes_profile_id": "hermes_002",
+      "subject_id": "subj_002"
+    }
+  ],
+  "events": [
+    {
+      "event_id": "evt_001",
+      "subject_id": "subj_001",
+      "event_type": "active_elicitation",
+      "ontological_class": "elicitation"
+    },
+    {
+      "event_id": "evt_002",
+      "subject_id": "subj_001",
+      "event_type": "proactive",
+      "ontological_class": "gumi_initiative"
+    },
+    {
+      "event_id": "evt_003",
+      "subject_id": "subj_001",
+      "event_type": "diegetic_life_event",
+      "ontological_class": "diegetic_event"
+    },
+    {
+      "event_id": "evt_004",
+      "subject_id": "subj_001",
+      "event_type": "image_event",
+      "ontological_class": "media"
+    },
+    {
+      "event_id": "evt_005",
+      "subject_id": "subj_001",
+      "event_type": "user_response",
+      "ontological_class": "user_message"
+    },
+    {
+      "event_id": "evt_006",
+      "subject_id": "subj_001",
+      "event_type": "inference",
+      "source": "user_response",
+      "ontological_class": "inference"
+    },
+    {
+      "event_id": "evt_007",
+      "subject_id": "subj_001",
+      "event_type": "rejected_inference",
+      "ontological_class": "inference"
+    },
+    {
+      "event_id": "evt_008",
+      "subject_id": "subj_001",
+      "event_type": "correction",
+      "ontological_class": "correction"
+    },
+    {
+      "event_id": "evt_009",
+      "subject_id": "subj_001",
+      "event_type": "boundary_risk_event",
+      "ontological_class": "boundary_event"
+    },
+    {
+      "event_id": "evt_010",
+      "subject_id": "subj_001",
+      "event_type": "cron_no_reply",
+      "decision": "NO_REPLY",
+      "ontological_class": "cron_decision"
+    },
+    {
+      "event_id": "evt_011",
+      "subject_id": "subj_001",
+      "event_type": "cron_blocked",
+      "decision": "blocked",
+      "ontological_class": "cron_decision"
+    },
+    {
+      "event_id": "evt_012",
+      "subject_id": "subj_001",
+      "event_type": "redacted_export",
+      "ontological_class": "export"
+    }
+  ],
+  "cross_subject_leakage_test": {
+    "description": "This fixture verifies cross-subject raw data cannot leak into aggregate views",
+    "subject_ids": ["subj_001", "subj_002"],
+    "aggregate_view": {
+      "must_be_redacted": true,
+      "cannot_contain_raw_messages": true
+    }
+  }
+}

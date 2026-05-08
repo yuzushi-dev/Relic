@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relic.local/schemas/ui/correction_queue_item.schema.json",
+  "title": "Correction Queue Item",
+  "description": "Data contract for correction queue items (PR27H).",
+  "type": "object",
+  "required": [
+    "correction_id",
+    "subject_id",
+    "target_field",
+    "previous_value",
+    "corrected_value",
+    "rationale",
+    "created_at",
+    "researcher_id",
+    "propagation_status"
+  ],
+  "properties": {
+    "correction_id": {
+      "type": "string",
+      "description": "Unique correction identifier."
+    },
+    "subject_id": {
+      "type": "string",
+      "description": "Owning subject. Corrections are subject-scoped."
+    },
+    "target_field": {
+      "type": "string",
+      "description": "Dot-path to the corrected field."
+    },
+    "previous_value": {
+      "type": "string",
+      "description": "Value before correction."
+    },
+    "corrected_value": {
+      "type": "string",
+      "description": "Value after correction."
+    },
+    "rationale": {
+      "type": "string",
+      "description": "Researcher rationale for the correction."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Correction timestamp."
+    },
+    "researcher_id": {
+      "type": "string",
+      "description": "ID of the researcher who made the correction."
+    },
+    "propagation_status": {
+      "type": "string",
+      "enum": ["pending", "propagating", "complete", "failed"],
+      "description": "Current propagation status."
+    }
+  },
+  "additionalProperties": false
+}

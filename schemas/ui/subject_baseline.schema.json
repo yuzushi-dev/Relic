@@ -1,0 +1,322 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://relic-oss.dev/schemas/ui/subject_baseline/v1",
+  "title": "Subject Baseline",
+  "description": "Complete baseline profile for a research subject. Every field carries an origin label. Every edit is versioned. System-inferred fields are distinct from subject-stated fields.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "bootstrap_session_id",
+    "researcher_id",
+    "subject_id",
+    "creation_date",
+    "baseline_method",
+    "baseline_version",
+    "self_report_fields",
+    "researcher_coded_fields",
+    "system_inferred_fields",
+    "interaction_preferences",
+    "relational_expectations",
+    "boundaries",
+    "opt_out_categories",
+    "risk_flags",
+    "version_history"
+  ],
+  "additionalProperties": false,
+  "definitions": {
+    "origin_label": {
+      "type": "string",
+      "enum": [
+        "subject-stated",
+        "researcher-coded",
+        "system-inferred",
+        "generated-candidate",
+        "manually-edited",
+        "corrected",
+        "retired"
+      ],
+      "description": "How the value was obtained. REQUIRED on every field."
+    },
+    "labeled_string": {
+      "type": "object",
+      "required": ["value", "origin"],
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "type": ["string", "null"]
+        },
+        "origin": {
+          "$ref": "#/definitions/origin_label"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "labeled_float": {
+      "type": "object",
+      "required": ["value", "origin"],
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "type": ["number", "null"],
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "origin": {
+          "$ref": "#/definitions/origin_label"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "labeled_string_array": {
+      "type": "object",
+      "required": ["values", "origin"],
+      "additionalProperties": false,
+      "properties": {
+        "values": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "origin": {
+          "$ref": "#/definitions/origin_label"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "version_entry": {
+      "type": "object",
+      "required": [
+        "version",
+        "edited_at",
+        "edited_by",
+        "fields_changed",
+        "edit_mode"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "edited_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "edited_by": {
+          "type": "string",
+          "description": "researcher_id or 'system'"
+        },
+        "fields_changed": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "edit_mode": {
+          "type": "string",
+          "enum": ["manual", "correction_propagation", "system_update"]
+        },
+        "change_summary": {
+          "type": "string"
+        }
+      }
+    },
+    "risk_flag": {
+      "type": "object",
+      "required": ["flag_category", "severity", "origin"],
+      "additionalProperties": false,
+      "properties": {
+        "flag_category": {
+          "type": "string",
+          "description": "Category of risk flag"
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "critical"]
+        },
+        "notes": {
+          "type": ["string", "null"]
+        },
+        "reviewed_at": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
+        "origin": {
+          "$ref": "#/definitions/origin_label"
+        }
+      }
+    }
+  },
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^v[0-9]+\\.[0-9]+$",
+      "description": "Schema version string, e.g. v1.0"
+    },
+    "bootstrap_session_id": {
+      "type": "string",
+      "description": "ID of the bootstrap session that produced this baseline"
+    },
+    "researcher_id": {
+      "type": "string",
+      "description": "ID of the researcher who created or owns this baseline"
+    },
+    "subject_id": {
+      "type": "string",
+      "pattern": "^subj_",
+      "description": "Subject identifier, e.g. subj_001"
+    },
+    "creation_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when the baseline was first created"
+    },
+    "baseline_method": {
+      "type": "string",
+      "enum": [
+        "structured_interview",
+        "self_report_survey",
+        "researcher_coded",
+        "system_inferred",
+        "hybrid"
+      ],
+      "description": "Method used to collect the baseline"
+    },
+    "baseline_version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Current version number; increments on every edit"
+    },
+    "self_report_fields": {
+      "type": "object",
+      "description": "Fields collected directly from the subject. All origins must be subject-stated.",
+      "required": [
+        "preferred_name",
+        "age_range",
+        "gender_identity",
+        "language",
+        "timezone",
+        "contact_channel_preference",
+        "narrative_self_description"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "preferred_name": { "$ref": "#/definitions/labeled_string" },
+        "age_range": { "$ref": "#/definitions/labeled_string" },
+        "gender_identity": { "$ref": "#/definitions/labeled_string" },
+        "language": { "$ref": "#/definitions/labeled_string" },
+        "timezone": { "$ref": "#/definitions/labeled_string" },
+        "contact_channel_preference": { "$ref": "#/definitions/labeled_string" },
+        "narrative_self_description": { "$ref": "#/definitions/labeled_string" }
+      }
+    },
+    "researcher_coded_fields": {
+      "type": "object",
+      "description": "Fields assigned by researcher. Origins must be researcher-coded.",
+      "required": [
+        "attachment_style",
+        "communication_style",
+        "affect_regulation_notes",
+        "cultural_context_notes"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "attachment_style": { "$ref": "#/definitions/labeled_string" },
+        "communication_style": { "$ref": "#/definitions/labeled_string" },
+        "affect_regulation_notes": { "$ref": "#/definitions/labeled_string" },
+        "cultural_context_notes": { "$ref": "#/definitions/labeled_string" }
+      }
+    },
+    "system_inferred_fields": {
+      "type": "object",
+      "description": "Fields derived from interaction logs or model inference. Origins must be system-inferred. Visually distinct in UI.",
+      "required": [
+        "estimated_engagement_level",
+        "inferred_relational_style",
+        "session_affect_summary",
+        "response_latency_pattern"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "estimated_engagement_level": { "$ref": "#/definitions/labeled_float" },
+        "inferred_relational_style": { "$ref": "#/definitions/labeled_string" },
+        "session_affect_summary": { "$ref": "#/definitions/labeled_string" },
+        "response_latency_pattern": { "$ref": "#/definitions/labeled_string" }
+      }
+    },
+    "interaction_preferences": {
+      "type": "object",
+      "required": [
+        "message_length_preference",
+        "emoji_visual_preference",
+        "response_timing_expectation",
+        "preferred_topics",
+        "avoided_topics"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "message_length_preference": { "$ref": "#/definitions/labeled_string" },
+        "emoji_visual_preference": { "$ref": "#/definitions/labeled_string" },
+        "response_timing_expectation": { "$ref": "#/definitions/labeled_string" },
+        "preferred_topics": { "$ref": "#/definitions/labeled_string_array" },
+        "avoided_topics": { "$ref": "#/definitions/labeled_string_array" }
+      }
+    },
+    "relational_expectations": {
+      "type": "object",
+      "required": [
+        "desired_relationship_tone",
+        "continuity_expectations",
+        "disclosure_comfort_level",
+        "role_expectations_for_gumi"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "desired_relationship_tone": { "$ref": "#/definitions/labeled_string" },
+        "continuity_expectations": { "$ref": "#/definitions/labeled_string" },
+        "disclosure_comfort_level": { "$ref": "#/definitions/labeled_string" },
+        "role_expectations_for_gumi": { "$ref": "#/definitions/labeled_string" }
+      }
+    },
+    "boundaries": {
+      "type": "object",
+      "required": ["hard_limits", "soft_limits", "negotiable_areas"],
+      "additionalProperties": false,
+      "properties": {
+        "hard_limits": { "$ref": "#/definitions/labeled_string_array" },
+        "soft_limits": { "$ref": "#/definitions/labeled_string_array" },
+        "negotiable_areas": { "$ref": "#/definitions/labeled_string_array" }
+      }
+    },
+    "opt_out_categories": {
+      "type": "object",
+      "required": ["values", "origin"],
+      "additionalProperties": false,
+      "properties": {
+        "values": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of opted-out topic or interaction categories"
+        },
+        "origin": {
+          "$ref": "#/definitions/origin_label"
+        }
+      }
+    },
+    "risk_flags": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/risk_flag" },
+      "description": "List of researcher-coded risk flags. Empty list if none."
+    },
+    "version_history": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/version_entry" },
+      "minItems": 1,
+      "description": "Ordered list of all edit events; entry 0 is the initial creation"
+    }
+  }
+}

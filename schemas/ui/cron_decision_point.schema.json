@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relic.local/schemas/ui/cron_decision_point.schema.json",
+  "title": "Cron Decision Point",
+  "description": "Data contract for cron decision point records (PR27J).",
+  "type": "object",
+  "required": [
+    "job_name",
+    "job_mode",
+    "last_decision",
+    "reason_codes",
+    "subject_id"
+  ],
+  "properties": {
+    "job_name": {
+      "type": "string",
+      "enum": [
+        "checkin",
+        "followup",
+        "proactive",
+        "image",
+        "audio",
+        "music",
+        "diegetic",
+        "discovery",
+        "nightly",
+        "extract",
+        "synthesize",
+        "profile_sync",
+        "healthcheck",
+        "backup"
+      ]
+    },
+    "job_mode": {
+      "type": "string",
+      "description": "Mode of the cron job."
+    },
+    "last_decision": {
+      "type": "string",
+      "enum": ["NO_REPLY", "blocked", "candidate", "deliver", "error"],
+      "description": "Most recent decision result."
+    },
+    "reason_codes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Reason codes for the decision."
+    },
+    "subject_id": {
+      "type": "string",
+      "description": "Owning subject. Cron jobs are subject-scoped."
+    },
+    "decision_counts": {
+      "type": "object",
+      "properties": {
+        "NO_REPLY": {
+          "type": "integer"
+        },
+        "blocked": {
+          "type": "integer"
+        },
+        "candidate": {
+          "type": "integer"
+        },
+        "deliver": {
+          "type": "integer"
+        },
+        "error": {
+          "type": "integer"
+        }
+      }
+    },
+    "quiet_hours_state": {
+      "type": "boolean"
+    },
+    "rate_limit_state": {
+      "type": "string"
+    },
+    "risk_state": {
+      "type": "string"
+    },
+    "delivery_attempted": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": false
+}

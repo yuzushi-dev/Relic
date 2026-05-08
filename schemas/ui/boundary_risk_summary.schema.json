@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relic.local/schemas/ui/boundary_risk_summary.schema.json",
+  "title": "Boundary Risk Summary",
+  "description": "Data contract for boundary risk summary (PR27I).",
+  "type": "object",
+  "required": [
+    "subject_id",
+    "boundary_type",
+    "definition",
+    "violation_count",
+    "last_violation_at",
+    "risk_level",
+    "careful_distancing_enabled",
+    "dependency_indicators",
+    "overreach_indicators"
+  ],
+  "properties": {
+    "subject_id": {
+      "type": "string",
+      "description": "Owning subject. Boundary risk is subject-scoped."
+    },
+    "boundary_type": {
+      "type": "string",
+      "enum": ["topic_exclusion", "contact_limit", "content_filter", "frequency_cap"]
+    },
+    "definition": {
+      "type": "string",
+      "description": "Human-readable boundary definition."
+    },
+    "violation_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of violations recorded."
+    },
+    "last_violation_at": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "Timestamp of most recent violation."
+    },
+    "risk_level": {
+      "type": "string",
+      "enum": ["none", "low", "medium", "high"],
+      "description": "Current risk level."
+    },
+    "careful_distancing_enabled": {
+      "type": "boolean",
+      "description": "Whether careful distancing is enabled for this subject."
+    },
+    "dependency_indicators": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Dependency markers."
+    },
+    "overreach_indicators": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Overreach indicators."
+    },
+    "media_pause_state": {
+      "type": "object",
+      "properties": {
+        "media_paused": {
+          "type": "boolean"
+        },
+        "proactive_paused": {
+          "type": "boolean"
+        },
+        "diegetic_paused": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

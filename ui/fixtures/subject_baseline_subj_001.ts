@@ -1,0 +1,199 @@
+// Auto-generated fixture from subject_baseline_subj_001.json
+// Subject Baseline fixture for subj_001
+
+export const subjectBaselineFixture = {
+  "schema_version": "v1.0",
+  "bootstrap_session_id": "bootstrap_001",
+  "researcher_id": "researcher_01",
+  "subject_id": "subj_001",
+  "creation_date": "2026-04-15T10:30:00Z",
+  "baseline_method": "structured_interview",
+  "baseline_version": 3,
+  "self_report_fields": {
+    "preferred_name": {
+      "value": "Alex",
+      "origin": "subject-stated"
+    },
+    "age_range": {
+      "value": "25-34",
+      "origin": "subject-stated"
+    },
+    "gender_identity": {
+      "value": "non-binary",
+      "origin": "subject-stated"
+    },
+    "language": {
+      "value": "en-US",
+      "origin": "subject-stated"
+    },
+    "timezone": {
+      "value": "America/New_York",
+      "origin": "subject-stated"
+    },
+    "contact_channel_preference": {
+      "value": "chat",
+      "origin": "subject-stated"
+    },
+    "narrative_self_description": {
+      "value": "Graduate student in cognitive science, interested in AI interactions and self-reflection.",
+      "origin": "subject-stated"
+    }
+  },
+  "researcher_coded_fields": {
+    "attachment_style": {
+      "value": "secure",
+      "origin": "researcher-coded"
+    },
+    "communication_style": {
+      "value": "analytical",
+      "origin": "researcher-coded"
+    },
+    "affect_regulation_notes": {
+      "value": "High emotional intelligence, demonstrates metacognitive awareness.",
+      "origin": "researcher-coded"
+    },
+    "cultural_context_notes": {
+      "value": "Western academic background, values autonomy and intellectual discourse.",
+      "origin": "researcher-coded"
+    }
+  },
+  "system_inferred_fields": {
+    "estimated_engagement_level": {
+      "value": 0.85,
+      "origin": "system-inferred"
+    },
+    "inferred_relational_style": {
+      "value": "collaborative",
+      "origin": "system-inferred"
+    },
+    "session_affect_summary": {
+      "value": "Consistently positive affect with occasional mild anxiety during performance evaluations.",
+      "origin": "system-inferred"
+    },
+    "response_latency_pattern": {
+      "value": "fast-responder",
+      "origin": "system-inferred"
+    }
+  },
+  "interaction_preferences": {
+    "message_length_preference": {
+      "value": "moderate",
+      "origin": "subject-stated"
+    },
+    "emoji_visual_preference": {
+      "value": "sparse",
+      "origin": "subject-stated"
+    },
+    "response_timing_expectation": {
+      "value": "async",
+      "origin": "subject-stated"
+    },
+    "preferred_topics": {
+      "values": [
+        "technology",
+        "science",
+        "philosophy",
+        "art"
+      ],
+      "origin": "subject-stated"
+    },
+    "avoided_topics": {
+      "values": [
+        "politics",
+        "religion"
+      ],
+      "origin": "subject-stated"
+    }
+  },
+  "relational_expectations": {
+    "desired_relationship_tone": {
+      "value": "professional-friendly",
+      "origin": "subject-stated"
+    },
+    "continuity_expectations": {
+      "value": "ongoing_partnership",
+      "origin": "subject-stated"
+    },
+    "disclosure_comfort_level": {
+      "value": "gradual",
+      "origin": "subject-stated"
+    },
+    "role_expectations_for_gumi": {
+      "value": "assistant-collaborator",
+      "origin": "subject-stated"
+    }
+  },
+  "boundaries": {
+    "hard_limits": {
+      "values": [
+        "no personal data sharing",
+        "no real-world identity disclosure"
+      ],
+      "origin": "subject-stated"
+    },
+    "soft_limits": {
+      "values": [
+        "limited discussion of traumatic experiences",
+        "no medical advice"
+      ],
+      "origin": "subject-stated"
+    },
+    "negotiable_areas": {
+      "values": [
+        "frequency of check-ins",
+        "depth of personal topics"
+      ],
+      "origin": "subject-stated"
+    }
+  },
+  "opt_out_categories": {
+    "values": [
+      "mental_health_treatment",
+      "substance_use"
+    ],
+    "origin": "subject-stated"
+  },
+  "risk_flags": [
+    {
+      "flag_category": "risk_elevated_distress_indicator",
+      "severity": "low",
+      "notes": null,
+      "reviewed_at": "2026-05-03T14:30:00Z",
+      "origin": "system-inferred"
+    }
+  ],
+  "version_history": [
+    {
+      "version": 1,
+      "edited_at": "2026-04-15T10:30:00Z",
+      "edited_by": "researcher_01",
+      "fields_changed": [
+        "initial_creation"
+      ],
+      "edit_mode": "manual",
+      "change_summary": "Initial baseline created from structured interview"
+    },
+    {
+      "version": 2,
+      "edited_at": "2026-04-20T09:15:00Z",
+      "edited_by": "system",
+      "fields_changed": [
+        "system_inferred_fields"
+      ],
+      "edit_mode": "system_update",
+      "change_summary": "System-inferred fields populated after 2 weeks of interaction data"
+    },
+    {
+      "version": 3,
+      "edited_at": "2026-05-03T14:30:00Z",
+      "edited_by": "researcher_01",
+      "fields_changed": [
+        "risk_flags"
+      ],
+      "edit_mode": "manual",
+      "change_summary": "Added low-severity risk flag based on distress indicator pattern"
+    }
+  ]
+} as const;
+
+export type SubjectBaseline = typeof subjectBaselineFixture;

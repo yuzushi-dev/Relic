@@ -1,0 +1,139 @@
+{
+  "subject_id": "subj_001",
+  "generated_at": "2026-05-05T08:00:00Z",
+  "model_summary": {
+    "facets_modeled": 24,
+    "facets_total": 60,
+    "seed_observations": 206,
+    "extraction_signals": 18,
+    "hypotheses": 3,
+    "summary": "The subject shows high autonomy drive, deliberate decision-making, exhaustive information gathering, slow trust formation, and regulated stress response. The strongest recurring pattern is productive independence that can delay help-seeking in unfamiliar or ambiguous situations."
+  },
+  "top_traits": [
+    "deliberate decision-making",
+    "high autonomy preference",
+    "systematic information gathering",
+    "slow but durable trust formation",
+    "regulated stress response"
+  ],
+  "active_goals": [
+    "Maintain sustainable work rhythms without sacrificing quality.",
+    "Improve relational consistency, especially in difficult conversations.",
+    "Reduce the gap between decision quality and decision speed under pressure."
+  ],
+  "top_confidence_facets": [
+    { "facet": "values.autonomy_drive", "left_anchor": "low", "right_anchor": "high", "position": 0.85, "confidence": 0.88, "observations": 17, "confidence_label": "high" },
+    { "facet": "cognitive.decision_speed", "left_anchor": "impulsive", "right_anchor": "deliberate", "position": 0.79, "confidence": 0.84, "observations": 15, "confidence_label": "high" },
+    { "facet": "relational.help_seeking", "left_anchor": "independent", "right_anchor": "collaborative", "position": 0.22, "confidence": 0.82, "observations": 15, "confidence_label": "high" },
+    { "facet": "communication.verbosity", "left_anchor": "terse", "right_anchor": "expansive", "position": 0.28, "confidence": 0.8, "observations": 13, "confidence_label": "high" },
+    { "facet": "communication.directness", "left_anchor": "indirect", "right_anchor": "direct", "position": 0.81, "confidence": 0.79, "observations": 13, "confidence_label": "high" }
+  ],
+  "facet_groups": [
+    {
+      "group": "Cognitive",
+      "facets": [
+        { "facet": "cognitive.analytical_approach", "left_anchor": "intuitive", "right_anchor": "systematic", "position": 0.74, "confidence": 0.71, "observations": 9, "confidence_label": "high" },
+        { "facet": "cognitive.decision_speed", "left_anchor": "impulsive", "right_anchor": "deliberate", "position": 0.79, "confidence": 0.84, "observations": 15, "confidence_label": "high" },
+        { "facet": "cognitive.information_gathering", "left_anchor": "narrow", "right_anchor": "exhaustive", "position": 0.82, "confidence": 0.77, "observations": 13, "confidence_label": "high" },
+        { "facet": "cognitive.risk_tolerance", "left_anchor": "risk-averse", "right_anchor": "risk-seeking", "position": 0.35, "confidence": 0.58, "observations": 6, "confidence_label": "moderate" }
+      ]
+    },
+    {
+      "group": "Emotional",
+      "facets": [
+        { "facet": "emotional.distress_tolerance", "left_anchor": "low", "right_anchor": "high", "position": 0.63, "confidence": 0.6, "observations": 6, "confidence_label": "moderate" },
+        { "facet": "emotional.frustration_triggers", "left_anchor": "high-threshold", "right_anchor": "low-threshold", "position": 0.44, "confidence": 0.55, "observations": 6, "confidence_label": "moderate" },
+        { "facet": "emotional.resilience_pattern", "left_anchor": "fragile", "right_anchor": "resilient", "position": 0.67, "confidence": 0.62, "observations": 8, "confidence_label": "moderate" },
+        { "facet": "emotional.stress_response", "left_anchor": "reactive", "right_anchor": "regulated", "position": 0.71, "confidence": 0.73, "observations": 11, "confidence_label": "high" }
+      ]
+    },
+    {
+      "group": "Communication",
+      "facets": [
+        { "facet": "communication.conflict_style", "left_anchor": "avoidant", "right_anchor": "confrontational", "position": 0.52, "confidence": 0.47, "observations": 5, "confidence_label": "moderate" },
+        { "facet": "communication.directness", "left_anchor": "indirect", "right_anchor": "direct", "position": 0.81, "confidence": 0.79, "observations": 13, "confidence_label": "high" },
+        { "facet": "communication.feedback_preference", "left_anchor": "diplomatic", "right_anchor": "direct", "position": 0.83, "confidence": 0.76, "observations": 9, "confidence_label": "high" },
+        { "facet": "communication.verbosity", "left_anchor": "terse", "right_anchor": "expansive", "position": 0.28, "confidence": 0.8, "observations": 13, "confidence_label": "high" }
+      ]
+    },
+    {
+      "group": "Relational",
+      "facets": [
+        { "facet": "relational.boundary_style", "left_anchor": "porous", "right_anchor": "firm", "position": 0.69, "confidence": 0.64, "observations": 7, "confidence_label": "moderate" },
+        { "facet": "relational.help_seeking", "left_anchor": "independent", "right_anchor": "collaborative", "position": 0.22, "confidence": 0.82, "observations": 15, "confidence_label": "high" },
+        { "facet": "relational.social_energy", "left_anchor": "draining", "right_anchor": "energizing", "position": 0.38, "confidence": 0.5, "observations": 4, "confidence_label": "moderate" },
+        { "facet": "relational.trust_formation", "left_anchor": "slow", "right_anchor": "fast", "position": 0.24, "confidence": 0.75, "observations": 10, "confidence_label": "high" }
+      ]
+    },
+    {
+      "group": "Values",
+      "facets": [
+        { "facet": "values.autonomy_drive", "left_anchor": "low", "right_anchor": "high", "position": 0.85, "confidence": 0.88, "observations": 17, "confidence_label": "high" },
+        { "facet": "values.fairness_sensitivity", "left_anchor": "low", "right_anchor": "high", "position": 0.58, "confidence": 0.44, "observations": 4, "confidence_label": "low" },
+        { "facet": "values.work_ethic", "left_anchor": "minimal", "right_anchor": "maximal", "position": 0.76, "confidence": 0.72, "observations": 12, "confidence_label": "high" }
+      ]
+    },
+    {
+      "group": "Temporal",
+      "facets": [
+        { "facet": "temporal.deadline_behavior", "left_anchor": "last-minute", "right_anchor": "ahead", "position": 0.72, "confidence": 0.68, "observations": 8, "confidence_label": "moderate" },
+        { "facet": "temporal.planning_horizon", "left_anchor": "reactive", "right_anchor": "long-term", "position": 0.8, "confidence": 0.78, "observations": 12, "confidence_label": "high" },
+        { "facet": "temporal.routine_attachment", "left_anchor": "fluid", "right_anchor": "structured", "position": 0.66, "confidence": 0.61, "observations": 6, "confidence_label": "moderate" }
+      ]
+    }
+  ],
+  "hypotheses": [
+    {
+      "title": "Autonomy-Isolation Risk",
+      "confidence": 0.74,
+      "confidence_label": "high",
+      "facets": ["values.autonomy_drive", "relational.help_seeking"],
+      "summary": "High autonomy drive combined with strongly independent help-seeking may create productive blind spots. The subject solves problems alone past the point where outside input would accelerate or correct the path. This pattern works in familiar domains and becomes riskier in novel territory."
+    },
+    {
+      "title": "Deliberateness as Cost Controller",
+      "confidence": 0.68,
+      "confidence_label": "moderate",
+      "facets": ["cognitive.information_gathering", "cognitive.decision_speed", "values.work_ethic"],
+      "summary": "Exhaustive information gathering paired with slow decision-making appears to reduce downstream correction cycles. The subject front-loads cognitive cost to preserve consistency and output quality. The main tradeoff is speed."
+    },
+    {
+      "title": "Conflict Ambiguity",
+      "confidence": 0.47,
+      "confidence_label": "moderate",
+      "facets": ["communication.conflict_style", "communication.directness", "relational.boundary_style"],
+      "summary": "The subject shows direct communication and firm boundaries, but also evidence of avoiding some interpersonal confrontation. The current confidence is correctly lower than other areas and needs more signal."
+    }
+  ],
+  "transcript": [
+    { "id": "obs-001", "timestamp": "2026-03-28T09:12:00Z", "channel": "telegram", "content": "Spent two hours debugging before realizing I needed to ask for help - by which point I had already found most of the answer anyway." },
+    { "id": "obs-002", "timestamp": "2026-03-28T14:35:00Z", "channel": "telegram", "content": "I don't make decisions quickly. I'd rather be slow and right than fast and regret it later." },
+    { "id": "obs-003", "timestamp": "2026-03-29T10:04:00Z", "channel": "telegram", "content": "Started planning the architecture review three weeks out. Better to have time than to suddenly need it." },
+    { "id": "obs-004", "timestamp": "2026-03-29T19:47:00Z", "channel": "telegram", "content": "When things get overwhelming I usually stop, write down everything that's actually on my plate, and work from there. It resets the noise." },
+    { "id": "obs-005", "timestamp": "2026-03-30T11:20:00Z", "channel": "telegram", "content": "I prefer doing the first pass alone. Collaboration makes more sense once I have a clear picture of the problem." },
+    { "id": "obs-006", "timestamp": "2026-03-30T16:58:00Z", "channel": "telegram", "content": "Got interrupted four times in two hours today. Nearly impossible to get into real deep work with that kind of fragmentation." },
+    { "id": "obs-007", "timestamp": "2026-03-31T20:15:00Z", "channel": "telegram", "content": "Finally closed the refactor. Took longer than expected but I'm satisfied with how clean it came out. Worth it." },
+    { "id": "obs-008", "timestamp": "2026-04-01T08:44:00Z", "channel": "telegram", "content": "I don't trust people quickly. But once I do, I tend to stay consistent about it even when it gets complicated." },
+    { "id": "obs-009", "timestamp": "2026-04-01T22:30:00Z", "channel": "telegram", "content": "Worked late to close out the sprint properly. I don't like leaving things half-done when there's an obvious finish line." },
+    { "id": "obs-010", "timestamp": "2026-04-02T10:02:00Z", "channel": "telegram", "content": "I usually read the full documentation before writing any code. Some people think it's slow. I think it's cheaper than the alternative." },
+    { "id": "obs-011", "timestamp": "2026-04-02T15:30:00Z", "channel": "telegram", "content": "Had a disagreement with a colleague about approach. Explained my reasoning clearly. They didn't change their mind. I moved on." },
+    { "id": "obs-012", "timestamp": "2026-04-03T09:17:00Z", "channel": "telegram", "content": "Three months from now I want this system running cleanly and without me thinking about it. I'm working backward from that." },
+    { "id": "obs-013", "timestamp": "2026-04-04T11:45:00Z", "channel": "telegram", "content": "Went through three different approaches before picking one. Maybe excessive, but I needed to actually see the tradeoffs to feel settled." },
+    { "id": "obs-014", "timestamp": "2026-04-05T16:20:00Z", "channel": "telegram", "content": "I prefer direct feedback over diplomatic softening. Easier to act on something concrete than to decode what someone is trying not to say." },
+    { "id": "obs-015", "timestamp": "2026-04-06T20:55:00Z", "channel": "telegram", "content": "Noticed I've been avoiding a conversation I need to have. Not proud of it. Making a note to not let it drift further." }
+  ],
+  "extraction_sample": [
+    { "facet": "relational.help_seeking", "strength": 0.65, "direction": "collaborative", "source": "obs-001" },
+    { "facet": "cognitive.decision_speed", "strength": 0.82, "direction": "deliberate", "source": "obs-002" },
+    { "facet": "temporal.planning_horizon", "strength": 0.81, "direction": "long-term", "source": "obs-003" },
+    { "facet": "emotional.stress_response", "strength": 0.7, "direction": "regulated", "source": "obs-004" },
+    { "facet": "relational.help_seeking", "strength": 0.78, "direction": "independent", "source": "obs-005" },
+    { "facet": "values.autonomy_drive", "strength": 0.82, "direction": "high", "source": "obs-005" }
+  ],
+  "artifacts": [
+    { "name": "subject_summary.json", "kind": "summary", "lineage": "subj_001/extract/summarize/final" },
+    { "name": "subject_model_profile.md", "kind": "profile", "lineage": "subj_001/extract/facets/profile" },
+    { "name": "subject_portrait.md", "kind": "portrait", "lineage": "subj_001/synthesize/portrait" },
+    { "name": "event_stream.json", "kind": "event_log", "lineage": "subj_001/events/redacted" }
+  ]
+}

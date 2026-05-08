@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relic.local/schemas/ui/gumi_expressive_mode.schema.json",
+  "title": "GumiExpressiveMode",
+  "description": "Configuration and live stats for a single Gumi expressive mode channel.",
+  "type": "object",
+  "required": ["channel", "mode"],
+  "additionalProperties": false,
+  "properties": {
+    "channel": {
+      "type": "string",
+      "enum": [
+        "proactive_text",
+        "audio_presence",
+        "image_activity",
+        "music_lyria",
+        "diegetic_life_fragments",
+        "discoveries"
+      ],
+      "description": "Which expressive channel this config applies to."
+    },
+    "mode": {
+      "type": "string",
+      "enum": ["disabled", "dry-run", "review-required", "auto-gated", "paused"],
+      "description": "Current delivery mode for this channel."
+    },
+    "max_per_day": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Maximum deliveries allowed per calendar day."
+    },
+    "max_per_week": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Maximum deliveries allowed per calendar week."
+    },
+    "quiet_hours": {
+      "type": "object",
+      "required": ["start", "end", "timezone"],
+      "additionalProperties": false,
+      "properties": {
+        "start": {
+          "type": "string",
+          "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+          "description": "HH:MM start of quiet window (subject local time)."
+        },
+        "end": {
+          "type": "string",
+          "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+          "description": "HH:MM end of quiet window (subject local time)."
+        },
+        "timezone": {
+          "type": "string",
+          "description": "IANA timezone string, e.g. 'Europe/Rome'."
+        }
+      }
+    },
+    "last_generated": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "ISO 8601 datetime of last generation attempt."
+    },
+    "last_delivered": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "ISO 8601 datetime of last successful delivery."
+    },
+    "reply_rate": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "Fraction of deliveries the subject replied to (0.0–1.0)."
+    },
+    "dismissal_rate": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "Fraction of deliveries the subject dismissed (0.0–1.0)."
+    },
+    "overreach_flags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "List of overreach event labels logged for this channel."
+    },
+    "risk_level": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"],
+      "description": "Current assessed risk level for this channel."
+    }
+  }
+}

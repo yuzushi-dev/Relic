@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relic.local/schemas/ui/shared_continuity_panel.schema.json",
+  "title": "Shared Continuity Panel",
+  "description": "Researcher Workbench panel for Shared Continuity Memory display.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["subject_id", "gumi_instance_id", "markers"],
+  "properties": {
+    "subject_id": {
+      "type": "string",
+      "description": "Subject scope identifier."
+    },
+    "gumi_instance_id": {
+      "type": "string",
+      "description": "Gumi instance scope identifier."
+    },
+    "hermes_profile_id": {
+      "type": "string",
+      "description": "Hermes profile scope identifier."
+    },
+    "markers": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/MarkerRow"},
+      "description": "List of continuity markers for this subject."
+    },
+    "total_count": {
+      "type": "integer",
+      "description": "Total number of markers."
+    }
+  },
+  "$defs": {
+    "MarkerRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["marker_id", "subject_words", "status", "gumi_recall_allowed"],
+      "properties": {
+        "marker_id": {"type": "string"},
+        "subject_words": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Subject's own words, verbatim."
+        },
+        "gumi_agreed_words": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Gumi's agreed words (empty if pending)."
+        },
+        "correction": {
+          "type": "object",
+          "properties": {
+            "original_words": {"type": "string"},
+            "corrected_words": {"type": "string"}
+          }
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "retired", "rejected", "expired"]
+        },
+        "gumi_recall_allowed": {"type": "boolean"},
+        "followup_status": {
+          "type": "string",
+          "enum": ["pending", "due", "sent", "acknowledged", "ignored", "exhausted", "expired"]
+        },
+        "followup_attempts": {
+          "type": "object",
+          "properties": {
+            "current": {"type": "integer"},
+            "max": {"type": "integer"}
+          }
+        },
+        "created_at": {"type": "string"}
+      }
+    }
+  }
+}

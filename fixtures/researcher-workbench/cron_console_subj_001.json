@@ -1,0 +1,18 @@
+{
+  "job_name": "checkin",
+  "job_mode": "daily",
+  "last_decision": "deliver",
+  "reason_codes": [],
+  "subject_id": "subj_001",
+  "decision_counts": {
+    "NO_REPLY": 3,
+    "blocked": 1,
+    "candidate": 5,
+    "deliver": 12,
+    "error": 0
+  },
+  "quiet_hours_state": false,
+  "rate_limit_state": "ok",
+  "risk_state": "clear",
+  "delivery_attempted": true
+}

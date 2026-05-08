@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relic.local/schemas/ui/correction_propagation_graph.schema.json",
+  "title": "Correction Propagation Graph",
+  "description": "Data contract for correction propagation graph (PR27H).",
+  "type": "object",
+  "required": [
+    "correction_id",
+    "subject_id",
+    "propagation_chain",
+    "affected_artifacts",
+    "affected_gumi_behaviors"
+  ],
+  "properties": {
+    "correction_id": {
+      "type": "string",
+      "description": "Source correction ID."
+    },
+    "subject_id": {
+      "type": "string",
+      "description": "Subject scope."
+    },
+    "propagation_chain": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["stage", "affected_entities"],
+        "properties": {
+          "stage": {
+            "type": "string",
+            "enum": ["observations", "signals", "hypotheses", "runtime_hints", "artifacts", "gumi_behaviors"]
+          },
+          "affected_entities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "affected_artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["artifact_id", "quarantined"],
+        "properties": {
+          "artifact_id": {
+            "type": "string"
+          },
+          "quarantined": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "affected_gumi_behaviors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": false
+}

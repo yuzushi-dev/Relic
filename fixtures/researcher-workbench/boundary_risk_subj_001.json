@@ -1,0 +1,16 @@
+{
+  "subject_id": "subj_001",
+  "boundary_type": "topic_exclusion",
+  "definition": "Do not discuss financial advice or investment decisions",
+  "violation_count": 2,
+  "last_violation_at": "2026-05-06T14:30:00Z",
+  "risk_level": "low",
+  "careful_distancing_enabled": true,
+  "dependency_indicators": ["increased_contact_frequency", "excessive_reassurance_seeking"],
+  "overreach_indicators": ["boundary_topic_mentioned", "repeated_navigation_to_restricted_topic"],
+  "media_pause_state": {
+    "media_paused": false,
+    "proactive_paused": true,
+    "diegetic_paused": false
+  }
+}

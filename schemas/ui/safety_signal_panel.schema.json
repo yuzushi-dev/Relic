@@ -1,0 +1,61 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://relic-oss.dev/schemas/ui/safety_signal_panel.schema.json",
+  "title": "Safety Signal Panel Row",
+  "description": "Schema for a single safety signal row in the researcher UI panel",
+  "type": "object",
+  "required": ["signal_id", "subject_id", "signal_status", "evidence_refs", "confidence", "allowed_adaptations"],
+  "properties": {
+    "signal_id": {
+      "type": "string",
+      "description": "Unique signal identifier"
+    },
+    "subject_id": {
+      "type": "string",
+      "description": "Subject identifier for scope"
+    },
+    "signal_status": {
+      "type": "string",
+      "enum": ["pending", "approved", "rejected", "expired"],
+      "description": "Current signal status"
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Evidence references visible to researcher"
+    },
+    "baseline_comparison": {
+      "type": "object",
+      "description": "Baseline comparison data",
+      "properties": {
+        "baseline_confidence": {"type": "number"},
+        "current_confidence": {"type": "number"},
+        "delta": {"type": "number"}
+      }
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 0.85,
+      "description": "Confidence capped at 0.85"
+    },
+    "allowed_adaptations": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Adaptations researcher can approve"
+    },
+    "forbidden_disclosures": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Disclosures that must not reach subject or Gumi"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

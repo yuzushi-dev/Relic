@@ -1,0 +1,11 @@
+{
+  "correction_id": "corr_001",
+  "subject_id": "subj_001",
+  "target_field": "gumi.identity.name",
+  "previous_value": "Maya",
+  "corrected_value": "mayA",
+  "rationale": "Capitalization per subject preference",
+  "created_at": "2026-05-07T10:00:00Z",
+  "researcher_id": "researcher_001",
+  "propagation_status": "complete"
+}

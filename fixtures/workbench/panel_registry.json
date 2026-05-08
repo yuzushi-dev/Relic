@@ -1,0 +1,130 @@
+{
+  "panels": [
+    {
+      "panel_id": "subject_overview",
+      "title": "Subject Overview",
+      "priority": 1,
+      "data_sources": [
+        "subjects"
+      ],
+      "forbidden_actions": []
+    },
+    {
+      "panel_id": "gumi_profile",
+      "title": "Gumi Profile",
+      "priority": 2,
+      "data_sources": [
+        "gumi_instances"
+      ],
+      "forbidden_actions": [
+        "show_safety_signal_as_trait"
+      ]
+    },
+    {
+      "panel_id": "hermes_profile",
+      "title": "Hermes Profile",
+      "priority": 3,
+      "data_sources": [
+        "hermes_profiles"
+      ],
+      "forbidden_actions": [
+        "show_raw_session_key"
+      ]
+    },
+    {
+      "panel_id": "cron_proactivity",
+      "title": "Cron & Proactivity",
+      "priority": 4,
+      "data_sources": [
+        "runtime_decisions"
+      ],
+      "forbidden_actions": [
+        "deliver_without_gate"
+      ]
+    },
+    {
+      "panel_id": "safety_signals",
+      "title": "Safety Signals",
+      "priority": 5,
+      "data_sources": [
+        "safety_signals"
+      ],
+      "forbidden_actions": [
+        "create_continuity_marker"
+      ]
+    },
+    {
+      "panel_id": "behavior_constraints",
+      "title": "Behavior Constraints",
+      "priority": 6,
+      "data_sources": [
+        "behavior_policy_patches"
+      ],
+      "forbidden_actions": [
+        "show_signal_family_in_runtime_preview"
+      ]
+    },
+    {
+      "panel_id": "shared_continuity",
+      "title": "Shared Continuity",
+      "priority": 7,
+      "data_sources": [
+        "continuity_markers"
+      ],
+      "forbidden_actions": [
+        "add_clinical_label"
+      ]
+    },
+    {
+      "panel_id": "delivery_allowlists",
+      "title": "Delivery & Allowlists",
+      "priority": 8,
+      "data_sources": [
+        "platform_allowlists"
+      ],
+      "forbidden_actions": [
+        "show_raw_target_id"
+      ]
+    },
+    {
+      "panel_id": "session_resume",
+      "title": "Session & Resume",
+      "priority": 9,
+      "data_sources": [
+        "resume_reconciliations"
+      ],
+      "forbidden_actions": [
+        "show_raw_session_key"
+      ]
+    },
+    {
+      "panel_id": "gumi_evaluation",
+      "title": "Gumi Evaluation",
+      "priority": 10,
+      "data_sources": [
+        "evaluation_results"
+      ],
+      "forbidden_actions": []
+    },
+    {
+      "panel_id": "audit_log",
+      "title": "Audit Log",
+      "priority": 11,
+      "data_sources": [
+        "events"
+      ],
+      "forbidden_actions": []
+    },
+    {
+      "panel_id": "exports_delete_forget",
+      "title": "Exports / Delete / Forget",
+      "priority": 12,
+      "data_sources": [
+        "exports"
+      ],
+      "forbidden_actions": [
+        "export_researcher_only_signals_to_subject"
+      ]
+    }
+  ]
+}

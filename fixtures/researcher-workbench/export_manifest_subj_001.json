@@ -1,0 +1,28 @@
+{
+  "export_id": "export_001",
+  "subject_id": "subj_001",
+  "condition": "diegetic_full",
+  "hermes_profile_hash": "sha256:a1b2c3d4e5f6...",
+  "soul_md_hash": "sha256:f6e5d4c3b2a1...",
+  "policy_snapshot": {
+    "version": "1.0",
+    "created_at": "2026-05-01T00:00:00Z"
+  },
+  "cron_snapshot": {
+    "jobs": ["checkin", "followup", "proactive"],
+    "rate_limits": {}
+  },
+  "event_counts": {
+    "user_message": 45,
+    "gumi_initiative": 23,
+    "inference": 8,
+    "correction": 3
+  },
+  "redacted": true,
+  "leakage_scan_passed": true,
+  "export_types": [
+    "subject_profile_card",
+    "gumi_profile_card",
+    "event_stream_summary"
+  ]
+}

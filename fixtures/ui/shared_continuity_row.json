@@ -1,0 +1,42 @@
+{
+  "subject_id": "subj_001",
+  "gumi_instance_id": "gumi_001",
+  "hermes_profile_id": "hermes_gumi_subj_001",
+  "markers": [
+    {
+      "marker_id": "marker_001",
+      "subject_words": ["feels like moving too fast"],
+      "gumi_agreed_words": ["moving too fast"],
+      "correction": {
+        "original_words": "",
+        "corrected_words": ""
+      },
+      "status": "active",
+      "gumi_recall_allowed": true,
+      "followup_status": "due",
+      "followup_attempts": {
+        "current": 1,
+        "max": 3
+      },
+      "created_at": "2026-05-08T10:00:00Z"
+    },
+    {
+      "marker_id": "marker_002",
+      "subject_words": ["not too fast, just right actually"],
+      "gumi_agreed_words": [],
+      "correction": {
+        "original_words": "too fast",
+        "corrected_words": "just right actually"
+      },
+      "status": "active",
+      "gumi_recall_allowed": true,
+      "followup_status": "pending",
+      "followup_attempts": {
+        "current": 0,
+        "max": 3
+      },
+      "created_at": "2026-05-08T12:00:00Z"
+    }
+  ],
+  "total_count": 2
+}

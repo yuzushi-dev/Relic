@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relic.local/schemas/ui/cron_job_status.schema.json",
+  "title": "Cron Job Status",
+  "description": "Data contract for cron job status records (PR27J).",
+  "type": "object",
+  "required": [
+    "job_name",
+    "subject_id",
+    "status",
+    "enabled",
+    "last_run",
+    "next_run"
+  ],
+  "properties": {
+    "job_name": {
+      "type": "string"
+    },
+    "subject_id": {
+      "type": "string",
+      "description": "Owning subject."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["active", "paused", "error", "disabled"]
+    },
+    "enabled": {
+      "type": "boolean"
+    },
+    "last_run": {
+      "type": ["string", "null"],
+      "format": "date-time"
+    },
+    "next_run": {
+      "type": ["string", "null"],
+      "format": "date-time"
+    },
+    "last_decision": {
+      "type": "string",
+      "enum": ["NO_REPLY", "blocked", "candidate", "deliver", "error"]
+    }
+  },
+  "additionalProperties": false
+}

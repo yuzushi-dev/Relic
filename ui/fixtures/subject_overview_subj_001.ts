@@ -1,0 +1,43 @@
+// Auto-generated from fixtures/researcher-workbench/subject_overview_subj_001.json
+export const subjectOverviewFixture = {
+  "subject_id": "subj_001",
+  "experiment_id": "exp_diegetic_gumi_001",
+  "subject_status": "active",
+  "consent_status": "consented",
+  "active_condition": "diegetic_full",
+  "bootstrap_status": "complete",
+  "active_gumi_instance": "gumi-subj-001",
+  "hermes_profile_status": {
+    "profile_name": "gumi-subj-001",
+    "hermes_home": "~/.hermes/profiles/gumi-subj-001",
+    "provisioned": true
+  },
+  "last_user_interaction": "2026-05-05T08:42:00Z",
+  "last_gumi_initiative": "2026-05-05T07:15:00Z",
+  "last_relic_extraction": "2026-05-05T06:00:00Z",
+  "last_synthesis": "2026-05-04T23:00:00Z",
+  "last_correction": "2026-05-03T14:30:00Z",
+  "active_cron_modes": [
+    "daily_checkin",
+    "weekly_synthesis"
+  ],
+  "risk_summary": {
+    "severity": "low",
+    "flag_count": 1,
+    "flags": [
+      "risk_elevated_distress_indicator"
+    ]
+  },
+  "pending_review_count": 3,
+  "pause_state": {
+    "pause_all": false,
+    "pause_proactive": false,
+    "pause_checkin": false,
+    "pause_followup": false,
+    "pause_images": false,
+    "pause_audio": false,
+    "pause_music": false,
+    "pause_diegetic_life": false,
+    "pause_relic_ingestion": false
+  }
+} as const;

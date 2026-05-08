@@ -1,0 +1,64 @@
+{
+  "roles": {
+    "experimenter": {
+      "can_view_subjects": true,
+      "can_view_safety_signals": true,
+      "can_approve_signals": true,
+      "can_reject_signals": true,
+      "can_view_continuity": true,
+      "can_create_markers": true,
+      "can_corrections": true,
+      "can_export": false,
+      "can_edit_baseline": false,
+      "can_hermes_provision": false
+    },
+    "reviewer": {
+      "can_view_subjects": true,
+      "can_view_safety_signals": true,
+      "can_approve_signals": false,
+      "can_reject_signals": false,
+      "can_view_continuity": true,
+      "can_create_markers": false,
+      "can_corrections": true,
+      "can_export": true,
+      "can_edit_baseline": false,
+      "can_hermes_provision": false
+    },
+    "operator": {
+      "can_view_subjects": true,
+      "can_view_safety_signals": true,
+      "can_approve_signals": true,
+      "can_reject_signals": true,
+      "can_view_continuity": true,
+      "can_create_markers": true,
+      "can_corrections": true,
+      "can_export": true,
+      "can_edit_baseline": false,
+      "can_hermes_provision": true
+    },
+    "auditor": {
+      "can_view_subjects": true,
+      "can_view_safety_signals": true,
+      "can_approve_signals": false,
+      "can_reject_signals": false,
+      "can_view_continuity": true,
+      "can_create_markers": false,
+      "can_corrections": false,
+      "can_export": true,
+      "can_edit_baseline": false,
+      "can_hermes_provision": false
+    },
+    "admin": {
+      "can_view_subjects": true,
+      "can_view_safety_signals": true,
+      "can_approve_signals": true,
+      "can_reject_signals": true,
+      "can_view_continuity": true,
+      "can_create_markers": true,
+      "can_corrections": true,
+      "can_export": true,
+      "can_edit_baseline": true,
+      "can_hermes_provision": true
+    }
+  }
+}

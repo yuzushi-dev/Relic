@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relic.local/schemas/ui/artifact_summary.schema.json",
+  "title": "ArtifactSummary",
+  "description": "A versioned runtime artifact associated with a single subject and Gumi instance.",
+  "type": "object",
+  "required": [
+    "artifact_id",
+    "subject_id",
+    "gumi_instance_id",
+    "artifact_type",
+    "path",
+    "hash",
+    "schema_version",
+    "source_snapshot",
+    "status",
+    "generated_at",
+    "used_by_runtime"
+  ],
+  "properties": {
+    "artifact_id": {
+      "type": "string",
+      "pattern": "^ART-",
+      "description": "Unique artifact identifier."
+    },
+    "subject_id": {
+      "type": "string",
+      "pattern": "^SUBJ-",
+      "description": "Owning subject. Must not be null or absent."
+    },
+    "gumi_instance_id": {
+      "type": "string",
+      "pattern": "^GUMI-",
+      "description": "Associated Gumi instance."
+    },
+    "artifact_type": {
+      "type": "string",
+      "enum": [
+        "SOUL.md",
+        "USER.md",
+        "MEMORY.md",
+        "PORTRAIT.md",
+        "subject_profile.json",
+        "gumi_profile.json",
+        "gumi_world_state.json",
+        "runtime_profile_pack",
+        "cron_manifest",
+        "policy_snapshot",
+        "artifact_registry"
+      ],
+      "description": "Artifact type identifier."
+    },
+    "path": {
+      "type": "string",
+      "description": "Storage path for the artifact."
+    },
+    "hash": {
+      "type": "string",
+      "pattern": "^sha256:",
+      "description": "SHA-256 content hash."
+    },
+    "schema_version": {
+      "type": "string",
+      "description": "Schema version string, e.g. '1.0.0'."
+    },
+    "source_snapshot": {
+      "type": "string",
+      "description": "Snapshot identifier this artifact was derived from."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["active", "stale", "quarantined", "superseded"],
+      "description": "Current artifact status."
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 timestamp of artifact generation."
+    },
+    "used_by_runtime": {
+      "type": "boolean",
+      "description": "Whether this artifact is currently injected at runtime."
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Monotonically increasing version number."
+    },
+    "previous_version_id": {
+      "type": ["string", "null"],
+      "description": "Artifact ID of the previous version, or null for v1."
+    },
+    "quarantine_reason": {
+      "type": ["string", "null"],
+      "description": "Reason for quarantine, if status is 'quarantined'."
+    }
+  },
+  "additionalProperties": false
+}

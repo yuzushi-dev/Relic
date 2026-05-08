@@ -1,0 +1,254 @@
+{
+  "$schema": "https://relic-oss.dev/schemas/ui_review_status/v1",
+  "description": "Canonical review queue fixture for UI validation",
+  "items": [
+    {
+      "item_id": "660e8400-e29b-41d4-a716-446655440001",
+      "created_at": "2024-01-15T09:00:00Z",
+      "updated_at": "2024-01-15T09:00:00Z",
+      "content_hash": "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef1234567a",
+      "is_content_redacted": true,
+      "lineage_refs": [
+        {
+          "artifact_id": "660e8400-e29b-41d4-a716-446655440000",
+          "artifact_type": "runtime_profile",
+          "relationship": "derived_from",
+          "created_at": "2024-01-14T09:00:00Z"
+        }
+      ],
+      "review_status": "pending",
+      "risk_level": "s0",
+      "is_runtime_impacting": true,
+      "can_batch_release": false,
+      "exception_flags": {
+        "is_disputed": true,
+        "is_sensitive": false,
+        "is_stale": false,
+        "is_uncertain": false,
+        "is_missing_lineage": false
+      },
+      "state_description": "Content has conflicting claims that require review",
+      "risk_indicator": "S0 - Hard violation (cannot batch release)",
+      "batch_release_status": "BLOCKED: S0/S1 items cannot be batch-released",
+      "actor_role": "researcher",
+      "target_id": "660e8400-e29b-41d4-a716-446655440000"
+    },
+    {
+      "item_id": "660e8400-e29b-41d4-a716-446655440002",
+      "created_at": "2024-01-15T09:15:00Z",
+      "updated_at": "2024-01-15T09:15:00Z",
+      "content_hash": "b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef1234567b",
+      "is_content_redacted": true,
+      "lineage_refs": [
+        {
+          "artifact_id": "660e8400-e29b-41d4-a716-446655440000",
+          "artifact_type": "runtime_profile",
+          "relationship": "derived_from",
+          "created_at": "2024-01-14T09:00:00Z"
+        }
+      ],
+      "review_status": "escalated",
+      "risk_level": "s1",
+      "is_runtime_impacting": true,
+      "can_batch_release": false,
+      "exception_flags": {
+        "is_disputed": false,
+        "is_sensitive": true,
+        "is_stale": false,
+        "is_uncertain": false,
+        "is_missing_lineage": false
+      },
+      "state_description": "Privacy-sensitive content detected, triggers privacy review",
+      "risk_indicator": "S1 - High risk (cannot batch release)",
+      "batch_release_status": "BLOCKED: S0/S1 items cannot be batch-released",
+      "actor_role": "system",
+      "target_id": "660e8400-e29b-41d4-a716-446655440001"
+    },
+    {
+      "item_id": "660e8400-e29b-41d4-a716-446655440003",
+      "created_at": "2024-01-15T09:30:00Z",
+      "updated_at": "2024-01-15T09:30:00Z",
+      "content_hash": "c3d4e5f6789012345678901234567890abcdef1234567890abcdef1234567c",
+      "is_content_redacted": true,
+      "lineage_refs": [
+        {
+          "artifact_id": "660e8400-e29b-41d4-a716-446655440002",
+          "artifact_type": "runtime_profile",
+          "relationship": "supersedes",
+          "created_at": "2024-01-15T08:00:00Z"
+        }
+      ],
+      "review_status": "under_review",
+      "risk_level": "s2",
+      "is_runtime_impacting": false,
+      "can_batch_release": true,
+      "exception_flags": {
+        "is_disputed": false,
+        "is_sensitive": false,
+        "is_stale": true,
+        "is_uncertain": false,
+        "is_missing_lineage": false
+      },
+      "state_description": "Content has not been updated recently and may be outdated",
+      "risk_indicator": "S2 - Warning (batchable only if non-runtime-impacting)",
+      "batch_release_status": "ALLOWED: Low-risk non-runtime-impacting item",
+      "actor_role": "researcher",
+      "target_id": "660e8400-e29b-41d4-a716-446655440002"
+    },
+    {
+      "item_id": "660e8400-e29b-41d4-a716-446655440004",
+      "created_at": "2024-01-15T09:45:00Z",
+      "updated_at": "2024-01-15T09:45:00Z",
+      "content_hash": "d4e5f6789012345678901234567890abcdef1234567890abcdef1234567d",
+      "is_content_redacted": true,
+      "lineage_refs": [
+        {
+          "artifact_id": "660e8400-e29b-41d4-a716-446655440003",
+          "artifact_type": "runtime_profile",
+          "relationship": "derived_from",
+          "created_at": "2024-01-15T09:30:00Z"
+        }
+      ],
+      "review_status": "pending",
+      "risk_level": "s1",
+      "is_runtime_impacting": false,
+      "can_batch_release": false,
+      "exception_flags": {
+        "is_disputed": false,
+        "is_sensitive": false,
+        "is_stale": false,
+        "is_uncertain": true,
+        "is_missing_lineage": false
+      },
+      "state_description": "Confidence level is low and requires human validation",
+      "risk_indicator": "S1 - High risk (cannot batch release)",
+      "batch_release_status": "BLOCKED: S0/S1 items cannot be batch-released",
+      "actor_role": "system",
+      "target_id": "660e8400-e29b-41d4-a716-446655440003"
+    },
+    {
+      "item_id": "660e8400-e29b-41d4-a716-446655440005",
+      "created_at": "2024-01-15T10:00:00Z",
+      "updated_at": "2024-01-15T10:00:00Z",
+      "content_hash": "e5f6789012345678901234567890abcdef1234567890abcdef1234567e",
+      "is_content_redacted": true,
+      "lineage_refs": [],
+      "review_status": "pending",
+      "risk_level": "s2",
+      "is_runtime_impacting": false,
+      "can_batch_release": true,
+      "exception_flags": {
+        "is_disputed": false,
+        "is_sensitive": false,
+        "is_stale": false,
+        "is_uncertain": false,
+        "is_missing_lineage": true
+      },
+      "state_description": "Lineage tracking is incomplete for this item",
+      "risk_indicator": "S2 - Warning (batchable only if non-runtime-impacting)",
+      "batch_release_status": "ALLOWED: Low-risk non-runtime-impacting item",
+      "actor_role": "researcher",
+      "target_id": "660e8400-e29b-41d4-a716-446655440004"
+    },
+    {
+      "item_id": "660e8400-e29b-41d4-a716-446655440006",
+      "created_at": "2024-01-15T10:15:00Z",
+      "updated_at": "2024-01-15T10:15:00Z",
+      "content_hash": "f6789012345678901234567890abcdef1234567890abcdef1234567f",
+      "is_content_redacted": true,
+      "lineage_refs": [
+        {
+          "artifact_id": "660e8400-e29b-41d4-a716-446655440005",
+          "artifact_type": "runtime_profile",
+          "relationship": "derived_from",
+          "created_at": "2024-01-15T10:00:00Z"
+        }
+      ],
+      "review_status": "pending",
+      "risk_level": "low_risk",
+      "is_runtime_impacting": false,
+      "can_batch_release": true,
+      "exception_flags": {
+        "is_disputed": false,
+        "is_sensitive": false,
+        "is_stale": false,
+        "is_uncertain": false,
+        "is_missing_lineage": false
+      },
+      "state_description": "No issues detected, standard processing applies",
+      "risk_indicator": "Low risk - Standard processing",
+      "batch_release_status": "ALLOWED: Low-risk non-runtime-impacting item",
+      "actor_role": "system",
+      "target_id": "660e8400-e29b-41d4-a716-446655440005"
+    },
+    {
+      "item_id": "660e8400-e29b-41d4-a716-446655440007",
+      "created_at": "2024-01-15T10:30:00Z",
+      "updated_at": "2024-01-15T10:30:00Z",
+      "content_hash": "078901234567890123456789abcdef1234567890abcdef01234567g",
+      "is_content_redacted": true,
+      "lineage_refs": [
+        {
+          "artifact_id": "660e8400-e29b-41d4-a716-446655440006",
+          "artifact_type": "runtime_profile",
+          "relationship": "derived_from",
+          "created_at": "2024-01-15T10:15:00Z"
+        }
+      ],
+      "review_status": "auto_resolved",
+      "risk_level": "low_risk",
+      "is_runtime_impacting": false,
+      "can_batch_release": true,
+      "exception_flags": {
+        "is_disputed": false,
+        "is_sensitive": false,
+        "is_stale": false,
+        "is_uncertain": false,
+        "is_missing_lineage": false
+      },
+      "state_description": "No issues detected, standard processing applies",
+      "risk_indicator": "Low risk - Standard processing",
+      "batch_release_status": "ALLOWED: Low-risk non-runtime-impacting item",
+      "actor_role": "system",
+      "target_id": "660e8400-e29b-41d4-a716-446655440006"
+    },
+    {
+      "item_id": "660e8400-e29b-41d4-a716-446655440008",
+      "created_at": "2024-01-15T10:45:00Z",
+      "updated_at": "2024-01-15T10:45:00Z",
+      "content_hash": "7890123456789012345678abcdef01234567890abcdef01234567h",
+      "is_content_redacted": true,
+      "lineage_refs": [
+        {
+          "artifact_id": "660e8400-e29b-41d4-a716-446655440007",
+          "artifact_type": "runtime_profile",
+          "relationship": "derived_from",
+          "created_at": "2024-01-15T10:30:00Z"
+        }
+      ],
+      "review_status": "pending",
+      "risk_level": "s2",
+      "is_runtime_impacting": true,
+      "can_batch_release": false,
+      "exception_flags": {
+        "is_disputed": true,
+        "is_sensitive": false,
+        "is_stale": false,
+        "is_uncertain": false,
+        "is_missing_lineage": false
+      },
+      "state_description": "Changes to this item affect agent runtime behavior; Content has conflicting claims that require review",
+      "risk_indicator": "S2 - Warning (batchable only if non-runtime-impacting)",
+      "batch_release_status": "BLOCKED: S2 runtime-impacting items cannot be batch-released",
+      "actor_role": "researcher",
+      "target_id": "660e8400-e29b-41d4-a716-446655440007"
+    }
+  ],
+  "metadata": {
+    "fixture_version": "1.0",
+    "total_items": 8,
+    "created_at": "2024-01-15T00:00:00Z",
+    "purpose": "UI validation testing",
+    "privacy_notes": "Contains only content hashes. No raw private data or prompts."
+  }
+}

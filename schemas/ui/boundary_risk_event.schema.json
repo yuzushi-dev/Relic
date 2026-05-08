@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relic.local/schemas/ui/boundary_risk_event.schema.json",
+  "title": "Boundary Risk Event",
+  "description": "Data contract for boundary risk events (PR27I).",
+  "type": "object",
+  "required": [
+    "event_id",
+    "subject_id",
+    "boundary_id",
+    "event_type",
+    "timestamp",
+    "risk_level"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "Unique event identifier."
+    },
+    "subject_id": {
+      "type": "string",
+      "description": "Owning subject."
+    },
+    "boundary_id": {
+      "type": "string",
+      "description": "Related boundary ID."
+    },
+    "event_type": {
+      "type": "string",
+      "enum": ["violation", "correction", "distancing_enabled", "distancing_disabled"]
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Event timestamp."
+    },
+    "risk_level": {
+      "type": "string",
+      "enum": ["none", "low", "medium", "high"],
+      "description": "Risk level at event time."
+    },
+    "audit_note": {
+      "type": "string",
+      "description": "Audit event note."
+    }
+  },
+  "additionalProperties": false
+}

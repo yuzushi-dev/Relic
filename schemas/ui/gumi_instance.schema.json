@@ -1,0 +1,176 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relic.local/schemas/ui/gumi_instance.schema.json",
+  "title": "GumiInstance",
+  "description": "A subject-scoped Gumi instance record for the Researcher Workbench editor.",
+  "type": "object",
+  "required": [
+    "gumi_instance_id",
+    "subject_id",
+    "hermes_profile_id",
+    "condition_id",
+    "current_version",
+    "generation_mode",
+    "expressive_modes",
+    "world"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "gumi_instance_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this Gumi instance."
+    },
+    "subject_id": {
+      "type": "string",
+      "description": "ID of the subject this Gumi instance is scoped to. Required. Must not be null or empty.",
+      "minLength": 1
+    },
+    "hermes_profile_id": {
+      "type": "string",
+      "description": "ID of the Hermes profile bound to this Gumi instance. Required. Must not be null or empty.",
+      "minLength": 1
+    },
+    "condition_id": {
+      "type": "string",
+      "description": "Experimental condition ID under which this instance is active.",
+      "minLength": 1
+    },
+    "current_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semver string of the current approved version, e.g. '1.3.0'."
+    },
+    "soul_md_hash": {
+      "type": ["string", "null"],
+      "description": "SHA-256 hash of SOUL.md at last approved version."
+    },
+    "generation_mode": {
+      "type": "string",
+      "enum": ["manual", "assisted", "auto"],
+      "description": "How Gumi identity fields are generated."
+    },
+    "sweet_spot_config": {
+      "type": "object",
+      "description": "Nested configuration for the 'sweet spot' generation parameters.",
+      "properties": {
+        "warmth": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "directness": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "playfulness": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "depth": { "type": "number", "minimum": 0.0, "maximum": 1.0 }
+      }
+    },
+    "voice_summary": {
+      "type": "string",
+      "description": "Free-text summary of Gumi's voice for this subject."
+    },
+    "relational_stance": {
+      "type": "string",
+      "description": "Descriptor of Gumi's relational posture, e.g. 'warm companion'."
+    },
+    "active_boundaries": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "List of active behavioral constraint labels."
+    },
+    "world": {
+      "type": "array",
+      "description": "World model items for this Gumi instance.",
+      "items": {
+        "$ref": "https://relic.local/schemas/ui/gumi_world_object.schema.json"
+      }
+    },
+    "embodiment": {
+      "type": "object",
+      "description": "Visual canon and embodiment configuration.",
+      "additionalProperties": false,
+      "properties": {
+        "reference_image_set": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["image_id", "url", "approved_at"],
+            "properties": {
+              "image_id": { "type": "string" },
+              "url": { "type": "string", "format": "uri" },
+              "approved_at": { "type": "string", "format": "date-time" },
+              "status": { "type": "string", "enum": ["active", "retired"] }
+            }
+          }
+        },
+        "active_visual_identity_constraints": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "allowed_visual_drift": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "blocked_motifs": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "last_generated_images": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "user_response_summary": { "type": "string" },
+        "visual_consistency_score": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        }
+      }
+    },
+    "expressive_modes": {
+      "type": "array",
+      "description": "Per-channel expressive mode configuration.",
+      "items": {
+        "$ref": "https://relic.local/schemas/ui/gumi_expressive_mode.schema.json"
+      },
+      "minItems": 1
+    },
+    "version_history": {
+      "type": "array",
+      "description": "Chronological log of approved versions.",
+      "items": {
+        "type": "object",
+        "required": ["version", "approved_at", "approved_by"],
+        "properties": {
+          "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+          "approved_at": { "type": "string", "format": "date-time" },
+          "approved_by": { "type": "string" },
+          "changeset_summary": { "type": "string" },
+          "soul_md_hash": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "runtime_files": {
+      "type": "array",
+      "description": "Runtime artifacts bound to this Gumi instance (read-only view).",
+      "items": {
+        "type": "object",
+        "required": ["file_name", "version", "hash", "status"],
+        "properties": {
+          "file_name": { "type": "string" },
+          "version": { "type": "string" },
+          "hash": { "type": "string" },
+          "last_modified": { "type": "string", "format": "date-time" },
+          "approved_by": { "type": "string" },
+          "status": { "type": "string", "enum": ["active", "superseded", "locked"] }
+        }
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 datetime when this instance was created."
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 datetime of last update."
+    }
+  }
+}

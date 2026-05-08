@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relic.local/schemas/ui/gumi_world_object.schema.json",
+  "title": "GumiWorldObject",
+  "description": "A single item in Gumi's world model for a given subject instance.",
+  "type": "object",
+  "required": ["world_object_id", "type", "label", "status", "source"],
+  "additionalProperties": false,
+  "properties": {
+    "world_object_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this world object."
+    },
+    "type": {
+      "type": "string",
+      "enum": ["place", "person", "object", "routine", "concept"],
+      "description": "Ontological category of the world object."
+    },
+    "label": {
+      "type": "string",
+      "description": "Human-readable name for this world item."
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional free-text description."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["active", "retired", "candidate"],
+      "description": "Lifecycle status of this world object."
+    },
+    "source": {
+      "type": "string",
+      "enum": ["researcher", "inference", "subject_reported"],
+      "description": "Origin of this world object entry."
+    },
+    "last_used": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "ISO 8601 datetime when this object last appeared in a Gumi event."
+    },
+    "appears_in_events": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "List of event IDs where this world object appears."
+    },
+    "risk_flags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Risk tags, e.g. ['sensitive_location', 'family_member']."
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Arbitrary additional metadata (open schema)."
+    }
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relic.local/schemas/ui/cross_subject_aggregate.schema.json",
+  "title": "Cross-Subject Aggregate",
+  "description": "Data contract for cross-subject aggregate views (PR27M).",
+  "type": "object",
+  "required": [
+    "aggregate_type",
+    "data",
+    "redacted"
+  ],
+  "properties": {
+    "aggregate_type": {
+      "type": "string",
+      "enum": [
+        "risk_distribution",
+        "condition_comparison",
+        "delivery_volume",
+        "response_rate",
+        "overreach_rate",
+        "opt_out_rate",
+        "gumi_generation_mode_distribution",
+        "bootstrap_completion_rate",
+        "hermes_provisioning_status",
+        "cron_failure_rate"
+      ]
+    },
+    "data": {
+      "type": "object",
+      "description": "Aggregate data points."
+    },
+    "redacted": {
+      "type": "boolean",
+      "description": "Always true. Cross-subject views are redacted by default."
+    },
+    "subject_count": {
+      "type": "integer",
+      "description": "Number of subjects in aggregate."
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relic.local/schemas/ui/export_manifest.schema.json",
+  "title": "Export Manifest",
+  "description": "Data contract for export manifest (PR27L).",
+  "type": "object",
+  "required": [
+    "export_id",
+    "subject_id",
+    "condition",
+    "hermes_profile_hash",
+    "soul_md_hash",
+    "policy_snapshot",
+    "cron_snapshot",
+    "event_counts",
+    "redacted",
+    "leakage_scan_passed",
+    "export_types"
+  ],
+  "properties": {
+    "export_id": {
+      "type": "string"
+    },
+    "subject_id": {
+      "type": "string"
+    },
+    "condition": {
+      "type": "string"
+    },
+    "hermes_profile_hash": {
+      "type": "string",
+      "description": "SHA-256 hash of Hermes profile."
+    },
+    "soul_md_hash": {
+      "type": "string",
+      "description": "SHA-256 hash of SOUL.md."
+    },
+    "policy_snapshot": {
+      "type": "object",
+      "description": "Policy snapshot at export time."
+    },
+    "cron_snapshot": {
+      "type": "object",
+      "description": "Cron configuration snapshot."
+    },
+    "event_counts": {
+      "type": "object",
+      "description": "Event counts by ontological class."
+    },
+    "redacted": {
+      "type": "boolean",
+      "description": "Whether export is redacted."
+    },
+    "leakage_scan_passed": {
+      "type": "boolean",
+      "description": "Whether leakage scan passed."
+    },
+    "export_types": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "subject_profile_card",
+          "gumi_profile_card",
+          "relic_runtime_card",
+          "event_stream_summary",
+          "cron_decision_summary",
+          "inference_review_bundle",
+          "correction_propagation_report",
+          "redacted_replication_bundle"
+        ]
+      }
+    }
+  },
+  "additionalProperties": false
+}

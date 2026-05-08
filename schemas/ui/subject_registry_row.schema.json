@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relic.local/schemas/ui/subject_registry_row.schema.json",
+  "title": "SubjectRegistryRow",
+  "description": "One row in the Study Dashboard subject registry table. Represents a single enrolled subject. hermes_profile_id must be present; null triggers BLOCKED_MISSING_HERMES_PROFILE_ID.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "subject_id",
+    "gumi_instance_id",
+    "hermes_profile_id",
+    "condition",
+    "status",
+    "last_user_interaction_at",
+    "last_gumi_initiative_at",
+    "risk",
+    "pending_review"
+  ],
+  "properties": {
+    "subject_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable opaque subject identifier. Must never contain PII."
+    },
+    "gumi_instance_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Identifier of the active Gumi instance bound to this subject."
+    },
+    "hermes_profile_id": {
+      "oneOf": [
+        {"type": "string", "minLength": 1},
+        {"type": "null"}
+      ],
+      "description": "Identifier of the active Hermes profile. Null triggers BLOCKED_MISSING_HERMES_PROFILE_ID and the row must be visually flagged."
+    },
+    "condition": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Study condition label assigned to this subject (e.g. control, treatment_a)."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["active", "paused", "archived"],
+      "description": "Lifecycle status of the subject."
+    },
+    "last_user_interaction_at": {
+      "oneOf": [
+        {"type": "string", "format": "date-time"},
+        {"type": "null"}
+      ],
+      "description": "ISO-8601 timestamp of the last interaction initiated by the user, or null if none recorded."
+    },
+    "last_gumi_initiative_at": {
+      "oneOf": [
+        {"type": "string", "format": "date-time"},
+        {"type": "null"}
+      ],
+      "description": "ISO-8601 timestamp of the last proactive initiative from the Gumi instance, or null if none recorded."
+    },
+    "risk": {
+      "type": "string",
+      "enum": ["none", "low", "medium", "high"],
+      "description": "Current risk level for this subject. Values other than none contribute to active_risk_alerts."
+    },
+    "pending_review": {
+      "type": "boolean",
+      "description": "True if this subject has at least one item awaiting researcher review."
+    }
+  }
+}

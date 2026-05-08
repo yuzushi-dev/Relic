@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relic.local/schemas/ui/study_overview.schema.json",
+  "title": "StudyOverview",
+  "description": "Aggregate study-level summary shown in the Study Dashboard header panel. All cross-subject values are pre-aggregated; no raw per-subject data is exposed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "study_id",
+    "protocol_version",
+    "subjects_active",
+    "subjects_paused",
+    "subjects_archived",
+    "subjects_by_condition",
+    "active_risk_alerts",
+    "pending_reviews",
+    "failed_cron_jobs",
+    "hermes_provisioning_failures",
+    "exports_pending",
+    "last_validation_run"
+  ],
+  "properties": {
+    "study_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Immutable opaque study identifier."
+    },
+    "protocol_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "SemVer protocol version for this study."
+    },
+    "subjects_active": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Count of subjects with status=active."
+    },
+    "subjects_paused": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Count of subjects with status=paused."
+    },
+    "subjects_archived": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Count of subjects with status=archived."
+    },
+    "subjects_by_condition": {
+      "type": "object",
+      "description": "Map of condition label to subject count. Values must not contain raw subject data.",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "active_risk_alerts": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Count of subjects with risk != none."
+    },
+    "pending_reviews": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Count of subjects with pending_review=true."
+    },
+    "failed_cron_jobs": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Aggregate count of failed cron jobs across all subjects."
+    },
+    "hermes_provisioning_failures": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Count of subjects where hermes_profile_id is null (BLOCKED_MISSING_HERMES_PROFILE_ID)."
+    },
+    "exports_pending": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of redacted export jobs currently queued."
+    },
+    "last_validation_run": {
+      "oneOf": [
+        {"type": "string", "format": "date-time"},
+        {"type": "null"}
+      ],
+      "description": "ISO-8601 timestamp of the most recent validate-all-profiles run, or null if never run."
+    }
+  }
+}

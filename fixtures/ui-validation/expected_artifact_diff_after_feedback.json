@@ -1,0 +1,51 @@
+{
+  "schema_version": "0.2.0",
+  "generated_by": "PR16C",
+  "diff_id": "artifact_diff_fixture_001",
+  "baseline_artifact_checksum": "sha256:baseline-redacted-fixture",
+  "candidate_artifact_checksum": "sha256:candidate-redacted-fixture",
+  "changes": [
+    {
+      "path": "runtime_profile_pack.hints[hint_001].review_status",
+      "before": "pending",
+      "after": "validated",
+      "source_feedback_event_id": "rfb_001",
+      "runtime_effect": "none_until_recompile",
+      "change_group": "scope changed"
+    },
+    {
+      "path": "interaction_policy_pack.scope_rules[hint_002].privacy_review_status",
+      "before": "not_required",
+      "after": "required",
+      "source_feedback_event_id": "rfb_002",
+      "runtime_effect": "blocked",
+      "change_group": "privacy route changed"
+    },
+    {
+      "path": "evaluation_fixture_set.cases[cac_005]",
+      "before": "absent",
+      "after": "created",
+      "source_feedback_event_id": "rfb_004",
+      "runtime_effect": "none",
+      "change_group": "eval case changed"
+    },
+    {
+      "path": "runtime_profile_pack.hints[lineage_008]",
+      "before": "candidate",
+      "after": "rejected",
+      "source_feedback_event_id": "rfb_005",
+      "runtime_effect": "none",
+      "change_group": "removed"
+    },
+    {
+      "path": "prompt_context_pack.compiler_status",
+      "before": "current",
+      "after": "stale_pending_recompile",
+      "source_feedback_event_id": "rfb_006",
+      "runtime_effect": "none_until_recompile",
+      "change_group": "downgraded"
+    }
+  ],
+  "contains_raw_prompt": false,
+  "contains_private_user_data": false
+}

@@ -1,0 +1,29 @@
+{
+  "signal_id": "signal_001",
+  "subject_id": "subject_001",
+  "signal_status": "pending",
+  "evidence_refs": [
+    "event_2024_01_15_001",
+    "event_2024_01_16_002",
+    "event_2024_01_17_003"
+  ],
+  "baseline_comparison": {
+    "baseline_confidence": 0.35,
+    "current_confidence": 0.65,
+    "delta": 0.30
+  },
+  "confidence": 0.65,
+  "allowed_adaptations": [
+    "maintain_boundaries",
+    "careful_delivery",
+    "monitor"
+  ],
+  "forbidden_disclosures": [
+    "signal_label",
+    "clinical_interpretation",
+    "diagnosis",
+    "evidence_details"
+  ],
+  "created_at": "2024-01-17T10:00:00Z",
+  "updated_at": "2024-01-17T10:00:00Z"
+}
