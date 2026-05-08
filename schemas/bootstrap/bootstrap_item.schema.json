@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PR25 Bootstrap TUI Item",
+  "type": "object",
+  "required": [
+    "item_id",
+    "screen",
+    "canonical_text",
+    "display_text_it",
+    "response_scale",
+    "construct",
+    "source_class",
+    "source_name",
+    "source_citation",
+    "reverse_scored",
+    "required",
+    "used_for"
+  ],
+  "properties": {
+    "item_id": {"type": "string", "pattern": "^[A-Z]+_[0-9]{3}$"},
+    "screen": {"type": "string"},
+    "canonical_text": {"type": "string", "minLength": 1},
+    "display_text_it": {"type": "string", "minLength": 1},
+    "response_scale": {
+      "type": "string",
+      "enum": ["agreement_7", "tolerance_7", "frequency_permission_4", "ios_overlap_7", "yes_no"]
+    },
+    "construct": {"type": "string", "minLength": 1},
+    "source_class": {
+      "type": "string",
+      "enum": [
+        "validated_instrument",
+        "adapted_validated_construct",
+        "project_derived_calibration",
+        "project_derived_safety_gate",
+        "researcher_configuration"
+      ]
+    },
+    "source_name": {"type": "string", "minLength": 1},
+    "source_citation": {"type": "string", "minLength": 1},
+    "reverse_scored": {"type": "boolean"},
+    "required": {"type": "boolean"},
+    "used_for": {
+      "type": "array",
+      "items": {"type": "string"},
+      "minItems": 1
+    }
+  },
+  "additionalProperties": true
+}

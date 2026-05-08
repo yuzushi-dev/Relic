@@ -1,0 +1,6 @@
+# Example cron config for Gumi continuity maintenance (PR22H).
+schedule: "0 3 * * *"
+timezone: "UTC"
+job_name: gumi-world-state-compact
+allow_side_effects: false
+dry_run_required: true

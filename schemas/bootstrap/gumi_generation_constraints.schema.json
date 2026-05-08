@@ -1,0 +1,1 @@
+{ "$schema": "http://json-schema.org/draft-07/schema#", "title": "PR28 Gumi Generation Constraints", "type": "object", "required": ["schema_version", "version", "created_at", "subject_id", "experiment_id", "relationship", "initiative", "media", "boundaries"] }

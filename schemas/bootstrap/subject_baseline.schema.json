@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://relic-oss.dev/schemas/bootstrap/subject_baseline/v1",
+  "title": "PR28 Subject Baseline",
+  "type": "object",
+  "required": ["schema_version", "version", "created_at", "subject_id", "experiment_id", "psychological", "interaction"],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": { "type": "string" },
+    "version": { "type": "integer", "minimum": 1 },
+    "created_at": { "type": "string" },
+    "subject_id": { "type": "string" },
+    "experiment_id": { "type": "string" },
+    "psychological": {
+      "type": "object",
+      "required": ["openness", "conscientiousness", "extraversion", "agreeableness", "emotional_stability", "attachment_anxiety", "attachment_avoidance"],
+      "additionalProperties": false,
+      "patternProperties": {
+        ".*": { "$ref": "#/definitions/scored_value" }
+      }
+    },
+    "interaction": {
+      "type": "object",
+      "required": ["directness_preference", "critique_tolerance", "proactive_contact_tolerance", "checkin_tolerance", "humor_tolerance", "ambiguity_tolerance", "emotional_intensity_tolerance", "fictional_diegesis_tolerance", "audio_tolerance", "image_tolerance", "music_tolerance"],
+      "additionalProperties": false,
+      "patternProperties": {
+        ".*": { "$ref": "#/definitions/scored_value" }
+      }
+    }
+  },
+  "definitions": {
+    "scored_value": {
+      "type": "object",
+      "required": ["value", "confidence"],
+      "additionalProperties": false,
+      "properties": {
+        "value": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "confidence": { "type": "string", "enum": ["low_initial", "medium_initial", "high_initial"] }
+      }
+    }
+  }
+}

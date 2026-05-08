@@ -1,0 +1,28 @@
+{
+  "boundaries": {
+    "careful_distancing": true,
+    "sensitive_topics_blocked": true
+  },
+  "created_at": "2026-05-06T21:13:38.812186+00:00",
+  "experiment_id": "exp_001",
+  "generation_mode": "hybrid",
+  "initiative": {
+    "availability": "bounded",
+    "maximum_daily_initiatives": 1,
+    "mode": "review_required"
+  },
+  "media": {
+    "audio": "disabled",
+    "diegetic_life_fragments": "review_required",
+    "image": "review_required",
+    "music": "disabled"
+  },
+  "relationship": {
+    "distance_target": "medium",
+    "romantic_ambiguity": "reduced",
+    "warmth_target": "high"
+  },
+  "schema_version": "v1.0",
+  "subject_id": "subj_001",
+  "version": 1
+}

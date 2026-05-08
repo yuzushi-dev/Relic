@@ -1,0 +1,29 @@
+# Gumi C5 Honcho Profile
+# PR19 provider evaluation fixture
+# This file is example-only and contains no secrets or raw memory content
+
+profile_id: gumi-c5-honcho
+profile_name: "C5 Honcho"
+description: "PR19 provider evaluation fixture"
+
+# Status: SKIPPED - live provider not enabled as runtime default
+status: skipped
+skip_reason: "PR19 provider evaluation fixture only; live provider not enabled as runtime default"
+
+memory:
+  provider_type: external
+  enabled: false
+  hermes_native: true
+  
+  # Configuration placeholder - not active by default
+  external_provider: honcho
+  external_path: honcho://config
+
+  features:
+    privacy_gate: true
+    correction_support: true
+    audit_trail: true
+
+hermes_native: true
+integration_class: pr19-provider-evaluation
+runtime_default: false

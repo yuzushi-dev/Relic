@@ -1,0 +1,14 @@
+{
+  "event_type": "profile_edit_event",
+  "subject_id": "subj_001",
+  "profile_version_before": 1,
+  "profile_version_after": 2,
+  "edited_fields": [
+    "gumi_background.social_world.friend",
+    "gumi_background.place.home_space"
+  ],
+  "edit_mode": "manual",
+  "researcher_id": "researcher_001",
+  "requires_intro_regeneration": false,
+  "created_at": "2026-05-04T00:00:00Z"
+}

@@ -1,0 +1,86 @@
+{
+  "algorithm_version": "sweetspot_v1",
+  "created_at": "2026-05-06T21:13:38.812186+00:00",
+  "experiment_id": "exp_001",
+  "gumi_instance_id": "gumi_subj_001",
+  "input_vectors": {
+    "candidate": {
+      "agreeableness": 0.48,
+      "attachment_anxiety": 0.36,
+      "attachment_avoidance": 0.62,
+      "autonomy": 0.85,
+      "boundary_strength": 0.85,
+      "conscientiousness": 0.38,
+      "critique": 0.55,
+      "diegetic_density": 0.64,
+      "directness": 0.78,
+      "emotional_stability": 0.68,
+      "extraversion": 0.7,
+      "initiative": 0.48,
+      "media_frequency": 0.383,
+      "openness": 0.5,
+      "playfulness": 0.72,
+      "warmth": 0.625
+    },
+    "subject": {
+      "agreeableness": 0.65,
+      "attachment_anxiety": 0.82,
+      "attachment_avoidance": 0.2,
+      "autonomy": 0.85,
+      "boundary_strength": 0.85,
+      "conscientiousness": 0.55,
+      "critique": 0.55,
+      "diegetic_density": 0.8,
+      "directness": 0.6,
+      "emotional_stability": 0.4,
+      "extraversion": 0.35,
+      "initiative": 0.3,
+      "media_frequency": 0.383,
+      "openness": 0.7,
+      "playfulness": 0.5,
+      "warmth": 0.75
+    }
+  },
+  "output_vectors": {
+    "candidate": {
+      "agreeableness": 0.48,
+      "attachment_anxiety": 0.36,
+      "attachment_avoidance": 0.62,
+      "autonomy": 0.85,
+      "boundary_strength": 0.85,
+      "conscientiousness": 0.38,
+      "critique": 0.55,
+      "diegetic_density": 0.64,
+      "directness": 0.78,
+      "emotional_stability": 0.68,
+      "extraversion": 0.7,
+      "initiative": 0.48,
+      "media_frequency": 0.383,
+      "openness": 0.5,
+      "playfulness": 0.72,
+      "warmth": 0.625
+    },
+    "similarity": 0.771
+  },
+  "recommended_adjustments": [
+    "researcher review required before first contact",
+    "keep careful distancing enabled",
+    "limit proactive initiative until subject tolerance is observed"
+  ],
+  "review_status": "researcher_review_required",
+  "schema_version": "v1.0",
+  "scores": {
+    "alienation_risk": 0.0,
+    "clone_risk": 0.346,
+    "dependency_risk": 0.201,
+    "diegetic_plausibility": 0.84,
+    "fit_to_user_preferences": 0.829,
+    "novelty": 0.229,
+    "overwhelm_risk": 0.185,
+    "relational_complementarity": 0.799,
+    "stabilization": 0.85,
+    "sweet_spot_score": 0.547
+  },
+  "subject_id": "subj_001",
+  "version": 1
+}

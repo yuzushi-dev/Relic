@@ -1,0 +1,18 @@
+{
+  "subject_id": "subj_001",
+  "experiment_id": "exp_diegetic_gumi_001",
+  "researcher_id": "researcher_001",
+  "site_id": "local_lab",
+  "profile_version": 1,
+  "status": "intro_composed",
+  "language": "it",
+  "timezone": "Europe/Rome",
+  "contact_channel": "telegram",
+  "hermes_profile": {
+    "profile_name": "gumi-subj-001",
+    "hermes_home": "~/.hermes/profiles/gumi-subj-001",
+    "provisioned": true
+  },
+  "created_at": "2026-05-04T00:00:00Z",
+  "updated_at": "2026-05-04T00:00:00Z"
+}

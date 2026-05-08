@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://relic-oss.dev/schemas/bootstrap/gumi_profile_candidate/v1",
+  "title": "PR28 Gumi Profile Candidate",
+  "type": "object",
+  "required": ["schema_version", "version", "created_at", "subject_id", "experiment_id", "gumi_instance_id", "generation_mode", "traits", "vectors"],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": { "type": "string" },
+    "version": { "type": "integer", "minimum": 1 },
+    "created_at": { "type": "string" },
+    "subject_id": { "type": "string" },
+    "experiment_id": { "type": "string" },
+    "gumi_instance_id": { "type": "string" },
+    "generation_mode": { "type": "string", "enum": ["random", "manual", "hybrid"] },
+    "traits": { "type": "object" },
+    "vectors": {
+      "type": "object",
+      "required": ["subject", "gumi", "similarity"],
+      "properties": {
+        "subject": { "type": "object" },
+        "gumi": { "type": "object" },
+        "similarity": { "type": "number", "minimum": 0.0, "maximum": 1.0 }
+      }
+    }
+  }
+}

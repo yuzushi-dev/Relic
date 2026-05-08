@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://relic-oss.dev/schemas/bootstrap/sweet_spot_report/v1",
+  "title": "PR28 Sweet Spot Report",
+  "type": "object",
+  "required": ["schema_version", "version", "created_at", "subject_id", "experiment_id", "gumi_instance_id", "algorithm_version", "input_vectors", "output_vectors", "scores", "recommended_adjustments", "review_status"],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": { "type": "string" },
+    "version": { "type": "integer", "minimum": 1 },
+    "created_at": { "type": "string" },
+    "subject_id": { "type": "string" },
+    "experiment_id": { "type": "string" },
+    "gumi_instance_id": { "type": "string" },
+    "algorithm_version": { "type": "string" },
+    "input_vectors": { "type": "object" },
+    "output_vectors": { "type": "object" },
+    "scores": {
+      "type": "object",
+      "required": ["fit_to_user_preferences", "relational_complementarity", "stabilization", "diegetic_plausibility", "novelty", "clone_risk", "dependency_risk", "alienation_risk", "overwhelm_risk", "sweet_spot_score"]
+    },
+    "recommended_adjustments": { "type": "array", "items": { "type": "string" } },
+    "review_status": { "type": "string" }
+  }
+}

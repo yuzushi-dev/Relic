@@ -1,0 +1,25 @@
+# Gumi C1 Holographic Memory Profile
+# Hermes-native memory configuration
+# This file is example-only and contains no secrets or raw memory content
+
+profile_id: gumi-c1-holographic
+profile_name: "C1 Holographic Memory"
+description: "Holographic memory representation"
+
+memory:
+  provider_type: builtin
+  enabled: true
+  local_only: true
+  
+  storage:
+    type: local
+    path: relic://c1-holographic/internal
+
+  features:
+    privacy_gate: true
+    correction_support: true
+    audit_trail: true
+    holographic_representation: true
+
+hermes_native: true
+integration_class: internal-blueprint-component

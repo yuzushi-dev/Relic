@@ -1,0 +1,21 @@
+{
+  "event_type": "gumi_initial_contact_event",
+  "subject_id": "subj_001",
+  "message_id": "intro_001",
+  "status": "composed",
+  "calibration": {
+    "warmth": "medium",
+    "playfulness": "low",
+    "directness": "medium",
+    "self_disclosure": "low",
+    "boundary_strength": "medium"
+  },
+  "message_text_hash": "sha256:example",
+  "message_text_local_ref": "local-only:intro_001.txt",
+  "researcher_previewed": true,
+  "researcher_edited": false,
+  "created_at": "2026-05-04T00:00:00Z",
+  "composition_mode": "generated_from_constraints",
+  "template_used": false,
+  "noncanonical_example_similarity_checked": true
+}

@@ -1,0 +1,27 @@
+{
+  "baseline_inputs_used": [
+    "warmth",
+    "directness",
+    "initiative",
+    "diegetic_density",
+    "boundary_strength"
+  ],
+  "composition_mode": "generated_from_constraints",
+  "created_at": "2026-05-06T21:13:38.812186+00:00",
+  "experiment_id": "exp_001",
+  "forbidden_pattern_check": {
+    "checked_categories": [
+      "romance",
+      "dependency",
+      "system_leak"
+    ],
+    "passed": true
+  },
+  "gumi_instance_id": "gumi_subj_001",
+  "message_text_local_ref": "local-only",
+  "researcher_review_required": true,
+  "schema_version": "v1.0",
+  "subject_id": "subj_001",
+  "template_used": false,
+  "version": 1
+}

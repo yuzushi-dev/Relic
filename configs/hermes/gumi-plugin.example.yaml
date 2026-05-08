@@ -1,0 +1,23 @@
+# Example Hermes plugin config for the Gumi roleplay plugin (PR22E).
+# Copy to ~/.hermes/profiles/<profile>/plugins.yaml and customize.
+plugin:
+  name: relic-gumi
+  enabled: false
+  fail_closed: true
+context_pack:
+  redact_by_default: true
+  ephemeral_only: true
+  blocked_categories:
+    - health
+    - finance
+    - credentials
+    - minors
+admission:
+  default_mode: G1
+  high_stakes_downgrade: true
+output_critic:
+  block_dependency_claims: true
+  block_false_physical_experience: true
+  require_disclosure_when_challenged: true
+storage:
+  root: "${HOME}/.relic/gumi"

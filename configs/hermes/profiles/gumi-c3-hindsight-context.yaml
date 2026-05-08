@@ -1,0 +1,26 @@
+# Gumi C3 Hindsight Context Profile
+# Hermes-native memory configuration
+# This file is example-only and contains no secrets or raw memory content
+
+profile_id: gumi-c3-hindsight-context
+profile_name: "C3 Hindsight Context"
+description: "Hindsight context management"
+
+memory:
+  provider_type: builtin
+  enabled: true
+  local_only: true
+  
+  storage:
+    type: local
+    path: relic://c3-hindsight-context/internal
+
+  features:
+    privacy_gate: true
+    correction_support: true
+    audit_trail: true
+    hindsight_context: true
+    context_management: true
+
+hermes_native: true
+integration_class: internal-blueprint-component

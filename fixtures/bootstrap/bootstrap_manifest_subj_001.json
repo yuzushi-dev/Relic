@@ -1,0 +1,80 @@
+{
+  "bootstrap_session_id": "boot_subj_001",
+  "checkpoint_screens": [
+    {
+      "screen_number": 1,
+      "status": "complete"
+    },
+    {
+      "screen_number": 2,
+      "status": "complete"
+    },
+    {
+      "screen_number": 3,
+      "status": "complete"
+    },
+    {
+      "screen_number": 4,
+      "status": "complete"
+    },
+    {
+      "screen_number": 5,
+      "status": "complete"
+    },
+    {
+      "screen_number": 6,
+      "status": "complete"
+    },
+    {
+      "screen_number": 7,
+      "status": "complete"
+    },
+    {
+      "screen_number": 8,
+      "status": "complete"
+    },
+    {
+      "screen_number": 9,
+      "status": "complete"
+    },
+    {
+      "screen_number": 10,
+      "status": "complete"
+    },
+    {
+      "screen_number": 11,
+      "status": "complete"
+    },
+    {
+      "screen_number": 12,
+      "status": "complete"
+    },
+    {
+      "screen_number": 13,
+      "status": "complete"
+    },
+    {
+      "screen_number": 14,
+      "status": "complete"
+    }
+  ],
+  "created_at": "2026-05-06T21:13:38.812186+00:00",
+  "experiment_id": "exp_001",
+  "gumi_instance_id": "gumi_subj_001",
+  "hermes_profile_id": "hermes_subj_001",
+  "outputs": [
+    "subject_baseline",
+    "relational_comfort_profile",
+    "diegetic_tolerance_profile",
+    "boundary_policy",
+    "gumi_generation_constraints",
+    "gumi_profile_candidate",
+    "sweet_spot_report",
+    "bootstrap_manifest",
+    "first_contact_candidate",
+    "hermes_profile_manifest"
+  ],
+  "schema_version": "v1.0",
+  "subject_id": "subj_001",
+  "version": 1
+}

@@ -1,0 +1,47 @@
+subj_fixture
+exp_fixture
+
+Marco
+26-35
+uomo
+it
+Europe/Rome
+telegram
+Persona curiosa e aperta.
+distanziante
+diretto
+nessuna nota
+contesto urbano
+lungo
+sì
+asincrona
+
+sentimenti_neg
+caldo e informale
+alta continuità attesa
+alta
+presenza amicale con discrezione
+nessun limite hard
+
+evitare contatti notturni
+
+
+n
+n
+n
+n
+s
+researcher_fixture
+
+random
+
+yes
+123456789
+GUMI_SUBJ_FIXTURE_TELEGRAM_BOT_TOKEN
+22:00
+08:00
+Europe/Rome
+day
+1
+accept
+1

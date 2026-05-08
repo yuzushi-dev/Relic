@@ -1,0 +1,26 @@
+# Gumi C2 Hindsight Tools Profile
+# Hermes-native memory configuration
+# This file is example-only and contains no secrets or raw memory content
+
+profile_id: gumi-c2-hindsight-tools
+profile_name: "C2 Hindsight Tools"
+description: "Hindsight tools integration"
+
+memory:
+  provider_type: builtin
+  enabled: true
+  local_only: true
+  
+  storage:
+    type: local
+    path: relic://c2-hindsight-tools/internal
+
+  features:
+    privacy_gate: true
+    correction_support: true
+    audit_trail: true
+    hindsight_tools: true
+    tools_integration: true
+
+hermes_native: true
+integration_class: internal-blueprint-component

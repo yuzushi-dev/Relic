@@ -1,0 +1,43 @@
+{
+  "created_at": "2026-05-06T21:13:38.812186+00:00",
+  "experiment_id": "exp_001",
+  "relational": {
+    "comfort_with_Gumi_having_her_own_life": {
+      "confidence": "low_initial",
+      "value": 0.85
+    },
+    "comfort_with_Gumi_saying_no": {
+      "confidence": "low_initial",
+      "value": 0.8
+    },
+    "comfort_with_disagreement": {
+      "confidence": "low_initial",
+      "value": 0.5
+    },
+    "comfort_with_initiative": {
+      "confidence": "low_initial",
+      "value": 0.35
+    },
+    "comfort_with_mystery": {
+      "confidence": "low_initial",
+      "value": 0.55
+    },
+    "comfort_with_warmth": {
+      "confidence": "low_initial",
+      "value": 0.75
+    },
+    "desired_closeness": {
+      "confidence": "low_initial",
+      "value": 0.7
+    },
+    "preferred_distance": {
+      "confidence": "low_initial",
+      "value": 0.45
+    }
+  },
+  "researcher_review_required": true,
+  "schema_version": "v1.0",
+  "subject_id": "subj_001",
+  "target_distance": "medium",
+  "version": 1
+}

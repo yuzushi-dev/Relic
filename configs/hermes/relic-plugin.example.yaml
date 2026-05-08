@@ -1,0 +1,71 @@
+# Relic Hermes Plugin Configuration
+# Example configuration - do not use in production without modification
+
+relic:
+  # Plugin settings
+  plugin:
+    # Enable/disable the Relic plugin
+    enabled: true
+    
+  # Privacy gateway settings
+  privacy:
+    # Enable privacy gateway for tool permission enforcement
+    gateway_enabled: true
+    
+  # Tool permission settings
+  tool_permissions:
+    # Path to tool permission matrix (relative to repo root)
+    matrix_path: TOOL_PERMISSION_MATRIX.md
+    
+  # Policy settings
+  policy:
+    # Policy version for audit trail
+    version: "1.0.0"
+    
+  # Fail-safe settings
+  fail_safe:
+    # Enable fail-safe mechanisms
+    enabled: true
+    # Block guidance on permission errors
+    fail_on_permission_error: true
+    
+  # Roleplay restrictions
+  roleplay:
+    # Block L2+ tools in roleplay mode without explicit approval
+    blocks_l2_tools: true
+    
+# Hermes-specific settings
+hermes:
+  # Plugin registration name
+  plugin_name: "relic"
+  
+  # Lifecycle hooks
+  lifecycle:
+    - load
+    - unload
+    - shutdown
+    
+  # Tool hooks
+  hooks:
+    - pre_tool_call
+    - post_tool_call
+
+# Logging settings
+logging:
+  level: "INFO"
+  format: "json"
+  audit_path: "cac_trace.jsonl"
+
+# Session settings
+session:
+  # Session ID header (if using HTTP gateway)
+  id_header: "X-Session-ID"
+  
+# Paths (relative to config location or absolute)
+paths:
+  # Database for pause state
+  pause_db: "/tmp/relic_pause.db"
+  # CAC trace file
+  cac_trace: "cac_trace.jsonl"
+  # Audit log directory
+  audit_dir: "/tmp/relic_audit"

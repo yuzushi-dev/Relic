@@ -1,0 +1,27 @@
+{
+  "audio_allowed": false,
+  "careful_distancing_enabled": true,
+  "created_at": "2026-05-06T21:13:38.812186+00:00",
+  "dependency_risk_watch": "standard",
+  "diegetic_life_fragments_allowed": true,
+  "experiment_id": "exp_001",
+  "health_nudges_allowed": false,
+  "high_stakes_topics_allowed": false,
+  "image_allowed": true,
+  "late_night_messages_allowed": false,
+  "maximum_daily_initiatives": 1,
+  "music_allowed": false,
+  "opt_out_categories": [
+    "mental_health_treatment"
+  ],
+  "quiet_hours": {
+    "end": "08:00",
+    "start": "22:00",
+    "timezone": "Europe/Rome"
+  },
+  "romantic_escalation_allowed": false,
+  "schema_version": "v1.0",
+  "sensitive_topics_blocked": true,
+  "subject_id": "subj_001",
+  "version": 1
+}

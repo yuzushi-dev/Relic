@@ -1,0 +1,23 @@
+{
+  "audio": {
+    "mode": "disabled"
+  },
+  "created_at": "2026-05-06T21:13:38.812186+00:00",
+  "diegetic_density": {
+    "target": "high",
+    "value": 0.8
+  },
+  "experiment_id": "exp_001",
+  "image": {
+    "mode": "review_required"
+  },
+  "life_fragments": {
+    "mode": "review_required"
+  },
+  "music": {
+    "mode": "disabled"
+  },
+  "schema_version": "v1.0",
+  "subject_id": "subj_001",
+  "version": 1
+}

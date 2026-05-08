@@ -1,0 +1,24 @@
+# Gumi C0 Builtin Memory Profile
+# Hermes-native memory configuration
+# This file is example-only and contains no secrets or raw memory content
+
+profile_id: gumi-c0-builtin
+profile_name: "C0 Builtin Memory"
+description: "Basic builtin memory without external providers"
+
+memory:
+  provider_type: builtin
+  enabled: true
+  local_only: true
+  
+  storage:
+    type: local
+    path: relic://c0-builtin/internal
+
+  features:
+    privacy_gate: true
+    correction_support: true
+    audit_trail: true
+
+hermes_native: true
+integration_class: internal-blueprint-component

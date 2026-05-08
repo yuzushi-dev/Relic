@@ -1,0 +1,1 @@
+{ "$schema": "http://json-schema.org/draft-07/schema#", "title": "PR28 First Contact Candidate", "type": "object", "required": ["schema_version", "version", "created_at", "subject_id", "experiment_id", "gumi_instance_id", "template_used", "composition_mode", "baseline_inputs_used"] }
