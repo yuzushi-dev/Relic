@@ -3,7 +3,7 @@ name: Deploy Demo UI to GitHub Pages
 on:
   push:
     branches:
-      - main
+      - master
   workflow_dispatch:
 
 permissions:
@@ -34,6 +34,18 @@ jobs:
         run: npm run build:static
       - name: Disable Jekyll
         run: touch out/.nojekyll
+      - name: Add legacy demo console
+        run: |
+          mkdir -p out/demo
+          cp ../demo/console.html out/demo/console.html
+          cp -R ../demo/generated out/demo/generated
+          printf '%s\n' \
+            '<!doctype html>' \
+            '<meta charset="utf-8">' \
+            '<meta http-equiv="refresh" content="0; url=demo/console.html">' \
+            '<title>Relic Demo</title>' \
+            '<a href="demo/console.html">Open Relic demo</a>' \
+            > out/index.html
       - uses: actions/upload-pages-artifact@v3
         with:
           path: ui/out
