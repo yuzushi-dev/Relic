@@ -1,0 +1,135 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://relic-oss.dev/schemas/feedback_propagation_trace/v1",
+  "title": "Feedback Propagation Trace",
+  "description": "Trace of feedback propagation through the system. Tracks how feedback moves through correction gate, compiler, and audit. Privacy guarantees: contains NO raw final prompts.",
+  "type": "object",
+  "required": [
+    "trace_id",
+    "created_at",
+    "source_event_id",
+    "actor_role",
+    "target_id",
+    "stages",
+    "total_stages_completed"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "trace_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique trace identifier"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Trace creation timestamp"
+    },
+    "source_event_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Reference to source feedback event"
+    },
+    "actor_role": {
+      "type": "string",
+      "description": "Role of researcher who initiated feedback (REQUIRED for UI trace)"
+    },
+    "target_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "ID of the target artifact (REQUIRED for UI trace)"
+    },
+    "stages": {
+      "type": "array",
+      "description": "Propagation stages through correction gate, compiler, audit",
+      "items": {
+        "$ref": "#/definitions/feedback_stage"
+      }
+    },
+    "total_stages_completed": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of stages successfully completed"
+    },
+    "completed": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when all stages complete and compiler rerun done"
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Errors encountered during propagation"
+    }
+  },
+  "definitions": {
+    "feedback_stage": {
+      "type": "object",
+      "required": ["stage_name", "entered_at", "outcome"],
+      "properties": {
+        "stage_name": {
+          "type": "string",
+          "enum": ["correction_gate", "compiler", "audit", "privacy_review"],
+          "description": "Name of the propagation stage"
+        },
+        "entered_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when stage was entered"
+        },
+        "exited_at": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "Timestamp when stage was exited"
+        },
+        "outcome": {
+          "type": "string",
+          "enum": ["accepted", "rejected", "pending", "error"],
+          "description": "Outcome of the stage"
+        },
+        "details": {
+          "type": ["string", "null"],
+          "description": "Additional details about the stage outcome"
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "trace_id": "660e8400-e29b-41d4-a716-446655440003",
+      "created_at": "2024-01-15T10:30:00Z",
+      "source_event_id": "660e8400-e29b-41d4-a716-446655440001",
+      "actor_role": "researcher",
+      "target_id": "660e8400-e29b-41d4-a716-446655440002",
+      "stages": [
+        {
+          "stage_name": "correction_gate",
+          "entered_at": "2024-01-15T10:30:01Z",
+          "exited_at": "2024-01-15T10:30:02Z",
+          "outcome": "accepted",
+          "details": "Correction admitted via CAC"
+        },
+        {
+          "stage_name": "compiler",
+          "entered_at": "2024-01-15T10:30:02Z",
+          "exited_at": "2024-01-15T10:30:05Z",
+          "outcome": "pending",
+          "details": "Awaiting runtime update"
+        },
+        {
+          "stage_name": "audit",
+          "entered_at": "2024-01-15T10:30:05Z",
+          "exited_at": null,
+          "outcome": "pending",
+          "details": "Audit log pending"
+        }
+      ],
+      "total_stages_completed": 1,
+      "completed": false,
+      "errors": []
+    }
+  ]
+}

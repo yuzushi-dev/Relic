@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relic.local/schemas/external_memory_candidate.schema.json",
+  "title": "ExternalMemoryCandidate",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "candidate_id",
+    "condition_id",
+    "provider_name",
+    "provider_mode",
+    "source_ref",
+    "retrieval_reason",
+    "content_redacted",
+    "sensitivity",
+    "correction_status",
+    "scope",
+    "lineage_refs",
+    "created_at"
+  ],
+  "properties": {
+    "candidate_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "condition_id": {
+      "type": "string",
+      "enum": [
+        "C0_BUILTIN_ONLY",
+        "C1_HOLOGRAPHIC",
+        "C2_HINDSIGHT_TOOLS",
+        "C3_HINDSIGHT_CONTEXT",
+        "C4_BYTEROVER",
+        "C5_HONCHO"
+      ]
+    },
+    "provider_name": {
+      "type": "string",
+      "enum": [
+        "built-in",
+        "holographic",
+        "hindsight",
+        "byterover",
+        "honcho"
+      ]
+    },
+    "provider_mode": {
+      "type": "string",
+      "enum": [
+        "built_in",
+        "holographic",
+        "tools",
+        "context",
+        "operational",
+        "relational"
+      ]
+    },
+    "source_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "retrieval_reason": {
+      "type": "string",
+      "minLength": 1
+    },
+    "content_redacted": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sensitivity": {
+      "type": "string",
+      "enum": [
+        "public",
+        "internal",
+        "personal",
+        "sensitive",
+        "blocked"
+      ]
+    },
+    "correction_status": {
+      "type": "string",
+      "enum": [
+        "uncorrected",
+        "corrected",
+        "superseded",
+        "blocked"
+      ]
+    },
+    "scope": {
+      "type": "string",
+      "enum": [
+        "current_task",
+        "project",
+        "relationship",
+        "global",
+        "blocked"
+      ]
+    },
+    "lineage_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "blocked_reasons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "metadata_redacted": {
+      "type": "object",
+      "additionalProperties": {
+        "type": [
+          "string",
+          "number",
+          "boolean",
+          "null"
+        ]
+      }
+    }
+  }
+}

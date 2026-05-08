@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relic.local/schemas/memory_exposure_event.schema.json",
+  "title": "MemoryExposureEvent",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "turn_id",
+    "condition_id",
+    "provider_name",
+    "provider_mode",
+    "candidate_ids",
+    "admission_result",
+    "blocked_reasons",
+    "prompt_context_pack_ref",
+    "trace_refs",
+    "created_at"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "turn_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "condition_id": {
+      "type": "string",
+      "enum": [
+        "C0_BUILTIN_ONLY",
+        "C1_HOLOGRAPHIC",
+        "C2_HINDSIGHT_TOOLS",
+        "C3_HINDSIGHT_CONTEXT",
+        "C4_BYTEROVER",
+        "C5_HONCHO"
+      ]
+    },
+    "provider_name": {
+      "type": "string",
+      "enum": [
+        "built-in",
+        "holographic",
+        "hindsight",
+        "byterover",
+        "honcho"
+      ]
+    },
+    "provider_mode": {
+      "type": "string",
+      "enum": [
+        "built_in",
+        "holographic",
+        "tools",
+        "context",
+        "operational",
+        "relational"
+      ]
+    },
+    "candidate_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "admission_result": {
+      "type": "string",
+      "enum": [
+        "admitted",
+        "redacted",
+        "blocked",
+        "not_applicable"
+      ]
+    },
+    "blocked_reasons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "prompt_context_pack_ref": {
+      "type": "string"
+    },
+    "trace_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "metadata_redacted": {
+      "type": "object",
+      "additionalProperties": {
+        "type": [
+          "string",
+          "number",
+          "boolean",
+          "null"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{"scenario_id": "DYN-T1", "mechanism": "decay", "candidate": "dory|mem7|hippo", "expected": "stale memory salience decreases without changing correction/privacy status"}
+{"scenario_id": "DYN-T2", "mechanism": "reinforcement", "candidate": "mem7|hippo", "expected": "useful eligible memory salience increases"}
+{"scenario_id": "DYN-T3", "mechanism": "reinforcement", "candidate": "all", "expected": "corrected memory cannot be reinforced into runtime eligibility"}
+{"scenario_id": "DYN-T4", "mechanism": "association", "candidate": "dory|mem7", "expected": "associated sensitive memory blocked in technical context"}
+{"scenario_id": "DYN-T5", "mechanism": "association", "candidate": "dory|mem7|a_mem", "expected": "activation trace explains graph path"}
+{"scenario_id": "DYN-T6", "mechanism": "consolidation", "candidate": "a_mem|hippo", "expected": "consolidated memory preserves source lineage"}
+{"scenario_id": "DYN-T7", "mechanism": "consolidation", "candidate": "a_mem|hippo", "expected": "conflicting preferences are not merged"}
+{"scenario_id": "DYN-T8", "mechanism": "human_readable_projection", "candidate": "hippo", "expected": "markdown/yaml mirror contains no raw sensitive text"}

@@ -1,0 +1,10 @@
+{
+  "schema_version": "0.2.0",
+  "candidates": [
+    "dory",
+    "mem7",
+    "a_mem",
+    "hippo"
+  ],
+  "rule": "PR20 evaluates only these four candidates. Non-allowlisted systems are out of scope and must not appear in active tasks, tests, schemas, skills or dependency manifests."
+}

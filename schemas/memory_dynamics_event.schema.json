@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relic.local/schemas/memory_dynamics_event.schema.json",
+  "title": "MemoryDynamicsEvent",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "event_id",
+    "mechanism",
+    "source_candidate",
+    "input_refs",
+    "decision",
+    "reasons",
+    "created_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string"
+    },
+    "event_id": {
+      "type": "string",
+      "pattern": "^MDYN-"
+    },
+    "mechanism": {
+      "type": "string",
+      "enum": [
+        "decay",
+        "reinforcement",
+        "association",
+        "consolidation",
+        "memory_evolution",
+        "conflict_tracking"
+      ]
+    },
+    "source_candidate": {
+      "type": "string",
+      "enum": [
+        "dory",
+        "mem7",
+        "a_mem",
+        "hippo",
+        "internal"
+      ]
+    },
+    "input_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "output_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "confidence_before": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "confidence_after": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "salience_before": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "salience_after": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "privacy_status": {
+      "type": "string"
+    },
+    "correction_status": {
+      "type": "string"
+    },
+    "decision": {
+      "type": "string",
+      "enum": [
+        "allow",
+        "block",
+        "downgrade",
+        "needs_review"
+      ]
+    },
+    "reasons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": false
+}

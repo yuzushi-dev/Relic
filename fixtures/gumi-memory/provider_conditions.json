@@ -1,0 +1,103 @@
+{
+  "$schema": "https://relic-oss.example.com/schemas/provider-conditions-v1.json",
+  "description": "Canonical provider conditions for Hermes-native memory evaluation",
+  "profiles": {
+    "c0-builtin": {
+      "profile_id": "gumi-c0-builtin",
+      "provider_type": "builtin",
+      "is_external": false,
+      "active": true,
+      "status": "active",
+      "conditions": {
+        "memory_enabled": true,
+        "requires_api_key": false,
+        "requires_cloud_access": false,
+        "supports_local_only": true
+      }
+    },
+    "c1-holographic": {
+      "profile_id": "gumi-c1-holographic",
+      "provider_type": "builtin",
+      "is_external": false,
+      "active": true,
+      "status": "active",
+      "conditions": {
+        "memory_enabled": true,
+        "requires_api_key": false,
+        "requires_cloud_access": false,
+        "supports_local_only": true
+      }
+    },
+    "c2-hindsight-tools": {
+      "profile_id": "gumi-c2-hindsight-tools",
+      "provider_type": "builtin",
+      "is_external": false,
+      "active": true,
+      "status": "active",
+      "conditions": {
+        "memory_enabled": true,
+        "requires_api_key": false,
+        "requires_cloud_access": false,
+        "supports_local_only": true
+      }
+    },
+    "c3-hindsight-context": {
+      "profile_id": "gumi-c3-hindsight-context",
+      "provider_type": "builtin",
+      "is_external": false,
+      "active": true,
+      "status": "active",
+      "conditions": {
+        "memory_enabled": true,
+        "requires_api_key": false,
+        "requires_cloud_access": false,
+        "supports_local_only": true
+      }
+    },
+    "c4-byterover": {
+      "profile_id": "gumi-c4-byterover",
+      "provider_type": "external",
+      "is_external": true,
+      "active": false,
+      "status": "skipped",
+      "skip_reason": "PR19 provider evaluation fixture only; live provider not enabled as runtime default",
+      "conditions": {
+        "memory_enabled": false,
+        "requires_api_key": true,
+        "requires_cloud_access": true,
+        "supports_local_only": false,
+        "hermes_native": true
+      }
+    },
+    "c5-honcho": {
+      "profile_id": "gumi-c5-honcho",
+      "provider_type": "external",
+      "is_external": true,
+      "active": false,
+      "status": "skipped",
+      "skip_reason": "PR19 provider evaluation fixture only; live provider not enabled as runtime default",
+      "conditions": {
+        "memory_enabled": false,
+        "requires_api_key": true,
+        "requires_cloud_access": true,
+        "supports_local_only": false,
+        "hermes_native": true
+      }
+    }
+  },
+  "evaluation_metadata": {
+    "evaluation_name": "gumi-provider-eval",
+    "evaluation_version": "1.0.0",
+    "hermes_native": true,
+    "privacy_safe": true,
+    "no_raw_memory_content": true
+  },
+  "summary": {
+    "total_profiles": 6,
+    "active_profiles": 4,
+    "skipped_profiles": 2,
+    "builtin_profiles": 4,
+    "external_profiles": 2,
+    "requires_cloud_access": false
+  }
+}
