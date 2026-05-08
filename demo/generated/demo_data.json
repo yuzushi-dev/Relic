@@ -1,0 +1,311 @@
+{
+  "generated_at": "2026-05-04T20:32:32.300725+00:00",
+  "subject": "demo-subject",
+  "sessions": [
+    {
+      "id": "sess_001",
+      "created_at": "2026-04-28T08:32:32.271208+00:00",
+      "prompt_count": 3,
+      "redacted_count": 1,
+      "consent_granted": 2,
+      "consent_total": 2
+    },
+    {
+      "id": "sess_002",
+      "created_at": "2026-05-01T12:32:32.271208+00:00",
+      "prompt_count": 3,
+      "redacted_count": 1,
+      "consent_granted": 1,
+      "consent_total": 1
+    },
+    {
+      "id": "sess_003",
+      "created_at": "2026-05-04T02:32:32.271208+00:00",
+      "prompt_count": 2,
+      "redacted_count": 0,
+      "consent_granted": 0,
+      "consent_total": 1
+    }
+  ],
+  "prompt_records": [
+    {
+      "id": "prompt_ce057b7c",
+      "created_at": "2026-04-28T08:32:32.271208+00:00",
+      "session_id": "sess_001",
+      "role": "user",
+      "content_hash": "5f6aaaf2d69911b65cbf78cb0e54e01f64345c7a3ed08376de661a9cf36d6b60",
+      "content_length": 21,
+      "is_redacted": 0
+    },
+    {
+      "id": "prompt_d2becbbc",
+      "created_at": "2026-04-28T08:47:32.271208+00:00",
+      "session_id": "sess_001",
+      "role": "assistant",
+      "content_hash": "5d74a431528dc6a646ac6fa4dc9a6d09bc10388d536d9fe5657354b4e33bfda6",
+      "content_length": 16,
+      "is_redacted": 0
+    },
+    {
+      "id": "prompt_6471a1f8",
+      "created_at": "2026-04-28T09:02:32.271208+00:00",
+      "session_id": "sess_001",
+      "role": "user",
+      "content_hash": "7ec55b54951080310a2c09ca3f71c45f2c3802a1212600a6aac470f3a5925b35",
+      "content_length": 28,
+      "is_redacted": 1
+    },
+    {
+      "id": "prompt_4b2a3fd7",
+      "created_at": "2026-05-01T13:17:32.271208+00:00",
+      "session_id": "sess_002",
+      "role": "user",
+      "content_hash": "8ebf786c05f7d28a5dbcee362b1ac4f02ea6a5d25fd024246908aa90af50103c",
+      "content_length": 21,
+      "is_redacted": 0
+    },
+    {
+      "id": "prompt_b7ced7e7",
+      "created_at": "2026-05-01T13:32:32.271208+00:00",
+      "session_id": "sess_002",
+      "role": "assistant",
+      "content_hash": "e3bb5c9b6aad29ca4b03b1b8b292c078a0bc279b9d6d127fa558c8550f0ea1c2",
+      "content_length": 16,
+      "is_redacted": 0
+    },
+    {
+      "id": "prompt_2369cb39",
+      "created_at": "2026-05-01T13:47:32.271208+00:00",
+      "session_id": "sess_002",
+      "role": "user",
+      "content_hash": "fbd12f430c6c8ef7c646e0ddfdaddff27cea3e839e789e26274daba89a3b415a",
+      "content_length": 22,
+      "is_redacted": 1
+    },
+    {
+      "id": "prompt_43f443f0",
+      "created_at": "2026-05-04T04:02:32.271208+00:00",
+      "session_id": "sess_003",
+      "role": "user",
+      "content_hash": "99fae3121e46bc5c91972af6e277ef33e918223c06053e9b5f6546da9f711d48",
+      "content_length": 11,
+      "is_redacted": 0
+    },
+    {
+      "id": "prompt_d5753391",
+      "created_at": "2026-05-04T04:17:32.271208+00:00",
+      "session_id": "sess_003",
+      "role": "assistant",
+      "content_hash": "5885e5886ed33b8807b2e84fcfa8751a4ca9cb1d29a25230d487c8f580c9e3e4",
+      "content_length": 16,
+      "is_redacted": 0
+    }
+  ],
+  "correction_records": [
+    {
+      "id": "corr_0a69ed72",
+      "created_at": "2026-05-01T13:22:32.271208+00:00",
+      "prompt_id": "prompt_ce057b7c",
+      "correction_type": "factual_correction",
+      "delta_content": "Fixed date reference from March to April",
+      "applied": 1,
+      "source": "manual"
+    },
+    {
+      "id": "corr_72946b5d",
+      "created_at": "2026-05-01T13:27:32.271208+00:00",
+      "prompt_id": "prompt_d2becbbc",
+      "correction_type": "tone_adjustment",
+      "delta_content": "Softened language to be less formal",
+      "applied": 1,
+      "source": "compiler"
+    },
+    {
+      "id": "corr_c67581e6",
+      "created_at": "2026-05-01T13:32:32.271208+00:00",
+      "prompt_id": "prompt_6471a1f8",
+      "correction_type": "privacy_redaction",
+      "delta_content": "Redacted personal identifier from content",
+      "applied": 1,
+      "source": "manual"
+    },
+    {
+      "id": "corr_5a4b73b8",
+      "created_at": "2026-05-01T13:37:32.271208+00:00",
+      "prompt_id": "prompt_4b2a3fd7",
+      "correction_type": "factual_correction",
+      "delta_content": "Corrected numerical value in response",
+      "applied": 0,
+      "source": "manual"
+    },
+    {
+      "id": "corr_ecc344a0",
+      "created_at": "2026-05-01T13:42:32.271208+00:00",
+      "prompt_id": "prompt_b7ced7e7",
+      "correction_type": "scope_clarification",
+      "delta_content": "Added scope limitation note to summary",
+      "applied": 0,
+      "source": "compiler"
+    }
+  ],
+  "artifact_records": [
+    {
+      "id": "art_7c839d12",
+      "created_at": "2026-04-28T09:17:32.271208+00:00",
+      "session_id": "sess_001",
+      "artifact_type": "portrait",
+      "artifact_hash": "f3e668a56a1534a4c41f6400cbc6678f2328c023f427f71ec10a2d01c8940c17",
+      "lineage_path": "sess_001/extract/synthesize/portrait",
+      "metadata_json": {
+        "version": "1",
+        "subject": "demo-subject"
+      }
+    },
+    {
+      "id": "art_468294bf",
+      "created_at": "2026-04-28T09:17:32.271208+00:00",
+      "session_id": "sess_001",
+      "artifact_type": "trait_snapshot",
+      "artifact_hash": "f64a366569a74f3eb4388c0e4917a70f34e52204b03efa5db5a70d34d5dba566",
+      "lineage_path": "sess_001/extract/traits/snapshot",
+      "metadata_json": {
+        "version": "1",
+        "subject": "demo-subject"
+      }
+    },
+    {
+      "id": "art_ddaac65e",
+      "created_at": "2026-05-01T13:17:32.271208+00:00",
+      "session_id": "sess_002",
+      "artifact_type": "hypothesis",
+      "artifact_hash": "767354697115a922ba8160e3ae071c2c11fc784772dc43a4e010b65997e38743",
+      "lineage_path": "sess_002/analyze/hypothesis/generate",
+      "metadata_json": {
+        "version": "1",
+        "subject": "demo-subject"
+      }
+    },
+    {
+      "id": "art_22190069",
+      "created_at": "2026-05-01T13:17:32.271208+00:00",
+      "session_id": "sess_002",
+      "artifact_type": "correction_bundle",
+      "artifact_hash": "272c4ebfc6b1d172e64b1e2412a2012218e330d6f44a71742f3920dd7e4439cd",
+      "lineage_path": "sess_002/correct/bundle/apply",
+      "metadata_json": {
+        "version": "1",
+        "subject": "demo-subject"
+      }
+    },
+    {
+      "id": "art_e2415ce4",
+      "created_at": "2026-05-04T03:17:32.271208+00:00",
+      "session_id": "sess_003",
+      "artifact_type": "session_summary",
+      "artifact_hash": "2b81c1a3ba2bf2cf442c479310d0ab13166492af924911c41f82ae27e100984d",
+      "lineage_path": "sess_003/summarize/session/final",
+      "metadata_json": {
+        "version": "1",
+        "subject": "demo-subject"
+      }
+    },
+    {
+      "id": "art_3dc4ba9c",
+      "created_at": "2026-05-04T03:17:32.271208+00:00",
+      "session_id": "sess_003",
+      "artifact_type": "lineage_graph",
+      "artifact_hash": "7345a77f7abe60f9309d23b02ea91369caaf4d4b3d7ca513646448353f2ade45",
+      "lineage_path": "sess_003/lineage/graph/export",
+      "metadata_json": {
+        "version": "1",
+        "subject": "demo-subject"
+      }
+    }
+  ],
+  "consent_records": [
+    {
+      "id": "cons_685060d2",
+      "created_at": "2026-04-28T08:32:32.271208+00:00",
+      "session_id": "sess_001",
+      "consent_type": "data_collection",
+      "granted": 1,
+      "scope": "session"
+    },
+    {
+      "id": "cons_71121989",
+      "created_at": "2026-04-28T08:32:32.271208+00:00",
+      "session_id": "sess_001",
+      "consent_type": "profile_inference",
+      "granted": 1,
+      "scope": "persistent"
+    },
+    {
+      "id": "cons_4fe6932c",
+      "created_at": "2026-05-01T12:32:32.271208+00:00",
+      "session_id": "sess_002",
+      "consent_type": "correction_review",
+      "granted": 1,
+      "scope": "session"
+    },
+    {
+      "id": "cons_d9d87ab7",
+      "created_at": "2026-05-04T02:32:32.271208+00:00",
+      "session_id": "sess_003",
+      "consent_type": "export",
+      "granted": 0,
+      "scope": "session"
+    }
+  ],
+  "incident_reports": [
+    {
+      "id": "inc_e0b0b224",
+      "created_at": "2026-04-28T10:32:32.271208+00:00",
+      "resolved_at": null,
+      "severity": "medium",
+      "status": "open",
+      "title": "Potential PII detection in prompt",
+      "description": "Automated scan flagged possible personal identifier in session interaction",
+      "session_id": "sess_001"
+    },
+    {
+      "id": "inc_a54730ce",
+      "created_at": "2026-05-01T14:32:32.271208+00:00",
+      "resolved_at": "2026-05-01T15:32:32.271208+00:00",
+      "severity": "low",
+      "status": "resolved",
+      "title": "Unusual API response pattern",
+      "description": "Detected atypical response length suggesting possible generation anomaly",
+      "session_id": "sess_002"
+    }
+  ],
+  "pause_records": [
+    {
+      "id": "pause_80ee674e",
+      "created_at": "2026-05-01T13:32:32.271208+00:00",
+      "initiated_at": "2026-05-01T13:32:32.271208+00:00",
+      "resumed_at": "2026-05-01T14:02:32.271208+00:00",
+      "session_id": "sess_002",
+      "state": "resumed",
+      "reason": "Scheduled maintenance window"
+    },
+    {
+      "id": "pause_84848d0c",
+      "created_at": "2026-05-04T03:32:32.271208+00:00",
+      "initiated_at": "2026-05-04T03:32:32.271208+00:00",
+      "resumed_at": null,
+      "session_id": "sess_003",
+      "state": "paused",
+      "reason": "Manual pause by researcher"
+    }
+  ],
+  "stats": {
+    "total_sessions": 3,
+    "total_prompts": 8,
+    "redacted_prompts": 2,
+    "corrections_applied": 3,
+    "corrections_pending": 2,
+    "artifacts": 6,
+    "consent_granted": 3,
+    "open_incidents": 1
+  }
+}

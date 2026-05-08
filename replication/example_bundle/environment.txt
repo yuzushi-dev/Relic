@@ -1,0 +1,16 @@
+# Environment snapshot for Relic replication bundle
+# Generated at: 2024-01-15T10:30:00Z
+
+python==3.11.0
+pydantic==2.5.0
+pytest==7.4.0
+ruff==0.1.0
+
+# Relic package version
+relic==0.1.0
+
+# Operating system
+os==Linux-6.1.0-x86_64
+
+# Python implementation
+implementation==CPython

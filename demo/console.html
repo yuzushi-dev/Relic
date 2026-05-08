@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RELIC · Researcher Console</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #070709;
+            --surface: #0f0b0d;
+            --panel: #151012;
+            --panel-2: #1b1316;
+            --border: #3c2226;
+            --border-strong: #7d0f1c;
+            --text: #f3ece8;
+            --text-muted: #a69691;
+            --red: #d72638;
+            --red-soft: #ff5a6b;
+            --gold: #c6a667;
+            --green: #84d1a4;
+            --ash: #d9cfca;
+            --font: 'IBM Plex Sans', sans-serif;
+            --head: 'Rajdhani', sans-serif;
+            --mono: 'IBM Plex Mono', monospace;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            background-image: 
+                radial-gradient(ellipse 80% 50% at 90% -10%, rgba(215, 38, 56, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse 60% 40% at 10% 50%, rgba(198, 166, 103, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse 100% 100% at 50% 100%, rgba(215, 38, 56, 0.05) 0%, transparent 40%);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            border: 1px solid var(--gold);
+            border-radius: 4px;
+            padding: 14px;
+            box-shadow: 
+                inset 0 0 30px rgba(198, 166, 103, 0.05),
+                0 0 60px rgba(215, 38, 56, 0.1),
+                0 0 100px rgba(0, 0, 0, 0.5);
+        }
+        
+        header {
+            text-align: center;
+            padding: 30px 20px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 30px;
+        }
+        
+        header h1 {
+            font-family: var(--head);
+            font-size: 2.5rem;
+            font-weight: 700;
+            letter-spacing: 0.15em;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+        
+        header h1 span {
+            color: var(--red);
+        }
+        
+        header .subtitle {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            font-family: var(--mono);
+        }
+        
+        .stats-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: var(--surface);
+            border-radius: 4px;
+            border: 1px solid var(--border);
+        }
+        
+        .stat-chip {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            padding: 12px 20px;
+            border-radius: 4px;
+            text-align: center;
+            min-width: 120px;
+        }
+        
+        .stat-chip .value {
+            font-family: var(--head);
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: var(--gold);
+        }
+        
+        .stat-chip .label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-top: 4px;
+        }
+        
+        .panels-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        @media (max-width: 1000px) {
+            .panels-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .panel-header {
+            background: var(--panel-2);
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .panel-header h2 {
+            font-family: var(--head);
+            font-size: 1.1rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+        
+        .panel-content {
+            padding: 16px;
+            max-height: 350px;
+            overflow-y: auto;
+        }
+        
+        .panel-content::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .panel-content::-webkit-scrollbar-track {
+            background: var(--surface);
+        }
+        
+        .panel-content::-webkit-scrollbar-thumb {
+            background: var(--border-strong);
+            border-radius: 3px;
+        }
+        
+        .session-item {
+            padding: 12px;
+            background: var(--surface);
+            border-radius: 4px;
+            margin-bottom: 10px;
+            border-left: 3px solid var(--border);
+        }
+        
+        .session-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .session-item .session-id {
+            font-family: var(--mono);
+            font-size: 0.85rem;
+            color: var(--gold);
+            margin-bottom: 6px;
+        }
+        
+        .session-item .session-meta {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .badge-granted {
+            background: rgba(132, 209, 164, 0.15);
+            color: var(--green);
+            border: 1px solid rgba(132, 209, 164, 0.3);
+        }
+        
+        .badge-denied {
+            background: rgba(215, 38, 56, 0.15);
+            color: var(--red-soft);
+            border: 1px solid rgba(215, 38, 56, 0.3);
+        }
+        
+        .badge-pending {
+            background: rgba(198, 166, 103, 0.15);
+            color: var(--gold);
+            border: 1px solid rgba(198, 166, 103, 0.3);
+        }
+        
+        .badge-applied {
+            background: rgba(132, 209, 164, 0.15);
+            color: var(--green);
+            border: 1px solid rgba(132, 209, 164, 0.3);
+        }
+        
+        .badge-rejected {
+            background: rgba(215, 38, 56, 0.15);
+            color: var(--red-soft);
+            border: 1px solid rgba(215, 38, 56, 0.3);
+        }
+        
+        .badge-open {
+            background: rgba(215, 38, 56, 0.15);
+            color: var(--red-soft);
+            border: 1px solid rgba(215, 38, 56, 0.3);
+        }
+        
+        .badge-resolved {
+            background: rgba(132, 209, 164, 0.15);
+            color: var(--green);
+            border: 1px solid rgba(132, 209, 164, 0.3);
+        }
+        
+        .badge-low {
+            background: rgba(198, 166, 103, 0.15);
+            color: var(--gold);
+            border: 1px solid rgba(198, 166, 103, 0.3);
+        }
+        
+        .badge-medium {
+            background: rgba(215, 38, 56, 0.15);
+            color: var(--red-soft);
+            border: 1px solid rgba(215, 38, 56, 0.3);
+        }
+        
+        .correction-item {
+            padding: 14px;
+            background: var(--surface);
+            border-radius: 4px;
+            margin-bottom: 10px;
+            border-left: 3px solid var(--gold);
+        }
+        
+        .correction-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .correction-item .type {
+            font-family: var(--mono);
+            font-size: 0.8rem;
+            color: var(--gold);
+            margin-bottom: 6px;
+        }
+        
+        .correction-item .delta {
+            font-size: 0.85rem;
+            color: var(--text);
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+        
+        .correction-item .source {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+        
+        .correction-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .btn {
+            font-family: var(--font);
+            font-size: 0.75rem;
+            font-weight: 500;
+            padding: 6px 14px;
+            border-radius: 3px;
+            border: 1px solid;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .btn-apply {
+            background: rgba(132, 209, 164, 0.1);
+            border-color: var(--green);
+            color: var(--green);
+        }
+        
+        .btn-apply:hover {
+            background: rgba(132, 209, 164, 0.2);
+        }
+        
+        .btn-reject {
+            background: rgba(215, 38, 56, 0.1);
+            border-color: var(--red);
+            color: var(--red-soft);
+        }
+        
+        .btn-reject:hover {
+            background: rgba(215, 38, 56, 0.2);
+        }
+        
+        .incident-item {
+            padding: 14px;
+            background: var(--surface);
+            border-radius: 4px;
+            margin-bottom: 10px;
+            border-left: 3px solid var(--border);
+        }
+        
+        .incident-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .incident-item .incident-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .incident-item .incident-title {
+            font-weight: 500;
+            color: var(--text);
+            flex: 1;
+        }
+        
+        .incident-item .incident-desc {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+        
+        .artifact-section {
+            margin-bottom: 30px;
+        }
+        
+        .section-title {
+            font-family: var(--head);
+            font-size: 1.2rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text);
+        }
+        
+        .artifact-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--panel);
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        
+        .artifact-table th,
+        .artifact-table td {
+            padding: 12px 14px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .artifact-table th {
+            background: var(--panel-2);
+            font-family: var(--head);
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+        }
+        
+        .artifact-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .artifact-table tr:hover td {
+            background: var(--surface);
+        }
+        
+        .artifact-type {
+            font-family: var(--mono);
+            font-size: 0.8rem;
+            color: var(--gold);
+        }
+        
+        .artifact-session {
+            font-family: var(--mono);
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+        
+        .artifact-path {
+            font-family: var(--mono);
+            font-size: 0.75rem;
+            color: var(--ash);
+        }
+        
+        .artifact-hash {
+            font-family: var(--mono);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        
+        .audit-section {
+            margin-bottom: 30px;
+        }
+        
+        .audit-trail {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .audit-item {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .audit-item:last-child {
+            border-bottom: none;
+        }
+        
+        .audit-item .audit-time {
+            font-family: var(--mono);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            min-width: 160px;
+        }
+        
+        .audit-item .audit-type {
+            font-family: var(--mono);
+            font-size: 0.8rem;
+            color: var(--gold);
+            min-width: 140px;
+        }
+        
+        .audit-item .audit-delta {
+            flex: 1;
+            font-size: 0.85rem;
+            color: var(--text);
+        }
+        
+        .audit-item .audit-source {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            min-width: 80px;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 30px 20px;
+            border-top: 1px solid var(--border);
+            margin-top: 30px;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+        
+        footer a {
+            color: var(--gold);
+            text-decoration: none;
+        }
+        
+        footer a:hover {
+            text-decoration: underline;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 30px;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>RELIC <span>·</span> Researcher Console</h1>
+            <p class="subtitle">synthetic demo — no personal data</p>
+        </header>
+        
+        <div class="stats-bar" id="stats-bar"></div>
+        
+        <div class="panels-grid">
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Session Log</h2>
+                </div>
+                <div class="panel-content" id="session-log"></div>
+            </div>
+            
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Review Queue</h2>
+                </div>
+                <div class="panel-content" id="review-queue"></div>
+            </div>
+            
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Incident Reports</h2>
+                </div>
+                <div class="panel-content" id="incident-reports"></div>
+            </div>
+        </div>
+        
+        <div class="artifact-section">
+            <h3 class="section-title">Artifact Registry</h3>
+            <table class="artifact-table">
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Session</th>
+                        <th>Lineage Path</th>
+                        <th>Hash</th>
+                    </tr>
+                </thead>
+                <tbody id="artifact-tbody"></tbody>
+            </table>
+        </div>
+        
+        <div class="audit-section">
+            <h3 class="section-title">Audit Trail</h3>
+            <div class="audit-trail" id="audit-trail"></div>
+        </div>
+        
+        <footer>
+            <p>Generated with synthetic data · No personal information · <a href="https://github.com/yuzushi-dev/relic">AGPL-3.0</a></p>
+        </footer>
+    </div>
+
+    <script>
+    window.RELIC_DEMO_DATA = {"generated_at": "2026-05-04T20:29:41.188794+00:00", "subject": "demo-subject", "sessions": [{"id": "sess_001", "created_at": "2026-04-28T08:29:40.815463+00:00", "prompt_count": 3, "redacted_count": 1, "consent_granted": 2, "consent_total": 2}, {"id": "sess_002", "created_at": "2026-05-01T12:29:40.815463+00:00", "prompt_count": 3, "redacted_count": 1, "consent_granted": 1, "consent_total": 1}, {"id": "sess_003", "created_at": "2026-05-04T02:29:40.815463+00:00", "prompt_count": 2, "redacted_count": 0, "consent_granted": 0, "consent_total": 1}], "prompt_records": [{"id": "prompt_1660e30b", "created_at": "2026-04-28T08:29:40.815463+00:00", "session_id": "sess_001", "role": "user", "content_hash": "5f6aaaf2d69911b65cbf78cb0e54e01f64345c7a3ed08376de661a9cf36d6b60", "content_length": 21, "is_redacted": 0}, {"id": "prompt_37c23638", "created_at": "2026-04-28T08:44:40.815463+00:00", "session_id": "sess_001", "role": "assistant", "content_hash": "5d74a431528dc6a646ac6fa4dc9a6d09bc10388d536d9fe5657354b4e33bfda6", "content_length": 16, "is_redacted": 0}, {"id": "prompt_cd754535", "created_at": "2026-04-28T08:59:40.815463+00:00", "session_id": "sess_001", "role": "user", "content_hash": "7ec55b54951080310a2c09ca3f71c45f2c3802a1212600a6aac470f3a5925b35", "content_length": 28, "is_redacted": 1}, {"id": "prompt_1e5fdcd7", "created_at": "2026-05-01T13:14:40.815463+00:00", "session_id": "sess_002", "role": "user", "content_hash": "8ebf786c05f7d28a5dbcee362b1ac4f02ea6a5d25fd024246908aa90af50103c", "content_length": 21, "is_redacted": 0}, {"id": "prompt_63b96e35", "created_at": "2026-05-01T13:29:40.815463+00:00", "session_id": "sess_002", "role": "assistant", "content_hash": "e3bb5c9b6aad29ca4b03b1b8b292c078a0bc279b9d6d127fa558c8550f0ea1c2", "content_length": 16, "is_redacted": 0}, {"id": "prompt_aa51a911", "created_at": "2026-05-01T13:44:40.815463+00:00", "session_id": "sess_002", "role": "user", "content_hash": "fbd12f430c6c8ef7c646e0ddfdaddff27cea3e839e789e26274daba89a3b415a", "content_length": 22, "is_redacted": 1}, {"id": "prompt_454f4463", "created_at": "2026-05-04T03:59:40.815463+00:00", "session_id": "sess_003", "role": "user", "content_hash": "99fae3121e46bc5c91972af6e277ef33e918223c06053e9b5f6546da9f711d48", "content_length": 11, "is_redacted": 0}, {"id": "prompt_2de97165", "created_at": "2026-05-04T04:14:40.815463+00:00", "session_id": "sess_003", "role": "assistant", "content_hash": "5885e5886ed33b8807b2e84fcfa8751a4ca9cb1d29a25230d487c8f580c9e3e4", "content_length": 16, "is_redacted": 0}], "correction_records": [{"id": "corr_d14c2824", "created_at": "2026-05-01T13:19:40.815463+00:00", "prompt_id": "prompt_1660e30b", "correction_type": "factual_correction", "delta_content": "Fixed date reference from March to April", "applied": 1, "source": "manual"}, {"id": "corr_9208b9b8", "created_at": "2026-05-01T13:24:40.815463+00:00", "prompt_id": "prompt_37c23638", "correction_type": "tone_adjustment", "delta_content": "Softened language to be less formal", "applied": 1, "source": "compiler"}, {"id": "corr_8d21e3af", "created_at": "2026-05-01T13:29:40.815463+00:00", "prompt_id": "prompt_cd754535", "correction_type": "privacy_redaction", "delta_content": "Redacted personal identifier from content", "applied": 1, "source": "manual"}, {"id": "corr_53c1e4f9", "created_at": "2026-05-01T13:34:40.815463+00:00", "prompt_id": "prompt_1e5fdcd7", "correction_type": "factual_correction", "delta_content": "Corrected numerical value in response", "applied": 0, "source": "manual"}, {"id": "corr_e790de93", "created_at": "2026-05-01T13:39:40.815463+00:00", "prompt_id": "prompt_63b96e35", "correction_type": "scope_clarification", "delta_content": "Added scope limitation note to summary", "applied": 0, "source": "compiler"}], "artifact_records": [{"id": "art_b285969d", "created_at": "2026-04-28T09:14:40.815463+00:00", "session_id": "sess_001", "artifact_type": "portrait", "artifact_hash": "120f56f652db3d77406b89b1909d6c507c50ed3ba3fb1b67f0327cdbd1077307", "lineage_path": "sess_001/extract/synthesize/portrait", "metadata_json": {"version": "1", "subject": "demo-subject"}}, {"id": "art_8cc26113", "created_at": "2026-04-28T09:14:40.815463+00:00", "session_id": "sess_001", "artifact_type": "trait_snapshot", "artifact_hash": "1fd09610934a570cdec1b3a10ee2b2aa48f96461d8a113d95a03dc795eb2e5ff", "lineage_path": "sess_001/extract/traits/snapshot", "metadata_json": {"version": "1", "subject": "demo-subject"}}, {"id": "art_99b9423a", "created_at": "2026-05-01T13:14:40.815463+00:00", "session_id": "sess_002", "artifact_type": "hypothesis", "artifact_hash": "fe7aa5ecc2951e9d16f95a071c425e373f645da7d4b8a76de1ef5434dc222530", "lineage_path": "sess_002/analyze/hypothesis/generate", "metadata_json": {"version": "1", "subject": "demo-subject"}}, {"id": "art_bd152b8e", "created_at": "2026-05-01T13:14:40.815463+00:00", "session_id": "sess_002", "artifact_type": "correction_bundle", "artifact_hash": "564b6cd8ea3c59994e1a6357047445584a1e0fd1e2c811487f20d0256db9b48b", "lineage_path": "sess_002/correct/bundle/apply", "metadata_json": {"version": "1", "subject": "demo-subject"}}, {"id": "art_03cfacc8", "created_at": "2026-05-04T03:14:40.815463+00:00", "session_id": "sess_003", "artifact_type": "session_summary", "artifact_hash": "42b7274b40c1ea30f9070d5c546a1059151d8e35c52d2a56577a77d5f0243dca", "lineage_path": "sess_003/summarize/session/final", "metadata_json": {"version": "1", "subject": "demo-subject"}}, {"id": "art_ff650025", "created_at": "2026-05-04T03:14:40.815463+00:00", "session_id": "sess_003", "artifact_type": "lineage_graph", "artifact_hash": "ca7122fef3b6a3de36a00eb627633029f40d5992cbd52869a21244bd906b2966", "lineage_path": "sess_003/lineage/graph/export", "metadata_json": {"version": "1", "subject": "demo-subject"}}], "consent_records": [{"id": "cons_3f3f68d1", "created_at": "2026-04-28T08:29:40.815463+00:00", "session_id": "sess_001", "consent_type": "data_collection", "granted": 1, "scope": "session"}, {"id": "cons_90e9d3f4", "created_at": "2026-04-28T08:29:40.815463+00:00", "session_id": "sess_001", "consent_type": "profile_inference", "granted": 1, "scope": "persistent"}, {"id": "cons_e8b7c56a", "created_at": "2026-05-01T12:29:40.815463+00:00", "session_id": "sess_002", "consent_type": "correction_review", "granted": 1, "scope": "session"}, {"id": "cons_f57fea95", "created_at": "2026-05-04T02:29:40.815463+00:00", "session_id": "sess_003", "consent_type": "export", "granted": 0, "scope": "session"}], "incident_reports": [{"id": "inc_980111f8", "created_at": "2026-04-28T10:29:40.815463+00:00", "resolved_at": null, "severity": "medium", "status": "open", "title": "Potential PII detection in prompt", "description": "Automated scan flagged possible personal identifier in session interaction", "session_id": "sess_001"}, {"id": "inc_e69711cd", "created_at": "2026-05-01T14:29:40.815463+00:00", "resolved_at": "2026-05-01T15:29:40.815463+00:00", "severity": "low", "status": "resolved", "title": "Unusual API response pattern", "description": "Detected atypical response length suggesting possible generation anomaly", "session_id": "sess_002"}], "pause_records": [{"id": "pause_848d65b8", "created_at": "2026-05-01T13:29:40.815463+00:00", "initiated_at": "2026-05-01T13:29:40.815463+00:00", "resumed_at": "2026-05-01T13:59:40.815463+00:00", "session_id": "sess_002", "state": "resumed", "reason": "Scheduled maintenance window"}, {"id": "pause_f235ebcb", "created_at": "2026-05-04T03:29:40.815463+00:00", "initiated_at": "2026-05-04T03:29:40.815463+00:00", "resumed_at": null, "session_id": "sess_003", "state": "paused", "reason": "Manual pause by researcher"}], "stats": {"total_sessions": 3, "total_prompts": 8, "redacted_prompts": 2, "corrections_applied": 3, "corrections_pending": 2, "artifacts": 6, "consent_granted": 3, "open_incidents": 1}};
+
+    function formatDate(isoString) {
+        const date = new Date(isoString);
+        return date.toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    function truncateHash(hash, length = 8) {
+        return hash.substring(0, length);
+    }
+
+    function renderStats() {
+        const stats = window.RELIC_DEMO_DATA.stats;
+        const container = document.getElementById('stats-bar');
+        
+        container.innerHTML = `
+            <div class="stat-chip">
+                <div class="value">${stats.total_sessions}</div>
+                <div class="label">Sessions</div>
+            </div>
+            <div class="stat-chip">
+                <div class="value">${stats.total_prompts}</div>
+                <div class="label">Prompts</div>
+            </div>
+            <div class="stat-chip">
+                <div class="value">${stats.redacted_prompts}</div>
+                <div class="label">Redacted</div>
+            </div>
+            <div class="stat-chip">
+                <div class="value">${stats.corrections_applied}</div>
+                <div class="label">Applied</div>
+            </div>
+            <div class="stat-chip">
+                <div class="value">${stats.corrections_pending}</div>
+                <div class="label">Pending</div>
+            </div>
+            <div class="stat-chip">
+                <div class="value">${stats.open_incidents}</div>
+                <div class="label">Open Incidents</div>
+            </div>
+        `;
+    }
+
+    function renderSessionLog() {
+        const sessions = window.RELIC_DEMO_DATA.sessions;
+        const consents = window.RELIC_DEMO_DATA.consent_records;
+        const container = document.getElementById('session-log');
+        
+        if (sessions.length === 0) {
+            container.innerHTML = '<div class="empty-state">No sessions recorded</div>';
+            return;
+        }
+        
+        container.innerHTML = sessions.map(session => {
+            const sessionConsents = consents.filter(c => c.session_id === session.id);
+            const allGranted = sessionConsents.length > 0 && sessionConsents.every(c => c.granted === 1);
+            
+            return `
+                <div class="session-item">
+                    <div class="session-id">${session.id}</div>
+                    <div class="session-meta">
+                        <span>${formatDate(session.created_at)}</span>
+                        <span>${session.prompt_count} prompts</span>
+                        <span>${session.redacted_count} redacted</span>
+                        <span class="badge ${allGranted ? 'badge-granted' : 'badge-denied'}">
+                            ${allGranted ? 'Consent Granted' : 'No Consent'}
+                        </span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function renderReviewQueue() {
+        const corrections = window.RELIC_DEMO_DATA.correction_records.filter(c => c.applied === 0);
+        const container = document.getElementById('review-queue');
+        
+        if (corrections.length === 0) {
+            container.innerHTML = '<div class="empty-state">No pending corrections</div>';
+            return;
+        }
+        
+        container.innerHTML = corrections.map(corr => `
+            <div class="correction-item">
+                <div class="type">${corr.correction_type.replace('_', ' ')}</div>
+                <div class="delta">${corr.delta_content}</div>
+                <div class="source">Source: ${corr.source}</div>
+                <div class="correction-actions">
+                    <button class="btn btn-apply" onclick="this.textContent='Applied'; this.disabled=true;">Apply</button>
+                    <button class="btn btn-reject" onclick="this.textContent='Rejected'; this.disabled=true;">Reject</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function renderIncidentReports() {
+        const incidents = window.RELIC_DEMO_DATA.incident_reports;
+        const container = document.getElementById('incident-reports');
+        
+        if (incidents.length === 0) {
+            container.innerHTML = '<div class="empty-state">No incidents reported</div>';
+            return;
+        }
+        
+        container.innerHTML = incidents.map(inc => `
+            <div class="incident-item">
+                <div class="incident-header">
+                    <span class="badge badge-${inc.severity}">${inc.severity}</span>
+                    <span class="badge badge-${inc.status}">${inc.status}</span>
+                </div>
+                <div class="incident-title">${inc.title}</div>
+                <div class="incident-desc">${inc.description}</div>
+            </div>
+        `).join('');
+    }
+
+    function renderArtifactRegistry() {
+        const artifacts = window.RELIC_DEMO_DATA.artifact_records;
+        const tbody = document.getElementById('artifact-tbody');
+        
+        if (artifacts.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No artifacts registered</td></tr>';
+            return;
+        }
+        
+        tbody.innerHTML = artifacts.map(art => `
+            <tr>
+                <td class="artifact-type">${art.artifact_type}</td>
+                <td class="artifact-session">${art.session_id}</td>
+                <td class="artifact-path">${art.lineage_path}</td>
+                <td class="artifact-hash">${truncateHash(art.artifact_hash)}</td>
+            </tr>
+        `).join('');
+    }
+
+    function renderAuditTrail() {
+        const corrections = window.RELIC_DEMO_DATA.correction_records.sort((a, b) => 
+            new Date(a.created_at) - new Date(b.created_at)
+        );
+        const container = document.getElementById('audit-trail');
+        
+        if (corrections.length === 0) {
+            container.innerHTML = '<div class="empty-state">No audit records</div>';
+            return;
+        }
+        
+        container.innerHTML = corrections.map(corr => `
+            <div class="audit-item">
+                <span class="audit-time">${formatDate(corr.created_at)}</span>
+                <span class="audit-type">${corr.correction_type.replace('_', ' ')}</span>
+                <span class="audit-delta">${corr.delta_content}</span>
+                <span class="badge ${corr.applied ? 'badge-applied' : 'badge-rejected'}">${corr.applied ? 'Applied' : 'Pending'}</span>
+                <span class="audit-source">${corr.source}</span>
+            </div>
+        `).join('');
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        renderStats();
+        renderSessionLog();
+        renderReviewQueue();
+        renderIncidentReports();
+        renderArtifactRegistry();
+        renderAuditTrail();
+    });
+    </script>
+</body>
+</html>

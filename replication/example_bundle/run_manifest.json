@@ -1,0 +1,63 @@
+{
+  "manifest_version": "1.0.0",
+  "created_at": "2024-01-15T10:30:00Z",
+  "reproducibility_class": "semantic",
+  "evidence_ids": [
+    {
+      "evidence_id": "E00001",
+      "evidence_type": "fixture",
+      "description": "Example input prompt fixture"
+    },
+    {
+      "evidence_id": "E00002",
+      "evidence_type": "hint",
+      "description": "Compiled hint artifact"
+    }
+  ],
+  "policy_snapshot_hash": "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456",
+  "environment_hash": "f1e2d3c4b5a6978012345678901234567890abcdef1234567890abcdef123456",
+  "schema_versions": {
+    "artifact_schema": "1.0.0",
+    "cac_schema": "1.0.0",
+    "privacy_schema": "1.0.0",
+    "correction_schema": "1.0.0"
+  },
+  "seed_config": {
+    "deterministic": true,
+    "seed": 42,
+    "provider_seeds": {
+      "openai": 42,
+      "anthropic": 42
+    }
+  },
+  "integration_metadata": [
+    {
+      "name": "Example Provider",
+      "integration_class": "research-only",
+      "runtime_dependency": false,
+      "hermes_native": false,
+      "version": "1.0.0",
+      "skipped": false
+    }
+  ],
+  "privacy_exclusions": [
+    {
+      "excluded_item": "raw_prompts/",
+      "exclusion_reason": "raw_prompt_excluded"
+    },
+    {
+      "excluded_item": "sealed_local_replay/",
+      "exclusion_reason": "sealed_local_replay"
+    }
+  ],
+  "debug_bundle_ref": {
+    "debug_manifest_hash": "deadbeef1234567890abcdef1234567890abcdef1234567890abcdef12345678",
+    "debug_bundle_available": true,
+    "debug_bundle_location": "debug/example_debug_bundle.zip"
+  },
+  "evidence_level": "S1",
+  "limitations": [
+    "Provider-level variance may cause semantic differences in LLM outputs",
+    "Timing-dependent behavior excluded from reproducibility guarantees"
+  ]
+}

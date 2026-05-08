@@ -1,0 +1,202 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://relic-oss.github.io/schemas/debug_bundle.schema.json",
+  "title": "Debug Bundle",
+  "description": "Schema for debug bundles that enable reproduction of operational failures without exposing private data. Debug bundles are separate from public replication bundles.",
+  "type": "object",
+  "required": [
+    "debug_version",
+    "created_at",
+    "debug_class",
+    "original_run_manifest_ref"
+  ],
+  "properties": {
+    "debug_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Schema version for this debug bundle format"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of bundle creation"
+    },
+    "debug_class": {
+      "type": "string",
+      "enum": ["redacted_replay", "synthetic_replay", "sealed_local_replay"],
+      "description": "Debug bundle class determining contents and sharing restrictions"
+    },
+    "original_run_manifest_ref": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256 hash of the original run_manifest.json"
+    },
+    "issues_reproduced": {
+      "type": "array",
+      "description": "List of issues this bundle can reproduce",
+      "items": {
+        "type": "object",
+        "required": ["issue_id", "description", "reproduction_status"],
+        "properties": {
+          "issue_id": {
+            "type": "string",
+            "description": "Unique identifier for the issue"
+          },
+          "description": {
+            "type": "string",
+            "description": "Human-readable issue description"
+          },
+          "reproduction_status": {
+            "type": "string",
+            "enum": ["exact", "semantic", "not_reproduced"],
+            "description": "How well this bundle reproduces the issue"
+          },
+          "reproduction_steps": {
+            "type": "string",
+            "description": "Steps to reproduce the issue"
+          }
+        }
+      }
+    },
+    "redacted_replay": {
+      "type": "object",
+      "description": "Redacted event trace for redacted_replay class",
+      "properties": {
+        "trace_file": {
+          "type": "string",
+          "description": "Path to redacted_replay.jsonl"
+        },
+        "trace_line_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "privacy_redaction_verified": {
+          "type": "boolean"
+        }
+      }
+    },
+    "synthetic_replay": {
+      "type": "object",
+      "description": "Synthetic replay for synthetic_replay class",
+      "properties": {
+        "trace_file": {
+          "type": "string",
+          "description": "Path to synthetic_replay.jsonl"
+        },
+        "synthetic_equivalence_verified": {
+          "type": "boolean"
+        },
+        "original_structure_preserved": {
+          "type": "boolean"
+        }
+      }
+    },
+    "sealed_local_replay": {
+      "type": "object",
+      "description": "Sealed local replay reference (never included as payload)",
+      "properties": {
+        "reference_file": {
+          "type": "string",
+          "description": "Path to sealed_local_replay.ref pointer"
+        },
+        "encryption_key_id": {
+          "type": "string",
+          "description": "Key identifier for decryption (local only)"
+        },
+        "retention_days": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 30,
+          "description": "Maximum retention period in days"
+        },
+        "available_locally": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "policy_metadata": {
+      "type": "object",
+      "description": "Policy version and hash information",
+      "properties": {
+        "policy_versions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "policy_name": {"type": "string"},
+              "version": {"type": "string"},
+              "hash": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          }
+        }
+      }
+    },
+    "privacy_exclusions": {
+      "type": "array",
+      "description": "List of items excluded for privacy reasons",
+      "items": {
+        "type": "object",
+        "required": ["excluded_item", "exclusion_reason"],
+        "properties": {
+          "excluded_item": {"type": "string"},
+          "exclusion_reason": {
+            "type": "string",
+            "enum": [
+              "contains_raw_private_data",
+              "raw_prompt_excluded",
+              "provider_store_excluded",
+              "sealed_local_replay",
+              "user_consent_required",
+              "raw_session_excluded"
+            ]
+          }
+        }
+      }
+    },
+    "operator_notes": {
+      "type": "string",
+      "description": "Optional notes from the operator (no private data)"
+    },
+    "reproduction_command": {
+      "type": "string",
+      "description": "Command to reproduce the failure"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "debug_class": {"const": "sealed_local_replay"}
+        }
+      },
+      "then": {
+        "required": ["sealed_local_replay"]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "debug_class": {"const": "redacted_replay"}
+        }
+      },
+      "then": {
+        "required": ["redacted_replay"]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "debug_class": {"const": "synthetic_replay"}
+        }
+      },
+      "then": {
+        "required": ["synthetic_replay"]
+      }
+    }
+  ],
+  "additionalProperties": true
+}

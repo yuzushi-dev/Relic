@@ -1,0 +1,103 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://relic-oss.github.io/schemas/artifact_checksums.schema.json",
+  "title": "Artifact Checksums",
+  "description": "SHA-256 checksums for all compiled artifacts in a Relic replication bundle. Enables verification that artifacts have not been modified since compilation.",
+  "type": "object",
+  "required": [
+    "checksum_version",
+    "generated_at",
+    "artifact_hash_algorithm",
+    "artifacts"
+  ],
+  "properties": {
+    "checksum_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Schema version for this checksum manifest"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when checksums were generated"
+    },
+    "artifact_hash_algorithm": {
+      "type": "string",
+      "const": "sha256",
+      "description": "Hash algorithm used for all artifact checksums"
+    },
+    "manifest_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256 of this checksums manifest itself"
+    },
+    "artifacts": {
+      "type": "array",
+      "description": "List of all compiled artifacts with their checksums",
+      "items": {
+        "type": "object",
+        "required": ["artifact_path", "checksum", "artifact_type", "compiled_at"],
+        "properties": {
+          "artifact_path": {
+            "type": "string",
+            "description": "Relative path to the artifact within the bundle"
+          },
+          "checksum": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "description": "SHA-256 hash of the artifact file"
+          },
+          "artifact_type": {
+            "type": "string",
+            "enum": ["compiled_hint", "compiled_policy", "compiled_cac", "compiled_privacy_gate", "compiled_correction"]
+          },
+          "compiled_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp of compilation"
+          },
+          "evidence_id": {
+            "type": "string",
+            "pattern": "^E\\d{5}$",
+            "description": "Evidence ID linking to run_manifest evidence_ids"
+          },
+          "lineage_refs": {
+            "type": "array",
+            "description": "References to source artifacts in lineage",
+            "items": {
+              "type": "string",
+              "pattern": "^E\\d{5}$"
+            }
+          },
+          "size_bytes": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "File size in bytes"
+          },
+          "redacted": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether the artifact contains redacted content"
+          }
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "description": "Checksum validation metadata",
+      "properties": {
+        "validator_version": {"type": "string"},
+        "validated_at": {"type": "string", "format": "date-time"},
+        "validation_status": {
+          "type": "string",
+          "enum": ["passed", "failed", "skipped"]
+        },
+        "failed_artifacts": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

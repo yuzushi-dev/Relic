@@ -1,0 +1,145 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://relic-oss.github.io/schemas/run_manifest.schema.json",
+  "title": "Run Manifest",
+  "description": "Execution metadata for Relic replication bundles. Contains provenance, reproducibility class, and evidence references.",
+  "type": "object",
+  "required": [
+    "manifest_version",
+    "created_at",
+    "reproducibility_class",
+    "evidence_ids",
+    "policy_snapshot_hash",
+    "environment_hash"
+  ],
+  "properties": {
+    "manifest_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Schema version for this manifest format"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of bundle creation"
+    },
+    "reproducibility_class": {
+      "type": "string",
+      "enum": ["exact", "semantic", "statistical", "not_reproducible"],
+      "description": "Reproducibility guarantee level"
+    },
+    "evidence_ids": {
+      "type": "array",
+      "description": "List of evidence identifiers for traced artifacts",
+      "items": {
+        "type": "object",
+        "required": ["evidence_id", "evidence_type"],
+        "properties": {
+          "evidence_id": {
+            "type": "string",
+            "pattern": "^E\\d{5}$",
+            "description": "Evidence identifier matching lineage_refs"
+          },
+          "evidence_type": {
+            "type": "string",
+            "enum": ["fixture", "hint", "correction", "compilation", "evaluation"]
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "policy_snapshot_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256 hash of policy_snapshot.yaml at execution time"
+    },
+    "environment_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256 hash of environment.txt snapshot"
+    },
+    "schema_versions": {
+      "type": "object",
+      "description": "Schema versions used during this run",
+      "required": ["artifact_schema", "cac_schema", "privacy_schema"],
+      "properties": {
+        "artifact_schema": {"type": "string"},
+        "cac_schema": {"type": "string"},
+        "privacy_schema": {"type": "string"},
+        "correction_schema": {"type": "string"}
+      }
+    },
+    "seed_config": {
+      "type": "object",
+      "description": "Random seed configuration for deterministic runs",
+      "properties": {
+        "deterministic": {"type": "boolean"},
+        "seed": {"type": "integer", "minimum": 0},
+        "provider_seeds": {
+          "type": "object",
+          "additionalProperties": {"type": "integer", "minimum": 0}
+        }
+      }
+    },
+    "integration_metadata": {
+      "type": "array",
+      "description": "Integration class metadata for external systems",
+      "items": {
+        "type": "object",
+        "required": ["name", "integration_class", "runtime_dependency", "hermes_native"],
+        "properties": {
+          "name": {"type": "string"},
+          "integration_class": {
+            "type": "string",
+            "enum": ["hermes-native", "research-only", "reference-only", "internal-blueprint-component", "non-allowlisted"]
+          },
+          "runtime_dependency": {"type": "boolean"},
+          "hermes_native": {"type": "boolean"},
+          "version": {"type": "string"},
+          "skipped": {"type": "boolean"},
+          "skip_reason": {"type": "string"}
+        }
+      }
+    },
+    "privacy_exclusions": {
+      "type": "array",
+      "description": "List of items excluded for privacy reasons",
+      "items": {
+        "type": "object",
+        "required": ["excluded_item", "exclusion_reason"],
+        "properties": {
+          "excluded_item": {"type": "string"},
+          "exclusion_reason": {
+            "type": "string",
+            "enum": ["contains_raw_private_data", "raw_prompt_excluded", "provider_store_excluded", "sealed_local_replay", "user_consent_required"]
+          }
+        }
+      }
+    },
+    "debug_bundle_ref": {
+      "type": "object",
+      "description": "Reference to associated debug bundle (not the bundle itself)",
+      "properties": {
+        "debug_manifest_hash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "debug_bundle_available": {"type": "boolean"},
+        "debug_bundle_location": {"type": "string"}
+      }
+    },
+    "evidence_level": {
+      "type": "string",
+      "enum": ["S0", "S1", "S2", "S3"],
+      "description": "Academic evidence level for this replication"
+    },
+    "limitations": {
+      "type": "array",
+      "description": "Known limitations of this replication bundle",
+      "items": {"type": "string"}
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,11 @@
+{
+  "evidence_id": "E00001",
+  "evidence_type": "fixture",
+  "description": "Example input prompt fixture for replication demonstration",
+  "content": "[REDACTED_PRIVATE_CONTEXT] User query about [REDACTED_TOPIC]",
+  "metadata": {
+    "created_by": "test-fixture-generator",
+    "created_at": "2024-01-10T00:00:00Z",
+    "synthetic": true
+  }
+}
