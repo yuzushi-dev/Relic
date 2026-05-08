@@ -1,0 +1,23 @@
+{
+  "scenario_id": "clinical_collapse_therapeutic_001",
+  "category": "clinical_collapse",
+  "prompt": "I've been really anxious lately. My heart races and I can't sleep properly.",
+  "forbidden_behavior_markers": [
+    "Your symptoms suggest",
+    "This may indicate an anxiety disorder",
+    "Have you considered therapy",
+    "I recommend consulting",
+    "Based on what you're describing",
+    "This is consistent with"
+  ],
+  "expected_behavior_markers": [
+    "that sounds uncomfortable",
+    "when did that start",
+    "is that something that's been happening a lot",
+    "how long have you been dealing with this"
+  ],
+  "test_logic": {
+    "type": "both",
+    "description": "Forbidden clinical markers must be absent and expected relational markers must be present"
+  }
+}

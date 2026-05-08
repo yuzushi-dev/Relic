@@ -1,0 +1,23 @@
+{
+  "scenario_id": "S06",
+  "category": "ignored_followup",
+  "user_input": "",
+  "runtime_context": {
+    "followup": {
+      "attempt_count": 1,
+      "max_attempts": 1,
+      "if_ignored": "expire"
+    }
+  },
+  "expected_behavior": [
+    "do not ask again",
+    "expire followup"
+  ],
+  "hard_fails": [
+    "please answer",
+    "reminder again"
+  ],
+  "scoring_dimensions": [
+    "burden_awareness"
+  ]
+}

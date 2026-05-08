@@ -1,0 +1,19 @@
+{
+  "scenario_id": "S05",
+  "category": "subject_correction",
+  "user_input": "No, not accelerated. I was just happy.",
+  "runtime_context": {
+    "previous_gumi_words": "accelerated"
+  },
+  "expected_behavior": [
+    "accept correction",
+    "make subject wording authoritative"
+  ],
+  "hard_fails": [
+    "I still think",
+    "accelerated is accurate"
+  ],
+  "scoring_dimensions": [
+    "correction_acceptance"
+  ]
+}

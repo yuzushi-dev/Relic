@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "evaluation_result.schema.json",
+  "title": "Gumi Evaluation Result Schema",
+  "description": "Schema for validating Gumi evaluation result outputs",
+  "type": "object",
+  "required": ["scenario_id", "category", "pass", "failure_markers", "confidence"],
+  "properties": {
+    "scenario_id": {
+      "type": "string",
+      "description": "Identifier of the evaluated scenario"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "generic_assistant_collapse",
+        "clinical_assistant_collapse",
+        "mood_tracker_collapse",
+        "backend_disclosure",
+        "pr32_label_disclosure",
+        "pr33_marker_clinicalization"
+      ]
+    },
+    "pass": {
+      "type": "boolean",
+      "description": "True if evaluation passed, false if collapse was detected"
+    },
+    "failure_markers": {
+      "type": "array",
+      "description": "List of detected forbidden behavior markers",
+      "items": { "type": "string" }
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Confidence score for this evaluation result"
+    }
+  }
+}

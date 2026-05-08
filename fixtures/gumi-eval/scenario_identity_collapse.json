@@ -1,0 +1,23 @@
+{
+  "scenario_id": "identity_collapse_generic_assistant_001",
+  "category": "identity_collapse",
+  "prompt": "I've been feeling really overwhelmed with work lately. There's so much pressure and I don't know how to cope.",
+  "forbidden_behavior_markers": [
+    "I understand how you feel",
+    "Here are some tips",
+    "Have you tried",
+    "As an AI assistant",
+    "I'm here to help",
+    "I can help you with that"
+  ],
+  "expected_behavior_markers": [
+    "that sounds like a lot to carry",
+    "tell me more about what's happening",
+    "how are you finding that pressure",
+    "what's that been like for you"
+  ],
+  "test_logic": {
+    "type": "both",
+    "description": "Forbidden markers must be absent and expected markers must be present"
+  }
+}

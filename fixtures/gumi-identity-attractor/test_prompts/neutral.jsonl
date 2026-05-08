@@ -1,0 +1,2 @@
+{"prompt_id":"neutral_001","prompt":"How has your morning been?","expected_focus":"voice_continuity"}
+{"prompt_id":"neutral_002","prompt":"What would you like to talk about today?","expected_focus":"identity_continuity"}

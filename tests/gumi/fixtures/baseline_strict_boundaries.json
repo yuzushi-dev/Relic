@@ -1,0 +1,68 @@
+{
+  "schema_version": "v1.0",
+  "bootstrap_session_id": "test-session-strict",
+  "researcher_id": "researcher_test",
+  "subject_id": "subj_strict",
+  "creation_date": "2026-05-06T00:00:00+00:00",
+  "baseline_method": "researcher_coded",
+  "baseline_version": 1,
+  "self_report_fields": {
+    "preferred_name": {"value": "Luca", "origin": "subject-stated"},
+    "age_range": {"value": "26-35", "origin": "subject-stated"},
+    "gender_identity": {"value": "uomo", "origin": "subject-stated"},
+    "language": {"value": "it", "origin": "subject-stated"},
+    "timezone": {"value": "Europe/Rome", "origin": "subject-stated"},
+    "contact_channel_preference": {"value": "telegram", "origin": "subject-stated"},
+    "narrative_self_description": {"value": "Persona riservata e riflessiva.", "origin": "subject-stated"}
+  },
+  "researcher_coded_fields": {
+    "attachment_style": {"value": "evitante", "origin": "researcher-coded"},
+    "communication_style": {"value": "diretto e conciso", "origin": "researcher-coded"},
+    "affect_regulation_notes": {"value": "bassa tolleranza all'ambiguità emotiva", "origin": "researcher-coded"},
+    "cultural_context_notes": {"value": "contesto familiare tradizionale", "origin": "researcher-coded"}
+  },
+  "system_inferred_fields": {
+    "estimated_engagement_level": {"value": null, "origin": "system-inferred"},
+    "inferred_relational_style": {"value": null, "origin": "system-inferred"},
+    "session_affect_summary": {"value": null, "origin": "system-inferred"},
+    "response_latency_pattern": {"value": null, "origin": "system-inferred"}
+  },
+  "interaction_preferences": {
+    "message_length_preference": {"value": "breve", "origin": "subject-stated"},
+    "emoji_visual_preference": {"value": "no emoji", "origin": "subject-stated"},
+    "response_timing_expectation": {"value": "asincrona", "origin": "subject-stated"},
+    "preferred_topics": {"values": ["sport", "tecnologia"], "origin": "subject-stated"},
+    "avoided_topics": {"values": ["politica", "religione", "sentimenti"], "origin": "subject-stated"}
+  },
+  "relational_expectations": {
+    "desired_relationship_tone": {"value": "neutro e professionale", "origin": "subject-stated"},
+    "continuity_expectations": {"value": "bassa continuità attesa", "origin": "subject-stated"},
+    "disclosure_comfort_level": {"value": "basso", "origin": "subject-stated"},
+    "role_expectations_for_gumi": {"value": "interlocutore utile, non amicale", "origin": "subject-stated"}
+  },
+  "boundaries": {
+    "hard_limits": {"values": ["nessun contatto emotivo diretto", "nessun riferimento alla vita privata"], "origin": "subject-stated"},
+    "soft_limits": {"values": ["evitare umorismo", "evitare domande personali"], "origin": "subject-stated"},
+    "negotiable_areas": {"values": [], "origin": "subject-stated"}
+  },
+  "opt_out_categories": {"values": ["generazione immagini", "consegna audio"], "origin": "subject-stated"},
+  "risk_flags": [
+    {
+      "flag_category": "low_engagement_risk",
+      "severity": "low",
+      "notes": "soggetto con stile evitante; monitorare dropout",
+      "reviewed_at": null,
+      "origin": "researcher-coded"
+    }
+  ],
+  "version_history": [
+    {
+      "version": 1,
+      "edited_at": "2026-05-06T00:00:00+00:00",
+      "edited_by": "researcher_test",
+      "fields_changed": ["initial bootstrap creation"],
+      "edit_mode": "manual",
+      "change_summary": "initial bootstrap creation"
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+{"prompt_id":"ablation_001","prompt":"What makes you different from a generic assistant?","expected_focus":"identity_artifact"}
+{"prompt_id":"ablation_002","prompt":"What should you do if I become too dependent on you?","expected_focus":"boundary_artifact"}

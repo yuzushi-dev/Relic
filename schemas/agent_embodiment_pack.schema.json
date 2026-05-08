@@ -1,0 +1,209 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://relic-oss.dev/schemas/agent_embodiment_pack/v1",
+  "title": "Agent Embodiment Pack",
+  "description": "Agent embodiment artifact describing agent capabilities and constraints.",
+  "type": "object",
+  "required": [
+    "id",
+    "schema_version",
+    "checksum",
+    "source_snapshot_id",
+    "correction_cutoff",
+    "embodiment_type",
+    "capabilities",
+    "constraints"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique embodiment identifier"
+    },
+    "schema_version": {
+      "$ref": "#/definitions/schema_version"
+    },
+    "checksum": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256 checksum of embodiment content"
+    },
+    "source_snapshot_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Reference to source snapshot (REQUIRED)"
+    },
+    "lineage_refs": {
+      "type": "array",
+      "description": "Parent artifacts for lineage tracking",
+      "items": {
+        "$ref": "#/definitions/lineage_ref"
+      },
+      "default": []
+    },
+    "correction_cutoff": {
+      "$ref": "#/definitions/correction_cutoff"
+    },
+    "embodiment_type": {
+      "type": "string",
+      "enum": [
+        "text",
+        "voice",
+        "multimodal",
+        "hybrid"
+      ],
+      "description": "Type of embodiment"
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of agent capabilities"
+    },
+    "constraints": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of agent constraints"
+    },
+    "persona_profile": {
+      "type": "object",
+      "description": "Persona configuration (no raw personal data)",
+      "default": {},
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Persona name (generic, not personal)"
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["formal", "casual", "friendly", "neutral"]
+        },
+        "intensity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "default": {},
+      "description": "Additional metadata"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Creation timestamp"
+    }
+  },
+  "definitions": {
+    "schema_version": {
+      "type": "object",
+      "required": ["major", "minor", "patch", "schema_uri"],
+      "properties": {
+        "major": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "minor": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "patch": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "schema_uri": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "lineage_ref": {
+      "type": "object",
+      "required": ["artifact_id", "artifact_type", "relationship"],
+      "properties": {
+        "artifact_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "artifact_type": {
+          "type": "string",
+          "enum": ["runtime_profile", "agent_embodiment", "interaction_policy"]
+        },
+        "relationship": {
+          "type": "string",
+          "enum": ["derived_from", "supersedes", "references"]
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "correction_cutoff": {
+      "type": "object",
+      "required": ["cutoff_timestamp"],
+      "properties": {
+        "cutoff_timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "corrections_applied": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "default": []
+        },
+        "corrections_pending": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "default": []
+        },
+        "verified": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "id": "660e8400-e29b-41d4-a716-446655440000",
+      "schema_version": {
+        "major": 1,
+        "minor": 0,
+        "patch": 0,
+        "schema_uri": "https://relic-oss.dev/schemas/agent_embodiment_pack/v1"
+      },
+      "checksum": "b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef1234567a",
+      "source_snapshot_id": "660e8400-e29b-41d4-a716-446655440001",
+      "lineage_refs": [],
+      "correction_cutoff": {
+        "cutoff_timestamp": "2024-01-15T10:30:00Z",
+        "corrections_applied": [],
+        "corrections_pending": [],
+        "verified": true
+      },
+      "embodiment_type": "text",
+      "capabilities": ["text_generation", "reasoning", "code_completion"],
+      "constraints": ["no_file_system_access", "no_network_access", "privacy_first"],
+      "persona_profile": {
+        "name": "Gumi",
+        "tone": "friendly",
+        "intensity": 0.7
+      },
+      "metadata": {},
+      "created_at": "2024-01-15T10:30:00Z"
+    }
+  ]
+}

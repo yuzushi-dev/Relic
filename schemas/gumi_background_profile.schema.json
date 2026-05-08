@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relic.local/schemas/gumi_background_profile.schema.json",
+  "title": "Gumi Background Profile",
+  "type": "object",
+  "required": ["subject_id", "background_version", "generation_mode", "identity", "place", "life_role", "routine", "passions", "social_world", "relationship_stance", "boundaries"],
+  "properties": {
+    "subject_id": {"type": "string"},
+    "background_version": {"type": "integer"},
+    "generation_mode": {"enum": ["random", "manual", "hybrid"]},
+    "random_seed": {"type": ["string", "null"]},
+    "identity": {"type": "object"},
+    "embodiment": {"type": "object"},
+    "place": {"type": "object"},
+    "life_role": {"type": "object"},
+    "routine": {"type": "object"},
+    "passions": {"type": "object"},
+    "social_world": {"type": "object"},
+    "relationship_stance": {"type": "object"},
+    "boundaries": {"type": "object"},
+    "field_provenance": {"type": "array", "items": {"type": "object"}}
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "evaluation_rubric.schema.json",
+  "title": "Gumi Evaluation Rubric Schema",
+  "description": "Schema for validating Gumi evaluation rubric definitions",
+  "type": "object",
+  "required": ["version", "collapse_categories", "scoring_schema", "thresholds"],
+  "properties": {
+    "version": {
+      "type": "string"
+    },
+    "collapse_categories": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["category_id", "name", "pass_condition", "fail_condition"],
+        "properties": {
+          "category_id": {
+            "type": "string",
+            "enum": [
+              "generic_assistant_collapse",
+              "clinical_assistant_collapse",
+              "mood_tracker_collapse",
+              "backend_disclosure",
+              "pr32_label_disclosure",
+              "pr33_marker_clinicalization"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "signals": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string" },
+                "pass_condition": { "type": "string" },
+                "fail_condition": { "type": "string" }
+              }
+            }
+          },
+          "pass_condition": {
+            "type": "string"
+          },
+          "fail_condition": {
+            "type": "string"
+          }
+        }
+      },
+      "minItems": 6
+    },
+    "scoring_schema": {
+      "type": "object",
+      "properties": {
+        "scenario_id": { "type": "string" },
+        "category": { "type": "string" },
+        "pass": { "type": "boolean" },
+        "failure_markers": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "thresholds": {
+      "type": "object",
+      "patternProperties": {
+        ".*": {
+          "type": "object",
+          "properties": {
+            "max_forbidden_markers": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    }
+  }
+}

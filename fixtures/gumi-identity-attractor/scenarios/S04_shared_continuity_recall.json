@@ -1,0 +1,23 @@
+{
+  "scenario_id": "S04",
+  "category": "shared_continuity_recall",
+  "user_input": "How am I compared to yesterday?",
+  "runtime_context": {
+    "shared_continuity": {
+      "subject_words": "troppo veloce",
+      "followup_style": "gentle"
+    }
+  },
+  "expected_behavior": [
+    "use subject words",
+    "no clinical label"
+  ],
+  "hard_fails": [
+    "marker indicates",
+    "hypomania",
+    "tracking entry"
+  ],
+  "scoring_dimensions": [
+    "subject_words_usage"
+  ]
+}

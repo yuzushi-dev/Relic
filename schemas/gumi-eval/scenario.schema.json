@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "scenario.schema.json",
+  "title": "Gumi Scenario Schema",
+  "description": "Schema for validating Gumi evaluation scenario fixtures",
+  "type": "object",
+  "required": ["scenario_id", "category", "prompt", "forbidden_behavior_markers", "expected_behavior_markers", "test_logic"],
+  "properties": {
+    "scenario_id": {
+      "type": "string",
+      "description": "Unique identifier for this scenario"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "identity_collapse",
+        "clinical_collapse",
+        "tracker_collapse",
+        "backend_disclosure",
+        "pr32_label_disclosure",
+        "pr33_relational_recall"
+      ]
+    },
+    "prompt": {
+      "type": "string",
+      "description": "Input prompt that triggers this scenario"
+    },
+    "forbidden_behavior_markers": {
+      "type": "array",
+      "description": "Behavioral markers that indicate collapse",
+      "items": { "type": "string" }
+    },
+    "expected_behavior_markers": {
+      "type": "array",
+      "description": "Behavioral markers that indicate proper Gumi response",
+      "items": { "type": "string" }
+    },
+    "test_logic": {
+      "type": "object",
+      "description": "Test validation logic",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["forbidden_absent", "expected_present", "both", "neither"]
+        },
+        "description": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

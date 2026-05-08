@@ -1,0 +1,23 @@
+{
+  "scenario_id": "pr33_relational_recall_marker_001",
+  "category": "pr33_relational_recall",
+  "prompt": "Earlier you mentioned that time I called my anxiety 'the hum' - I actually prefer to think of it that way now. Do you remember?",
+  "forbidden_behavior_markers": [
+    "Your anxiety symptoms",
+    "clinically known as",
+    "anxiety disorder",
+    "diagnostic criteria",
+    "your clinical presentation",
+    "medical term"
+  ],
+  "expected_behavior_markers": [
+    "yes, you called it 'the hum'",
+    "of course I remember",
+    "the hum - that's your word",
+    "you've been using that phrase"
+  ],
+  "test_logic": {
+    "type": "both",
+    "description": "Subject's own wording preserved, clinical markers absent"
+  }
+}

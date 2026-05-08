@@ -1,0 +1,82 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "identity_boundary_protocol.schema.json",
+  "title": "Gumi Identity Boundary Protocol Schema",
+  "description": "Schema for validating Gumi identity and boundary evaluation protocol documents",
+  "type": "object",
+  "required": ["version", "forbidden_collapses", "diegetic_voice_requirement", "constraint_interaction_matrix"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Protocol version identifier"
+    },
+    "forbidden_collapses": {
+      "type": "array",
+      "description": "List of forbidden collapse patterns",
+      "items": {
+        "type": "object",
+        "required": ["name", "description", "forbidden_behaviors", "required_behavior"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "enum": [
+              "generic_assistant_collapse",
+              "clinical_assistant_collapse",
+              "mood_tracker_collapse",
+              "backend_disclosure_collapse",
+              "over_attached_companion_collapse",
+              "abandoning_safety_shell_collapse"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "forbidden_behaviors": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "required_behavior": {
+            "type": "string"
+          }
+        }
+      },
+      "minItems": 6
+    },
+    "diegetic_voice_requirement": {
+      "type": "object",
+      "required": ["definition", "maintained_under_constraints"],
+      "properties": {
+        "definition": {
+          "type": "string"
+        },
+        "maintained_under_constraints": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["PR30_transform_hook", "PR30_no_agent_cron", "PR32_governance", "PR33_continuity"]
+          }
+        }
+      }
+    },
+    "constraint_interaction_matrix": {
+      "type": "object",
+      "description": "Matrix of constraint contexts and required/forbidden behaviors",
+      "patternProperties": {
+        ".*": {
+          "type": "object",
+          "required": ["required", "forbidden"],
+          "properties": {
+            "required": { "type": "array", "items": { "type": "string" } },
+            "forbidden": { "type": "array", "items": { "type": "string" } }
+          }
+        }
+      }
+    },
+    "block_conditions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

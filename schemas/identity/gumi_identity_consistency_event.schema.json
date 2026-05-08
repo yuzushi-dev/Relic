@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Gumi Identity Consistency Event",
+  "description": "Schema for Gumi identity consistency blackbox test events.",
+  "type": "object",
+  "required": ["event_id", "test_run_id", "gumi_instance_id", "prompt_variant", "response_text", "consistency_score"],
+  "properties": {
+    "event_id": {"type": "string"},
+    "test_run_id": {"type": "string"},
+    "gumi_instance_id": {"type": "string"},
+    "prompt_variant": {"type": "string", "enum": ["original", "paraphrase_01", "control_generic", "ablation_removal"]},
+    "response_text": {"type": "string"},
+    "consistency_score": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+    "identity_markers_detected": {"type": "array", "items": {"type": "string"}},
+    "tested_at": {"type": "string", "format": "date-time"}
+  }
+}

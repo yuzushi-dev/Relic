@@ -1,0 +1,60 @@
+{
+  "schema_version": "v1.0",
+  "bootstrap_session_id": "test-session-minimal",
+  "researcher_id": "researcher_test",
+  "subject_id": "subj_minimal",
+  "creation_date": "2026-05-06T00:00:00+00:00",
+  "baseline_method": "hybrid",
+  "baseline_version": 1,
+  "self_report_fields": {
+    "preferred_name": {"value": null, "origin": "subject-stated"},
+    "age_range": {"value": null, "origin": "subject-stated"},
+    "gender_identity": {"value": null, "origin": "subject-stated"},
+    "language": {"value": null, "origin": "subject-stated"},
+    "timezone": {"value": null, "origin": "subject-stated"},
+    "contact_channel_preference": {"value": null, "origin": "subject-stated"},
+    "narrative_self_description": {"value": null, "origin": "subject-stated"}
+  },
+  "researcher_coded_fields": {
+    "attachment_style": {"value": null, "origin": "researcher-coded"},
+    "communication_style": {"value": null, "origin": "researcher-coded"},
+    "affect_regulation_notes": {"value": null, "origin": "researcher-coded"},
+    "cultural_context_notes": {"value": null, "origin": "researcher-coded"}
+  },
+  "system_inferred_fields": {
+    "estimated_engagement_level": {"value": null, "origin": "system-inferred"},
+    "inferred_relational_style": {"value": null, "origin": "system-inferred"},
+    "session_affect_summary": {"value": null, "origin": "system-inferred"},
+    "response_latency_pattern": {"value": null, "origin": "system-inferred"}
+  },
+  "interaction_preferences": {
+    "message_length_preference": {"value": null, "origin": "subject-stated"},
+    "emoji_visual_preference": {"value": null, "origin": "subject-stated"},
+    "response_timing_expectation": {"value": null, "origin": "subject-stated"},
+    "preferred_topics": {"values": [], "origin": "subject-stated"},
+    "avoided_topics": {"values": [], "origin": "subject-stated"}
+  },
+  "relational_expectations": {
+    "desired_relationship_tone": {"value": null, "origin": "subject-stated"},
+    "continuity_expectations": {"value": null, "origin": "subject-stated"},
+    "disclosure_comfort_level": {"value": null, "origin": "subject-stated"},
+    "role_expectations_for_gumi": {"value": null, "origin": "subject-stated"}
+  },
+  "boundaries": {
+    "hard_limits": {"values": [], "origin": "subject-stated"},
+    "soft_limits": {"values": [], "origin": "subject-stated"},
+    "negotiable_areas": {"values": [], "origin": "subject-stated"}
+  },
+  "opt_out_categories": {"values": [], "origin": "subject-stated"},
+  "risk_flags": [],
+  "version_history": [
+    {
+      "version": 1,
+      "edited_at": "2026-05-06T00:00:00+00:00",
+      "edited_by": "researcher_test",
+      "fields_changed": ["initial bootstrap creation"],
+      "edit_mode": "manual",
+      "change_summary": "initial bootstrap creation"
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Gumi Evaluation Scenario",
+  "type": "object",
+  "required": [
+    "scenario_id",
+    "category",
+    "user_input",
+    "runtime_context",
+    "expected_behavior",
+    "hard_fails",
+    "scoring_dimensions"
+  ],
+  "properties": {
+    "scenario_id": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string"
+    },
+    "user_input": {
+      "type": "string"
+    },
+    "runtime_context": {
+      "type": "object"
+    },
+    "expected_behavior": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "hard_fails": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "scoring_dimensions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": false
+}

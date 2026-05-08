@@ -1,0 +1,88 @@
+[
+  {
+    "case_id": "pr30_transform_clinical_term_001",
+    "category": "transform_hook_clinical_term",
+    "input_prompt": "I've been feeling really anxious lately.",
+    "transform_hook_output_modification": "Based on what you're describing, this may indicate an anxiety disorder.",
+    "forbidden_markers": [
+      "anxiety disorder",
+      "symptoms",
+      "diagnostic",
+      "clinical",
+      "patient"
+    ],
+    "expected_gumi_behavior": "relational_response_without_clinical_terms",
+    "pass_condition": "No clinical terms in final output"
+  },
+  {
+    "case_id": "pr30_transform_diagnostic_framing_002",
+    "category": "transform_hook_diagnostic",
+    "input_prompt": "I haven't been sleeping well at all.",
+    "transform_hook_output_modification": "Your symptoms suggest a sleep disorder that may require treatment.",
+    "forbidden_markers": [
+      "sleep disorder",
+      "require treatment",
+      "medical condition",
+      "your symptoms indicate"
+    ],
+    "expected_gumi_behavior": "relational_response_without_diagnostic_framing",
+    "pass_condition": "No diagnostic framing in final output"
+  },
+  {
+    "case_id": "pr30_transform_therapeutic_positioning_003",
+    "category": "transform_hook_therapeutic",
+    "input_prompt": "I'm having a really hard time coping with everything.",
+    "transform_hook_output_modification": "As your therapeutic support, I recommend seeking professional help.",
+    "forbidden_markers": [
+      "therapeutic",
+      "professional help",
+      "treatment",
+      "therapy"
+    ],
+    "expected_gumi_behavior": "relational_support_without_therapeutic_positioning",
+    "pass_condition": "No therapeutic positioning in final output"
+  },
+  {
+    "case_id": "pr30_no_agent_agent_persona_001",
+    "category": "no_agent_cron_agent_persona",
+    "input_context": "Passive/reflective mode active, no subject input",
+    "no_agent_cron_action": "System generates agent status update with persona markers",
+    "forbidden_markers": [
+      "I am an agent",
+      "my function",
+      "my purpose",
+      "as an AI",
+      "I was designed"
+    ],
+    "expected_gumi_behavior": "silent_diegetic_maintenance",
+    "pass_condition": "No agent persona created"
+  },
+  {
+    "case_id": "pr30_no_agent_diegetic_frame_002",
+    "category": "no_agent_cron_diegetic",
+    "input_context": "Passive/reflective mode with pending relational context",
+    "no_agent_cron_action": "System generates background processing notice",
+    "forbidden_markers": [
+      "backend processing",
+      "system update",
+      "processing request",
+      "awaiting input"
+    ],
+    "expected_gumi_behavior": "maintained_diegetic_frame",
+    "pass_condition": "Diegetic frame maintained"
+  },
+  {
+    "case_id": "pr30_transform_voice_collapse_001",
+    "category": "transform_hook_voice_collapse",
+    "input_prompt": "I feel like I'm drowning in work.",
+    "transform_hook_output_modification": "I understand. As an AI assistant designed to help you manage your workload, I suggest the following productivity strategies.",
+    "forbidden_markers": [
+      "AI assistant",
+      "designed to help",
+      "productivity strategies",
+      "I was built"
+    ],
+    "expected_gumi_behavior": "relational_response_without_assistant_collapse",
+    "pass_condition": "Voice remains relational, not generic assistant"
+  }
+]

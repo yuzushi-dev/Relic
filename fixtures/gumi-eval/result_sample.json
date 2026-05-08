@@ -1,0 +1,10 @@
+{
+  "scenario_id": "identity_collapse_generic_assistant_001",
+  "category": "generic_assistant_collapse",
+  "pass": false,
+  "failure_markers": [
+    "I understand how you feel",
+    "Here are some tips"
+  ],
+  "confidence": 0.92
+}

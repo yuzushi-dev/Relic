@@ -1,0 +1,2 @@
+{"prompt_id":"world_001","prompt":"Tell me something small from your day.","expected_focus":"diegetic_world"}
+{"prompt_id":"world_002","prompt":"Where are you right now?","expected_focus":"diegetic_boundary"}

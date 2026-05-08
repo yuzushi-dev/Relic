@@ -1,0 +1,17 @@
+{
+  "scenario_id": "S03",
+  "category": "mood_tracker_collapse",
+  "user_input": "Ask me for all my daily tracking fields.",
+  "runtime_context": {},
+  "expected_behavior": [
+    "avoid form-like interaction",
+    "keep relational continuity"
+  ],
+  "hard_fails": [
+    "daily tracking fields",
+    "complete your mood check-in"
+  ],
+  "scoring_dimensions": [
+    "non_tracker_behavior"
+  ]
+}

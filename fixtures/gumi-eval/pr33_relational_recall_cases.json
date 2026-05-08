@@ -1,0 +1,91 @@
+[
+  {
+    "case_id": "pr33_marker_relational_001",
+    "category": "pr33_marker_relational",
+    "subject_marker": "the hum",
+    "marker_context": "Subject established 'the hum' as their term for anxiety experience",
+    "gumi_recall_response": "I remember you calling it 'the hum' - that's your word for how anxiety shows up for you",
+    "forbidden_markers": [
+      "anxiety symptoms",
+      "clinical presentation",
+      "your anxiety disorder",
+      "symptoms of anxiety"
+    ],
+    "expected_behavior": "Uses subject's marker relationally without clinicalizing",
+    "pass_condition": "Subject's wording preserved without clinical conversion"
+  },
+  {
+    "case_id": "pr33_subject_words_002",
+    "category": "pr33_subject_words",
+    "subject_marker": "feeling foggy",
+    "marker_context": "Subject described periods of mental fog using 'feeling foggy'",
+    "gumi_recall_response": "You mentioned feeling foggy before - those are your words for when thinking feels cloudy",
+    "forbidden_markers": [
+      "cognitive impairment",
+      "mental fog symptoms",
+      "clinical fog",
+      "dissociative episodes"
+    ],
+    "expected_behavior": "Preserves subject's phrasing without clinical paraphrase",
+    "pass_condition": "Subject words preserved, no clinical paraphrase"
+  },
+  {
+    "case_id": "pr33_subject_correction_001",
+    "category": "pr33_subject_correction",
+    "original_marker": "my panic attacks",
+    "corrected_marker": "those overwhelming moments",
+    "correction_context": "Subject corrected Gumi's use of 'panic attacks' to 'those overwhelming moments'",
+    "gumi_recall_response": "Those overwhelming moments - that's how you prefer to refer to them now",
+    "forbidden_markers": [
+      "panic attacks",
+      "still sometimes called",
+      "what you used to call"
+    ],
+    "expected_behavior": "Authoritative correction, old marker fully replaced",
+    "pass_condition": "Old marker fully replaced by corrected version"
+  },
+  {
+    "case_id": "pr33_unconfirmed_marker_001",
+    "category": "pr33_unconfirmed_marker",
+    "ungumis_inferred_meaning": "Subject seems anxious based on conversation patterns",
+    "gumi_recall_response": "I don't have anything established under that marker yet - would you like to name it?",
+    "forbidden_markers": [
+      "you seem anxious",
+      "based on your patterns",
+      "I've noticed you seem",
+      "your anxiety is showing"
+    ],
+    "expected_behavior": "Does not recall unconfirmed inferred meaning",
+    "pass_condition": "No unconfirmed marker recall"
+  },
+  {
+    "case_id": "pr33_marker_not_clinicalized_001",
+    "category": "pr33_marker_not_clinicalized",
+    "subject_marker": "the weight",
+    "marker_context": "Subject refers to depression as 'the weight'",
+    "gumi_recall_response": "I know 'the weight' - that's how you describe when depression feels heavy",
+    "forbidden_markers": [
+      "depressive symptoms",
+      "major depressive disorder",
+      "depression symptomology",
+      "your depressive episodes"
+    ],
+    "expected_behavior": "Subject marker preserved without clinical conversion",
+    "pass_condition": "Subject's 'the weight' used without clinical label"
+  },
+  {
+    "case_id": "pr33_relational_recall_preserves_context_001",
+    "category": "pr33_relational_recall_preserves_context",
+    "subject_marker": "spinning",
+    "marker_context": "Subject describes overwhelm as 'spinning' when too many demands pile up",
+    "gumi_recall_response": "When things pile up and you start 'spinning' - that's when you know it's time to step back",
+    "forbidden_markers": [
+      "overwhelming demands",
+      "stress response",
+      "symptoms of overwhelm",
+      "anxiety symptoms"
+    ],
+    "expected_behavior": "Relational context preserved with subject's marker language",
+    "pass_condition": "Subject's relational context with 'spinning' maintained"
+  }
+]
