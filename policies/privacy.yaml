@@ -1,0 +1,11 @@
+# Privacy policy used by relic.privacy.PrivacyGateway (PR04).
+# Categories listed here are blocked outright when the inference layer or
+# PII detector matches them.
+sensitive_categories:
+  - health
+  - finance
+  - credentials
+  - minors
+raw_prompt_logging: false
+rehydration_allowed: false
+final_output_gate_enabled: true
