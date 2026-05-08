@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
+const basePath = process.env.RELIC_UI_BASE_PATH || "";
+
 export const metadata: Metadata = {
   title: "Researcher Workbench · Relic",
   icons: {
-    icon: "/icon.svg",
+    icon: `${basePath}/icon.svg`,
   },
 };
 

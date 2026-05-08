@@ -31,21 +31,31 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Build static demo
-        run: npm run build:static
+        run: RELIC_UI_BASE_PATH=/Relic npm run build:static
       - name: Disable Jekyll
         run: touch out/.nojekyll
-      - name: Add legacy demo console
+      - name: Publish current researcher UI entrypoints
         run: |
-          mkdir -p out/demo
-          cp ../demo/console.html out/demo/console.html
-          cp -R ../demo/generated out/demo/generated
+          publish_root=out
+          if [ -d out/Relic ]; then
+            publish_root=out/Relic
+          fi
+          mkdir -p "$publish_root/demo"
+          cp -R ../demo/generated "$publish_root/demo/generated"
           printf '%s\n' \
             '<!doctype html>' \
             '<meta charset="utf-8">' \
-            '<meta http-equiv="refresh" content="0; url=demo/console.html">' \
-            '<title>Relic Demo</title>' \
-            '<a href="demo/console.html">Open Relic demo</a>' \
-            > out/index.html
+            '<meta http-equiv="refresh" content="0; url=workbench/">' \
+            '<title>Relic Researcher Workbench</title>' \
+            '<a href="workbench/">Open Relic Researcher Workbench</a>' \
+            > "$publish_root/index.html"
+          printf '%s\n' \
+            '<!doctype html>' \
+            '<meta charset="utf-8">' \
+            '<meta http-equiv="refresh" content="0; url=../workbench/">' \
+            '<title>Relic Researcher Workbench</title>' \
+            '<a href="../workbench/">Open Relic Researcher Workbench</a>' \
+            > "$publish_root/demo/console.html"
       - uses: actions/upload-pages-artifact@v3
         with:
           path: ui/out
