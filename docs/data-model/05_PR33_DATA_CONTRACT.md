@@ -26,16 +26,16 @@ Continuity markers track longitudinal state across Gumi sessions. They require e
 
 Markers MUST NOT be stored without explicit subject confirmation:
 
-- `confirmed: true` — Subject has confirmed the marker
-- `confirmed: false` — Marker is pending confirmation (must not be stored permanently)
+- `confirmed: true` - Subject has confirmed the marker
+- `confirmed: false` - Marker is pending confirmation (must not be stored permanently)
 
 ## Corrections
 
 When a correction is applied to a marker:
 
-1. **Original marker is preserved** — Never deleted
-2. **Correction is authoritative** — Takes precedence over original
-3. **Correction record links to original** — Audit trail maintained
+1. **Original marker is preserved** - Never deleted
+2. **Correction is authoritative** - Takes precedence over original
+3. **Correction record links to original** - Audit trail maintained
 
 ## Recall Rules
 

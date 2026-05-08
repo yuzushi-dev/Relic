@@ -1,4 +1,4 @@
-# Subject Baseline Page — UI Specification
+# Subject Baseline Page - UI Specification
 
 **Task:** PR27D  
 **Status:** Draft  
@@ -142,13 +142,13 @@ Every baseline field MUST display exactly one of the following origin labels as 
 |-------|-----------------|
 | `subject-stated` | Solid badge, primary color |
 | `researcher-coded` | Solid badge, secondary color |
-| `system-inferred` | Italic badge, muted background — visually distinct |
+| `system-inferred` | Italic badge, muted background - visually distinct |
 | `generated-candidate` | Dashed border badge |
 | `manually-edited` | Badge with pencil icon |
 | `corrected` | Badge with checkmark, amber tint |
 | `retired` | Strikethrough text, grey badge |
 
-> **Block condition:** `BLOCKED_BASELINE_FIELD_WITHOUT_ORIGIN` — any field rendered without an origin label fails CI.
+> **Block condition:** `BLOCKED_BASELINE_FIELD_WITHOUT_ORIGIN` - any field rendered without an origin label fails CI.
 
 ---
 
@@ -172,7 +172,7 @@ Every baseline field MUST display exactly one of the following origin labels as 
 - A `version_history` entry MUST be appended for every change, including system-inferred updates.
 - Edits performed via correction propagation MUST record `edit_mode: "correction_propagation"`.
 
-> **Block condition:** `BLOCKED_UNVERSIONED_BASELINE_EDIT` — any edit that does not produce a version history entry fails CI.
+> **Block condition:** `BLOCKED_UNVERSIONED_BASELINE_EDIT` - any edit that does not produce a version history entry fails CI.
 
 ---
 
@@ -185,7 +185,7 @@ When a researcher corrects a baseline field:
 3. Dependent artifacts are updated or flagged for re-review.
 4. The propagation trace is stored and linked from the baseline record.
 
-> **Block condition:** `BLOCKED_CORRECTION_PROPAGATION_MISSING` — saving a correction without queueing propagation fails CI.
+> **Block condition:** `BLOCKED_CORRECTION_PROPAGATION_MISSING` - saving a correction without queueing propagation fails CI.
 
 ---
 

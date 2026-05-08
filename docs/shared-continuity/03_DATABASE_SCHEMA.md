@@ -1,4 +1,4 @@
-# Shared Continuity Memory — Database Schema
+# Shared Continuity Memory - Database Schema
 
 ## MVP database
 

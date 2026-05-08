@@ -1,4 +1,4 @@
-# Researcher Workbench — Shared Continuity Panel Specification
+# Researcher Workbench - Shared Continuity Panel Specification
 
 ## Status
 

@@ -35,9 +35,9 @@ Safety signals (PR32) are **NOT memories** and must not be accessible to:
 
 When applying behavior policy patches:
 
-1. **Labels are stripped** — Family names, personal identifiers removed
-2. **Only policy delta stored** — Not the full patched content
-3. **Audit trail preserved** — Patch applied event recorded
+1. **Labels are stripped** - Family names, personal identifiers removed
+2. **Only policy delta stored** - Not the full patched content
+3. **Audit trail preserved** - Patch applied event recorded
 
 ## Constraints
 

@@ -1,4 +1,4 @@
-# Shared Continuity Memory — Architecture
+# Shared Continuity Memory - Architecture
 
 ## Components
 

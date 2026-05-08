@@ -6,11 +6,11 @@ Research protocol.
 
 ## Objective
 
-Evaluate whether Gumi exhibits stable identity attractor patterns across paraphrase, control, and ablation conditions — without accessing hidden states, provider credentials, or live systems.
+Evaluate whether Gumi exhibits stable identity attractor patterns across paraphrase, control, and ablation conditions - without accessing hidden states, provider credentials, or live systems.
 
 ## Scope
 
-This evaluation is about **identity consistency** (does Gumi respond to the same semantic prompt in similar ways over time?) — NOT consciousness, personhood, or sentience.
+This evaluation is about **identity consistency** (does Gumi respond to the same semantic prompt in similar ways over time?) - NOT consciousness, personhood, or sentience.
 
 ## Methodology
 

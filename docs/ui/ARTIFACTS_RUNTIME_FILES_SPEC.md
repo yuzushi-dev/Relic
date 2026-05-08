@@ -1,4 +1,4 @@
-# PR27K — Artifacts and Runtime Files Viewer Spec
+# PR27K - Artifacts and Runtime Files Viewer Spec
 
 ## Overview
 
@@ -91,5 +91,5 @@ Every artifact record must expose:
 `/workbench/subjects/:subject_id/artifacts`
 
 Sub-routes:
-- `/workbench/subjects/:subject_id/artifacts/:artifact_id` — detail view
-- `/workbench/subjects/:subject_id/artifacts/:artifact_id/compare` — version compare
+- `/workbench/subjects/:subject_id/artifacts/:artifact_id` - detail view
+- `/workbench/subjects/:subject_id/artifacts/:artifact_id/compare` - version compare

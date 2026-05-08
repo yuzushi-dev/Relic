@@ -1,4 +1,4 @@
-# Shared Continuity Memory — Normative Protocol
+# Shared Continuity Memory - Normative Protocol
 
 ## Status
 

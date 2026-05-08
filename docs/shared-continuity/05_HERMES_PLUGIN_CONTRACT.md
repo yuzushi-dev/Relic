@@ -1,4 +1,4 @@
-# Hermes Plugin Contract — relic-shared-continuity
+# Hermes Plugin Contract - relic-shared-continuity
 
 ## Plugin type
 

@@ -11,8 +11,8 @@ This document enumerates UI labels that MUST NOT appear in the Researcher Workbe
 | Symptoms | Event Stream |
 | Mental Illness Detection | Context Signals |
 | Clinical Risk | Risk Level |
-| Bipolar Detector | — (do not implement) |
-| Mood Disorder Monitor | — (do not implement) |
+| Bipolar Detector | - (do not implement) |
+| Mood Disorder Monitor | - (do not implement) |
 | Clinical Signals | Governance Signals |
 | Symptom Tracking | Continuity Status |
 | Diagnosis | Assessment |
@@ -30,6 +30,6 @@ All UI labels must reflect the non-diagnostic nature of the system.
 
 ## Source Documents
 
-- `docs/ui/01_INFORMATION_ARCHITECTURE.md` — Primary navigation structure
-- `docs/ui/03_SAFETY_SIGNALS_PANEL.md` — Safety Signals panel specification
-- `docs/ui/05_SHARED_CONTINUITY_PANEL.md` — Shared Continuity panel specification
+- `docs/ui/01_INFORMATION_ARCHITECTURE.md` - Primary navigation structure
+- `docs/ui/03_SAFETY_SIGNALS_PANEL.md` - Safety Signals panel specification
+- `docs/ui/05_SHARED_CONTINUITY_PANEL.md` - Shared Continuity panel specification

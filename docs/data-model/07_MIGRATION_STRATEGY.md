@@ -6,11 +6,11 @@ Define migration strategy from SQLite MVP to PostgreSQL for all Relic/Gumi/Herme
 
 ## Migration Principles
 
-1. **Reversibility** — Each migration step has a corresponding rollback script
-2. **Data Integrity** — No data loss during migration
-3. **Subject Scope Preserved** — All subject-scoped data maintains its scope
-4. **Foreign Key Cascades** — FK relationships preserved from SQLite to PostgreSQL
-5. **No Production Disruption** — Live subjects are never affected
+1. **Reversibility** - Each migration step has a corresponding rollback script
+2. **Data Integrity** - No data loss during migration
+3. **Subject Scope Preserved** - All subject-scoped data maintains its scope
+4. **Foreign Key Cascades** - FK relationships preserved from SQLite to PostgreSQL
+5. **No Production Disruption** - Live subjects are never affected
 
 ## Migration Steps
 
@@ -58,10 +58,10 @@ Re-import data from SQLite backup into PostgreSQL, then proceed with rollback 00
 
 ## Constraints
 
-1. **Vector index is NOT source of truth** — Vector embeddings are derived from canonical data
-2. **Subject scope is preserved** — All tables maintain subject_id, gumi_instance_id, hermes_profile_id
-3. **Foreign key cascades are preserved** — No FK relationship is lost in migration
-4. **Migration is reversible** — Each step can be rolled back
+1. **Vector index is NOT source of truth** - Vector embeddings are derived from canonical data
+2. **Subject scope is preserved** - All tables maintain subject_id, gumi_instance_id, hermes_profile_id
+3. **Foreign key cascades are preserved** - No FK relationship is lost in migration
+4. **Migration is reversible** - Each step can be rolled back
 
 ## Block Conditions
 

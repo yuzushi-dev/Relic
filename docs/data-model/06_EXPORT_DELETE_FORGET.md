@@ -38,7 +38,7 @@ Forget removes data from Gumi recall WITHOUT deleting from storage:
 - Data remains in storage for regulatory compliance
 - Gumi can no longer recall the data
 - Audit event MUST be created on forget
-- **Forget is subject-scoped** — Cannot forget data belonging to another subject
+- **Forget is subject-scoped** - Cannot forget data belonging to another subject
 
 ## Export Redaction Rules
 

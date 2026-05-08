@@ -1,11 +1,11 @@
-# Researcher Workbench — Route Map
+# Researcher Workbench - Route Map
 
 ## Conventions
 
-- `:study_id` — resolved from session/context (single-study deployment) or URL prefix.
-- `:subject_id` — required for all subject-scoped and Gumi-instance-scoped routes.
-- `:gumi_instance_id` — required for Gumi instance detail routes; must match subject's linked instance.
-- `:version_id` — optional; targets a specific Gumi instance version.
+- `:study_id` - resolved from session/context (single-study deployment) or URL prefix.
+- `:subject_id` - required for all subject-scoped and Gumi-instance-scoped routes.
+- `:gumi_instance_id` - required for Gumi instance detail routes; must match subject's linked instance.
+- `:version_id` - optional; targets a specific Gumi instance version.
 - All routes are prefixed with `/workbench`.
 
 ---
@@ -89,14 +89,14 @@ the URL, to enforce subject scope. No Gumi instance edit route exists outside su
 
 ```
 /workbench
-  /dashboard                           — study level
-  /subjects                            — study level
-    /new                               — study level
-    /import                            — study level
-    /:subject_id                       — subject scope begins
+  /dashboard                           - study level
+  /subjects                            - study level
+    /new                               - study level
+    /import                            - study level
+    /:subject_id                       - subject scope begins
       /overview
       /baseline
-      /gumi                            — Gumi instance scope begins
+      /gumi                            - Gumi instance scope begins
         /identity
         /voice
         /world
@@ -116,13 +116,13 @@ the URL, to enforce subject scope. No Gumi instance edit route exists outside su
       /artifacts
       /exports
       /audit
-  /gumi-instances                      — aggregate index only, no edit
-  /timeline                            — cross-subject, redacted
-  /inference                           — cross-subject
-  /corrections                         — cross-subject
-  /risk                                — cross-subject
-  /cron                                — cross-subject
-  /artifacts                           — cross-subject, redacted
+  /gumi-instances                      - aggregate index only, no edit
+  /timeline                            - cross-subject, redacted
+  /inference                           - cross-subject
+  /corrections                         - cross-subject
+  /risk                                - cross-subject
+  /cron                                - cross-subject
+  /artifacts                           - cross-subject, redacted
   /exports
   /settings
 ```

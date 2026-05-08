@@ -1,4 +1,4 @@
-# Gumi Instance Editor — UI Specification
+# Gumi Instance Editor - UI Specification
 
 **PR:** PR27E  
 **Status:** Draft  
@@ -11,7 +11,7 @@
 The Gumi Instance Editor is always subject-scoped. Every Gumi instance belongs to exactly
 one subject and one Hermes profile. Researchers can inspect and edit Gumi identity, voice,
 world model, embodiment, relationships, routines, expressive modes, first-contact config,
-runtime files, and version history — all with mandatory versioning.
+runtime files, and version history - all with mandatory versioning.
 
 ---
 

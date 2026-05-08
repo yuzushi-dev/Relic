@@ -94,9 +94,9 @@ sensitive_signals
 
 ## Constraints
 
-1. **Vector index is NOT source of truth** — Vector embeddings are derived from canonical data.
-2. **Hindsight is NOT source of truth** — Analysis tools are derived from canonical data.
-3. **Subject scope must be preserved** — All tables maintain subject_id, gumi_instance_id, hermes_profile_id.
+1. **Vector index is NOT source of truth** - Vector embeddings are derived from canonical data.
+2. **Hindsight is NOT source of truth** - Analysis tools are derived from canonical data.
+3. **Subject scope must be preserved** - All tables maintain subject_id, gumi_instance_id, hermes_profile_id.
 
 ## Block Conditions
 

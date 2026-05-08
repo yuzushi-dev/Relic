@@ -1,4 +1,4 @@
-# Subject Overview — UI Specification
+# Subject Overview - UI Specification
 
 ## PR27C
 
@@ -34,7 +34,7 @@ The following fields must be displayed on the Subject Overview page:
 | `consent_status` | Consent state (e.g. consented, withdrawn, pending) |
 | `active_condition` | Experimental condition the subject is assigned to |
 | `bootstrap_status` | Bootstrap completion state (e.g. complete, in_progress, not_started) |
-| `active_gumi_instance` | Name/id of the active Gumi instance for this subject (must be visible; absence blocks rendering — `BLOCKED_MISSING_GUMI_INSTANCE`) |
+| `active_gumi_instance` | Name/id of the active Gumi instance for this subject (must be visible; absence blocks rendering - `BLOCKED_MISSING_GUMI_INSTANCE`) |
 | `hermes_profile_status` | Provisioning status of the associated Hermes profile (must be visible) |
 | `last_user_interaction` | ISO 8601 timestamp of the most recent user-initiated interaction |
 | `last_gumi_initiative` | ISO 8601 timestamp of the most recent proactive Gumi initiative |

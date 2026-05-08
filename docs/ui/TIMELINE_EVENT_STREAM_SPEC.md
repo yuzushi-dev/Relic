@@ -1,4 +1,4 @@
-# PR27F — Timeline and Event Stream Viewer
+# PR27F - Timeline and Event Stream Viewer
 
 ## Objective
 
@@ -69,14 +69,14 @@ Every event must carry exactly one of the following `ontological_class` values:
 
 Each row in the timeline table shows:
 
-- `timestamp` — ISO 8601
-- `event_type` — human-readable label
-- `initiator` — user / gumi / system / researcher
-- `delivery_decision` — delivered / blocked / no_reply / candidate
-- `risk` — none / low / medium / high
-- `user_response` — yes / no / pending
-- `model_eligibility` — eligible / ineligible / pending
-- `short_redacted_preview` — max 80 chars, redacted if raw unavailable
+- `timestamp` - ISO 8601
+- `event_type` - human-readable label
+- `initiator` - user / gumi / system / researcher
+- `delivery_decision` - delivered / blocked / no_reply / candidate
+- `risk` - none / low / medium / high
+- `user_response` - yes / no / pending
+- `model_eligibility` - eligible / ineligible / pending
+- `short_redacted_preview` - max 80 chars, redacted if raw unavailable
 
 ---
 
@@ -133,7 +133,7 @@ Shown when a row is expanded or selected:
 
 | Code | Description |
 |------|-------------|
-| `BLOCKED_EVENT_WITHOUT_SUBJECT` | Event lacks `subject_id` — must not appear in timeline |
-| `BLOCKED_EVENT_WITHOUT_ONTOLOGICAL_CLASS` | Event lacks `ontological_class` — must not appear |
+| `BLOCKED_EVENT_WITHOUT_SUBJECT` | Event lacks `subject_id` - must not appear in timeline |
+| `BLOCKED_EVENT_WITHOUT_ONTOLOGICAL_CLASS` | Event lacks `ontological_class` - must not appear |
 | `BLOCKED_CROSS_SUBJECT_RAW_TIMELINE` | Cross-subject raw view is disabled by default |
 | `BLOCKED_EVENT_ELIGIBILITY_MISSING` | Event detail cannot be shown if eligibility fields are absent |

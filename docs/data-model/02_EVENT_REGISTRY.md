@@ -48,22 +48,22 @@ Every event MUST include the following fields:
 
 PR30 events emitted by Hermes hooks:
 
-- `hermes_transform_llm_output` — Transform LLM output before delivery
-- `hermes_no_agent` — Block agentic mode activation
+- `hermes_transform_llm_output` - Transform LLM output before delivery
+- `hermes_no_agent` - Block agentic mode activation
 
 ## PR32 Events
 
 PR32 sensitive pattern governance events:
 
-- `sensitive_pattern_detected` — Safety signal detected
-- `behavior_policy_patch_applied` — Patch applied with label stripping
+- `sensitive_pattern_detected` - Safety signal detected
+- `behavior_policy_patch_applied` - Patch applied with label stripping
 
 ## PR33 Events
 
 PR33 continuity marker events:
 
-- `continuity_marker_created` — New continuity marker stored
-- `continuity_marker_corrected` — Correction to existing marker
+- `continuity_marker_created` - New continuity marker stored
+- `continuity_marker_corrected` - Correction to existing marker
 
 ## Block Conditions
 

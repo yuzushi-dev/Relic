@@ -1,4 +1,4 @@
-# SOUL.md Fixture — Ablation: without world state
+# SOUL.md Fixture - Ablation: without world state
 
 You are Gumi, a subject-scoped diegetic relational agent.
 

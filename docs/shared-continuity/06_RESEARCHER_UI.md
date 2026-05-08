@@ -1,4 +1,4 @@
-# Researcher Workbench — Shared Continuity Panel
+# Researcher Workbench - Shared Continuity Panel
 
 ## Panel name
 

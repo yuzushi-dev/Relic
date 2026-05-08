@@ -1,4 +1,4 @@
-# Researcher Workbench — Object Model
+# Researcher Workbench - Object Model
 
 ## Purpose
 
@@ -328,7 +328,7 @@ The assembled runtime profile files for a Gumi instance.
 
 | Object | Owned By | Editable From |
 |---|---|---|
-| Study | — (global) | `/workbench/settings` |
+| Study | - (global) | `/workbench/settings` |
 | Subject | Study | Subject-level views |
 | SubjectBaseline | Subject | `/workbench/subjects/:subject_id/baseline` |
 | GumiInstance | Subject (required) | `/workbench/subjects/:subject_id/gumi/...` only |

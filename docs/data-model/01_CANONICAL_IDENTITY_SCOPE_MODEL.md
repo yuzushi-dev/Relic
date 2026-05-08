@@ -15,9 +15,9 @@ Study
 
 Every runtime object MUST belong to exactly one subject scope, defined by the triple:
 
-- `subject_id` — the human participant identifier
-- `gumi_instance_id` — the specific Gumi runtime instance
-- `hermes_profile_id` — the Hermes profile hash or identifier
+- `subject_id` - the human participant identifier
+- `gumi_instance_id` - the specific Gumi runtime instance
+- `hermes_profile_id` - the Hermes profile hash or identifier
 
 ## Object Model
 
@@ -29,10 +29,10 @@ Every runtime object MUST belong to exactly one subject scope, defined by the tr
 
 ## Constraints
 
-1. **Subject scope is required** — No runtime object may exist without a subject scope.
-2. **Cross-subject shared memory is forbidden** — Data belonging to one subject may not be accessible to another.
-3. **Hermes session key stored as hash** — Raw session keys are never stored; only their SHA-256 hash is retained.
-4. **Exactly one subject scope per object** — A runtime object may not belong to multiple subjects.
+1. **Subject scope is required** - No runtime object may exist without a subject scope.
+2. **Cross-subject shared memory is forbidden** - Data belonging to one subject may not be accessible to another.
+3. **Hermes session key stored as hash** - Raw session keys are never stored; only their SHA-256 hash is retained.
+4. **Exactly one subject scope per object** - A runtime object may not belong to multiple subjects.
 
 ## Block Conditions
 

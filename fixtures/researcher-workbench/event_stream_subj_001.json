@@ -48,7 +48,7 @@
         "max_proactive_per_day": 3
       },
       "source_refs": [],
-      "content_preview": "[User response — redacted]",
+      "content_preview": "[User response - redacted]",
       "raw_content_availability": "redacted",
       "eligible_for_user_model": true,
       "eligible_for_experience_analysis": true,
@@ -77,7 +77,7 @@
         "max_proactive_per_day": 3
       },
       "source_refs": ["media_subj001_img_044"],
-      "content_preview": "[Image — local-only]",
+      "content_preview": "[Image - local-only]",
       "raw_content_availability": "local-only",
       "eligible_for_user_model": false,
       "eligible_for_experience_analysis": true,

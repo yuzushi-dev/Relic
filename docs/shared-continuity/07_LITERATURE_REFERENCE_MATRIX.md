@@ -5,7 +5,7 @@
 Source:
 
 ```text
-Hermes Agent docs — Plugins
+Hermes Agent docs - Plugins
 ```
 
 Relevant point:
@@ -25,7 +25,7 @@ Shared Continuity Memory is implemented as a general plugin with tools, hooks, a
 Source:
 
 ```text
-Hermes Agent docs — Features overview / memory providers
+Hermes Agent docs - Features overview / memory providers
 ```
 
 Relevant point:

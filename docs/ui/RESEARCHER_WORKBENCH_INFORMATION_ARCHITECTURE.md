@@ -1,4 +1,4 @@
-# Researcher Workbench — Information Architecture
+# Researcher Workbench - Information Architecture
 
 ## Overview
 
@@ -45,7 +45,7 @@ to a single `subject_id`. The subject scope is always visible in the breadcrumb 
 |---|---|
 | **Subject Overview** | Summary card: status, condition, linked Gumi instance, Hermes profile, risk level. |
 | **Subject Baseline** | Baseline demographic and enrollment data for this subject. |
-| **Gumi Instance** | Subject-scoped Gumi instance viewer and editor (nested navigation — see below). |
+| **Gumi Instance** | Subject-scoped Gumi instance viewer and editor (nested navigation - see below). |
 | **Timeline** | Event timeline for this subject only. Full fidelity, not redacted. |
 | **Inference** | Inference events and pending reviews for this subject. |
 | **Corrections** | Researcher correction log scoped to this subject. |

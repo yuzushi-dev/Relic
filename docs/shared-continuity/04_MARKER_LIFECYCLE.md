@@ -1,4 +1,4 @@
-# Shared Continuity Memory — Marker Lifecycle
+# Shared Continuity Memory - Marker Lifecycle
 
 ## Marker states
 
