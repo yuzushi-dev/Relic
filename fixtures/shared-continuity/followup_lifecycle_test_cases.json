@@ -1,0 +1,33 @@
+{
+  "test_cases": [
+    {
+      "case_id": "followup_tc_001",
+      "scenario": "max_attempts_exhausted",
+      "max_attempts": 2,
+      "send_count": 2,
+      "expected_status": "exhausted",
+      "expected_due_selection": false
+    },
+    {
+      "case_id": "followup_tc_002",
+      "scenario": "ttl_expired",
+      "ttl_seconds": 1,
+      "wait_seconds": 2,
+      "expected_status": "expired",
+      "expected_due_selection": false
+    },
+    {
+      "case_id": "followup_tc_003",
+      "scenario": "scope_paused",
+      "pause_before_selection": true,
+      "expected_due_selection": false
+    },
+    {
+      "case_id": "followup_tc_004",
+      "scenario": "subject_scope_filter",
+      "subject_ids": ["subj_001", "subj_002"],
+      "filter_subject": "subj_001",
+      "expected_count": 1
+    }
+  ]
+}

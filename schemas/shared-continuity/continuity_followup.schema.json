@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relic.local/schemas/shared-continuity/continuity_followup.schema.json",
+  "title": "Continuity Followup",
+  "description": "Follow-up lifecycle for continuity markers.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "followup_id", "marker_id", "subject_id",
+    "gumi_instance_id", "hermes_profile_id", "max_attempts", "status", "created_at"
+  ],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "followup_id": {"type": "string", "minLength": 1},
+    "marker_id": {"type": "string", "minLength": 1},
+    "subject_id": {"type": "string", "minLength": 1},
+    "gumi_instance_id": {"type": "string", "minLength": 1},
+    "hermes_profile_id": {"type": "string", "minLength": 1},
+
+    "max_attempts": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 3,
+      "description": "Maximum follow-up attempts before exhaustion."
+    },
+    "attempt_count": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 0
+    },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "due", "sent", "acknowledged", "ignored", "exhausted", "expired"]
+    },
+
+    "followup_interval_seconds": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 86400,
+      "description": "Default 1 day."
+    },
+    "next_followup_at": {"type": "string", "format": "date-time"},
+    "ttl_seconds": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 604800,
+      "description": "Default 7 days."
+    },
+    "created_at": {"type": "string", "format": "date-time"},
+    "expires_at": {"type": "string", "format": "date-time"},
+
+    "last_attempt_at": {"type": "string", "format": "date-time"},
+    "last_result": {"type": "string"},
+    "acknowledged_at": {"type": "string", "format": "date-time"},
+
+    "is_paused": {
+      "type": "boolean",
+      "default": false
+    },
+    "paused_at": {"type": "string", "format": "date-time"},
+    "resumed_at": {"type": "string", "format": "date-time"}
+  }
+}

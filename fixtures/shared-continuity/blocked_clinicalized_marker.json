@@ -1,0 +1,9 @@
+{
+  "subject_words": "I think this is hypomania",
+  "gumi_words": "this seems like hypomania",
+  "normalized_tags": [
+    "hypomania"
+  ],
+  "expected_decision": "BLOCK",
+  "allowed_exception": "subject_words_only"
+}

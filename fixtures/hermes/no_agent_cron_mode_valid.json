@@ -1,0 +1,15 @@
+{
+  "mode": "auto-gated",
+  "subject_id": "subject_001",
+  "schedule": "0 */6 * * *",
+  "decision_log_enabled": true,
+  "decision_counts": {
+    "no_reply": 3,
+    "candidate": 1,
+    "blocked": 0,
+    "delivered": 2,
+    "error": 0
+  },
+  "last_decision_point": "2026-05-07T14:30:00Z",
+  "last_run_timestamp": "2026-05-07T14:30:05Z"
+}

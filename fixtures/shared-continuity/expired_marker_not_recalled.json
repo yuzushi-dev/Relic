@@ -1,0 +1,7 @@
+{
+  "marker_id": "cm_expired_001",
+  "status": "ACTIVE",
+  "expires_at": "2026-05-01T00:00:00Z",
+  "now": "2026-05-08T00:00:00Z",
+  "expected_recall_eligible": false
+}

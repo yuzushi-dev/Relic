@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Hermes Checkpoint",
+  "description": "Schema for Hermes v0.13 checkpoints and session auto-resume. Pending output is not auto-delivered on resume and resume creates audit events.",
+  "type": "object",
+  "required": ["checkpoint_id", "subject_id", "created_at", "has_pending_output", "pending_output_not_auto_delivered"],
+  "properties": {
+    "checkpoint_id": {
+      "type": "string",
+      "description": "Unique identifier for this checkpoint."
+    },
+    "subject_id": {
+      "type": "string",
+      "description": "Required. Subject ID to scope the checkpoint."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when checkpoint was created."
+    },
+    "session_id": {
+      "type": "string",
+      "description": "Session ID this checkpoint belongs to."
+    },
+    "has_pending_output": {
+      "type": "boolean",
+      "description": "Whether there is pending output at this checkpoint."
+    },
+    "pending_output_not_auto_delivered": {
+      "type": "boolean",
+      "description": "Whether pending output is blocked from auto-delivery on resume."
+    },
+    "pending_output_visible_to_researcher": {
+      "type": "boolean",
+      "description": "Whether pending output is shown to researcher on resume."
+    },
+    "resume_requires_explicit_user_action": {
+      "type": "boolean",
+      "description": "Whether resume requires explicit user action or researcher gate."
+    },
+    "audit_event_on_resume": {
+      "type": "boolean",
+      "description": "Whether resume creates an audit event."
+    },
+    "last_resume_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when session was last resumed."
+    }
+  },
+  "additionalProperties": false
+}

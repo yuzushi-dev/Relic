@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relic.local/schemas/shared-continuity/continuity_event.schema.json",
+  "title": "Continuity Event",
+  "description": "Audit event for marker lifecycle.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "event_id", "subject_id", "gumi_instance_id",
+    "hermes_profile_id", "event_type", "source", "created_at"
+  ],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "event_id": {"type": "string", "minLength": 1},
+    "subject_id": {"type": "string", "minLength": 1},
+    "gumi_instance_id": {"type": "string", "minLength": 1},
+    "hermes_profile_id": {"type": "string", "minLength": 1},
+
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "marker_created", "marker_confirmed", "marker_retired", "marker_rejected",
+        "marker_expired", "correction_created", "correction_superseded",
+        "followup_created", "followup_sent", "followup_acknowledged",
+        "followup_ignored", "followup_exhausted", "followup_expired",
+        "scope_paused", "scope_resumed", "marker_forgotten"
+      ]
+    },
+
+    "marker_id": {"type": "string"},
+    "followup_id": {"type": "string"},
+    "correction_id": {"type": "string"},
+
+    "event_data": {
+      "type": "string",
+      "description": "JSON payload as string."
+    },
+    "source": {
+      "type": "string",
+      "enum": ["subject", "gumi", "hermes_hook", "cron", "researcher"]
+    },
+    "created_at": {"type": "string", "format": "date-time"},
+
+    "subject_visible": {
+      "type": "boolean",
+      "default": false
+    }
+  }
+}

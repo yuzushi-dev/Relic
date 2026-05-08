@@ -1,0 +1,52 @@
+{
+  "acceptance_gate_cases": [
+    {
+      "case_id": "gate_001",
+      "description": "Subject confirmation gate",
+      "check": "marker_has_subject_confirmation",
+      "expected": "pass"
+    },
+    {
+      "case_id": "gate_002",
+      "description": "No clinical labels in runtime",
+      "check": "runtime_output_has_no_clinical_terms",
+      "expected": "pass"
+    },
+    {
+      "case_id": "gate_003",
+      "description": "Unconfirmed marker not recalled",
+      "check": "unconfirmed_marker_not_in_results",
+      "expected": "pass"
+    },
+    {
+      "case_id": "gate_004",
+      "description": "Subject scope enforced",
+      "check": "cross_subject_isolation",
+      "expected": "pass"
+    },
+    {
+      "case_id": "gate_005",
+      "description": "Followup respects max attempts",
+      "check": "followup_exhausted_after_max",
+      "expected": "pass"
+    },
+    {
+      "case_id": "gate_006",
+      "description": "Paused scope blocks followups",
+      "check": "paused_scope_no_due_followups",
+      "expected": "pass"
+    },
+    {
+      "case_id": "gate_007",
+      "description": "Correction is authoritative",
+      "check": "corrected_marker_authoritative",
+      "expected": "pass"
+    },
+    {
+      "case_id": "gate_008",
+      "description": "Forget removes from recall",
+      "check": "forgotten_marker_not_recallable",
+      "expected": "pass"
+    }
+  ]
+}

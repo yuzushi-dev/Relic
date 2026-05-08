@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Hermes Rollback Flag",
+  "description": "Schema for Hermes v0.13 rollback flags. Every new behavior has a rollback flag defined in schema.",
+  "type": "object",
+  "required": ["flag_id", "feature_name", "rollback_flag_name", "stored_in_policy_snapshot", "completely_disables_feature"],
+  "properties": {
+    "flag_id": {
+      "type": "string",
+      "description": "Unique identifier for this rollback flag."
+    },
+    "feature_name": {
+      "type": "string",
+      "description": "Name of the feature this rollback flag controls."
+    },
+    "rollback_flag_name": {
+      "type": "string",
+      "description": "Name of the rollback flag parameter."
+    },
+    "stored_in_policy_snapshot": {
+      "type": "boolean",
+      "description": "Whether the rollback flag is stored in policy snapshot, not runtime state."
+    },
+    "completely_disables_feature": {
+      "type": "boolean",
+      "description": "Whether setting this flag completely disables the feature."
+    },
+    "phase": {
+      "type": "string",
+      "enum": ["Phase 0", "Phase 1", "Phase 2"],
+      "description": "Implementation phase for this feature."
+    },
+    "rollback_procedure": {
+      "type": "string",
+      "description": "Description of the rollback procedure."
+    },
+    "verification_steps": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Steps to verify rollback was successful."
+    },
+    "affects_live_behavior": {
+      "type": "boolean",
+      "description": "Whether enabling this feature changes live behavior."
+    }
+  },
+  "additionalProperties": false
+}

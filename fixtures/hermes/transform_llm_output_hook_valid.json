@@ -1,0 +1,19 @@
+{
+  "hook_id": "hook_transform_001",
+  "subject_id": "subject_001",
+  "fired_at": "2026-05-07T15:00:00Z",
+  "llm_call_id": "llm_call_abc123",
+  "hook_timing": "post_llm_pre_output",
+  "intercepts_output": true,
+  "input_preserved": true,
+  "output": {
+    "original": "The user may need additional support with their current task.",
+    "transformed": "The user may need additional support with their current task."
+  },
+  "safety_constraints_preserved": true,
+  "safety_constraints_modified": false,
+  "result_logged": true,
+  "input_hash": "abc123def456",
+  "output_hash": "xyz789ghi012",
+  "clinical_labels_injected": false
+}

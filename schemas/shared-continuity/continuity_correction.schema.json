@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relic.local/schemas/shared-continuity/continuity_correction.schema.json",
+  "title": "Continuity Correction",
+  "description": "Authoritative correction to a marker. Replaces, does not append.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "correction_id", "marker_id", "subject_id",
+    "gumi_instance_id", "hermes_profile_id", "authoritative", "subject_words",
+    "status", "created_at", "created_by", "original_marker_id", "is_replacement"
+  ],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "correction_id": {"type": "string", "minLength": 1},
+    "marker_id": {"type": "string", "minLength": 1},
+    "subject_id": {"type": "string", "minLength": 1},
+    "gumi_instance_id": {"type": "string", "minLength": 1},
+    "hermes_profile_id": {"type": "string", "minLength": 1},
+
+    "authoritative": {
+      "type": "boolean",
+      "default": true,
+      "description": "Correction is authoritative over original marker."
+    },
+
+    "subject_words": {
+      "type": "array",
+      "items": {"type": "string"},
+      "minItems": 1,
+      "description": "Subject's corrected wording."
+    },
+    "gumi_agreed_words": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "correction_note": {
+      "type": "string",
+      "description": "Optional note explaining the correction."
+    },
+
+    "status": {
+      "type": "string",
+      "enum": ["active", "superseded"],
+      "default": "active"
+    },
+    "created_at": {"type": "string", "format": "date-time"},
+    "created_by": {
+      "type": "string",
+      "enum": ["subject", "gumi", "researcher"]
+    },
+
+    "original_marker_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "ID of the marker being corrected."
+    },
+    "is_replacement": {
+      "type": "boolean",
+      "default": true,
+      "description": "If true, this replaces the original marker."
+    }
+  }
+}

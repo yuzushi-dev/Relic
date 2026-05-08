@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Hermes no_agent Cron Mode",
+  "description": "Schema for Hermes v0.13 no_agent cron mode configuration. Every cron run must have a logged decision point and subject scope must be enforced.",
+  "type": "object",
+  "required": ["mode", "subject_id", "schedule", "decision_log_enabled"],
+  "properties": {
+    "mode": {
+      "type": "string",
+      "enum": ["disabled", "dry-run", "review-required", "auto-gated", "paused"],
+      "description": "no_agent cron mode value. When set, agent session is not created."
+    },
+    "subject_id": {
+      "type": "string",
+      "description": "Required. Subject ID to scope the cron configuration."
+    },
+    "schedule": {
+      "type": "string",
+      "description": "Cron schedule expression."
+    },
+    "decision_log_enabled": {
+      "type": "boolean",
+      "description": "Whether decision logging is enabled for this cron."
+    },
+    "decision_counts": {
+      "type": "object",
+      "properties": {
+        "no_reply": {"type": "integer", "minimum": 0},
+        "candidate": {"type": "integer", "minimum": 0},
+        "blocked": {"type": "integer", "minimum": 0},
+        "delivered": {"type": "integer", "minimum": 0},
+        "error": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": false
+    },
+    "last_decision_point": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of last decision point."
+    },
+    "last_run_timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of last cron run."
+    }
+  },
+  "additionalProperties": false
+}

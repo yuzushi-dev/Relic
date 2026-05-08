@@ -1,0 +1,25 @@
+{
+  "schema_version": "1.0.0",
+  "marker_id": "marker_001",
+  "subject_id": "subj_001",
+  "gumi_instance_id": "gumi_001",
+  "hermes_profile_id": "hermes_gumi_subj_001",
+
+  "subject_confirmation": true,
+  "source_type": "user_confirmed",
+  "created_at": "2026-05-08T10:00:00Z",
+
+  "subject_words": ["feels like moving too fast sometimes"],
+  "gumi_agreed_words": ["moving too fast"],
+  "raw_source_text": "",
+
+  "status": "active",
+  "gumi_recall_allowed": true,
+
+  "recall_count": 0,
+  "max_recall_count": 3,
+  "ttl_seconds": 604800,
+
+  "expires_at": "2026-05-15T10:00:00Z",
+  "updated_at": "2026-05-08T10:00:00Z"
+}

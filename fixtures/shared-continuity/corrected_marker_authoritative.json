@@ -1,0 +1,15 @@
+{
+  "old_marker": {
+    "marker_id": "cm_old",
+    "subject_words": "accelerated",
+    "status": "CORRECTED",
+    "gumi_recall_allowed": false
+  },
+  "new_marker": {
+    "marker_id": "cm_new",
+    "subject_words": "happy, high energy, low sleep",
+    "status": "ACTIVE",
+    "gumi_recall_allowed": true
+  },
+  "expected_recall_marker_id": "cm_new"
+}

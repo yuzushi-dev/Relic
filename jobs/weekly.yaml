@@ -1,0 +1,13 @@
+# Weekly maintenance jobs (PR10).
+schedule: "30 3 * * 0"
+timezone: "UTC"
+jobs:
+  - name: relic-replication-snapshot
+    description: "Create weekly replication snapshot."
+    command: "make replication-bundle"
+  - name: relic-eval-ablation
+    description: "Run baseline ablation report (offline)."
+    command: "make eval-baselines"
+  - name: gumi-diary-rotate
+    description: "Rotate diary entries (delegated to PR22H cron)."
+    command: "python -m relic.gumi_plugin.cron_tasks --rotate-diary"

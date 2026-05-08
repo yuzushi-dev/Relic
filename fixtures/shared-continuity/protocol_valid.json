@@ -1,0 +1,70 @@
+{
+  "protocol_version": "1.0.0",
+  "definition": {
+    "what_it_is": [
+      "relational continuity",
+      "user-confirmed markers",
+      "subject words",
+      "gentle follow-up",
+      "correctable memory",
+      "auditable memory",
+      "non-diagnostic memory"
+    ],
+    "what_it_is_not": [
+      "mood tracker",
+      "symptom tracker",
+      "clinical monitor",
+      "pathology detector",
+      "diagnostic system",
+      "general vector memory",
+      "Hindsight replacement",
+      "Hermes native memory replacement"
+    ]
+  },
+  "scoping_requirements": {
+    "subject_id": "subj_001",
+    "gumi_instance_id": "gumi_001",
+    "hermes_profile_id": "hermes_gumi_subj_001"
+  },
+  "clinical_boundary": {
+    "forbidden_runtime_terms": [
+      "bipolar",
+      "mania",
+      "hypomania",
+      "depression",
+      "episode",
+      "symptom",
+      "diagnosis",
+      "relapse",
+      "pathology",
+      "clinical risk"
+    ],
+    "exception_clause": "If the subject explicitly used a term, it may exist only in raw source text or subject_words, not as system inference, normalized tag, Gumi label, or policy output."
+  },
+  "recall_rule": {
+    "conditions": [
+      "marker.status = active",
+      "marker.gumi_recall_allowed = true",
+      "marker.ttl not expired",
+      "marker.recall_count < marker.max_recall_count",
+      "subject scope matches current Hermes profile",
+      "no pause is active for the marker scope",
+      "no recent burden signal blocks recall",
+      "the marker was subject-confirmed or subject-authored"
+    ],
+    "note": "Hindsight is not authority. Direct recall from Hindsight to user is forbidden."
+  },
+  "hindsight_rule": {
+    "safe_flow": [
+      "Hindsight candidate",
+      "Relic evaluates consent/visibility",
+      "Gumi asks confirmation if appropriate",
+      "only confirmed marker enters Shared Continuity Memory"
+    ],
+    "forbidden_flow": [
+      "Hindsight recall",
+      "Gumi directly follows up on sensitive content"
+    ]
+  },
+  "design_principle": "Relational continuity first. Structured tracking second."
+}

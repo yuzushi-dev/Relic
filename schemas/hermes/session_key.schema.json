@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Hermes X-Hermes-Session-Key",
+  "description": "Schema for Hermes v0.13 X-Hermes-Session-Key. Raw key is never logged and key is scoped to subject.",
+  "type": "object",
+  "required": ["session_key_hash", "hash_algorithm", "subject_id", "created_at", "key_scope_resolvable"],
+  "properties": {
+    "session_key_hash": {
+      "type": "string",
+      "description": "Hashed representation of the session key. Raw key is never stored."
+    },
+    "hash_algorithm": {
+      "type": "string",
+      "enum": ["sha256", "sha384", "sha512", "argon2id"],
+      "description": "Algorithm used to hash the session key."
+    },
+    "subject_id": {
+      "type": "string",
+      "description": "Required. Subject ID to scope the session key."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when session key was created."
+    },
+    "last_rotated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when session key was last rotated."
+    },
+    "rotation_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of times the session key has been rotated."
+    },
+    "key_scope_resolvable": {
+      "type": "boolean",
+      "description": "Whether the key scope can be resolved without subject context."
+    },
+    "audit_event_on_rotation": {
+      "type": "boolean",
+      "description": "Whether rotation creates an audit event."
+    }
+  },
+  "additionalProperties": false
+}

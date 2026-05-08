@@ -1,0 +1,15 @@
+{
+  "flag_id": "rollback_flag_001",
+  "feature_name": "no_agent_cron_mode",
+  "rollback_flag_name": "hermes_no_agent_cron_mode_enabled",
+  "stored_in_policy_snapshot": true,
+  "completely_disables_feature": true,
+  "phase": "Phase 1",
+  "rollback_procedure": "Set hermes_no_agent_cron_mode_enabled=false in policy snapshot, then restart Hermes service.",
+  "verification_steps": [
+    "Verify cron jobs stop creating no_agent sessions",
+    "Verify decision logging continues for audit purposes",
+    "Verify existing agent sessions remain unaffected"
+  ],
+  "affects_live_behavior": false
+}

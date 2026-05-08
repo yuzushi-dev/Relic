@@ -1,0 +1,13 @@
+# Nightly maintenance jobs (PR10).
+schedule: "0 3 * * *"
+timezone: "UTC"
+jobs:
+  - name: relic-cac-rebuild
+    description: "Rebuild CAC artifacts for review queue."
+    command: "make replication-bundle"
+  - name: relic-privacy-trace-rotate
+    description: "Rotate privacy traces older than 30 days."
+    command: "python -m relic.privacy.trace --rotate"
+  - name: gumi-world-state-compact
+    description: "Hermes-native compaction (delegated to PR22H cron)."
+    command: "python -m relic.gumi_plugin.cron_tasks --dry-run"

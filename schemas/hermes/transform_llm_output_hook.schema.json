@@ -1,0 +1,73 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Hermes transform_llm_output Hook",
+  "description": "Schema for Hermes v0.13 transform_llm_output plugin hook. Fires post-LLM, cannot inject clinical labels, and logs results.",
+  "type": "object",
+  "required": ["hook_id", "subject_id", "fired_at", "llm_call_id", "input_preserved", "output", "safety_constraints_preserved"],
+  "properties": {
+    "hook_id": {
+      "type": "string",
+      "description": "Unique identifier for this hook invocation."
+    },
+    "subject_id": {
+      "type": "string",
+      "description": "Required. Subject ID to scope the hook execution."
+    },
+    "fired_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when hook fired."
+    },
+    "llm_call_id": {
+      "type": "string",
+      "description": "Reference to the LLM call this hook is processing."
+    },
+    "hook_timing": {
+      "type": "string",
+      "description": "When the hook fires in the LLM pipeline."
+    },
+    "intercepts_output": {
+      "type": "boolean",
+      "description": "Whether hook intercepts the LLM output."
+    },
+    "input_preserved": {
+      "type": "boolean",
+      "description": "Whether the original input was preserved (hook cannot remove safety constraints)."
+    },
+    "input_hash": {
+      "type": "string",
+      "description": "Hash of the input for audit purposes."
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "original": {"type": "string", "description": "Original LLM output before transform."},
+        "transformed": {"type": "string", "description": "Transformed output after hook processing."},
+        "clinical_labels_injected": {"type": "boolean", "description": "Whether clinical labels were attempted to be injected."}
+      },
+      "required": ["original", "transformed"],
+      "additionalProperties": false
+    },
+    "output_hash": {
+      "type": "string",
+      "description": "Hash of the output for audit purposes."
+    },
+    "safety_constraints_preserved": {
+      "type": "boolean",
+      "description": "Whether safety constraints remain intact after transform."
+    },
+    "safety_constraints_modified": {
+      "type": "boolean",
+      "description": "Whether safety constraints were modified."
+    },
+    "result_logged": {
+      "type": "boolean",
+      "description": "Whether hook result was logged."
+    },
+    "clinical_labels_injected": {
+      "type": "boolean",
+      "description": "Whether clinical labels were found in the output."
+    }
+  },
+  "additionalProperties": false
+}

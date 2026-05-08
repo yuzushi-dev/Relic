@@ -1,0 +1,45 @@
+{
+  "test_cases": [
+    {
+      "case_id": "hook_tc_001",
+      "hook": "pre_llm_call",
+      "input": {
+        "subject_id": "subj_001",
+        "gumi_instance_id": "gumi_001",
+        "hermes_profile_id": "hermes_001"
+      },
+      "expected": {
+        "has_markers_key": true,
+        "marker_count_non_negative": true
+      }
+    },
+    {
+      "case_id": "hook_tc_002",
+      "hook": "transform_llm_output",
+      "input": {
+        "subject_id": "subj_001",
+        "gumi_instance_id": "gumi_001",
+        "hermes_profile_id": "hermes_001",
+        "output": "Gumi: I remember what you said"
+      },
+      "expected": {
+        "output_unchanged": true,
+        "no_clinical_terms": true
+      }
+    },
+    {
+      "case_id": "hook_tc_003",
+      "hook": "post_llm_call",
+      "input": {
+        "subject_id": "subj_001",
+        "gumi_instance_id": "gumi_001",
+        "hermes_profile_id": "hermes_001",
+        "llm_output": "Gumi: How are you feeling?"
+      },
+      "expected": {
+        "validation_passed": true,
+        "clinical_check_clean": true
+      }
+    }
+  ]
+}

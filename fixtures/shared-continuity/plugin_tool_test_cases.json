@@ -1,0 +1,43 @@
+{
+  "test_cases": [
+    {
+      "case_id": "plugin_tc_001",
+      "tool": "tool_remember_marker",
+      "input": {
+        "subject_id": "subj_001",
+        "gumi_instance_id": "gumi_001",
+        "hermes_profile_id": "hermes_001",
+        "subject_words": ["remember this"]
+      },
+      "expected": {
+        "subject_confirmation": true,
+        "no_clinical_terms": true
+      }
+    },
+    {
+      "case_id": "plugin_tc_002",
+      "tool": "tool_correct_marker",
+      "input": {
+        "subject_id": "subj_001",
+        "gumi_instance_id": "gumi_001",
+        "hermes_profile_id": "hermes_001",
+        "marker_id": "marker_001",
+        "subject_words": ["corrected words"]
+      },
+      "expected": {
+        "authoritative": true
+      }
+    },
+    {
+      "case_id": "plugin_tc_003",
+      "tool": "tool_get_recent_markers",
+      "input": {
+        "subject_id": "subj_001"
+      },
+      "expected": {
+        "is_list": true,
+        "subject_scoped": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "test_cases": [
+    {
+      "case_id": "tc_001",
+      "operation": "remember",
+      "input": {
+        "subject_id": "subj_001",
+        "gumi_instance_id": "gumi_001",
+        "hermes_profile_id": "hermes_001",
+        "subject_words": ["feels like moving too fast"]
+      },
+      "expected": {
+        "subject_confirmation": true,
+        "status": "active"
+      }
+    },
+    {
+      "case_id": "tc_002",
+      "operation": "remember",
+      "input": {
+        "subject_id": "subj_001",
+        "gumi_instance_id": "gumi_001",
+        "hermes_profile_id": "hermes_001",
+        "subject_words": ["corrected it to be slower"]
+      },
+      "expected": {
+        "subject_confirmation": true,
+        "status": "active"
+      }
+    }
+  ]
+}

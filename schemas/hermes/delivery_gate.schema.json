@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Hermes Delivery Gate",
+  "description": "Schema for Hermes v0.13 delivery gate decisions. Every outbound path must pass delivery gate. No allowlist, no delivery.",
+  "type": "object",
+  "required": ["decision", "reason_codes", "subject_id", "gumi_instance_id", "hermes_profile_id", "platform", "created_at"],
+  "properties": {
+    "decision": {
+      "type": "string",
+      "enum": ["ALLOW", "BLOCK", "REVIEW_REQUIRED"],
+      "description": "The delivery gate decision."
+    },
+    "reason_codes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Reason codes for the decision (e.g., platform_not_allowlisted, quiet_hours, delivery_consent_withdrawn)."
+    },
+    "subject_id": {
+      "type": "string",
+      "description": "Required. Subject ID to scope the delivery gate decision."
+    },
+    "gumi_instance_id": {
+      "type": "string",
+      "description": "Gumi instance identifier."
+    },
+    "hermes_profile_id": {
+      "type": "string",
+      "description": "Hermes profile identifier."
+    },
+    "platform": {
+      "type": "string",
+      "description": "Platform identifier (e.g., telegram, whatsapp, email)."
+    },
+    "target_hash": {
+      "type": "string",
+      "description": "Optional. Hash of the target for logging without raw IDs."
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Optional metadata about the decision."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when the decision was made."
+    }
+  },
+  "additionalProperties": false
+}

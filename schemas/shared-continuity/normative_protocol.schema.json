@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relic.local/schemas/shared-continuity/normative_protocol.schema.json",
+  "title": "Shared Continuity Memory Normative Protocol",
+  "description": "Normative protocol defining what Shared Continuity Memory is and is not. Subject-scoped relational memory layer that stores user-confirmed continuity markers, corrections, follow-up permissions, recall limits, and audit events.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protocol_version", "definition", "scoping_requirements", "clinical_boundary", "recall_rule", "hindsight_rule"],
+  "properties": {
+    "protocol_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "definition": {
+      "type": "object",
+      "required": ["what_it_is", "what_it_is_not"],
+      "properties": {
+        "what_it_is": {
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 1
+        },
+        "what_it_is_not": {
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 1
+        }
+      }
+    },
+    "scoping_requirements": {
+      "type": "object",
+      "required": ["subject_id", "gumi_instance_id", "hermes_profile_id"],
+      "properties": {
+        "subject_id": {
+          "type": "string",
+          "description": "Required. Defines the data boundary."
+        },
+        "gumi_instance_id": {
+          "type": "string",
+          "description": "Required. Links to specific Gumi instance."
+        },
+        "hermes_profile_id": {
+          "type": "string",
+          "description": "Required. Links to Hermes profile context."
+        }
+      }
+    },
+    "clinical_boundary": {
+      "type": "object",
+      "required": ["forbidden_runtime_terms", "exception_clause"],
+      "properties": {
+        "forbidden_runtime_terms": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Terms forbidden in runtime output, labels, or system inference."
+        },
+        "exception_clause": {
+          "type": "string",
+          "description": "If the subject explicitly used a term, it may exist only in raw source text or subject_words, not as system inference, normalized tag, Gumi label, or policy output."
+        }
+      }
+    },
+    "recall_rule": {
+      "type": "object",
+      "required": ["conditions"],
+      "properties": {
+        "conditions": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "All conditions must be true for Gumi to recall a marker.",
+          "minItems": 7
+        },
+        "note": {
+          "type": "string",
+          "description": "Hindsight is not authority. Direct recall from Hindsight to user is forbidden."
+        }
+      }
+    },
+    "hindsight_rule": {
+      "type": "object",
+      "required": ["safe_flow", "forbidden_flow"],
+      "properties": {
+        "safe_flow": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "forbidden_flow": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      }
+    },
+    "design_principle": {
+      "type": "string",
+      "enum": ["Relational continuity first. Structured tracking second."]
+    }
+  }
+}

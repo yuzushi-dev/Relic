@@ -1,0 +1,12 @@
+{
+  "checkpoint_id": "checkpoint_001",
+  "subject_id": "subject_001",
+  "created_at": "2026-05-07T10:00:00Z",
+  "session_id": "session_abc123",
+  "has_pending_output": true,
+  "pending_output_not_auto_delivered": true,
+  "pending_output_visible_to_researcher": true,
+  "resume_requires_explicit_user_action": true,
+  "audit_event_on_resume": true,
+  "last_resume_at": null
+}

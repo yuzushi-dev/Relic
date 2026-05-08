@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Hermes Platform Allowlist",
+  "description": "Schema for Hermes v0.13 platform allowlists. Delivery is blocked without explicit allowlist and allowlist is subject-scoped.",
+  "type": "object",
+  "required": ["allowlist_id", "subject_id", "platform", "enabled", "created_at", "default_deny"],
+  "properties": {
+    "allowlist_id": {
+      "type": "string",
+      "description": "Unique identifier for this allowlist entry."
+    },
+    "subject_id": {
+      "type": "string",
+      "description": "Required. Subject ID to scope the allowlist entry."
+    },
+    "platform": {
+      "type": "string",
+      "description": "Platform identifier (e.g., telegram, whatsapp, email)."
+    },
+    "enabled": {
+      "type": "boolean",
+      "description": "Whether this platform is enabled for delivery."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when allowlist entry was created."
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Optional. ISO 8601 timestamp when allowlist entry expires."
+    },
+    "last_modified_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when allowlist entry was last modified."
+    },
+    "audit_event_on_change": {
+      "type": "boolean",
+      "description": "Whether allowlist changes create audit events."
+    },
+    "default_deny": {
+      "type": "boolean",
+      "description": "If true, delivery is blocked without explicit allowlist entry."
+    }
+  },
+  "additionalProperties": false
+}
