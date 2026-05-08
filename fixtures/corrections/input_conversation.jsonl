@@ -1,0 +1,5 @@
+{"id": "550e8400-e29b-41d4-a716-446655440001", "session_id": "550e8400-e29b-41d4-a716-446655440100", "role": "user", "content_hash": "hash_user_1", "content_length": 150, "timestamp": "2024-01-15T10:00:00Z"}
+{"id": "550e8400-e29b-41d4-a716-446655440002", "session_id": "550e8400-e29b-41d4-a716-446655440100", "role": "assistant", "content_hash": "hash_assistant_1", "content_length": 300, "timestamp": "2024-01-15T10:00:05Z"}
+{"id": "550e8400-e29b-41d4-a716-446655440003", "session_id": "550e8400-e29b-41d4-a716-446655440100", "role": "user", "content_hash": "hash_user_2", "content_length": 200, "timestamp": "2024-01-15T10:00:10Z"}
+{"id": "550e8400-e29b-41d4-a716-446655440004", "session_id": "550e8400-e29b-41d4-a716-446655440100", "role": "assistant", "content_hash": "hash_assistant_2", "content_length": 450, "timestamp": "2024-01-15T10:00:15Z"}
+{"id": "550e8400-e29b-41d4-a716-446655440005", "session_id": "550e8400-e29b-41d4-a716-446655440100", "role": "user", "content_hash": "hash_user_3", "content_length": 175, "timestamp": "2024-01-15T10:00:20Z"}

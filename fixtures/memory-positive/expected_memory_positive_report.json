@@ -1,0 +1,91 @@
+{
+  "report_type": "memory_positive_evaluation",
+  "timestamp": "2024-01-01T00:00:00Z",
+  "baseline_comparison": {
+    "a5_vs_a0": {
+      "average_score_improvement": 0.85,
+      "memory_advantage": true,
+      "passed_scenarios": 8,
+      "total_scenarios": 8
+    },
+    "a5_vs_a2": {
+      "average_score_improvement": 0.25,
+      "memory_advantage": "partial",
+      "correction_improvement": 0.35,
+      "passed_scenarios": 7,
+      "total_scenarios": 8
+    }
+  },
+  "scenario_results": {
+    "mp1": {
+      "status": "passed",
+      "a5_score": 1.0,
+      "a0_score": 0.0,
+      "a2_score": 0.5,
+      "memory_advantage": true
+    },
+    "mp2": {
+      "status": "passed",
+      "a5_score": 1.0,
+      "a0_score": 0.0,
+      "a2_score": 0.6,
+      "memory_advantage": true
+    },
+    "mp3": {
+      "status": "passed",
+      "a5_score": 1.0,
+      "a0_score": 0.0,
+      "a2_score": 0.7,
+      "memory_advantage": true
+    },
+    "mp4": {
+      "status": "passed",
+      "a5_score": 1.0,
+      "a0_score": 0.0,
+      "a2_score": 0.5,
+      "memory_advantage": true
+    },
+    "mp5": {
+      "status": "passed",
+      "a5_score": 1.0,
+      "a0_score": 0.0,
+      "a2_score": 0.4,
+      "memory_advantage": true
+    },
+    "mp6": {
+      "status": "passed",
+      "a5_score": 1.0,
+      "a0_score": 0.0,
+      "a2_score": 0.5,
+      "memory_advantage": true
+    },
+    "mp7": {
+      "status": "passed",
+      "a5_score": 1.0,
+      "a0_score": 0.0,
+      "a2_score": 0.3,
+      "correction_advantage": true
+    },
+    "mp8": {
+      "status": "passed_with_warning",
+      "a5_score": 0.7,
+      "a0_score": 0.0,
+      "a2_score": 0.3,
+      "forgetting_aware": true
+    }
+  },
+  "summary": {
+    "total_scenarios": 8,
+    "passed": 8,
+    "failed": 0,
+    "pass_rate": 1.0,
+    "a5_usefulness_claimed": true,
+    "a5_usefulness_basis": "memory_positive_task_results"
+  },
+  "severity_metrics": {
+    "s0_hard_violations": {"count": 0},
+    "s1_quarantine": {"count": 0},
+    "s2_warnings": {"count": 0},
+    "passed": {"count": 8}
+  }
+}

@@ -1,0 +1,4 @@
+{"role": "user", "content_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "content_length": 0, "is_redacted": true, "session_id": "test-session-001"}
+{"role": "assistant", "content_hash": "a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e", "content_length": 45, "is_redacted": false, "session_id": "test-session-001", "metadata": {"memory_to_evaluate": null}}
+{"role": "user", "content_hash": "b14a7b8059d9c055954c92674ce2dde8bf3c5a0d1c7e3a96c5b0d0d0d0d0d0d0", "content_length": 120, "is_redacted": false, "session_id": "test-session-001", "metadata": {"memory_to_evaluate": "external_source_001"}}
+{"role": "assistant", "content_hash": "c7e1249ffc03eb1f0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0", "content_length": 80, "is_redacted": false, "session_id": "test-session-001", "metadata": {"decision": "none", "skip_reason": "no_memory_content"}}

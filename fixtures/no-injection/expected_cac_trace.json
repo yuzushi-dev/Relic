@@ -1,0 +1,47 @@
+{
+  "description": "Expected CAC trace for no-injection scenario",
+  "version": "1.0",
+  "test_case": "no_injection_correctness",
+  "input_session_id": "test-session-001",
+  "expected_traces": [
+    {
+      "memory_id": "external_source_001",
+      "source": "external",
+      "decision": "quarantine",
+      "severity": "s1",
+      "disputed": false,
+      "skip_reason": "external_source",
+      "skip_reason_required": true,
+      "note": "External source memory is quarantined, not injected"
+    },
+    {
+      "memory_id": "no_memory_content",
+      "source": "provider_memory",
+      "decision": "none",
+      "severity": "none",
+      "disputed": false,
+      "skip_reason": null,
+      "skip_reason_required": false,
+      "note": "No memory content means NONE decision, no skip_reason needed"
+    }
+  ],
+  "no_injection_correctness_metric": {
+    "definition": "For all inputs with null/empty memory content, CAC returns NONE decision",
+    "expected_behavior": {
+      "input_with_null_memory": {
+        "decision": "none",
+        "skip_reason_required": false
+      },
+      "input_with_external_source": {
+        "decision": "quarantine",
+        "skip_reason_required": true,
+        "skip_reason_pattern": "external_source"
+      }
+    }
+  },
+  "privacy_checks": {
+    "raw_session_text_not_in_trace": true,
+    "only_hashes_and_metadata": true,
+    "note": "CAC trace must never contain raw session text"
+  }
+}
