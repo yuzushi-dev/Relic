@@ -1,0 +1,72 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "relic-e2e"
+version = "0.1.0"
+description = "Relic runtime governance layer for longitudinal agent personalization"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "AGPL-3.0-or-later"}
+authors = [
+    {name = "Relic Maintainers"}
+]
+keywords = ["runtime-governance", "agent-personalization", "privacy", "audit"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "pydantic>=2.0",
+    "PyYAML>=6.0",
+    "structlog>=24.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=4.0",
+    "ruff>=0.1",
+    "mypy>=1.7",
+]
+
+[project.scripts]
+relic = "relic.cli:main"
+relic-profile = "relic.profile.cli:profile_main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["relic*"]
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests/bootstrap",
+    "tests/profile",
+    "tests/gumi",
+    "tests/gumi_identity",
+    "tests/data-model",
+]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+# Initial OSS gate: block syntax/runtime hazards without failing the generated
+# research scaffold on formatting debt. Tighten this profile before a stable release.
+select = ["E9", "F821"]
+ignore = []
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_ignores = true
+disallow_untyped_defs = true

@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install project and dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install ruff pytest
+          python -m pip install -e .
+      - name: Lint
+        run: make lint
+      - name: Test
+        run: make test
+      - name: Validate JSON and JSONL fixtures
+        run: python scripts/ci/check_json_jsonl.py
+      - name: Check no raw private data markers
+        run: python scripts/ci/check_no_raw_private_data.py
+
+env:
+  RELIC_ENV: ci
+  RELIC_NO_NETWORK: '1'
+  RELIC_USE_FIXTURES: '1'
