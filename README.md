@@ -14,11 +14,11 @@
 </p>
 
 <p align="center">
-  <a href="#what-is-it">What is it?</a> ·
+  <a href="#what-is">What is it?</a> ·
   <a href="#relic-and-gumi">Relic and Gumi</a> ·
   <a href="#status">Status</a> ·
   <a href="#quick-start">Quick Start</a> ·
-  <a href="#profile-cli">Profile CLI</a> ·
+  <a href="#commands">Commands</a> ·
   <a href="#architecture">Architecture</a> ·
   <a href="#safety-boundaries-and-ethics">Ethics</a> ·
   <a href="#lore">Lore</a>
@@ -87,337 +87,58 @@ Gumi can take initiative inside the relationship: proactive messages, expressive
 
 ## Status
 
-This repository is in early OSS alpha. The implemented command surface is
-smaller than the full research blueprint.
+OSS alpha. Core surface: `relic init`, `relic subject create`, `relic setup`.
 
-Implemented now:
+Implemented: Python package, guided runtime setup, subject/Gumi bootstrap, profile management, Gumi generation, Hermes provisioning, Telegram delivery gates, cron specs, privacy/correction/context tests, CI scripts.
 
-- Python package and `python -m relic` smoke command
-- `relic init` guided runtime setup (Ollama + Hermes); `relic subject create` for subject onboarding
-- `relic setup` runtime installation/checks
-- `relic subject create` guided subject/Gumi onboarding
-- `relic profile` registry commands
-- Gumi background generation, media canon generation, Hermes profile provisioning,
-  Telegram delivery configuration, first-contact dry-run/live gates, and
-  subject-specific Hermes cron specs
-- deterministic privacy, correction, context, evaluation, and documentation tests
-- local fixtures and CI helper scripts
-- Researcher UI test skeleton under `ui/`
-
-Planned or blueprint-backed, but not exposed as current CLI commands:
-
-- full Hermes hook provisioning
-- one-command Researcher UI launch
-- fully guided live Hermes/Ollama/Telegram provisioning inside the setup TUI
-
-Internal development notes, task packets, generated reports, and local
-research outputs belong in `dev_docs/`. That directory is intentionally ignored
-by git and is not part of the public OSS surface.
+Planned: full Hermes hook provisioning, one-command Researcher UI launch.
 
 ## Quick Start
 
-This is the first-run path for someone who has just found the repository.
-You do not need to know what Hermes is before starting. Relic setup checks the
-local runtime, explains what is missing, and then opens the guided subject
-bootstrap.
-
-### 1. Install Locally
-
-Requirements:
-
-- Python 3.10+
-- `pip`
-- Node.js only if you are working on the optional `ui/` package
-- Hermes only if you are developing the optional integration path
-
-Core tests do not require cloud providers or a Hermes installation.
+Requirements: Python 3.10+, `pip`. Optional: Hermes for live delivery.
 
 ```bash
 git clone https://github.com/yuzushi-dev/Relic
 cd Relic
 pip install -e .
 relic init
+relic subject create
 ```
 
-`relic init` installs and configures the runtime tools (Ollama and Hermes).
-Once done, run `relic subject create` to create your first subject and start
-experimenting.
+`relic init` installs and configures Ollama and Hermes. `relic subject create` creates first subject and starts guided Gumi bootstrap.
 
-For development installs you can also run `python -m relic setup --bootstrap`
-to create a local `.venv/` first, then activate it and run `relic init`.
-
-### 2. Runtime Setup
-
-If Relic is already installed in an active environment, run setup directly:
-
-```bash
-relic setup
-```
-
-The setup command checks whether Hermes and Ollama are available, explains that
-they are optional for local dry-runs and required later for a live Gumi runtime,
-and optionally configures them. It does not create a subject.
-
-For a non-interactive check:
-
-```bash
-relic setup --check-only
-```
-
-### 3. Optional: Keep First-Run Data Inside the Repo
-
-By default, profile data is written under `~/.relic`. For a first local trial,
-you can keep all generated profile files inside the cloned repo:
+For isolated first run, keep all data inside the repo:
 
 ```bash
 export RELIC_HOME="$PWD/.relic-local"
-```
-
-`.relic-local/` is ignored by git. It is suitable for synthetic demo profiles,
-not for committing real subject data.
-
-Relic also prepares one private Hermes/Gumi profile per subject. By default,
-those profile directories are created under `~/.hermes/profiles/`. For an
-isolated first run, keep them inside the repo too:
-
-```bash
 export HERMES_PROFILES_HOME="$PWD/.relic-local/hermes-profiles"
-```
-
-Then run:
-
-```bash
+relic init
 relic subject create
 ```
 
-### 4. Create the First Subject
+## Commands
 
-After `relic init` completes, create your first subject:
+### `relic init`
 
-```bash
-relic subject create
-```
+First-run wizard. Installs and configures Ollama and Hermes. Run once before creating subjects.
 
-The guided subject flow creates two linked private profiles:
+### `relic subject create`
 
-- a Relic subject profile under `$RELIC_HOME/subjects/subj_001/`
-- a subject-specific Hermes/Gumi profile named `gumi-subj_001`
+Guided bootstrap for new subject. Creates Relic subject profile and Gumi diegetic profile. No live delivery until explicitly configured.
 
-The important fields on a fresh profile are:
+### `relic setup`
 
-```json
-{
-  "subject_id": "subj_001",
-  "experiment_id": "exp_001",
-  "status": "draft",
-  "hermes_profile_name": "gumi-subj_001",
-  "profile_version": 1
-}
-```
-
-Relic also creates the local profile directory:
-
-```text
-$RELIC_HOME/subjects/subj_001/
-  subject_profile.json
-  provenance/
-  exports/
-```
-
-And it prepares the private Gumi profile directory:
-
-```text
-$HERMES_PROFILES_HOME/gumi-subj_001/
-  SOUL.md
-  USER.md
-  MEMORY.md
-```
-
-At this stage, `SOUL.md`, `USER.md`, and `MEMORY.md` are safe initial
-placeholders for the subject-specific Gumi profile. Depending on choices in the
-TUI, Relic may also generate the Gumi background, provision the private Hermes
-profile, and compose a local first-contact preview. It does not start a live
-runtime or send a live message unless live delivery is explicitly configured.
-
-### 5. Make Gumi Live
-
-Dry-run setup does not require Hermes, Ollama, Telegram, cloud credentials, or a
-running gateway. To make a subject-specific Gumi live, use the TUI/check output
-as the guide:
-
-- Install Ollama from https://ollama.com/download if it is missing.
-- Use `ollama signin` if you want to start with Ollama cloud models instead of
-  relying on local hardware.
-- Install Hermes if it is missing.
-- Configure Hermes to use Ollama's OpenAI-compatible local endpoint
-  `http://localhost:11434/v1`.
-- Create a dedicated Telegram bot and dedicated Telegram user/chat id for each
-  subject.
-- Configure that subject with `relic profile hermes configure-telegram`.
-- Provision subject-specific cron with `relic profile hermes cron provision`.
-
-The lower-level commands remain available for scripted runs:
-
-```bash
-relic profile edit subj_001 --status baseline_in_progress
-relic profile edit subj_001 --status baseline_complete
-relic profile gumi generate subj_001 --mode hybrid --seed 42
-relic profile edit subj_001 --status gumi_seed_reviewed
-relic profile hermes provision subj_001
-relic profile hermes show subj_001
-relic profile gumi media generate subj_001 --seed 42
-relic profile gumi intro compose subj_001 --seed 7
-relic profile gumi intro send subj_001 --dry-run
-```
-
-`--dry-run` records the local send event and never contacts a live delivery
-provider. `--deliver` prepares Hermes-native Telegram delivery. Actual send
-requires `--live` and `RELIC_ALLOW_LIVE_DELIVERY=1`.
-
-The generation step writes subject-local artifacts:
-
-```text
-$RELIC_HOME/subjects/subj_001/
-  gumi_background_profile.json
-  gumi_seed_profile.json
-  gumi_sweet_spot_config.json
-  gumi_world.md
-  gumi_relationship_policy.md
-  gumi_social_graph.json
-  gumi_visual_canon.json
-  gumi_music_canon.json
-  gumi_daily_rhythm.json
-  provenance/gumi_generation_report.json
-```
-
-The provisioning step writes the private Hermes profile:
-
-```text
-$HERMES_PROFILES_HOME/gumi-subj_001/
-  SOUL.md
-  USER.md
-  MEMORY.md
-  config.yaml
-  .env
-  workspace/gumi/background.json
-  workspace/gumi/world.md
-  workspace/gumi/relationship_policy.md
-  workspace/gumi/visual_canon.json
-  workspace/gumi/voice_canon.json
-  workspace/gumi/lyria_canon.json
-  workspace/gumi/media_policy.json
-```
-
-### 6. Run the Public Checks
-
-```bash
-make lint
-make test
-python scripts/ci/check_json_jsonl.py
-python scripts/ci/check_no_raw_private_data.py
-```
-
-These checks exercise the current OSS surface. They do not require real private
-data, a running agent, cloud credentials, or Hermes.
-
-## Profile CLI
-
-Relic installation creates the system capability. `relic profile init` then
-creates a Relic subject profile and prepares that subject's private Hermes/Gumi
-profile shell. The nested `gumi` and `hermes` commands generate and provision
-the subject-specific Gumi profile. None of these commands start Hermes or
-contact the subject.
-
-Current profile commands:
-
-```text
-list
-show
-init
-edit
-validate
-export
-archive
-gumi generate <subject_id> --mode random|manual|hybrid
-gumi media generate <subject_id>
-gumi media show <subject_id>
-gumi intro compose <subject_id>
-gumi intro send <subject_id> --dry-run|--deliver [--live]
-hermes provision <subject_id>
-hermes show <subject_id>
-hermes configure-telegram <subject_id>
-hermes cron provision <subject_id>
-hermes cron list <subject_id>
-hermes cron validate <subject_id>
-```
-
-Create and inspect a local subject profile:
-
-```bash
-relic profile init --subject-id subj_001 --experiment-id exp_001
-relic profile list
-relic profile show subj_001
-relic profile validate subj_001
-```
-
-Edit, export, and archive:
-
-```bash
-relic profile edit subj_001 --status baseline_in_progress
-relic profile edit subj_001 --status baseline_complete
-relic profile gumi generate subj_001 --mode random --seed 42
-relic profile edit subj_001 --status gumi_seed_reviewed
-relic profile hermes provision subj_001
-relic profile gumi media generate subj_001 --seed 42
-relic profile gumi intro compose subj_001
-relic profile gumi intro send subj_001 --dry-run
-relic profile export subj_001 --redacted --out profile.json
-relic profile archive subj_001
-```
-
-The guided subject command runs the local subject/Gumi generation path:
-
-```bash
-relic subject create
-```
-
-A single researcher can manage multiple subjects. Each subject has a separate
-Relic profile and a separate private Hermes/Gumi profile. Live Telegram setup
-requires a dedicated bot token and dedicated Telegram user/chat id per subject;
-Relic rejects reused Telegram identifiers across subjects.
+Install/check runtime dependencies without creating subjects. Use `--check-only` for non-interactive check.
 
 ## Development Checks
 
-The Makefile is the main command registry:
+Run the full test suite and static checks:
 
 ```bash
 make lint
 make test
-make test-docs
-make test-privacy
-make test-eval
-make test-ui
-```
-
-Additional deterministic checks:
-
-```bash
 python scripts/ci/check_json_jsonl.py
 python scripts/ci/check_no_raw_private_data.py
-python scripts/validate_handoff.py
-```
-
-Build packaging artifacts with:
-
-```bash
-python -m build --sdist --wheel
-```
-
-If that command fails with `No module named build`, install the standard build
-frontend first:
-
-```bash
-pip install build
 ```
 
 ## Architecture
