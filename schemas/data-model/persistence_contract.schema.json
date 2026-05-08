@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://relic-oss.dev/schemas/data-model/persistence_contract.schema.json",
+  "title": "Persistence Contract",
+  "description": "Schema for documenting persistence contracts for SQLite MVP and PostgreSQL migration target.",
+  "type": "object",
+  "required": ["storage_phase", "schema_version", "tables"],
+  "properties": {
+    "storage_phase": {
+      "type": "string",
+      "enum": ["sqlite_mvp", "postgres_target"],
+      "description": "The storage phase this contract describes"
+    },
+    "schema_version": {
+      "type": "string",
+      "description": "Schema version identifier"
+    },
+    "tables": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "columns"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Table name"
+          },
+          "columns": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["name", "type"],
+              "properties": {
+                "name": { "type": "string" },
+                "type": { "type": "string" },
+                "nullable": { "type": "boolean" },
+                "primary_key": { "type": "boolean" },
+                "references": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "description": "Tables in this storage phase"
+    },
+    "transformation_steps": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Steps to transform from source to target"
+    },
+    "rollback_procedure": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Steps to rollback migration"
+    },
+    "constraints": {
+      "type": "object",
+      "properties": {
+        "vector_index_not_source_of_truth": { "type": "boolean" },
+        "hindsight_not_source_of_truth": { "type": "boolean" },
+        "subject_scope_preserved": { "type": "boolean" }
+      }
+    }
+  }
+}

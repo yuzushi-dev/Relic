@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relic.local/schemas/gumi_initial_contact_event.schema.json",
+  "title": "Gumi Initial Contact Event",
+  "type": "object",
+  "required": [
+    "calibration",
+    "composition_mode",
+    "created_at",
+    "event_type",
+    "message_id",
+    "message_text_hash",
+    "researcher_previewed",
+    "status",
+    "subject_id",
+    "template_family",
+    "template_used"
+  ],
+  "properties": {
+    "event_type": {
+      "const": "gumi_initial_contact_event"
+    },
+    "subject_id": {
+      "type": "string"
+    },
+    "message_id": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "composed",
+        "blocked",
+        "sent",
+        "failed"
+      ]
+    },
+    "calibration": {
+      "type": "object"
+    },
+    "message_text_hash": {
+      "type": "string"
+    },
+    "message_text_local_ref": {
+      "type": "string"
+    },
+    "researcher_previewed": {
+      "type": "boolean"
+    },
+    "researcher_edited": {
+      "type": "boolean"
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "composition_mode": {
+      "type": "string",
+      "enum": [
+        "generated_from_constraints",
+        "researcher_manual_edit",
+        "blocked"
+      ]
+    },
+    "template_used": {
+      "type": "boolean",
+      "const": false
+    },
+    "noncanonical_example_similarity_checked": {
+      "type": "boolean"
+    }
+  }
+}

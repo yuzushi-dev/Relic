@@ -1,0 +1,70 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://relic-oss.dev/schemas/data-model/base_event.schema.json",
+  "title": "Base Event",
+  "description": "Canonical base schema for all events in the Relic event registry.",
+  "type": "object",
+  "required": ["event_id", "subject_id", "gumi_instance_id", "hermes_profile_id", "event_class", "ontological_class", "timestamp", "source_refs", "policy_snapshot_id"],
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "Unique event identifier (UUID)"
+    },
+    "subject_id": {
+      "type": "string",
+      "description": "Subject scope identifier"
+    },
+    "gumi_instance_id": {
+      "type": "string",
+      "description": "Gumi instance scope identifier"
+    },
+    "hermes_profile_id": {
+      "type": "string",
+      "description": "Hermes profile scope identifier"
+    },
+    "event_class": {
+      "type": "string",
+      "description": "Classification of the event"
+    },
+    "ontological_class": {
+      "type": "string",
+      "enum": [
+        "empirical_user_interaction",
+        "active_elicitation",
+        "proactive_support",
+        "gumi_diegetic_event",
+        "expressive_media",
+        "user_response_to_gumi",
+        "system_inference",
+        "correction",
+        "governance_decision",
+        "system_maintenance"
+      ],
+      "description": "Philosophical category of the event"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp"
+    },
+    "source_refs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "References to source data"
+    },
+    "policy_snapshot_id": {
+      "type": "string",
+      "description": "Policy state at event time"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Event metadata with redaction rules",
+      "properties": {
+        "raw_text_redacted": { "type": "boolean", "default": true },
+        "provider_logs_access": { "type": "string", "enum": ["researcher-only", "subject-visible", "hidden"], "default": "researcher-only" },
+        "session_key_stored_as_hash": { "type": "boolean", "default": true }
+      }
+    }
+  },
+  "additionalProperties": false
+}

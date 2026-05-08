@@ -1,0 +1,22 @@
+{
+  "subject_id": "subject_001",
+  "condition": "withdrawal",
+  "redaction_status": "redacted",
+  "hermes_profile_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "soul_md_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+  "policy_snapshot": "policy_v2.3_sha256:abc123def456",
+  "event_counts": {
+    "empirical_user_interaction": 150,
+    "active_elicitation": 45,
+    "proactive_support": 23,
+    "gumi_diegetic_event": 12,
+    "expressive_media": 8,
+    "user_response_to_gumi": 67,
+    "system_inference": 34,
+    "correction": 5,
+    "governance_decision": 2,
+    "system_maintenance": 1
+  },
+  "exported_at": "2024-01-20T12:00:00Z",
+  "excluded_data_types": ["sensitive_signals"]
+}

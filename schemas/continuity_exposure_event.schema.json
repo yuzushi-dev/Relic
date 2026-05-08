@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relic.local/schemas/continuity_exposure_event.schema.json",
+  "title": "ContinuityExposureEvent",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "event_id", "source", "exposure_type", "target_surface", "lineage_refs", "privacy_mode", "runtime_effect"],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "event_id": {"type": "string", "minLength": 1},
+    "source": {"enum": ["prompt_context_pack", "agent_diary", "world_state", "skill", "cron"]},
+    "exposure_type": {"enum": ["identity", "episodic_summary", "world_state_summary", "blocked_item", "critic_verdict"]},
+    "target_surface": {"enum": ["pre_llm_call", "post_llm_call", "cron_maintenance", "skill_execution"]},
+    "lineage_refs": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+    "privacy_mode": {"enum": ["redacted", "local_only", "quarantined"]},
+    "runtime_effect": {"enum": ["admitted", "reduced", "blocked", "none"]}
+  }
+}

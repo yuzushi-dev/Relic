@@ -1,0 +1,74 @@
+{
+  "description": "Cross-PR contract test fixture",
+  "test_subjects": [
+    {
+      "subject_id": "cross_pr_subject_001",
+      "gumi_instance_id": "cross_pr_gumi_001",
+      "hermes_profile_id": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "events": [
+        {
+          "event_id": "evt_001",
+          "event_class": "empirical_user_interaction",
+          "ontological_class": "empirical_user_interaction"
+        },
+        {
+          "event_id": "evt_002",
+          "event_class": "governance_decision",
+          "ontological_class": "governance_decision"
+        }
+      ],
+      "continuity_markers": [
+        {
+          "marker_id": "marker_001",
+          "confirmed": true,
+          "marker_type": "session_continuity_state"
+        }
+      ],
+      "sensitive_signals": [
+        {
+          "signal_id": "sig_001",
+          "signal_type": "family_mention_detected",
+          "researcher_visible": true
+        }
+      ]
+    }
+  ],
+  "test_scenarios": [
+    {
+      "scenario": "pr26_pr27_subject_scope_contract",
+      "description": "Verify all runtime objects have subject scope"
+    },
+    {
+      "scenario": "pr26_pr32_signal_isolation_contract",
+      "description": "Safety signals cannot leak into Gumi runtime"
+    },
+    {
+      "scenario": "pr26_pr33_marker_scope_contract",
+      "description": "Continuity markers require subject confirmation"
+    },
+    {
+      "scenario": "pr26_pr30_event_scope_contract",
+      "description": "All events have ontological_class and subject_id"
+    },
+    {
+      "scenario": "pr32_pr33_boundary_contract",
+      "description": "Safety signals and continuity markers do not cross-contaminate"
+    },
+    {
+      "scenario": "pr30_pr32_no_clinical_label_leakage",
+      "description": "PR30 hooks do not inject clinical labels"
+    },
+    {
+      "scenario": "pr30_pr33_no_clinical_marker_leakage",
+      "description": "PR30 hooks do not inject clinical interpretations into markers"
+    },
+    {
+      "scenario": "pr27_every_panel_subject_scoped",
+      "description": "Every PR27 panel requires subject scope"
+    },
+    {
+      "scenario": "cross_pr_event_has_ontological_class",
+      "description": "All events across PRs have ontological_class"
+    }
+  ]
+}

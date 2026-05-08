@@ -1,0 +1,33 @@
+{
+  "migration_id": "migrate_sqlite_to_postgres_001",
+  "source_phase": "sqlite_mvp",
+  "target_phase": "postgres_target",
+  "steps": [
+    {
+      "step_number": 1,
+      "description": "Create initial PostgreSQL schema with UUID primary keys",
+      "sql_script": "001_initial_schema.sql"
+    },
+    {
+      "step_number": 2,
+      "description": "Backfill data from SQLite with FK cascade preservation",
+      "sql_script": "002_backfill_cascade.sql"
+    },
+    {
+      "step_number": 3,
+      "description": "Verify replication integrity",
+      "sql_script": "003_verify_replication.sql"
+    }
+  ],
+  "rollback_scripts": [
+    "rollback_001_initial_schema.sql",
+    "rollback_002_backfill_cascade.sql"
+  ],
+  "constraints": {
+    "reversible": true,
+    "data_integrity_verified": true,
+    "subject_scope_preserved": true,
+    "foreign_keys_preserved": true,
+    "no_production_disruption": true
+  }
+}

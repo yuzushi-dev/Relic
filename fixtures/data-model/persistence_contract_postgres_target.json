@@ -1,0 +1,95 @@
+{
+  "storage_phase": "postgres_target",
+  "schema_version": "2.0.0",
+  "tables": [
+    {
+      "name": "subjects",
+      "columns": [
+        { "name": "id", "type": "UUID", "nullable": false, "primary_key": true },
+        { "name": "study_id", "type": "VARCHAR(255)" },
+        { "name": "created_at", "type": "TIMESTAMPTZ" }
+      ]
+    },
+    {
+      "name": "gumi_instances",
+      "columns": [
+        { "name": "id", "type": "UUID", "nullable": false, "primary_key": true },
+        { "name": "subject_id", "type": "UUID", "nullable": false, "references": "subjects(id)" },
+        { "name": "created_at", "type": "TIMESTAMPTZ" }
+      ]
+    },
+    {
+      "name": "hermes_profiles",
+      "columns": [
+        { "name": "id", "type": "UUID", "nullable": false, "primary_key": true },
+        { "name": "gumi_instance_id", "type": "UUID", "nullable": false, "references": "gumi_instances(id)" },
+        { "name": "profile_hash", "type": "TEXT" },
+        { "name": "created_at", "type": "TIMESTAMPTZ" }
+      ]
+    },
+    {
+      "name": "runtime_objects",
+      "columns": [
+        { "name": "id", "type": "UUID", "nullable": false, "primary_key": true },
+        { "name": "subject_id", "type": "UUID", "nullable": false },
+        { "name": "gumi_instance_id", "type": "UUID", "nullable": false },
+        { "name": "hermes_profile_id", "type": "UUID", "nullable": false },
+        { "name": "object_type", "type": "VARCHAR(100)" },
+        { "name": "created_at", "type": "TIMESTAMPTZ" }
+      ]
+    },
+    {
+      "name": "events",
+      "columns": [
+        { "name": "id", "type": "UUID", "nullable": false, "primary_key": true },
+        { "name": "subject_id", "type": "UUID", "nullable": false },
+        { "name": "gumi_instance_id", "type": "UUID", "nullable": false },
+        { "name": "hermes_profile_id", "type": "UUID", "nullable": false },
+        { "name": "event_class", "type": "VARCHAR(100)" },
+        { "name": "ontological_class", "type": "VARCHAR(100)" },
+        { "name": "timestamp", "type": "TIMESTAMPTZ" }
+      ]
+    },
+    {
+      "name": "continuity_markers",
+      "columns": [
+        { "name": "id", "type": "UUID", "nullable": false, "primary_key": true },
+        { "name": "subject_id", "type": "UUID", "nullable": false },
+        { "name": "gumi_instance_id", "type": "UUID", "nullable": false },
+        { "name": "hermes_profile_id", "type": "UUID", "nullable": false },
+        { "name": "confirmed", "type": "BOOLEAN", "nullable": false, "default": false },
+        { "name": "created_at", "type": "TIMESTAMPTZ" }
+      ]
+    },
+    {
+      "name": "sensitive_signals",
+      "columns": [
+        { "name": "id", "type": "UUID", "nullable": false, "primary_key": true },
+        { "name": "subject_id", "type": "UUID", "nullable": false },
+        { "name": "gumi_instance_id", "type": "UUID", "nullable": false },
+        { "name": "hermes_profile_id", "type": "UUID", "nullable": false },
+        { "name": "created_at", "type": "TIMESTAMPTZ" }
+      ]
+    }
+  ],
+  "transformation_steps": [
+    "1. Export SQLite data to JSON",
+    "2. Create PostgreSQL schema with UUID primary keys",
+    "3. Transform TEXT fields to UUID/VARCHAR/TIMESTAMPTZ",
+    "4. Import data with FK validation enabled",
+    "5. Verify row counts match between SQLite and PostgreSQL"
+  ],
+  "rollback_procedure": [
+    "1. Export PostgreSQL data to JSON",
+    "2. Disable FK constraints temporarily",
+    "3. Drop PostgreSQL tables",
+    "4. Recreate SQLite schema",
+    "5. Import JSON data",
+    "6. Re-enable FK constraints"
+  ],
+  "constraints": {
+    "vector_index_not_source_of_truth": true,
+    "hindsight_not_source_of_truth": true,
+    "subject_scope_preserved": true
+  }
+}

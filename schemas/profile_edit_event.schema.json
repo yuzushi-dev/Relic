@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relic.local/schemas/profile_edit_event.schema.json",
+  "title": "Profile Edit Event",
+  "type": "object",
+  "required": ["event_type", "subject_id", "profile_version_before", "profile_version_after", "edited_fields", "edit_mode", "researcher_id", "created_at"],
+  "properties": {
+    "event_type": {"const": "profile_edit_event"},
+    "subject_id": {"type": "string"},
+    "profile_version_before": {"type": "integer"},
+    "profile_version_after": {"type": "integer"},
+    "edited_fields": {"type": "array", "items": {"type": "string"}},
+    "edit_mode": {"enum": ["manual", "hybrid_regeneration", "risk_correction", "continuity_patch"]},
+    "researcher_id": {"type": "string"},
+    "requires_intro_regeneration": {"type": "boolean"},
+    "created_at": {"type": "string"}
+  }
+}

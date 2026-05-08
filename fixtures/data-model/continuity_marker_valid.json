@@ -1,0 +1,25 @@
+{
+  "marker_id": "marker_001_e5f6g7h8",
+  "subject_id": "subject_001",
+  "gumi_instance_id": "gumi_instance_a1b2c3d4",
+  "hermes_profile_id": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "marker_type": "session_continuity_state",
+  "content_hash": "sha256:9876543210fedcba9876543210fedcba9876543210fedcba9876543210fedcba",
+  "confirmed": true,
+  "created_at": "2024-01-15T16:00:00Z",
+  "clinical_interpretation_allowed": false,
+  "corrections": [
+    {
+      "correction_id": "corr_001",
+      "original_marker_id": "marker_001_e5f6g7h8",
+      "correction_content_hash": "sha256:aaaabbbbccccddddeeeff000111222333444555666777888999000",
+      "corrected_at": "2024-01-16T10:00:00Z"
+    }
+  ],
+  "recall_rules": {
+    "subject_can_recall": true,
+    "researcher_can_recall": true,
+    "gumi_can_recall": true,
+    "gumi_requires_confirmation": true
+  }
+}

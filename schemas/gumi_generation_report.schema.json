@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relic.local/schemas/gumi_generation_report.schema.json",
+  "title": "Gumi Generation Report",
+  "type": "object",
+  "required": ["subject_id", "generation_mode", "sampler_version", "input_profile_hash", "sweet_spot_score", "risk_scores"],
+  "properties": {
+    "subject_id": {"type": "string"},
+    "generation_mode": {"enum": ["random", "manual", "hybrid"]},
+    "random_seed": {"type": ["string", "null"]},
+    "sampler_version": {"type": "string"},
+    "input_profile_hash": {"type": "string"},
+    "sweet_spot_score": {"type": "number"},
+    "risk_scores": {"type": "object"},
+    "rejected_candidates": {"type": "array", "items": {"type": "object"}},
+    "manual_overrides": {"type": "array", "items": {"type": "object"}}
+  }
+}

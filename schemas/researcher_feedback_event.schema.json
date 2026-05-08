@@ -1,0 +1,143 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://relic-oss.dev/schemas/researcher_feedback_event/v1",
+  "title": "Researcher Feedback Event",
+  "description": "Event representing researcher feedback on an artifact. Feedback does NOT affect runtime until compiler rerun. Privacy guarantees: contains NO raw final prompts, feedback_content is redacted by default.",
+  "type": "object",
+  "required": [
+    "event_id",
+    "timestamp",
+    "feedback_type",
+    "severity",
+    "target_id",
+    "actor_role",
+    "lineage_refs",
+    "is_feedback_redacted"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique event identifier"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Event timestamp"
+    },
+    "feedback_type": {
+      "type": "string",
+      "enum": ["correction", "validation", "flag", "escalation", "approval", "rejection"],
+      "description": "Type of feedback"
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["minor", "moderate", "major", "critical"],
+      "description": "Severity level of the feedback"
+    },
+    "target_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "ID of the target artifact (REQUIRED for UI trace)"
+    },
+    "actor_role": {
+      "type": "string",
+      "description": "Role of researcher providing feedback (REQUIRED for UI trace)"
+    },
+    "feedback_content": {
+      "type": "string",
+      "description": "Feedback content (redacted by default)",
+      "default": ""
+    },
+    "is_feedback_redacted": {
+      "type": "boolean",
+      "default": true,
+      "description": "True if feedback content is redacted"
+    },
+    "feedback_content_hash": {
+      "type": ["string", "null"],
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256 hash of feedback content for verification"
+    },
+    "lineage_refs": {
+      "type": "array",
+      "description": "Parent artifacts for lineage tracking (REQUIRED)",
+      "items": {
+        "$ref": "#/definitions/lineage_ref"
+      }
+    },
+    "applied": {
+      "type": "boolean",
+      "default": false,
+      "description": "True only after compiler rerun - feedback does not affect runtime before this"
+    },
+    "applied_at": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "Timestamp when feedback was applied via compiler"
+    },
+    "triggered_privacy_review": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if sensitive mark triggered privacy review"
+    },
+    "subject_user_correction_respected": {
+      "type": "boolean",
+      "default": true,
+      "description": "True if researcher validation did NOT override subject_user correction"
+    }
+  },
+  "definitions": {
+    "lineage_ref": {
+      "type": "object",
+      "required": ["artifact_id", "artifact_type", "relationship"],
+      "properties": {
+        "artifact_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "artifact_type": {
+          "type": "string",
+          "enum": ["runtime_profile", "agent_embodiment", "interaction_policy", "feedback_event"]
+        },
+        "relationship": {
+          "type": "string",
+          "enum": ["derived_from", "supersedes", "references", "corrects"]
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "checksum": {
+          "type": ["string", "null"],
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "event_id": "660e8400-e29b-41d4-a716-446655440001",
+      "timestamp": "2024-01-15T10:30:00Z",
+      "feedback_type": "correction",
+      "severity": "major",
+      "target_id": "660e8400-e29b-41d4-a716-446655440002",
+      "actor_role": "researcher",
+      "feedback_content": "[REDACTED]",
+      "is_feedback_redacted": true,
+      "feedback_content_hash": "b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef1234567a",
+      "lineage_refs": [
+        {
+          "artifact_id": "660e8400-e29b-41d4-a716-446655440002",
+          "artifact_type": "runtime_profile",
+          "relationship": "corrects",
+          "created_at": "2024-01-14T09:00:00Z"
+        }
+      ],
+      "applied": false,
+      "triggered_privacy_review": false,
+      "subject_user_correction_respected": true
+    }
+  ]
+}

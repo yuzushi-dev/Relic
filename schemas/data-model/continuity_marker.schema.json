@@ -1,0 +1,72 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://relic-oss.dev/schemas/data-model/continuity_marker.schema.json",
+  "title": "Continuity Marker",
+  "description": "Schema for PR33 continuity marker records. Requires subject confirmation before storage.",
+  "type": "object",
+  "required": ["marker_id", "subject_id", "gumi_instance_id", "hermes_profile_id", "marker_type", "content_hash", "confirmed", "created_at"],
+  "properties": {
+    "marker_id": {
+      "type": "string",
+      "description": "Unique marker identifier"
+    },
+    "subject_id": {
+      "type": "string",
+      "description": "Subject scope identifier"
+    },
+    "gumi_instance_id": {
+      "type": "string",
+      "description": "Gumi instance scope identifier"
+    },
+    "hermes_profile_id": {
+      "type": "string",
+      "description": "Hermes profile scope identifier"
+    },
+    "marker_type": {
+      "type": "string",
+      "description": "Type of continuity marker"
+    },
+    "content_hash": {
+      "type": "string",
+      "description": "Hash of marker content"
+    },
+    "confirmed": {
+      "type": "boolean",
+      "const": true,
+      "description": "Subject confirmation status - must be true for permanent storage"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp"
+    },
+    "clinical_interpretation_allowed": {
+      "type": "boolean",
+      "const": false,
+      "description": "Always false - no clinical interpretation"
+    },
+    "corrections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "correction_id": { "type": "string" },
+          "original_marker_id": { "type": "string" },
+          "correction_content_hash": { "type": "string" },
+          "corrected_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "description": "Array of correction records - corrections are authoritative"
+    },
+    "recall_rules": {
+      "type": "object",
+      "properties": {
+        "subject_can_recall": { "type": "boolean" },
+        "researcher_can_recall": { "type": "boolean" },
+        "gumi_can_recall": { "type": "boolean" },
+        "gumi_requires_confirmation": { "type": "boolean" }
+      }
+    }
+  },
+  "additionalProperties": false
+}

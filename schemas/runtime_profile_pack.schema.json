@@ -1,0 +1,232 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://relic-oss.dev/schemas/runtime_profile_pack/v1",
+  "title": "Runtime Profile Pack",
+  "description": "Runtime profile artifact with zero raw session text. Privacy guarantees: contains NO raw chat content, only stores content hashes and metadata.",
+  "type": "object",
+  "required": [
+    "id",
+    "schema_version",
+    "checksum",
+    "source_snapshot_id",
+    "lineage_refs",
+    "correction_cutoff",
+    "session_id",
+    "profile_type",
+    "prompt_hash",
+    "agent_id",
+    "agent_version"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique profile identifier"
+    },
+    "schema_version": {
+      "$ref": "#/definitions/schema_version"
+    },
+    "checksum": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256 checksum of profile content"
+    },
+    "source_snapshot_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Reference to source session snapshot (REQUIRED)"
+    },
+    "lineage_refs": {
+      "type": "array",
+      "description": "Parent artifacts for lineage tracking",
+      "items": {
+        "$ref": "#/definitions/lineage_ref"
+      }
+    },
+    "correction_cutoff": {
+      "$ref": "#/definitions/correction_cutoff"
+    },
+    "session_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Session identifier"
+    },
+    "profile_type": {
+      "type": "string",
+      "enum": [
+        "session",
+        "prompt",
+        "response",
+        "continuation"
+      ],
+      "description": "Type of runtime profile"
+    },
+    "prompt_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256 hash of prompt content (NOT the actual prompt)"
+    },
+    "prompt_length": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Length of original prompt"
+    },
+    "is_redacted": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether prompt was redacted"
+    },
+    "redacted_reason": {
+      "type": ["string", "null"],
+      "description": "Reason for redaction if applicable"
+    },
+    "hint_hashes": {
+      "type": "array",
+      "description": "SHA-256 hashes of included hints (NOT actual hints)",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{64}$"
+      }
+    },
+    "disputed_hints_excluded": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 0,
+      "description": "Count of disputed hints that were excluded"
+    },
+    "sensitive_hints_downgraded": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 0,
+      "description": "Count of sensitive hints that were downgraded by policy"
+    },
+    "agent_id": {
+      "type": "string",
+      "description": "Agent identifier"
+    },
+    "agent_version": {
+      "type": "string",
+      "description": "Agent version"
+    },
+    "metadata": {
+      "type": "object",
+      "default": {},
+      "description": "Additional metadata (no raw content)"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Creation timestamp"
+    }
+  },
+  "definitions": {
+    "schema_version": {
+      "type": "object",
+      "required": ["major", "minor", "patch", "schema_uri"],
+      "properties": {
+        "major": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "minor": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "patch": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "schema_uri": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "lineage_ref": {
+      "type": "object",
+      "required": ["artifact_id", "artifact_type", "relationship"],
+      "properties": {
+        "artifact_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "artifact_type": {
+          "type": "string",
+          "enum": ["runtime_profile", "agent_embodiment", "interaction_policy"]
+        },
+        "relationship": {
+          "type": "string",
+          "enum": ["derived_from", "supersedes", "references"]
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "correction_cutoff": {
+      "type": "object",
+      "required": ["cutoff_timestamp"],
+      "properties": {
+        "cutoff_timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "All corrections up to this timestamp must be applied"
+        },
+        "corrections_applied": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "default": []
+        },
+        "corrections_pending": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "default": []
+        },
+        "verified": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "schema_version": {
+        "major": 1,
+        "minor": 0,
+        "patch": 0,
+        "schema_uri": "https://relic-oss.dev/schemas/runtime_profile_pack/v1"
+      },
+      "checksum": "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456",
+      "source_snapshot_id": "550e8400-e29b-41d4-a716-446655440001",
+      "lineage_refs": [],
+      "correction_cutoff": {
+        "cutoff_timestamp": "2024-01-15T10:30:00Z",
+        "corrections_applied": [],
+        "corrections_pending": [],
+        "verified": true
+      },
+      "session_id": "550e8400-e29b-41d4-a716-446655440002",
+      "profile_type": "session",
+      "prompt_hash": "deadbeef01234567890abcdef01234567890abcdef01234567890abcdef0123",
+      "prompt_length": 150,
+      "is_redacted": false,
+      "hint_hashes": [],
+      "disputed_hints_excluded": 0,
+      "sensitive_hints_downgraded": 0,
+      "agent_id": "gumi-v1",
+      "agent_version": "1.0.0",
+      "metadata": {},
+      "created_at": "2024-01-15T10:30:00Z"
+    }
+  ]
+}

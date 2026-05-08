@@ -1,0 +1,190 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://relic-oss.dev/schemas/ui_review_status/v1",
+  "title": "UI Review Status",
+  "description": "Review status schema for UI items with zero-knowledge guarantees. S0/S1 items cannot be batch-released. State is represented through descriptive text, NOT color only. Privacy guarantees: contains NO raw final prompts.",
+  "type": "object",
+  "required": [
+    "item_id",
+    "created_at",
+    "updated_at",
+    "content_hash",
+    "is_content_redacted",
+    "lineage_refs",
+    "review_status",
+    "risk_level",
+    "actor_role",
+    "target_id"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "item_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique item identifier"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Item creation timestamp"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last update timestamp"
+    },
+    "content_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256 hash of content for verification"
+    },
+    "is_content_redacted": {
+      "type": "boolean",
+      "default": true,
+      "description": "True if content is redacted (always true by default)"
+    },
+    "lineage_refs": {
+      "type": "array",
+      "description": "Parent artifacts for lineage tracking (REQUIRED)",
+      "items": {
+        "$ref": "#/definitions/lineage_ref"
+      }
+    },
+    "review_status": {
+      "type": "string",
+      "enum": ["pending", "under_review", "approved", "rejected", "auto_resolved", "escalated"],
+      "description": "Current review status"
+    },
+    "risk_level": {
+      "type": "string",
+      "enum": ["s0", "s1", "s2", "low_risk"],
+      "description": "Risk classification - S0/S1 cannot be batch-released"
+    },
+    "is_runtime_impacting": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if changes affect agent runtime behavior"
+    },
+    "can_batch_release": {
+      "type": "boolean",
+      "default": false,
+      "description": "False for S0/S1 items, True for S2/non-runtime-impacting only"
+    },
+    "exception_flags": {
+      "type": "object",
+      "properties": {
+        "is_disputed": {
+          "type": "boolean",
+          "default": false
+        },
+        "is_sensitive": {
+          "type": "boolean",
+          "default": false,
+          "description": "Sensitive mark triggers privacy review"
+        },
+        "is_stale": {
+          "type": "boolean",
+          "default": false
+        },
+        "is_uncertain": {
+          "type": "boolean",
+          "default": false
+        },
+        "is_missing_lineage": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "state_description": {
+      "type": "string",
+      "description": "Human-readable state description (NOT color representation)"
+    },
+    "risk_indicator": {
+      "type": "string",
+      "description": "Risk indicator text with full description (NOT color representation)"
+    },
+    "batch_release_status": {
+      "type": "string",
+      "description": "Batch release status with explanation"
+    },
+    "assigned_reviewer": {
+      "type": ["string", "null"],
+      "description": "Assigned reviewer username"
+    },
+    "review_notes": {
+      "type": ["string", "null"],
+      "description": "Review notes"
+    },
+    "actor_role": {
+      "type": "string",
+      "description": "Role of user who created/modified this item (REQUIRED for UI trace)"
+    },
+    "target_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "ID of the target artifact (REQUIRED for UI trace)"
+    }
+  },
+  "definitions": {
+    "lineage_ref": {
+      "type": "object",
+      "required": ["artifact_id", "artifact_type", "relationship"],
+      "properties": {
+        "artifact_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "artifact_type": {
+          "type": "string",
+          "enum": ["runtime_profile", "agent_embodiment", "interaction_policy", "feedback_event"]
+        },
+        "relationship": {
+          "type": "string",
+          "enum": ["derived_from", "supersedes", "references", "corrects"]
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "checksum": {
+          "type": ["string", "null"],
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "item_id": "660e8400-e29b-41d4-a716-446655440010",
+      "created_at": "2024-01-15T09:00:00Z",
+      "updated_at": "2024-01-15T10:30:00Z",
+      "content_hash": "b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef1234567a",
+      "is_content_redacted": true,
+      "lineage_refs": [
+        {
+          "artifact_id": "660e8400-e29b-41d4-a716-446655440002",
+          "artifact_type": "runtime_profile",
+          "relationship": "derived_from",
+          "created_at": "2024-01-14T09:00:00Z"
+        }
+      ],
+      "review_status": "pending",
+      "risk_level": "s0",
+      "is_runtime_impacting": true,
+      "can_batch_release": false,
+      "exception_flags": {
+        "is_disputed": true,
+        "is_sensitive": false,
+        "is_stale": false,
+        "is_uncertain": false,
+        "is_missing_lineage": false
+      },
+      "state_description": "Content has conflicting claims that require review",
+      "risk_indicator": "S0 - Hard violation (cannot batch release)",
+      "batch_release_status": "BLOCKED: S0/S1 items cannot be batch-released",
+      "actor_role": "researcher",
+      "target_id": "660e8400-e29b-41d4-a716-446655440002"
+    }
+  ]
+}

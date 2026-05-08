@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://relic-oss.dev/schemas/data-model/runtime_object_scope.schema.json",
+  "title": "Runtime Object Scope",
+  "description": "Canonical scope for all runtime objects. Every runtime object must have exactly one subject scope.",
+  "type": "object",
+  "required": ["subject_id", "gumi_instance_id", "hermes_profile_id"],
+  "properties": {
+    "subject_id": {
+      "type": "string",
+      "description": "The human participant identifier. Must be present for all runtime objects.",
+      "minLength": 1
+    },
+    "gumi_instance_id": {
+      "type": "string",
+      "description": "The specific Gumi runtime instance identifier.",
+      "minLength": 1
+    },
+    "hermes_profile_id": {
+      "type": "string",
+      "description": "The Hermes profile identifier or hash. Stored as hash, never raw.",
+      "anyOf": [
+        { "pattern": "^sha256:[a-f0-9]{64}$", "description": "SHA-256 hash prefixed with 'sha256:'" },
+        { "minLength": 1, "description": "Identifier assigned at profile creation" }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "dependencies": {
+    "gumi_instance_id": ["subject_id"],
+    "hermes_profile_id": ["subject_id", "gumi_instance_id"]
+  }
+}

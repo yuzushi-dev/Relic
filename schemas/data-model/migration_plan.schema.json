@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://relic-oss.dev/schemas/data-model/migration_plan.schema.json",
+  "title": "Migration Plan",
+  "description": "Schema for documenting SQLite to PostgreSQL migration plans.",
+  "type": "object",
+  "required": ["migration_id", "source_phase", "target_phase", "steps", "rollback_scripts", "constraints"],
+  "properties": {
+    "migration_id": {
+      "type": "string",
+      "description": "Unique migration identifier"
+    },
+    "source_phase": {
+      "type": "string",
+      "const": "sqlite_mvp",
+      "description": "Source storage phase"
+    },
+    "target_phase": {
+      "type": "string",
+      "const": "postgres_target",
+      "description": "Target storage phase"
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["step_number", "description", "sql_script"],
+        "properties": {
+          "step_number": { "type": "integer" },
+          "description": { "type": "string" },
+          "sql_script": { "type": "string" },
+          "rollback_script": { "type": "string" }
+        }
+      },
+      "description": "Migration steps in order"
+    },
+    "rollback_scripts": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Rollback scripts corresponding to each step"
+    },
+    "constraints": {
+      "type": "object",
+      "properties": {
+        "reversible": { "type": "boolean" },
+        "data_integrity_verified": { "type": "boolean" },
+        "subject_scope_preserved": { "type": "boolean" },
+        "foreign_keys_preserved": { "type": "boolean" },
+        "no_production_disruption": { "type": "boolean" }
+      }
+    }
+  }
+}

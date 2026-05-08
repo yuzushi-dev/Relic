@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relic.local/schemas/subject_profile.schema.json",
+  "title": "Relic Subject Profile",
+  "type": "object",
+  "required": ["subject_id", "experiment_id", "profile_version", "status", "hermes_profile", "created_at"],
+  "properties": {
+    "subject_id": {"type": "string"},
+    "experiment_id": {"type": "string"},
+    "researcher_id": {"type": "string"},
+    "site_id": {"type": "string"},
+    "profile_version": {"type": "integer", "minimum": 1},
+    "status": {"enum": ["draft", "baseline_in_progress", "baseline_complete", "gumi_seed_generated", "gumi_seed_reviewed", "hermes_profile_provisioned", "intro_composed", "intro_sent", "active", "archived", "withdrawn"]},
+    "language": {"type": "string"},
+    "timezone": {"type": "string"},
+    "contact_channel": {"type": "string"},
+    "hermes_profile": {
+      "type": "object",
+      "required": ["profile_name", "hermes_home"],
+      "properties": {
+        "profile_name": {"type": "string"},
+        "hermes_home": {"type": "string"},
+        "provisioned": {"type": "boolean"}
+      }
+    },
+    "created_at": {"type": "string"},
+    "updated_at": {"type": "string"}
+  }
+}

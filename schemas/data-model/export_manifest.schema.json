@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://relic-oss.dev/schemas/data-model/export_manifest.schema.json",
+  "title": "Export Manifest",
+  "description": "Schema for subject data export manifest with redaction status.",
+  "type": "object",
+  "required": ["subject_id", "condition", "redaction_status", "hermes_profile_hash", "soul_md_hash", "policy_snapshot", "event_counts", "exported_at"],
+  "properties": {
+    "subject_id": {
+      "type": "string",
+      "description": "Subject identifier"
+    },
+    "condition": {
+      "type": "string",
+      "enum": ["withdrawal", "completion", "transfer", "researcher_request"],
+      "description": "Export condition"
+    },
+    "redaction_status": {
+      "type": "string",
+      "enum": ["redacted", "unredacted", "partial"],
+      "description": "Whether redactions were applied"
+    },
+    "hermes_profile_hash": {
+      "type": "string",
+      "description": "Hash of Hermes profile at export time"
+    },
+    "soul_md_hash": {
+      "type": "string",
+      "description": "Hash of SOUL.md at export time"
+    },
+    "policy_snapshot": {
+      "type": "string",
+      "description": "Policy snapshot identifier"
+    },
+    "event_counts": {
+      "type": "object",
+      "description": "Event counts by ontological class",
+      "additionalProperties": { "type": "integer" }
+    },
+    "exported_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp"
+    },
+    "excluded_data_types": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Data types excluded from export (e.g., sensitive_signals)"
+    }
+  },
+  "additionalProperties": false
+}

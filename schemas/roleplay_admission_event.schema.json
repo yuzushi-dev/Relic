@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relic.local/schemas/roleplay_admission_event.schema.json",
+  "title": "RoleplayAdmissionEvent",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "event_id", "mode", "requested_intensity", "admitted_intensity", "reason_code", "blocked_items", "privacy_mode"],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "event_id": {"type": "string", "minLength": 1},
+    "mode": {"enum": ["neutral_factual", "relational_normal", "reduced", "blocked"]},
+    "requested_intensity": {"type": "integer", "minimum": 0, "maximum": 3},
+    "admitted_intensity": {"type": "integer", "minimum": 0, "maximum": 3},
+    "reason_code": {"type": "string"},
+    "blocked_items": {"type": "array", "items": {"type": "string"}},
+    "privacy_mode": {"enum": ["redacted", "local_only", "quarantined"]},
+    "lineage_refs": {"type": "array", "items": {"type": "string"}}
+  }
+}

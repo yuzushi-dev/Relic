@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relic.local/schemas/agent_diary_entry.schema.json",
+  "title": "AgentDiaryEntry",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "entry_id",
+    "created_at",
+    "trigger",
+    "entry_type",
+    "fictional_status",
+    "content_redacted",
+    "runtime_eligible",
+    "sensitivity",
+    "privacy_status",
+    "correction_status",
+    "source_refs",
+    "delete_scope",
+    "content_hash"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string"
+    },
+    "entry_id": {
+      "type": "string",
+      "pattern": "^DIARY-"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "trigger": {
+      "type": "string",
+      "enum": [
+        "session_end",
+        "manual",
+        "cron_maintenance",
+        "user_request",
+        "post_turn_candidate"
+      ]
+    },
+    "entry_type": {
+      "type": "string",
+      "enum": [
+        "continuity_reflection",
+        "open_thread",
+        "relationship_milestone",
+        "symbolic_motif",
+        "project_thread"
+      ]
+    },
+    "fictional_status": {
+      "type": "string",
+      "enum": [
+        "roleplay_continuity_artifact"
+      ]
+    },
+    "content_redacted": {
+      "type": "string",
+      "maxLength": 1000
+    },
+    "runtime_eligible": {
+      "type": "boolean"
+    },
+    "roleplay_level_min": {
+      "type": "string",
+      "enum": [
+        "minimal",
+        "light",
+        "normal",
+        "high"
+      ]
+    },
+    "sensitivity": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "restricted"
+      ]
+    },
+    "privacy_status": {
+      "type": "string",
+      "enum": [
+        "clear",
+        "privacy_review_required",
+        "blocked"
+      ]
+    },
+    "correction_status": {
+      "type": "string",
+      "enum": [
+        "none",
+        "corrected",
+        "deleted",
+        "disabled"
+      ]
+    },
+    "source_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "delete_scope": {
+      "type": "string",
+      "enum": [
+        "user_visible_and_deletable"
+      ]
+    },
+    "content_hash": {
+      "type": "string",
+      "pattern": "^sha256:"
+    }
+  },
+  "additionalProperties": false
+}

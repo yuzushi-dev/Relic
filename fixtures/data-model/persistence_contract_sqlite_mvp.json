@@ -1,0 +1,80 @@
+{
+  "storage_phase": "sqlite_mvp",
+  "schema_version": "1.0.0",
+  "tables": [
+    {
+      "name": "subjects",
+      "columns": [
+        { "name": "id", "type": "TEXT", "nullable": false, "primary_key": true },
+        { "name": "study_id", "type": "TEXT" },
+        { "name": "created_at", "type": "TEXT" }
+      ]
+    },
+    {
+      "name": "gumi_instances",
+      "columns": [
+        { "name": "id", "type": "TEXT", "nullable": false, "primary_key": true },
+        { "name": "subject_id", "type": "TEXT", "references": "subjects(id)" },
+        { "name": "created_at", "type": "TEXT" }
+      ]
+    },
+    {
+      "name": "hermes_profiles",
+      "columns": [
+        { "name": "id", "type": "TEXT", "nullable": false, "primary_key": true },
+        { "name": "gumi_instance_id", "type": "TEXT", "references": "gumi_instances(id)" },
+        { "name": "profile_hash", "type": "TEXT" },
+        { "name": "created_at", "type": "TEXT" }
+      ]
+    },
+    {
+      "name": "runtime_objects",
+      "columns": [
+        { "name": "id", "type": "TEXT", "nullable": false, "primary_key": true },
+        { "name": "subject_id", "type": "TEXT", "nullable": false },
+        { "name": "gumi_instance_id", "type": "TEXT", "nullable": false },
+        { "name": "hermes_profile_id", "type": "TEXT", "nullable": false },
+        { "name": "object_type", "type": "TEXT" },
+        { "name": "created_at", "type": "TEXT" }
+      ]
+    },
+    {
+      "name": "events",
+      "columns": [
+        { "name": "id", "type": "TEXT", "nullable": false, "primary_key": true },
+        { "name": "subject_id", "type": "TEXT", "nullable": false },
+        { "name": "gumi_instance_id", "type": "TEXT", "nullable": false },
+        { "name": "hermes_profile_id", "type": "TEXT", "nullable": false },
+        { "name": "event_class", "type": "TEXT" },
+        { "name": "ontological_class", "type": "TEXT" },
+        { "name": "timestamp", "type": "TEXT" }
+      ]
+    },
+    {
+      "name": "continuity_markers",
+      "columns": [
+        { "name": "id", "type": "TEXT", "nullable": false, "primary_key": true },
+        { "name": "subject_id", "type": "TEXT", "nullable": false },
+        { "name": "gumi_instance_id", "type": "TEXT", "nullable": false },
+        { "name": "hermes_profile_id", "type": "TEXT", "nullable": false },
+        { "name": "confirmed", "type": "INTEGER", "nullable": false, "default": 0 },
+        { "name": "created_at", "type": "TEXT" }
+      ]
+    },
+    {
+      "name": "sensitive_signals",
+      "columns": [
+        { "name": "id", "type": "TEXT", "nullable": false, "primary_key": true },
+        { "name": "subject_id", "type": "TEXT", "nullable": false },
+        { "name": "gumi_instance_id", "type": "TEXT", "nullable": false },
+        { "name": "hermes_profile_id", "type": "TEXT", "nullable": false },
+        { "name": "created_at", "type": "TEXT" }
+      ]
+    }
+  ],
+  "constraints": {
+    "vector_index_not_source_of_truth": true,
+    "hindsight_not_source_of_truth": true,
+    "subject_scope_preserved": true
+  }
+}

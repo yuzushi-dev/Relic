@@ -1,0 +1,19 @@
+{
+  "event_id": "550e8400-e29b-41d4-a716-446655440000",
+  "subject_id": "subject_001",
+  "gumi_instance_id": "gumi_instance_a1b2c3d4",
+  "hermes_profile_id": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "event_class": "governance_decision",
+  "ontological_class": "governance_decision",
+  "timestamp": "2024-01-15T10:30:00Z",
+  "source_refs": [
+    "cron/schedule/daily_marker_recall",
+    "subject_001/continuity_markers/2024-01"
+  ],
+  "policy_snapshot_id": "policy_v2.3_sha256:abc123def456",
+  "metadata": {
+    "raw_text_redacted": true,
+    "provider_logs_access": "researcher-only",
+    "session_key_stored_as_hash": true
+  }
+}

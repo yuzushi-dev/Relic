@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://relic-oss.dev/schemas/data-model/sensitive_signal.schema.json",
+  "title": "Sensitive Signal",
+  "description": "Schema for PR32 sensitive pattern/safety signal records. Researcher-facing only.",
+  "type": "object",
+  "required": ["signal_id", "subject_id", "gumi_instance_id", "hermes_profile_id", "signal_type", "detected_at", "researcher_visible"],
+  "properties": {
+    "signal_id": {
+      "type": "string",
+      "description": "Unique signal identifier"
+    },
+    "subject_id": {
+      "type": "string",
+      "description": "Subject scope identifier"
+    },
+    "gumi_instance_id": {
+      "type": "string",
+      "description": "Gumi instance scope identifier"
+    },
+    "hermes_profile_id": {
+      "type": "string",
+      "description": "Hermes profile scope identifier"
+    },
+    "signal_type": {
+      "type": "string",
+      "description": "Type of sensitive pattern detected"
+    },
+    "detected_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp"
+    },
+    "researcher_visible": {
+      "type": "boolean",
+      "const": true,
+      "description": "Always true - researcher-only visibility"
+    },
+    "subject_visible": {
+      "type": "boolean",
+      "const": false,
+      "description": "Always false - not visible to subject"
+    },
+    "gumi_visible": {
+      "type": "boolean",
+      "const": false,
+      "description": "Always false - not visible to Gumi"
+    },
+    "clinical_interpretation_allowed": {
+      "type": "boolean",
+      "const": false,
+      "description": "Always false - no clinical interpretation"
+    },
+    "patch_applied": {
+      "type": "object",
+      "description": "Behavior policy patch applied with label stripping",
+      "properties": {
+        "patch_delta": { "type": "string" },
+        "labels_stripped": { "type": "boolean", "const": true },
+        "audit_event_id": { "type": "string" }
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relic.local/schemas/prompt_context_pack.schema.json",
+  "title": "PromptContextPack",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "pack_id",
+    "session_id",
+    "turn_id",
+    "created_at",
+    "task_type",
+    "roleplay_level",
+    "continuity_mode",
+    "system_sources",
+    "continuity_items",
+    "memory_candidates",
+    "knowledge_candidates",
+    "blocked_items",
+    "input_hash"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string"
+    },
+    "pack_id": {
+      "type": "string",
+      "pattern": "^PCP-"
+    },
+    "session_id": {
+      "type": "string",
+      "pattern": "^SES-"
+    },
+    "turn_id": {
+      "type": "string",
+      "pattern": "^TURN-"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "task_type": {
+      "type": "string",
+      "enum": [
+        "technical",
+        "relational",
+        "reflective",
+        "creative",
+        "factual",
+        "high_stakes",
+        "architecture_research"
+      ]
+    },
+    "roleplay_level": {
+      "type": "string",
+      "enum": [
+        "off",
+        "minimal",
+        "light",
+        "normal",
+        "high"
+      ]
+    },
+    "continuity_mode": {
+      "type": "string",
+      "enum": [
+        "none",
+        "reference_only",
+        "compact",
+        "expanded"
+      ]
+    },
+    "disclosure_required": {
+      "type": "boolean"
+    },
+    "system_sources": {
+      "type": "object"
+    },
+    "continuity_items": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "memory_candidates": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "knowledge_candidates": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "blocked_items": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "injected_context_redacted": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "input_hash": {
+      "type": "string",
+      "pattern": "^sha256:"
+    }
+  },
+  "additionalProperties": false
+}
