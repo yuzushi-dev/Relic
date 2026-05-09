@@ -7,6 +7,10 @@
 </p>
 
 <p align="center">
+> <a href="https://yuzushi-dev.github.io/Relic/">Live Demo</a> <
+</p>
+
+<p align="center">
   <img src="https://img.shields.io/badge/language-Python-blue?style=for-the-badge&logo=python" alt="Python">
   <img src="https://img.shields.io/badge/focus-Longitudinal%20Modeling-purple?style=for-the-badge" alt="Longitudinal Modeling">
   <img src="https://img.shields.io/badge/status-OSS%20Alpha-orange?style=for-the-badge" alt="OSS Alpha">
@@ -16,9 +20,7 @@
 <p align="center">
   <a href="#what-is">What is it?</a> ·
   <a href="#relic-and-gumi">Relic and Gumi</a> ·
-  <a href="#status">Status</a> ·
   <a href="#quick-start">Quick Start</a> ·
-  <a href="#commands">Commands</a> ·
   <a href="#architecture">Architecture</a> ·
   <a href="#safety-boundaries-and-ethics">Ethics</a> ·
   <a href="#lore">Lore</a>
@@ -85,14 +87,6 @@ The goal is not to make Gumi identical to the subject, nor to make her arbitrari
 
 Gumi can take initiative inside the relationship: proactive messages, expressive media, audio, images, music, diegetic life fragments, and continuity events. These acts are part of the user’s lived experience with Gumi, but they are not passive observations about the user. They can shape the relationship, and the user’s responses to them can become eligible data, but Gumi’s own diegetic events do not update the user model by themselves.
 
-## Status
-
-OSS alpha. Core surface: `relic init`, `relic subject create`, `relic setup`.
-
-Implemented: Python package, guided runtime setup, subject/Gumi bootstrap, profile management, Gumi generation, Hermes provisioning, Telegram delivery gates, cron specs, privacy/correction/context tests, CI scripts.
-
-Planned: full Hermes hook provisioning, one-command Researcher UI launch.
-
 ## Quick Start
 
 Requirements: Python 3.10+, `pip`. Optional: Hermes for live delivery.
@@ -105,41 +99,9 @@ relic init
 relic subject create
 ```
 
-`relic init` installs and configures Ollama and Hermes. `relic subject create` creates first subject and starts guided Gumi bootstrap.
-
-For isolated first run, keep all data inside the repo:
-
-```bash
-export RELIC_HOME="$PWD/.relic-local"
-export HERMES_PROFILES_HOME="$PWD/.relic-local/hermes-profiles"
-relic init
-relic subject create
-```
-
-## Commands
-
-### `relic init`
-
-First-run wizard. Installs and configures Ollama and Hermes. Run once before creating subjects.
-
-### `relic subject create`
-
-Guided bootstrap for new subject. Creates Relic subject profile and Gumi diegetic profile. No live delivery until explicitly configured.
-
-### `relic setup`
-
-Install/check runtime dependencies without creating subjects. Use `--check-only` for non-interactive check.
-
-## Development Checks
-
-Run the full test suite and static checks:
-
-```bash
-make lint
-make test
-python scripts/ci/check_json_jsonl.py
-python scripts/ci/check_no_raw_private_data.py
-```
+##### `relic init` First-run wizard. Installs and configures Ollama and Hermes. Run once before creating subjects.
+##### `relic subject create` Guided bootstrap for new subject. Creates Relic subject profile and Gumi diegetic profile. No live delivery until explicitly configured.
+##### `relic setup` Install/check runtime dependencies without creating subjects. Use `--check-only` for non-interactive check.
 
 ## Architecture
 
@@ -184,26 +146,6 @@ At runtime, a profile should be treated as an inspectable, contestable model. A
 generated artifact is valid only when it can be traced back to allowed evidence
 and policy snapshots.
 
-### Scheduled Jobs as Decision Points
-
-```text
-Cron tick
-       |
-       +---> Eligibility gate
-       |         quiet hours · rate limit · opt-out · sensitivity · open loop
-       |
-       +---> Decision
-       |         NO_REPLY · blocked · candidate · deliver
-       |
-       +---> Logged event
-       |         decision point · source refs · policy snapshot · outcome
-       |
-       +---> Relic ingestion
-                 only if eligible interaction data exists
-```
-
-A scheduled Gumi job is a decision point, not an automatic intervention.
-
 ## Design Principles
 
 Every architectural decision reflects these constraints:
@@ -236,32 +178,6 @@ subject-specific local profiles, and real media artifacts are excluded from this
 repo. Sensitive marker scans live under `tests/`, and public examples use
 synthetic demo data only.
 
-## Repository Hygiene
-
-Public-facing source should stay in tracked package, test, fixture, script, and
-UI paths. Local-only development material should stay under ignored directories
-such as:
-
-```text
-dev_docs/
-artifacts/
-.claude/
-.codex/
-.agents/
-skills/
-.venv/
-```
-
-Before publishing, run:
-
-```bash
-git status --short
-make lint
-make test
-python scripts/ci/check_json_jsonl.py
-python scripts/ci/check_no_raw_private_data.py
-```
-
 ## License
 
 [AGPL-3.0](LICENSE.txt): if you use this in a product or network service, your
@@ -286,8 +202,10 @@ Gumi sits on the other side of the same problem. She is not the subject and not
 a transparent system prompt. She is a relational presence with a diegetic life,
 governed by Relic but not reduced to it in the user experience.
 
-> *"What runs afterward is not you. It is data that remembers being you."*
-
+---
+<p align="center">
+  <img src="https://readme-typing-svg.herokuapp.com?font=JetBrains+Mono&weight=800&size=42&duration=3000&pause=1000&color=3A86FF&center=true&vCenter=true&width=700&lines=RELIC" alt="Relic">
+</p>
 <p align="center">
   <em>Longitudinal Relational Modeling for Reflective Agents</em>
 </p>
