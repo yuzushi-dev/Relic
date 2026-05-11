@@ -32,7 +32,11 @@ def _print_setup_check(name: str, command: str, install_hint: str) -> None:
 
 def _confirm(question: str, default: bool = False) -> bool:
     suffix = "Y/n" if default else "y/N"
-    answer = input(f"{question} ({suffix}) ").strip().lower()
+    try:
+        answer = input(f"{question} ({suffix}) ").strip().lower()
+    except (EOFError, KeyboardInterrupt):
+        print()
+        return default
     if not answer:
         return default
     return answer in {"y", "yes"}
@@ -150,19 +154,27 @@ def _configure_hindsight_local(available: bool, model: str) -> None:
     if not _confirm("Configure Hermes native Hindsight local memory now?", default=True):
         return
 
-    llm_provider = (
-        input(f"Hindsight local LLM provider [{HINDSIGHT_DEFAULT_PROVIDER}] ").strip()
-        or HINDSIGHT_DEFAULT_PROVIDER
-    ).lower()
+    try:
+        llm_provider_raw = input(f"Hindsight local LLM provider [{HINDSIGHT_DEFAULT_PROVIDER}] ").strip()
+        llm_provider = llm_provider_raw.lower() if llm_provider_raw else HINDSIGHT_DEFAULT_PROVIDER
+    except (EOFError, KeyboardInterrupt):
+        print()
+        llm_provider = HINDSIGHT_DEFAULT_PROVIDER
+
     api_key = None
     api_key_env = None
     if llm_provider == "ollama":
-        api_key_env = input("Ollama API key env var (optional, blank for local/signin) [] ").strip()
+        try:
+            api_key_env = input("Ollama API key env var (optional, blank for local/signin) [] ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            api_key_env = ""
     if llm_provider != "ollama":
-        api_key_env = (
-            input("LLM API key env var [HINDSIGHT_LLM_API_KEY] ").strip()
-            or "HINDSIGHT_LLM_API_KEY"
-        )
+        try:
+            api_key_env = input("LLM API key env var [HINDSIGHT_LLM_API_KEY] ").strip() or "HINDSIGHT_LLM_API_KEY"
+        except (EOFError, KeyboardInterrupt):
+            print()
+            api_key_env = "HINDSIGHT_LLM_API_KEY"
         api_key = os.environ.get(api_key_env)
         if not api_key:
             print(f"  [skip] {api_key_env} is not set; skipping Hindsight local config.")
@@ -183,6 +195,63 @@ def _configure_hindsight_local(available: bool, model: str) -> None:
     subprocess.run(["hermes", "config", "set", "memory.provider", "hindsight"], check=True)
     subprocess.run(["hermes", "memory", "status"], check=False)
 
+
+def _start_hermes_gateway() -> bool:
+    """Start Hermes gateway for the default profile."""
+    import subprocess
+    import time
+    
+    print("\n=== Hermes Gateway ===\n")
+    
+    # Check if gateway is already running
+    result = subprocess.run(
+        ["hermes", "gateway", "list"],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    
+    # Check for default gateway status
+    if "✓ gumi" in result.stdout or "gumi" in result.stdout:
+        lines = result.stdout.strip().split("\n")
+        for line in lines:
+            if "gumi" in line.lower() and "✓" in line:
+                print("  [ok] Default gateway is running.")
+                return True
+    
+    print("  Starting default Hermes gateway...")
+    try:
+        # Start gateway in background
+        proc = subprocess.Popen(
+            ["hermes", "gateway", "run", "--profile", "gumi"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        # Wait a bit for startup
+        time.sleep(3)
+        
+        # Check if still running
+        if proc.poll() is None:
+            result = subprocess.run(
+                ["hermes", "gateway", "status", "--profile", "gumi"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            print("  [ok] Gateway started successfully.")
+            print(f"  Status: {result.stdout.strip() if result.stdout else 'running'}")
+            return True
+        else:
+            stdout, stderr = proc.communicate()
+            print(f"  [warn] Gateway may have failed to start.")
+            if stderr:
+                print(f"       Error: {stderr.decode()[:200]}")
+            return False
+    except Exception as e:
+        print(f"  [skip] Could not start gateway: {e}")
+        return False
+
+
 def _runtime_setup(model: str) -> None:
     print("\n=== Relic Runtime Setup ===\n")
     print("Ollama is configured before Hermes so Hermes can use it as the model backend.")
@@ -192,6 +261,7 @@ def _runtime_setup(model: str) -> None:
     _configure_hermes_for_ollama(model, available=hermes_available)
     _configure_hindsight_local(available=hermes_available, model=model)
     init_runtime_features()
+    _start_hermes_gateway()
 
 
 def init_runtime_features() -> None:

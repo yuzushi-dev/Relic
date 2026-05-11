@@ -107,18 +107,24 @@ class BootstrapTUI:
         print(message, file=self.io_out)
 
     def _prompt(self, question: str, default: Optional[str] = None) -> str:
-        """Print a question and read user input, applying default if empty."""
+        """Print a question and read user input, applying default if empty or on EOF."""
         prompt_text = question
         if default is not None:
             prompt_text = f"{question} [{default}]"
         print(prompt_text, file=self.io_out)
 
         if hasattr(self.io_in, "read"):
-            raw = self.io_in.readline()
-            if raw is None:
+            try:
+                raw = self.io_in.readline()
+                if raw is None:
+                    raw = ""
+            except (EOFError, OSError):
                 raw = ""
         else:
-            raw = input()
+            try:
+                raw = input()
+            except (EOFError, KeyboardInterrupt):
+                raw = ""
 
         raw = raw.strip()
         return raw if raw else (default if default is not None else "")
