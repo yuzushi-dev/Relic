@@ -1,6 +1,7 @@
 """TUI step: collect Telegram delivery configuration without secrets."""
 from __future__ import annotations
 
+import os
 import re
 from typing import TextIO
 
@@ -31,7 +32,7 @@ def _ask_yes_no(io_in: TextIO, io_out: TextIO, question: str, default: bool = Fa
             return default
 
 
-def collect_delivery_config(io_in: TextIO, io_out: TextIO, consent_record: dict) -> dict:
+def collect_delivery_config(io_in: TextIO, io_out: TextIO, consent_record: dict, subject_id: str = "") -> dict:
     """Collect delivery settings, gated by consent."""
     print("\n" + "=" * 60, file=io_out)
     print("  TELEGRAM DELIVERY SETUP", file=io_out)
@@ -88,13 +89,20 @@ def collect_delivery_config(io_in: TextIO, io_out: TextIO, consent_record: dict)
     print("  3. BotFather will give you a token like: 123456789:ABCdefGhIJKlmn", file=io_out)
     print("  4. Add the bot to your Telegram with /start", file=io_out)
     
+    # Auto-generate env var name from subject_id
     print("\n" + "-" * 60, file=io_out)
     print("  STEP 3: Enter your Bot Token", file=io_out)
     print("-" * 60, file=io_out)
-    print("  Enter the env variable name that will hold your bot token.", file=io_out)
-    print("  Example: GUMI_SUBJ_TEST_BOT_TOKEN", file=io_out)
-    print("  You will set this with: export GUMI_SUBJ_TEST_BOT_TOKEN=your_token", file=io_out)
     
+    if subject_id:
+        safe_id = re.sub(r"[^A-Z0-9_]", "_", subject_id.upper())
+        suggested_env = f"GUMI_{safe_id}_BOT_TOKEN"
+    else:
+        suggested_env = "GUMI_BOT_TOKEN"
+    
+    print(f"  Suggested env variable: {suggested_env}", file=io_out)
+    print("  (Press Enter to accept, or type a different name)", file=io_out)
+
     bot_token_env = None
     while bot_token_env is None:
         candidate = prompt_optional(
@@ -102,14 +110,38 @@ def collect_delivery_config(io_in: TextIO, io_out: TextIO, consent_record: dict)
             "Env variable name for bot token",
             io_in,
             io_out,
+            default=suggested_env,
         )
         if not candidate:
-            print("  This field is required.", file=io_out)
-            continue
-        if _ENV_RE.match(candidate):
+            bot_token_env = suggested_env
+            print(f"  Using default: {bot_token_env}", file=io_out)
+        elif _ENV_RE.match(candidate):
             bot_token_env = candidate
         else:
             print("  Invalid env name. Use uppercase letters, digits, and underscores.", file=io_out)
+
+    # Prompt for the actual token value and export it immediately
+    print("", file=io_out)
+    print("  Enter your bot token now (it will be set in the current environment).", file=io_out)
+    print("  Leave blank to skip — you can export it manually before sending.", file=io_out)
+    bot_token_value = None
+    while True:
+        raw_token = prompt_optional(
+            "bot_token_value",
+            f"Bot token value for {bot_token_env}",
+            io_in,
+            io_out,
+            default="",
+        )
+        if not raw_token:
+            print("  Token not set. Export it before sending the first message.", file=io_out)
+            break
+        if ":" in raw_token and len(raw_token) > 20:
+            bot_token_value = raw_token
+            os.environ[bot_token_env] = bot_token_value
+            print(f"  Token exported as {bot_token_env}.", file=io_out)
+            break
+        print("  Token format invalid (expected digits:letters, e.g. 123456789:ABCdef...).", file=io_out)
     
     print("\n" + "-" * 60, file=io_out)
     print("  STEP 4: Quiet Hours (optional)", file=io_out)
@@ -130,12 +162,18 @@ def collect_delivery_config(io_in: TextIO, io_out: TextIO, consent_record: dict)
     
     enabled = bool(telegram_user_id and bot_token_env)
     
+    token_set = bool(os.environ.get(bot_token_env)) if bot_token_env else False
+    enabled = bool(telegram_user_id and bot_token_env)
+
     print("\n" + "=" * 60, file=io_out)
     if enabled:
         print("  Telegram delivery configured!", file=io_out)
-        print(f"  User ID: {telegram_user_id}", file=io_out)
+        print(f"  User ID:   {telegram_user_id}", file=io_out)
         print(f"  Token env: {bot_token_env}", file=io_out)
-        print(f"  Next: export {bot_token_env}=YOUR_BOT_TOKEN", file=io_out)
+        if token_set:
+            print(f"  Token:     set in environment.", file=io_out)
+        else:
+            print(f"  Token:     NOT set — export {bot_token_env}=YOUR_BOT_TOKEN before sending.", file=io_out)
     else:
         print("  Telegram delivery not configured.", file=io_out)
     print("=" * 60, file=io_out)

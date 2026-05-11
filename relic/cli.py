@@ -196,60 +196,63 @@ def _configure_hindsight_local(available: bool, model: str) -> None:
     subprocess.run(["hermes", "memory", "status"], check=False)
 
 
-def _start_hermes_gateway() -> bool:
-    """Start Hermes gateway for the default profile."""
+def start_hermes_gateway_for_profile(profile_name: str, timeout_seconds: int = 30) -> bool:
+    """Start Hermes gateway for a specific profile and wait until it is ready.
+
+    Polls hermes gateway list every second until the profile appears with a
+    running status or the timeout is exceeded.  Returns True if the gateway is
+    confirmed running, False otherwise (non-fatal — caller prints the warning).
+    """
     import subprocess
     import time
-    
-    print("\n=== Hermes Gateway ===\n")
-    
-    # Check if gateway is already running
-    result = subprocess.run(
-        ["hermes", "gateway", "list"],
-        capture_output=True,
-        text=True,
-        timeout=30,
-    )
-    
-    # Check for default gateway status
-    if "✓ gumi" in result.stdout or "gumi" in result.stdout:
-        lines = result.stdout.strip().split("\n")
-        for line in lines:
-            if "gumi" in line.lower() and "✓" in line:
-                print("  [ok] Default gateway is running.")
-                return True
-    
-    print("  Starting default Hermes gateway...")
-    try:
-        # Start gateway in background
-        proc = subprocess.Popen(
-            ["hermes", "gateway", "run", "--profile", "gumi"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        # Wait a bit for startup
-        time.sleep(3)
-        
-        # Check if still running
-        if proc.poll() is None:
-            result = subprocess.run(
-                ["hermes", "gateway", "status", "--profile", "gumi"],
-                capture_output=True,
-                text=True,
-                timeout=10,
-            )
-            print("  [ok] Gateway started successfully.")
-            print(f"  Status: {result.stdout.strip() if result.stdout else 'running'}")
-            return True
-        else:
-            stdout, stderr = proc.communicate()
-            print(f"  [warn] Gateway may have failed to start.")
-            if stderr:
-                print(f"       Error: {stderr.decode()[:200]}")
-            return False
-    except Exception as e:
-        print(f"  [skip] Could not start gateway: {e}")
+
+    hermes = shutil.which("hermes")
+    if not hermes:
+        print("  [skip] Hermes not found in PATH; skipping gateway start.")
         return False
+
+    # Check if already running
+    try:
+        result = subprocess.run(
+            [hermes, "gateway", "list"],
+            capture_output=True, text=True, timeout=10,
+        )
+        for line in result.stdout.splitlines():
+            if profile_name in line and "✓" in line:
+                print(f"  [ok] Gateway '{profile_name}' already running.")
+                return True
+    except Exception:
+        pass
+
+    print(f"  Starting gateway '{profile_name}'...")
+    try:
+        subprocess.Popen(
+            [hermes, "gateway", "run", "--profile", profile_name],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except Exception as exc:
+        print(f"  [skip] Could not launch gateway: {exc}")
+        return False
+
+    # Poll until ready or timeout
+    deadline = time.monotonic() + timeout_seconds
+    while time.monotonic() < deadline:
+        time.sleep(1)
+        try:
+            result = subprocess.run(
+                [hermes, "gateway", "list"],
+                capture_output=True, text=True, timeout=10,
+            )
+            for line in result.stdout.splitlines():
+                if profile_name in line and "✓" in line:
+                    print(f"  [ok] Gateway '{profile_name}' is ready.")
+                    return True
+        except Exception:
+            pass
+
+    print(f"  [warn] Gateway '{profile_name}' did not become ready within {timeout_seconds}s.")
+    return False
 
 
 def _runtime_setup(model: str) -> None:
@@ -261,7 +264,6 @@ def _runtime_setup(model: str) -> None:
     _configure_hermes_for_ollama(model, available=hermes_available)
     _configure_hindsight_local(available=hermes_available, model=model)
     init_runtime_features()
-    _start_hermes_gateway()
 
 
 def init_runtime_features() -> None:

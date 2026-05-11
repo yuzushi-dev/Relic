@@ -29,6 +29,7 @@ from relic.profile._bootstrap_steps.gumi_review import review_gumi_background
 from relic.profile._bootstrap_steps.gumi_overrides import collect_gumi_overrides
 from relic.profile._bootstrap_steps.first_contact_controls import run_first_contact_controls
 from relic.gumi_plugin.cron_wiring import provision_for_subject
+from relic.cli import start_hermes_gateway_for_profile
 
 
 def _now_iso() -> str:
@@ -193,8 +194,30 @@ class BootstrapTUI:
         hermes_value = "yes" if hermes_provision else "no"
 
         # Step 5b: Delivery configuration (gated by consent.delivery)
-        delivery_config = collect_delivery_config(self.io_in, self.io_out, consent_record)
+        delivery_config = collect_delivery_config(self.io_in, self.io_out, consent_record, subject_id=subject_id)
 
+        # Check if subject already exists
+        existing = self.registry.get_subject(subject_id)
+        if existing is not None:
+            self._print(f"\nSubject '{subject_id}' already exists!")
+            self._print(f"  Status: {existing.status}")
+            self._print(f"  Hermes: {existing.hermes_profile_name}")
+            self._print("")
+            
+            # Offer choices
+            choice = self._prompt("Choose: [U]pdate existing / [N]ew subject ID / [Q]uit", default="Q")
+            choice = choice.lower().strip()
+            
+            if choice in ("u", "update", "edit"):
+                self._print("\nOpening edit mode for existing subject...")
+                return self.run_edit(subject_id)
+            elif choice in ("n", "new"):
+                self._print("\nEnter a new subject ID:")
+                return self.run_init()  # Restart with new ID
+            else:
+                self._print("\nAborted.")
+                return existing
+        
         # Create the profile via registry
         self._print(f"\nCreating subject '{subject_id}'...")
         profile = self.registry.create_subject(subject_id, experiment_id)
@@ -339,6 +362,13 @@ class BootstrapTUI:
                 profile, _ = self.registry.provision_hermes_profile(subject_id, agent_name=gumi_name)
                 self._log_step("hermes_profile_provisioned", str(profile.hermes_home))
 
+                # Start Hermes gateway for this profile and wait until ready
+                self._print(f"\n--- Hermes Gateway ---")
+                gateway_ok = start_hermes_gateway_for_profile(
+                    profile.hermes_profile_name, timeout_seconds=30
+                )
+                self._log_step("hermes_gateway_started", "ok" if gateway_ok else "warn")
+
                 # WIRE04: provision no-agent cron jobs (checkin, followup, proactivity)
                 try:
                     gumi_instance_id = f"gumi-{subject_id}"
@@ -348,7 +378,7 @@ class BootstrapTUI:
                         gumi_instance_id=gumi_instance_id,
                         hermes_profile_id=hermes_profile_id,
                         schedule="*/30 * * * *",
-                        dry_run=True,
+                        dry_run=False,
                     )
                     self._log_step("no_agent_cron_provisioned", str(list(cron_result.get("scripts", {}).keys())))
                 except Exception as exc:
@@ -356,17 +386,17 @@ class BootstrapTUI:
 
                 # B1: wire Telegram delivery if consent given and config collected
                 telegram_user_id = delivery_config.get("telegram_user_id", "")
-                telegram_bot_token_env = delivery_config.get("telegram_bot_token_env", "")
+                telegram_bot_token_env = delivery_config.get("bot_token_env", "")
                 if (
                     consent_record.get("delivery")
                     and telegram_user_id
                     and telegram_bot_token_env
                 ):
                     try:
-                        quiet_start = delivery_config.get("quiet_start", "22:00")
-                        quiet_end = delivery_config.get("quiet_end", "08:00")
-                        freq_count = delivery_config.get("freq_count", "1")
-                        freq_window = delivery_config.get("freq_window", "day")
+                        quiet_start = delivery_config.get("quiet_hours", {}).get("start", "22:00")
+                        quiet_end = delivery_config.get("quiet_hours", {}).get("end", "08:00")
+                        freq_count = delivery_config.get("max_contact_frequency", {}).get("count", 1)
+                        freq_window = delivery_config.get("max_contact_frequency", {}).get("window", "day")
                         self.registry.configure_telegram_delivery(
                             subject_id=subject_id,
                             telegram_bot_token_env=telegram_bot_token_env,
@@ -389,7 +419,7 @@ class BootstrapTUI:
                     if delivery_policy_path.exists():
                         cron_families.append("initiative")
                     self.registry.provision_subject_cron_specs(
-                        subject_id, families=cron_families, dry_run=True
+                        subject_id, families=cron_families, dry_run=False
                     )
                     self._log_step("cron_provisioned", ",".join(cron_families))
                 except Exception as exc:
@@ -467,6 +497,14 @@ class BootstrapTUI:
                     ):
                         profile = self.registry.mark_intro_composed(subject_id)
                     self._log_step("intro_composed", contact_event.status)
+                    if action == "send":
+                        try:
+                            self.registry.prepare_intro_delivery(subject_id, live=True)
+                            profile = self.registry.mark_intro_sent(subject_id)
+                            self._log_step("intro_sent_via_hermes", "sent")
+                        except Exception as send_exc:
+                            self._log_step("intro_send_failed", str(send_exc))
+                            self._print(f"\n[warn] Telegram send failed: {send_exc}")
 
             except Exception as exc:
                 self._log_step("intro_composed_failed", str(exc))

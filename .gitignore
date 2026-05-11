@@ -57,3 +57,6 @@ ui/out/
 /.agents/
 /.claude/
 /skills/
+
+# E2E test subjects (local data)
+subjects/*

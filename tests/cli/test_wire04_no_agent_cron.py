@@ -282,7 +282,19 @@ def test_bootstrap_tui_calls_provision_for_subject_after_hermes_provisioning(
     call_log: list[dict[str, Any]] = []
 
     def mock_provision(*args: Any, **kwargs: Any) -> dict[str, Any]:
-        result = original_provision(*args, **kwargs)
+        result: dict[str, Any] = {
+            "scripts": {
+                "checkin": "/fake/checkin.sh",
+                "followup": "/fake/followup.sh",
+                "proactivity": "/fake/proactivity.sh",
+            },
+            "subject_id": kwargs.get("subject_id", ""),
+            "gumi_instance_id": kwargs.get("gumi_instance_id", ""),
+            "hermes_profile_id": kwargs.get("hermes_profile_id", ""),
+            "schedule": kwargs.get("schedule", ""),
+            "dry_run": kwargs.get("dry_run", False),
+            "hermes_commands": [],
+        }
         call_log.append({"args": args, "kwargs": kwargs, "result": result})
         return result
 
