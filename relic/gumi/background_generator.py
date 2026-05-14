@@ -192,7 +192,7 @@ class GumiBackgroundGenerator:
         if domain == "identity":
             return self._sample_identity(rng, subject_profile, constraint)
         elif domain == "embodiment":
-            return self._sample_embodiment(rng)
+            return self._sample_embodiment(rng, subject_profile)
         elif domain == "place":
             return self._sample_place(rng, constraint)
         elif domain == "life_role":
@@ -235,21 +235,67 @@ class GumiBackgroundGenerator:
             "socioeconomic_status": rng.choice(socioeconomic),
         }
 
-    def _sample_embodiment(self, rng: random.Random) -> dict:
-        """Sample embodiment domain."""
-        gender_expr = [
+    # Maps subject gender_identity → preferred Gumi gender_expression pool (anti-clone + complement)
+    _GENDER_COMPLEMENT: dict[str, list[str]] = {
+        "male":        ["feminine", "androgynous", "fluid"],
+        "man":         ["feminine", "androgynous", "fluid"],
+        "female":      ["masculine", "androgynous", "fluid"],
+        "woman":       ["masculine", "androgynous", "fluid"],
+        "non-binary":  ["feminine", "masculine", "androgynous", "fluid", "gender non-conforming"],
+        "non binary":  ["feminine", "masculine", "androgynous", "fluid", "gender non-conforming"],
+        "genderqueer": ["feminine", "masculine", "androgynous", "fluid", "gender non-conforming"],
+        "fluid":       ["feminine", "masculine", "androgynous", "gender non-conforming"],
+    }
+
+    # Maps age_range label → age_bracket to exclude (anti-clone)
+    _AGE_EXCLUSION: dict[str, str] = {
+        "18-24":  "young adult",
+        "25-34":  "early adulthood",
+        "35-44":  "mid adulthood",
+        "45-54":  "mid adulthood",
+        "55-64":  "late adulthood",
+        "65+":    "late adulthood",
+        "under 18": "young adult",
+    }
+
+    def _sample_embodiment(self, rng: random.Random, subject_profile: dict | None = None) -> dict:
+        """Sample embodiment domain.
+
+        Uses subject gender_identity to pick a complementary/opposite gender expression.
+        Uses subject age_range to exclude the same bracket (anti-clone).
+        """
+        all_gender_expr = [
             "feminine", "masculine", "androgynous", "fluid", "gender non-conforming",
         ]
-        age_bracket = [
+        all_age_brackets = [
             "young adult", "early adulthood", "mid adulthood", "late adulthood",
         ]
         physical_desc = [
             "athletic build", "slender frame", "average build", "heavier build",
             "tall stature", "short stature", "medium height",
         ]
+
+        # Gender complement logic
+        sr = (subject_profile or {}).get("self_report_fields", {})
+        gender_val = (
+            sr.get("gender_identity", {}).get("value")
+            or (subject_profile or {}).get("gender_identity")
+            or ""
+        )
+        gender_pool = self._GENDER_COMPLEMENT.get(str(gender_val).lower().strip(), all_gender_expr)
+
+        # Age anti-clone logic
+        age_val = (
+            sr.get("age_range", {}).get("value")
+            or (subject_profile or {}).get("age_range")
+            or ""
+        )
+        excluded_bracket = self._AGE_EXCLUSION.get(str(age_val).strip())
+        age_pool = [b for b in all_age_brackets if b != excluded_bracket] or all_age_brackets
+
         return {
-            "gender_expression": rng.choice(gender_expr),
-            "age_bracket": rng.choice(age_bracket),
+            "gender_expression": rng.choice(gender_pool),
+            "age_bracket": rng.choice(age_pool),
             "physical_description": rng.choice(physical_desc),
         }
 

@@ -300,13 +300,23 @@ class GenerationModeRunner:
         # C3: distinctness (0.20) — penalize mirrors on occupation/location/family
         gumi_life_role = domains.get("life_role", {})
         gumi_occ = gumi_life_role.get("occupation_or_study", "")
-        subject_occ = subject_profile.get("occupation_or_study", "")
         gumi_place = domains.get("place", {})
         gumi_loc = gumi_place.get("location", "")
-        subject_loc = subject_profile.get("location", "")
         gumi_identity = domains.get("identity", {})
         gumi_family = gumi_identity.get("family_structure", "")
-        subject_family = subject_profile.get("family_structure", "")
+        _sr3 = subject_profile.get("self_report_fields", {})
+        subject_occ = (
+            subject_profile.get("occupation_or_study")
+            or (_sr3.get("occupation_or_study") or {}).get("value", "")
+        )
+        subject_loc = (
+            subject_profile.get("location")
+            or (_sr3.get("location") or {}).get("value", "")
+        )
+        subject_family = (
+            subject_profile.get("family_structure")
+            or (_sr3.get("family_structure") or {}).get("value", "")
+        )
 
         mirrors = sum([
             bool(subject_occ and gumi_occ == subject_occ),
@@ -360,7 +370,14 @@ class GenerationModeRunner:
             c6 = 0.4
 
         # C7: passions overlap (0.05) — some shared interests aids connection
-        subject_interests = set(subject_profile.get("interests", []))
+        _sr = subject_profile.get("self_report_fields", {})
+        _ip = subject_profile.get("interaction_preferences", {})
+        _raw_interests = (
+            subject_profile.get("interests")
+            or _ip.get("preferred_topics")
+            or [v.get("value") for v in _sr.values() if isinstance(v, dict) and v.get("value")]
+        )
+        subject_interests = set(_raw_interests) if _raw_interests else set()
         gumi_hobbies = set(gumi_passions.get("hobbies", []))
         if subject_interests and (gumi_primary | gumi_hobbies):
             overlap = len(subject_interests & (gumi_primary | gumi_hobbies))
@@ -393,9 +410,19 @@ class GenerationModeRunner:
         gumi_place = gumi_profile.domains.get("place", {})
         gumi_location = gumi_place.get("location", "")
 
-        subject_occupation = subject_profile.get("occupation_or_study", "")
-        subject_location = subject_profile.get("location", "")
-        subject_family = subject_profile.get("family_structure", "")
+        _sr_leg = subject_profile.get("self_report_fields", {})
+        subject_occupation = (
+            subject_profile.get("occupation_or_study")
+            or (_sr_leg.get("occupation_or_study") or {}).get("value", "")
+        )
+        subject_location = (
+            subject_profile.get("location")
+            or (_sr_leg.get("location") or {}).get("value", "")
+        )
+        subject_family = (
+            subject_profile.get("family_structure")
+            or (_sr_leg.get("family_structure") or {}).get("value", "")
+        )
 
         if subject_occupation and gumi_occupation == subject_occupation:
             similarities.append(1.0)
@@ -423,7 +450,14 @@ class GenerationModeRunner:
 
         gumi_passions = gumi_profile.domains.get("passions", {})
         gumi_interests = set(gumi_passions.get("primary_interests", []))
-        subject_interests = set(subject_profile.get("interests", []))
+        _sr2 = subject_profile.get("self_report_fields", {})
+        _ip2 = subject_profile.get("interaction_preferences", {})
+        _raw2 = (
+            subject_profile.get("interests")
+            or _ip2.get("preferred_topics")
+            or []
+        )
+        subject_interests = set(_raw2) if _raw2 else set()
 
         if subject_interests and gumi_interests:
             intersection = len(gumi_interests & subject_interests)
