@@ -1,3 +1,6 @@
+# Runtime traces (hashes only, but no reason to track)
+privacy_trace.jsonl
+
 # Python
 __pycache__/
 *.py[cod]
