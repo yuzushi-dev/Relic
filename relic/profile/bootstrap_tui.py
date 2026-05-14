@@ -398,6 +398,25 @@ class BootstrapTUI:
                     except Exception as exc:
                         self._log_step("delivery_config_failed", str(exc))
 
+                # B4: provision media canon (visual, voice, Lyria) if any media consent
+                media_consent = any(
+                    consent_record.get(k)
+                    for k in ("generated_images", "generated_audio", "generated_music")
+                )
+                if media_consent:
+                    try:
+                        self._print("\n--- Media Identity ---")
+                        self._print("Generating visual canon, voice profile, and Lyria signature...")
+                        import os as _os
+                        if gemini_key:
+                            _os.environ["GEMINI_API_KEY"] = gemini_key
+                        self.registry.generate_gumi_media_canon(subject_id)
+                        self._log_step("media_canon_provisioned", "ok")
+                        self._print("Media identity provisioned.")
+                    except Exception as exc:
+                        self._log_step("media_canon_provisioning_failed", str(exc))
+                        self._print(f"[warn] Media identity provisioning failed: {exc}")
+
                 # B2: provision cron specs — maintenance always, initiative if delivery configured,
                 # media if any generated-content consent granted
                 try:
@@ -463,6 +482,112 @@ class BootstrapTUI:
 
         return profile
 
+    def _detect_missing_artifacts(self, profile: SubjectProfile) -> list[str]:
+        """Return list of missing provisioning artifacts for an active subject."""
+        missing = []
+        sh = profile.relic_subject_home
+        hh = profile.hermes_home
+        ws = hh / "workspace" / "gumi"
+        checks = [
+            (sh / "gumi_background_profile.json", "gumi_background_profile"),
+            (sh / "gumi_sweet_spot_config.json", "gumi_sweet_spot_config"),
+            (sh / "baseline_user_profile.json", "baseline_user_profile"),
+            (sh / "item_battery_response.json", "item_battery_response"),
+            (sh / "consent_record.json", "consent_record"),
+            (sh / "gumi_voice_canon.json", "gumi_voice_canon"),
+            (sh / "gumi_visual_canon.json", "gumi_visual_canon"),
+            (sh / "gumi_music_canon.json", "gumi_music_canon"),
+            (ws / "world.md", "workspace/gumi/world.md (empty counts as missing)" if (ws / "world.md").exists() and (ws / "world.md").stat().st_size == 0 else "workspace/gumi/world.md"),
+            (hh / "AVATAR_SPEC.md", "AVATAR_SPEC.md"),
+        ]
+        for path, label in checks:
+            if not path.exists() or (path.suffix == ".md" and path.stat().st_size == 0):
+                missing.append(label)
+        vi_manifest = sh / "Visual_Identity" / "manifest.json"
+        if not vi_manifest.exists():
+            missing.append("Visual_Identity/manifest.json (anchor image)")
+        return missing
+
+    def run_reprovision(self, subject_id: str) -> SubjectProfile:
+        """Re-run provisioning steps for an active subject with missing artifacts."""
+        profile = self.registry.get_subject(subject_id)
+        if profile is None:
+            raise KeyError(f"Subject '{subject_id}' not found.")
+
+        self._edit_log_path = profile.relic_subject_home / "profile_edit_log.jsonl"
+        self._edit_log_path.parent.mkdir(parents=True, exist_ok=True)
+
+        self._print(f"\n=== Re-provision Subject: {subject_id} ===\n")
+
+        missing = self._detect_missing_artifacts(profile)
+        if not missing:
+            self._print("All artifacts present. Nothing to re-provision.")
+            return profile
+
+        self._print("Missing artifacts:")
+        for m in missing:
+            self._print(f"  - {m}")
+        self._print("")
+
+        # --- Identity files (world.md empty → regenerate via Ollama) ---
+        ws = profile.hermes_home / "workspace" / "gumi"
+        world_path = ws / "world.md"
+        background_path = profile.relic_subject_home / "gumi_background_profile.json"
+
+        needs_world = world_path.exists() and world_path.stat().st_size == 0
+        if needs_world and background_path.exists():
+            if self._confirm("world.md is empty. Regenerate via Ollama?"):
+                try:
+                    import os as _os
+                    from relic.gumi.llm_narrator import GumiBuildContext, OllamaNarrator
+                    background = json.loads(background_path.read_text(encoding="utf-8"))
+                    agent_name = background.get("display_name", subject_id)
+                    ctx = GumiBuildContext.from_background_and_personalization(
+                        agent_name=agent_name, background=background
+                    )
+                    ollama_endpoint = _os.environ.get("RELIC_OLLAMA_ENDPOINT", "http://localhost:11434/v1")
+                    ollama_model = _os.environ.get("RELIC_OLLAMA_MODEL", "qwen3:latest")
+                    narrator = OllamaNarrator(endpoint=ollama_endpoint, model=ollama_model)
+                    if narrator.is_available():
+                        world_text = narrator.generate_world_md(ctx)
+                        self._print("  Generated world.md via Ollama.")
+                    else:
+                        world_text = narrator.fallback_world_md(ctx)
+                        self._print("  Ollama unavailable — using template fallback.")
+                    ws.mkdir(parents=True, exist_ok=True)
+                    world_path.write_text(world_text, encoding="utf-8")
+                    (profile.relic_subject_home / "gumi_world.md").write_text(world_text, encoding="utf-8")
+                    self._log_edit_step("world_md_regenerated", "ok")
+                except Exception as exc:
+                    self._print(f"  [warn] world.md regeneration failed: {exc}")
+
+        # --- Media canon (visual, voice, Lyria, anchor image) ---
+        needs_media = any(
+            m for m in missing
+            if any(k in m for k in ("voice_canon", "visual_canon", "music_canon", "AVATAR_SPEC", "Visual_Identity"))
+        )
+        if needs_media:
+            if self._confirm("Provision media identity (voice, visual canon, anchor image)?"):
+                gemini_key = ""
+                if self._confirm("Provide Gemini API key for anchor image generation?"):
+                    gemini_key = self._prompt("GEMINI_API_KEY", default="").strip()
+                try:
+                    import os as _os
+                    if gemini_key:
+                        _os.environ["GEMINI_API_KEY"] = gemini_key
+                        env_path = profile.hermes_home / ".env"
+                        _upsert_env_var(env_path, "GEMINI_API_KEY", gemini_key)
+                    self.registry.generate_gumi_media_canon(subject_id)
+                    self._log_edit_step("media_canon_reprovisioned", "ok")
+                    self._print("  Media identity provisioned.")
+                except Exception as exc:
+                    self._log_edit_step("media_canon_reprovisioning_failed", str(exc))
+                    self._print(f"  [warn] Media identity failed: {exc}")
+
+        profile = self.registry.get_subject(subject_id) or profile
+        self._print(f"\nRe-provision complete. Status: {profile.status}")
+        return profile
+
     def run_edit(self, subject_id: str) -> SubjectProfile:
         """Run the editing wizard for an existing subject."""
         profile = self.registry.get_subject(subject_id)
@@ -483,6 +608,12 @@ class BootstrapTUI:
         self._print(f"  Created:       {profile.created_at}")
         self._print(f"  Updated:       {profile.updated_at}")
         self._print("")
+
+        # Detect missing artifacts for active subjects and offer re-provision
+        missing = self._detect_missing_artifacts(profile)
+        if missing:
+            self._print(f"  [!] {len(missing)} artifact(s) missing — run `relic subject reprovision {subject_id}` to complete.")
+            self._print("")
 
         from relic.profile.registry import _FORWARD_TRANSITIONS
 

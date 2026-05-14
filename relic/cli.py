@@ -442,6 +442,8 @@ def subject_main(argv: list[str] | None = None) -> int:
     create_parser.add_argument("--experiment-id", default=None, help="Experiment identifier.")
     show_parser = subparsers.add_parser("show", help="Show subject runtime status (hides raw session key).")
     show_parser.add_argument("subject_id", help="Subject identifier.")
+    reprovision_parser = subparsers.add_parser("reprovision", help="Re-run provisioning for an active subject with missing artifacts.")
+    reprovision_parser.add_argument("subject_id", help="Subject identifier.")
     args = parser.parse_args(argv)
 
     if args.subject_action == "create":
@@ -459,6 +461,13 @@ def subject_main(argv: list[str] | None = None) -> int:
 
     if args.subject_action == "show":
         return _subject_show(args.subject_id)
+
+    if args.subject_action == "reprovision":
+        from relic.profile.bootstrap_tui import BootstrapTUI
+        registry = ProfileRegistry()
+        tui = BootstrapTUI(registry=registry)
+        tui.run_reprovision(args.subject_id)
+        return 0
 
     return 0
 

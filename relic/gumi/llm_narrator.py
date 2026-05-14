@@ -121,6 +121,14 @@ class OllamaNarrator:
         text = self._call_llm(prompt)
         return self._sanitize_output(text)
 
+    def generate_avatar_spec_md(self, ctx: GumiBuildContext) -> str:
+        """Generate AVATAR_SPEC.md — visual identity anchor for image generation."""
+        prompt = self._avatar_spec_prompt(ctx)
+        text = self._call_llm(prompt)
+        if not text:
+            return self.fallback_avatar_spec_md(ctx)
+        return self._sanitize_output(text)
+
     # ------------------------------------------------------------------ #
     # Prompts
     # ------------------------------------------------------------------ #
@@ -305,6 +313,43 @@ Hard limits — these must appear explicitly as a "## Hard limits" section:
 
 Format: Markdown. 4–6 short policy clauses, each 1–2 sentences, plus a "## Hard limits" section. Headers like "## Closeness", "## Limits", "## Initiative", "## Escalation", "## Distancing", "## Hard limits". Do not mention Relic, subject_id, backend scores, or technical parameters."""
 
+    def _avatar_spec_prompt(self, ctx: GumiBuildContext) -> str:
+        name = ctx.agent_name
+        domains = ctx.domains
+        identity = domains.get("identity", {})
+        embodiment = domains.get("embodiment", {})
+        place = domains.get("place", {})
+        life_role = domains.get("life_role", {})
+
+        gender = identity.get("gender_presentation", "gender non-conforming")
+        age = identity.get("age_bracket", "mid-adulthood")
+        cultural = identity.get("cultural_background", "mixed cultural background")
+        appearance = embodiment.get("physical_presence", "")
+        style = embodiment.get("personal_style", "")
+        location = place.get("location", "")
+        occupation = life_role.get("occupation_or_study", "")
+
+        return f"""Write an AVATAR_SPEC.md for {name} — a visual identity anchor used to generate consistent photorealistic images.
+
+Character data (weave naturally, do not copy labels):
+- Name: {name}
+- Gender presentation: {gender}
+- Age range: {age}
+- Cultural background: {cultural}
+- Physical presence: {appearance}
+- Personal style: {style}
+- Setting: {location}
+- Occupation: {occupation}
+
+The file must include:
+1. A 2–3 sentence physical description: approximate age range, build, facial features, skin tone, hair. Realistic and specific, not idealized.
+2. A 1–2 sentence style description: how she dresses in everyday life, texture and color palette of her clothes.
+3. A 1 sentence environment note: typical background/setting for her photos.
+4. A 1 sentence visual style note: photographic aesthetic (e.g. "natural light, candid, desaturated palette").
+
+Format: plain prose, no headers, no bullet points. 5–7 sentences total.
+Do not mention Relic, backend, subject_id, or any system parameters. Do not describe her as a character in a story — write as if she is a real person."""
+
     # ------------------------------------------------------------------ #
     # LLM call
     # ------------------------------------------------------------------ #
@@ -488,6 +533,27 @@ Format: Markdown. 4–6 short policy clauses, each 1–2 sentences, plus a "## H
             f"If you mentioned dust on your hands, the desert heat, or the settlement at dusk — do not reach for those again. "
             f"Find something else, or say nothing decorative at all."
             f"{emoji_note}"
+        )
+
+    def fallback_avatar_spec_md(self, ctx: GumiBuildContext) -> str:
+        name = ctx.agent_name
+        domains = ctx.domains
+        identity = domains.get("identity", {})
+        embodiment = domains.get("embodiment", {})
+        place = domains.get("place", {})
+
+        gender = identity.get("gender_presentation", "gender non-conforming")
+        age = identity.get("age_bracket", "mid-adulthood")
+        appearance = embodiment.get("physical_presence", "average build, understated presence")
+        style = embodiment.get("personal_style", "practical, worn-in clothes")
+        location = place.get("location", "an ordinary place")
+
+        return (
+            f"{name}. {age.capitalize()}, {gender}. {appearance}. "
+            f"She wears {style}. "
+            f"Her photos are taken in {location} — indoor or outdoor, real environments. "
+            f"Visual style: natural light, candid framing, desaturated palette. "
+            f"No artificial glow, no stock portrait aesthetics."
         )
 
     def fallback_world_md(self, ctx: GumiBuildContext) -> str:

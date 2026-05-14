@@ -17,6 +17,7 @@ from typing import Any, Optional
 from relic.paths import get_relic_home
 from relic.hermes_runtime import (
     HERMES_DEFAULT_MODEL,
+    HERMES_PROFILE_DEFAULT_MODEL,
     HermesSessionKey,
     register_allowlist_entry,
     render_hindsight_local_config,
@@ -781,13 +782,27 @@ class ProfileRegistry:
         _write_json(paths["voice"], voice)
         _write_json(workspace / "voice_canon.json", voice)
 
-        # C1: Generate AVATAR_SPEC.md (placeholder - LLM generation skipped for now)
-        avatar_spec = f"""Gumi - {background.get('display_name', subject_id)}
-
-A warm, friendly companion with a quiet presence. {background.get('domains', {}).get('life_context', {}).get('living_situation', 'Normal everyday life.')}
-
-Visual style: quiet naturalism, desaturated teal and warm gray palette, soft ambient indoor lighting. No artificial glow or stock portrait aesthetics.
-"""
+        # C1: Generate AVATAR_SPEC.md via Ollama narrator (fallback to template)
+        try:
+            from relic.gumi.llm_narrator import GumiBuildContext, OllamaNarrator
+            import os as _os
+            ollama_endpoint = _os.environ.get("RELIC_OLLAMA_ENDPOINT", "http://localhost:11434/v1")
+            ollama_model = _os.environ.get("RELIC_OLLAMA_MODEL", "qwen3:latest")
+            _narrator = OllamaNarrator(endpoint=ollama_endpoint, model=ollama_model)
+            _ctx = GumiBuildContext.from_background_and_personalization(
+                agent_name=background.get("display_name", subject_id),
+                background=background,
+            )
+            if _narrator.is_available():
+                avatar_spec = _narrator.generate_avatar_spec_md(_ctx)
+            else:
+                avatar_spec = _narrator.fallback_avatar_spec_md(_ctx)
+        except Exception:
+            avatar_spec = (
+                f"{background.get('display_name', subject_id)}. "
+                f"Visual style: quiet naturalism, desaturated palette, natural light. "
+                f"No artificial glow or stock portrait aesthetics."
+            )
         (profile.hermes_home / "AVATAR_SPEC.md").write_text(avatar_spec, encoding="utf-8")
 
         # C1: Generate PHOTO_MODES.md
@@ -1507,7 +1522,7 @@ Eight visual modes for consistent photography:
             render_subject_hermes_config(
                 profile_name=profile.hermes_profile_name,
                 subject_id=profile.subject_id,
-                model=HERMES_DEFAULT_MODEL,
+                model=HERMES_PROFILE_DEFAULT_MODEL,
             ),
             encoding="utf-8",
         )
@@ -1517,6 +1532,7 @@ Eight visual modes for consistent photography:
                     f"RELIC_SUBJECT_ID={profile.subject_id}",
                     f"RELIC_SUBJECT_HOME={profile.relic_subject_home}",
                     "RELIC_GUMI_PRIVATE_PROFILE=1",
+                    f"HINDSIGHT_LLM_API_KEY={os.environ.get('DASHSCOPE_API_KEY', '')}",
                     "",
                 ]
             ),
@@ -1528,7 +1544,7 @@ Eight visual modes for consistent photography:
             hindsight_dir / "config.json",
             render_hindsight_local_config(
                 bank_id=profile.hermes_profile_name,
-                model=HERMES_DEFAULT_MODEL,
+                model=HERMES_PROFILE_DEFAULT_MODEL,
             ),
         )
 
