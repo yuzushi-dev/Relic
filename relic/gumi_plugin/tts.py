@@ -24,23 +24,32 @@ VOICE_TRAIT_MAP = {
     "default": "Kore",
 }
 
+_ATTACHMENT_TO_TONE = {
+    "secure attachment": "warm",
+    "earned secure": "warm",
+    "anxious attachment": "expressive",
+    "disorganized attachment": "expressive",
+    "avoidant attachment": "calm",
+}
+
 
 def select_voice_for_canon(background_profile: dict) -> str:
-    """Select Gemini voice based on gender and tone from background profile."""
-    gender = background_profile.get("gender", "").lower()
-    tone = background_profile.get("tone", "").lower()
+    """Select Gemini voice from domains.embodiment.gender_expression and attachment_style."""
+    domains = background_profile.get("domains", {})
+    embodiment = domains.get("embodiment", {})
+    gender_expr = embodiment.get("gender_expression", "").lower()
 
-    # Normalize tone
-    if tone in ("warm", "affettuoso"):
-        tone = "warm"
-    elif tone in ("expressive", "espressivo", "energetic"):
-        tone = "expressive"
-    elif tone in ("calm", "tranquil", "serene"):
-        tone = "calm"
+    if gender_expr in ("feminine",):
+        gender = "female"
+    elif gender_expr in ("masculine",):
+        gender = "male"
     else:
-        tone = "calm"  # default
+        gender = ""
 
-    key = (gender, tone) if gender in ("male", "female") else "default"
+    attachment = domains.get("relationship_stance", {}).get("attachment_style", "").lower()
+    tone = _ATTACHMENT_TO_TONE.get(attachment, "calm")
+
+    key = (gender, tone) if gender else "default"
     return VOICE_TRAIT_MAP.get(key, VOICE_TRAIT_MAP["default"])
 
 
@@ -124,6 +133,17 @@ def synthesize(
     return output_path
 
 
+def strip_emoji(text: str) -> str:
+    """Remove emoji characters from text before TTS synthesis."""
+    import unicodedata
+    return "".join(
+        ch for ch in text
+        if unicodedata.category(ch) not in ("So", "Sm")
+        and ord(ch) < 0x1F000  # exclude supplementary symbol blocks
+        or ch in ("\n", "\t")
+    ).strip()
+
+
 def synthesize_checkin_audio(
     text: str,
     hermes_home: Path,
@@ -138,4 +158,4 @@ def synthesize_checkin_audio(
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     output_path = tmp_dir / f"voice_{timestamp}.ogg"
 
-    return synthesize(text, voice_id, output_path, api_key)
+    return synthesize(strip_emoji(text), voice_id, output_path, api_key)
