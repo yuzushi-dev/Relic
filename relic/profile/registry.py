@@ -250,6 +250,7 @@ class DeliveryPolicy:
     consent_for_generated_music: bool
     created_at: str
     updated_at: str
+    escalation_contacts: list = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -267,6 +268,298 @@ class MediaCanon:
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
+
+
+# ---------------------------------------------------------------------------
+# Domain-derived media canon helpers
+# ---------------------------------------------------------------------------
+
+_PLACE_PALETTE: dict[str, list[str]] = {
+    "coastal city": ["sea green", "sandy beige", "salt white"],
+    "mountain town": ["slate gray", "pine green", "stone white"],
+    "urban center": ["concrete gray", "neon amber", "dark rust"],
+    "rural village": ["earth brown", "moss green", "warm cream"],
+    "suburban neighborhood": ["dusty rose", "warm gray", "sage green"],
+    "college town": ["deep navy", "warm beige", "muted gold"],
+    "border region": ["desert red", "terracotta", "faded olive"],
+    "island community": ["turquoise", "bleached linen", "coral blush"],
+    "desert settlement": ["burnt sienna", "pale gold", "bone white"],
+    "forest region": ["dark fern", "dappled amber", "bark brown"],
+}
+_DEFAULT_PALETTE = ["warm gray", "soft amber", "off-white"]
+
+_PASSION_MOTIFS: dict[str, list[str]] = {
+    "creative arts": ["paint-stained surfaces", "tools of craft", "layered textures"],
+    "sports and fitness": ["motion blur edges", "outdoor light", "worn equipment"],
+    "cooking and food": ["kitchen close-ups", "steam and warmth", "ingredients in hand"],
+    "technology and gaming": ["screen glow", "cable tangles", "dark desk ambiance"],
+    "nature and gardening": ["pressed leaves", "natural light through foliage", "soil details"],
+    "reading and writing": ["stacked books", "handwritten notes", "focused lamp circles"],
+    "music and performance": ["instrument details", "rehearsal blur", "stage edge light"],
+    "crafts and DIY": ["handmade objects", "workshop dust", "material textures"],
+    "travel and exploration": ["worn maps", "unfamiliar streets", "golden hour exteriors"],
+    "social activism": ["gathered spaces", "community materials", "honest portraiture"],
+    "spiritual practices": ["soft ritual objects", "candlelight", "meditative stillness"],
+    "collecting": ["curated shelves", "detail shots", "patina and age"],
+}
+_DEFAULT_MOTIFS = ["indoor light", "small rituals", "everyday texture"]
+
+_ATTACHMENT_MOOD: dict[str, list[str]] = {
+    "secure attachment": ["settled warmth", "grounded presence", "clear sky feeling"],
+    "earned secure": ["tender resolve", "quiet strength", "earned calm"],
+    "anxious attachment": ["longing", "restless search", "tender urgency"],
+    "disorganized attachment": ["fragmented light", "searching stillness", "ambiguous warmth"],
+    "avoidant attachment": ["solitary focus", "cool introspection", "quiet distance"],
+}
+_DEFAULT_MOOD = ["late evening", "soft motion", "quiet focus"]
+
+_ROUTINE_ENERGY: dict[str, str] = {
+    "work-centric": "focused momentum",
+    "family-centric": "warm pulse",
+    "social-centric": "open drift",
+    "fitness-centric": "rhythmic drive",
+    "creative time-blocking": "intermittent bursts",
+    "spontaneous": "loose unfolding",
+}
+
+_GENDER_VOICE_PROFILE: dict[str, str] = {
+    "feminine": "warm, concise, slightly intimate",
+    "masculine": "calm, direct, present",
+    "androgynous": "clear, neutral, attentive",
+    "fluid": "gentle, adaptive, open",
+    "gender non-conforming": "assured, unhurried, grounded",
+}
+
+_ATTACHMENT_TIMBRE: dict[str, str] = {
+    "secure attachment": "clear mid",
+    "earned secure": "warm mid",
+    "anxious attachment": "bright mid",
+    "avoidant attachment": "low-mid, measured",
+    "disorganized attachment": "variable, soft",
+}
+
+_WARDROBE_TEMPLATES = [
+    {
+        "set_name": "giornata quotidiana",
+        "occasions": ["lavoro da casa", "commissioni mattutine", "appuntamenti informali"],
+        "_life_role_key": True,
+    },
+    {
+        "set_name": "serata fuori",
+        "occasions": ["cena con amici", "evento culturale", "uscita serale"],
+        "_social": True,
+    },
+    {
+        "set_name": "weekend creativo",
+        "occasions": ["hobby", "laboratorio", "mercatino"],
+        "_passion_key": True,
+    },
+    {
+        "set_name": "momento di riposo",
+        "occasions": ["casa", "relax", "giornata tranquilla"],
+        "_home": True,
+    },
+    {
+        "set_name": "contesto speciale",
+        "occasions": ["occasione formale", "celebrazione", "incontro importante"],
+        "_formal": True,
+    },
+]
+
+_OCCUPATION_WARDROBE: dict[str, dict] = {
+    "creative professional": {
+        "key_pieces": ["blazer strutturato su t-shirt grafica", "jeans curati", "sneaker pulite"],
+        "vibe": "creativo ma composto",
+    },
+    "educator": {
+        "key_pieces": ["camicia a quadri", "pantaloni chino", "mocassini robusti"],
+        "vibe": "affidabile e accogliente",
+    },
+    "healthcare provider": {
+        "key_pieces": ["camici comodi", "scarpe da lavoro", "accessori minimali"],
+        "vibe": "funzionale con cura",
+    },
+    "researcher": {
+        "key_pieces": ["maglione sottile", "pantaloni dritti", "scarpe da camminata"],
+        "vibe": "concentrato e discreto",
+    },
+    "artist": {
+        "key_pieces": ["overall dipinta", "maglione oversized", "stivali consunti"],
+        "vibe": "autenticamente vissuto",
+    },
+    "entrepreneur": {
+        "key_pieces": ["blazer sartoriale", "turtleneck", "pantaloni cropped"],
+        "vibe": "deciso e moderno",
+    },
+}
+_DEFAULT_DAILY_WARDROBE = {
+    "key_pieces": ["maglia neutra", "pantaloni morbidi", "scarpe comode"],
+    "vibe": "rilassato e autentico",
+}
+
+_PASSION_WEEKEND_WARDROBE: dict[str, dict] = {
+    "creative arts": {"key_pieces": ["grembiule da atelier", "jeans sbiaditi", "maglietta slogan"], "vibe": "da laboratorio"},
+    "nature and gardening": {"key_pieces": ["giacca leggera", "pantaloni cargo", "scarponi"], "vibe": "da esplorazione"},
+    "sports and fitness": {"key_pieces": ["leggings tecnici", "felpa crop", "scarpe da corsa"], "vibe": "energico e funzionale"},
+    "reading and writing": {"key_pieces": ["cardigan lungo", "jogger morbido", "calzettoni"], "vibe": "contemplativo e caldo"},
+    "music and performance": {"key_pieces": ["t-shirt band", "giacca biker", "chelsea boot"], "vibe": "da backstage"},
+    "cooking and food": {"key_pieces": ["grembiule da cucina", "maglietta henley", "pantofole robuste"], "vibe": "da cuoco domestico"},
+}
+_DEFAULT_WEEKEND_WARDROBE = {
+    "key_pieces": ["felpa morbida", "jeans comodi", "sneaker casual"],
+    "vibe": "libero e informale",
+}
+
+
+def _derive_visual_canon(
+    seed: int | None,
+    place: dict,
+    passions: dict,
+    embodiment: dict,
+    life_role: dict,
+    routine: dict,
+) -> dict:
+    location = place.get("location", "")
+    palette = _PLACE_PALETTE.get(location, _DEFAULT_PALETTE)[:]
+
+    interests = passions.get("primary_interests", []) + passions.get("hobbies", [])
+    motifs: list[str] = []
+    for interest in interests:
+        motifs.extend(_PASSION_MOTIFS.get(interest, []))
+    if not motifs:
+        motifs = _DEFAULT_MOTIFS[:]
+    motifs = list(dict.fromkeys(motifs))[:4]
+
+    gender_expr = embodiment.get("gender_expression", "")
+    style_map = {
+        "feminine": "soft naturalism",
+        "masculine": "grounded realism",
+        "androgynous": "clean minimalism",
+        "fluid": "layered eclecticism",
+        "gender non-conforming": "intentional everyday",
+    }
+    style = style_map.get(gender_expr, "quiet naturalism")
+
+    wardrobe = _derive_wardrobe(place, passions, embodiment, life_role, palette)
+
+    return {
+        "visual_reference_set_id": f"gumi_canon_{seed or 1}",
+        "style": style,
+        "palette": palette,
+        "motifs": motifs,
+        "negative_motifs": ["glow blobs", "stock portrait", "generic neon"],
+        "prompt_constraints": "describe atmosphere and composition; do not invent real image outputs",
+        "wardrobe": wardrobe,
+    }
+
+
+def _derive_wardrobe(
+    place: dict,
+    passions: dict,
+    embodiment: dict,
+    life_role: dict,
+    palette: list[str],
+) -> list[dict]:
+    occupation = life_role.get("occupation_or_study", "")
+    daily = _OCCUPATION_WARDROBE.get(occupation, _DEFAULT_DAILY_WARDROBE)
+
+    interests = passions.get("primary_interests", [])
+    weekend_passion = interests[0] if interests else ""
+    weekend = _PASSION_WEEKEND_WARDROBE.get(weekend_passion, _DEFAULT_WEEKEND_WARDROBE)
+
+    housing = place.get("housing_situation", "")
+    home_vibe = "intimo e personale" if "owns" in housing or "inherited" in housing else "comodo e neutro"
+
+    gender_expr = embodiment.get("gender_expression", "")
+    formal_pieces_map = {
+        "feminine": ["abito midi", "blazer sottile", "décolleté basse"],
+        "masculine": ["completo sartoriale", "camicia bianca", "oxford lucidi"],
+        "androgynous": ["tailleur androgino", "maglia seta", "mocassini"],
+    }
+    formal_pieces = formal_pieces_map.get(gender_expr, ["abito neutro", "scarpe sobrie", "accessorio unico"])
+
+    return [
+        {
+            "set_name": "giornata quotidiana",
+            "occasions": ["lavoro da casa", "commissioni", "incontri informali"],
+            "key_pieces": daily["key_pieces"],
+            "color_palette": palette[:2],
+            "vibe": daily["vibe"],
+        },
+        {
+            "set_name": "serata fuori",
+            "occasions": ["cena con amici", "evento culturale", "uscita serale"],
+            "key_pieces": ["giacca statement", "pantaloni ben tagliati", "scarpa con carattere"],
+            "color_palette": [palette[0], "nero profondo"],
+            "vibe": "curato senza sforzo",
+        },
+        {
+            "set_name": "weekend creativo",
+            "occasions": ["hobby", "esplorazione", "mercatino"],
+            "key_pieces": weekend["key_pieces"],
+            "color_palette": palette[1:3] if len(palette) > 1 else palette,
+            "vibe": weekend["vibe"],
+        },
+        {
+            "set_name": "momento di riposo",
+            "occasions": ["casa", "relax", "mattina lenta"],
+            "key_pieces": ["loungewear morbido", "coperta preferita", "pantofole"],
+            "color_palette": ["beige caldo", "bianco latte"],
+            "vibe": home_vibe,
+        },
+        {
+            "set_name": "contesto speciale",
+            "occasions": ["cerimonia", "appuntamento importante", "celebrazione"],
+            "key_pieces": formal_pieces,
+            "color_palette": [palette[0], "oro pallido"],
+            "vibe": "risoluto e memorabile",
+        },
+    ]
+
+
+def _derive_voice_canon(embodiment: dict, relationship_stance: dict) -> dict:
+    gender_expr = embodiment.get("gender_expression", "")
+    voice_profile = _GENDER_VOICE_PROFILE.get(gender_expr, "warm, concise, slightly intimate")
+
+    attachment = relationship_stance.get("attachment_style", "")
+    timbre = _ATTACHMENT_TIMBRE.get(attachment, "clear low-mid")
+
+    intimacy = relationship_stance.get("intimacy_comfort", "")
+    pace = "measured" if "guarded" in intimacy or "selective" in intimacy else "moderate"
+
+    return {
+        "voice_profile": voice_profile,
+        "pace": pace,
+        "timbre": timbre,
+        "register": "everyday conversational",
+        "avoid": ["grandiose romance", "dependency claims", "clinical tone"],
+    }
+
+
+def _derive_lyria_canon(passions: dict, relationship_stance: dict, routine: dict) -> dict:
+    attachment = relationship_stance.get("attachment_style", "")
+    mood = _ATTACHMENT_MOOD.get(attachment, _DEFAULT_MOOD)[:]
+
+    daily_pattern = routine.get("daily_pattern", "")
+    energy_label = _ROUTINE_ENERGY.get(daily_pattern, "steady flow")
+    mood.append(energy_label)
+
+    schedule = routine.get("daily_schedule", "")
+    if "night owl" in schedule:
+        instrumentation = ["dark pads", "sparse piano", "distant percussion"]
+    elif "early riser" in schedule:
+        instrumentation = ["light strings", "morning tones", "clean guitar"]
+    else:
+        instrumentation = ["light percussion", "pads", "distant piano"]
+
+    return {
+        "music_profile": "lyric-light, reflective, non-derivative",
+        "mood_palette": mood,
+        "instrumentation": instrumentation,
+        "forbidden": ["song lyrics", "artist imitation", "copyrighted melody mimicry"],
+        "references": passions.get("music_preferences", []),
+    }
+
 
 
 class ProfileRegistry:
@@ -576,6 +869,7 @@ class ProfileRegistry:
         consent_for_generated_images: bool = False,
         consent_for_generated_audio: bool = False,
         consent_for_generated_music: bool = False,
+        escalation_contacts: list | None = None,
     ) -> tuple[SubjectProfile, DeliveryPolicy]:
         profile = self._load_required_subject(subject_id)
         if profile.status in {"archived", "withdrawn"}:
@@ -611,6 +905,7 @@ class ProfileRegistry:
             consent_for_generated_music=consent_for_generated_music,
             created_at=_now_iso(),
             updated_at=_now_iso(),
+            escalation_contacts=escalation_contacts or [],
         )
 
         self._write_delivery_env(profile, telegram_bot_token_env, telegram_user_id)
@@ -710,6 +1005,7 @@ class ProfileRegistry:
                 return f"telegram:{first_allowed}"
         return None
 
+
     def generate_gumi_media_canon(
         self,
         subject_id: str,
@@ -722,28 +1018,15 @@ class ProfileRegistry:
         background = _read_json(background_path)
         domains = background.get("domains", {})
         passions = domains.get("passions", {})
-        visual = {
-            "visual_reference_set_id": f"gumi_canon_{seed or 1}",
-            "style": "quiet naturalism",
-            "palette": ["desaturated teal", "warm gray", "soft amber"],
-            "motifs": ["indoor light", "handmade objects", "small rituals"],
-            "negative_motifs": ["glow blobs", "stock portrait", "generic neon"],
-            "prompt_constraints": "describe atmosphere and composition; do not invent real image outputs",
-        }
-        voice = {
-            "voice_profile": "warm, concise, slightly intimate",
-            "pace": "moderate",
-            "timbre": "clear low-mid",
-            "register": "everyday conversational",
-            "avoid": ["grandiose romance", "dependency claims", "clinical tone"],
-        }
-        lyria = {
-            "music_profile": "lyric-light, reflective, non-derivative",
-            "mood_palette": ["late evening", "soft motion", "quiet focus"],
-            "instrumentation": ["light percussion", "pads", "distant piano"],
-            "forbidden": ["song lyrics", "artist imitation", "copyrighted melody mimicry"],
-            "references": passions.get("music_preferences", []),
-        }
+        place = domains.get("place", {})
+        embodiment = domains.get("embodiment", {})
+        routine = domains.get("routine", {})
+        relationship_stance = domains.get("relationship_stance", {})
+        life_role = domains.get("life_role", {})
+
+        visual = _derive_visual_canon(seed, place, passions, embodiment, life_role, routine)
+        voice = _derive_voice_canon(embodiment, relationship_stance)
+        lyria = _derive_lyria_canon(passions, relationship_stance, routine)
         policy = {
             "provider_required": False,
             "image_generation_enabled": False,
@@ -1518,11 +1801,19 @@ Eight visual modes for consistent photography:
 
         config_path = profile.hermes_home / "config.yaml"
         env_path = profile.hermes_home / ".env"
+        _delivery_tz = "Europe/Rome"
+        _dp_path = self._delivery_policy_path(profile.subject_id)
+        if _dp_path.exists():
+            _dp = _read_json(_dp_path)
+            _delivery_tz = _dp.get("timezone") or _dp.get("quiet_hours_timezone") or _delivery_tz
+            if not _delivery_tz and isinstance(_dp.get("quiet_hours"), dict):
+                _delivery_tz = _dp["quiet_hours"].get("timezone", "Europe/Rome")
         config_path.write_text(
             render_subject_hermes_config(
                 profile_name=profile.hermes_profile_name,
                 subject_id=profile.subject_id,
                 model=HERMES_PROFILE_DEFAULT_MODEL,
+                timezone=_delivery_tz,
             ),
             encoding="utf-8",
         )
@@ -1692,8 +1983,8 @@ Eight visual modes for consistent photography:
         personalization = None
         emoji_level = 2  # default: sparing
         baseline_path = profile.relic_subject_home / "baseline_user_profile.json"
-        if baseline_path.exists():
-            baseline = _read_json(baseline_path)
+        baseline = _read_json(baseline_path) if baseline_path.exists() else {}
+        if baseline:
             battery = baseline.get("item_battery")
             if battery and "scores" in battery:
                 mapper = SubjectPersonalizationMapper()
@@ -1707,6 +1998,7 @@ Eight visual modes for consistent photography:
             background=background,
             personalization=personalization,
             emoji_level=emoji_level,
+            baseline=baseline,
         )
 
         # Derive Ollama config from relic config if available
