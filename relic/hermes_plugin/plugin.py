@@ -3,6 +3,12 @@
 This module implements the Hermes plugin interface for Relic.
 The plugin provides ephemeral runtime guidance without modifying
 persistent memory stores (SOUL.md, MEMORY.md, USER.md).
+
+Key features:
+- PromptContextPack (PCP) injection via pre_llm_call hook
+- Fail-closed behavior - no injection on any failure
+- Redacted tracing - no raw content in traces
+- /relic why command for CAC trace inspection
 """
 
 from __future__ import annotations
@@ -16,8 +22,7 @@ from uuid import UUID, uuid4
 
 from relic.hermes_plugin.commands import RelicCommands
 from relic.hermes_plugin.fail_safe import FailSafeRegistry
-from relic.hermes_plugin.hooks import HookManager
-from relic.hermes_plugin.tool_permissions import ToolPermissionMatrix
+from relic.hermes_plugin.hooks import HookManager, LLMSessionContext
 
 if TYPE_CHECKING:
     from relic.cac.controller import CACController
@@ -64,17 +69,18 @@ class RelicHermesPlugin:
     """Hermes plugin for Relic runtime guidance.
 
     This plugin provides:
-    - /relic why: Show last CAC trace
+    - /relic why: Show last CAC trace or PCP trace
     - /relic pause: Disable runtime guidance
     - /relic resume: Re-enable runtime guidance
     - Pre-tool-call permission enforcement
-    - Ephemeral context injection (no persistent changes)
+    - PromptContextPack (PCP) injection with fail-closed behavior
 
     Guarantees:
     - Plugin failure produces NO memory injection
-    - Only ephemeral per-turn context
+    - Only ephemeral per-turn context (no persistent changes)
     - Never mutates SOUL.md, MEMORY.md, USER.md
     - All tool permission decisions are auditable
+    - PCP injection is fail-closed
     """
 
     def __init__(self) -> None:
@@ -83,12 +89,14 @@ class RelicHermesPlugin:
         self._commands: RelicCommands | None = None
         self._hooks: HookManager | None = None
         self._fail_safe: FailSafeRegistry | None = None
-        self._tool_permissions: ToolPermissionMatrix | None = None
+        self._tool_permissions: Any = None  # ToolPermissionMatrix
         self._load_result: PluginLoadResult | None = None
         # Cached pause controller (lazily initialized)
         self._pause_controller: PauseController | None = None
         # Cached CAC controller (lazily initialized)
         self._cac_controller: CACController | None = None
+        # PCP trace for /relic why
+        self._pcp_trace: Any = None
 
     @property
     def state(self) -> PluginState:
@@ -132,79 +140,88 @@ class RelicHermesPlugin:
             self._fail_safe.register_hook(self._on_fail_safe_triggered)
 
             # Initialize tool permission matrix
+            from relic.hermes_plugin.tool_permissions import ToolPermissionMatrix
             matrix_path = self._config.tool_permission_matrix_path
             self._tool_permissions = ToolPermissionMatrix(
                 matrix_path=matrix_path,
                 policy_version=self._config.policy_version,
             )
 
-            # Initialize hooks for pre/post tool call
+            # Initialize hooks for pre/post tool call and PCP injection
             self._hooks = HookManager(
                 permission_matrix=self._tool_permissions,
                 fail_safe=self._fail_safe,
                 roleplay_blocks_l2=self._config.roleplay_blocks_l2_tools,
             )
 
-            # Initialize commands
+            # Wire OutputCritic into post_llm_call (PR05 / deep-research-report gap)
+            from relic.gumi_plugin import hooks as gumi_hooks
+            from relic.gumi_plugin.critic import OutputCritic
+
+            _critic = OutputCritic()
+
+            def _post_llm_handler(payload: dict) -> dict:
+                """Fail-open post_llm_call critic — never blocks conversation."""
+                try:
+                    text = payload.get("assistant_response", "") or ""
+                    consensual = payload.get("consensual", True)
+                    verdict = _critic.review(text, consensual=consensual)
+                    return {
+                        "allow": verdict.allow,
+                        "reason": verdict.reason,
+                        "requires_disclosure": verdict.requires_disclosure,
+                    }
+                except Exception:
+                    return {"allow": True, "reason": "critic_error_fail_open"}
+
+            gumi_hooks.register(gumi_hooks.POST_LLM_CALL, _post_llm_handler)
+
+            # Initialize PCP trace for /relic why
+            from relic.context_pack.trace import PCPTrace
+            self._pcp_trace = PCPTrace()
+
+            # Initialize commands (only with pause_controller, not plugin)
             self._commands = RelicCommands(
                 pause_controller=self._pause_controller,
-                cac_controller=self._cac_controller,
             )
 
             # Mark as loaded
             self._state = PluginState.LOADED
             self._load_result = PluginLoadResult(
                 success=True,
-                state=self._state,
+                state=PluginState.LOADED,
                 loaded_at=datetime.utcnow(),
                 plugin_id=str(uuid4()),
             )
 
             return self._load_result
 
-        except Exception as e:
+        except Exception as exc:
             self._state = PluginState.FAILED
             self._load_result = PluginLoadResult(
                 success=False,
-                state=self._state,
-                error_message=str(e),
+                state=PluginState.FAILED,
+                error_message=str(exc),
             )
             return self._load_result
 
     def unload(self) -> None:
-        """Unload the plugin gracefully.
-
-        This ensures no guidance is injected after unload.
-        """
-        if self._state == PluginState.SHUTDOWN:
-            return
-
-        # Clear any cached state
+        """Unload the plugin - clear all state."""
+        self._state = PluginState.UNLOADED
         self._pause_controller = None
         self._cac_controller = None
 
-        # Mark as unloaded (not failed - clean unload)
-        self._state = PluginState.UNLOADED
-
     def shutdown(self) -> None:
-        """Shutdown the plugin completely.
-
-        This is called when Hermes is shutting down.
-        """
-        self.unload()
+        """Shutdown the plugin."""
         self._state = PluginState.SHUTDOWN
 
-    def get_commands(self) -> RelicCommands | None:
-        """Get the commands handler."""
-        return self._commands
-
-    def get_hooks(self) -> HookManager | None:
-        """Get the hooks manager."""
-        return self._hooks
-
-    def get_tool_permission_matrix(self) -> ToolPermissionMatrix | None:
+    def get_tool_permissions(self) -> Any:
         """Get the tool permission matrix."""
         return self._tool_permissions
+
+    def get_hook_manager(self) -> HookManager | None:
+        """Get the hook manager."""
+        return self._hooks
 
     def pause_guidance(self, session_id: UUID | None = None) -> bool:
         """Pause all runtime guidance.
@@ -258,8 +275,7 @@ class RelicHermesPlugin:
     def get_last_cac_trace(self) -> dict[str, Any] | None:
         """Get the last CAC trace for /relic why command.
 
-        Returns:
-            Dict representation of last CAC trace, or None
+        Returns redacted trace - no raw content.
         """
         try:
             if not self._cac_controller:
@@ -296,19 +312,27 @@ class RelicHermesPlugin:
 
     def inject_ephemeral_context(
         self,
-        session_id: UUID | None = None,
+        session_id: UUID | str | None = None,
+        turn_id: str | None = None,
+        task_type: str = "technical",
+        is_roleplay: bool = False,
     ) -> dict[str, Any] | None:
         """Inject ephemeral context for current turn.
 
-        This returns context WITHOUT modifying persistent memory.
-        Context is only valid for the current turn and is never
+        This builds a PromptContextPack (PCP) for the current turn.
+        Context is ONLY valid for the current turn and is NEVER
         written to SOUL.md, MEMORY.md, or USER.md.
 
+        Uses fail-closed behavior - returns None on any failure.
+
         Args:
-            session_id: Optional session ID
+            session_id: Optional session ID (UUID or str)
+            turn_id: Optional turn ID (generated if not provided)
+            task_type: Task type for context classification
+            is_roleplay: Whether roleplay mode is active
 
         Returns:
-            Ephemeral context dict or None if paused/blocked
+            Ephemeral context dict or None if paused/blocked/failed
         """
         # Fail-safe: never inject if not loaded
         if self._state != PluginState.LOADED:
@@ -322,14 +346,78 @@ class RelicHermesPlugin:
         if not self._config or not self._config.enabled:
             return None
 
-        # Return ephemeral context (no persistent store modification)
-        return {
-            "type": "ephemeral_guidance",
-            "session_id": str(session_id) if session_id else None,
-            "timestamp": datetime.utcnow().isoformat(),
-            "policy_version": self._config.policy_version,
-            "privacy_gateway_active": self._config.privacy_gateway_enabled,
-        }
+        # Fail-safe: never inject if fail-safe is triggered
+        if self._fail_safe and self._fail_safe.is_triggered:
+            return None
+
+        try:
+            # Create LLM session context for hooks
+            if isinstance(session_id, UUID):
+                session_id_str = str(session_id)
+            elif session_id:
+                session_id_str = str(session_id)
+            else:
+                session_id_str = f"SES-{uuid4().hex[:8]}"
+
+            turn_id_str = turn_id or f"TURN-{uuid4().hex[:8]}"
+
+            llm_context = LLMSessionContext(
+                session_id=session_id_str,
+                turn_id=turn_id_str,
+                task_type=task_type,
+                is_roleplay=is_roleplay,
+            )
+
+            # Get PCP injection via hook manager
+            if self._hooks:
+                result = self._hooks.pre_llm_call(llm_context)
+                if result.success and result.context_pack:
+                    # Log to trace
+                    from relic.context_pack.trace import PCPTraceEvent
+                    self._pcp_trace.log(
+                        event=PCPTraceEvent.INJECTION_APPLIED,
+                        trace_id=result.trace_id,
+                        session_id=session_id_str,
+                        turn_id=turn_id_str,
+                        metadata={"pack_id": result.context_pack.get("pack_id")},
+                    )
+                    return result.context_pack
+
+            # Fallback: build PCP directly using ContextPackBuilder
+            from relic.context_pack import ContextPackBuilder, TaskType as PCPTaskType
+            try:
+                pcp_task_type = PCPTaskType(task_type)
+            except ValueError:
+                pcp_task_type = PCPTaskType.TECHNICAL
+
+            builder = ContextPackBuilder(
+                session_id=session_id_str,
+                task_type=pcp_task_type,
+            )
+            pcp = builder.build()
+            pcp.turn_id = turn_id_str
+
+            # Log to trace
+            from relic.context_pack.trace import PCPTraceEvent
+            self._pcp_trace.log(
+                event=PCPTraceEvent.INJECTION_APPLIED,
+                trace_id=str(uuid4()),
+                session_id=session_id_str,
+                turn_id=turn_id_str,
+                metadata={"pack_id": pcp.pack_id},
+            )
+
+            return pcp.to_dict()
+
+        except Exception:
+            # Fail-closed: any exception returns None
+            return None
+
+    def get_last_pcp_trace(self) -> dict[str, Any] | None:
+        """Get the last PCP trace for /relic why command."""
+        if self._pcp_trace:
+            return self._pcp_trace.get_last_trace()
+        return None
 
     def check_lifecycle_health(self) -> dict[str, Any]:
         """Check plugin lifecycle health for monitoring.

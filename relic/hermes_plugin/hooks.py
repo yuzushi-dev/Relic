@@ -1,22 +1,20 @@
-"""Pre/post tool call hooks for permission enforcement.
+"""Pre/post tool call hooks for permission enforcement and PCP injection.
 
-This module implements the hook system that enforces TOOL_PERMISSION_MATRIX.md
-before any side-effect tool execution. The hook system:
-
-1. Intercepts tool calls before execution
-2. Checks permissions against the tool permission matrix
-3. Blocks L2+ tools in roleplay mode without explicit approval
-4. Ensures all decisions are auditable
+This module implements the hook system that:
+1. Enforces tool permissions before any side-effect tool execution
+2. Injects PromptContextPack into pre_llm_call with fail-closed behavior
+3. Provides redacted tracing for all PCP operations
 
 Key guarantees:
 - Tool permission decisions are auditable with reason_code and policy_version
+- PCP injection is fail-closed - no injection if anything fails
+- All traces are redacted - no raw content stored
 - No side-effect tool executes without a permission decision
-- Roleplay mode cannot trigger L2+ tools without approval
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import TYPE_CHECKING, Any
@@ -33,6 +31,8 @@ class HookEvent(str, Enum):
     PRE_TOOL_CALL = "pre_tool_call"
     POST_TOOL_CALL = "post_tool_call"
     TOOL_BLOCKED = "tool_blocked"
+    PRE_LLM_CALL = "pre_llm_call"
+    PCP_INJECTION = "pcp_injection"
 
 
 @dataclass
@@ -46,6 +46,23 @@ class ToolCallContext:
     user_intent_raw: str | None = None  # NOT stored in audit logs
     timestamp: datetime | None = None
     trace_id: str | None = None
+
+
+@dataclass
+class LLMSessionContext:
+    """Context for an LLM call session."""
+    session_id: str
+    turn_id: str | None = None
+    trace_id: str | None = None
+    task_type: str = "technical"
+    is_roleplay: bool = False
+    metadata: dict[str, Any] | None = None
+
+    def __post_init__(self) -> None:
+        if self.trace_id is None:
+            self.trace_id = str(uuid4())
+        if self.turn_id is None:
+            self.turn_id = f"TURN-{uuid4().hex[:8]}"
 
 
 @dataclass
@@ -80,20 +97,31 @@ class HookAuditEntry:
     explicit_approval: bool = False
     blocked_reason: str | None = None
     timestamp: datetime | None = None
-    # Metadata is sanitized - no raw content
     sanitized_metadata: dict[str, Any] | None = None
 
 
-class HookManager:
-    """Manages pre/post tool call hooks.
+@dataclass
+class PCPInjectionResult:
+    """Result of PCP injection attempt."""
+    success: bool
+    trace_id: str
+    context_pack: dict[str, Any] | None = None
+    fail_closed: bool = False
+    reason: str | None = None
 
-    This manager enforces tool permissions before any side-effect
-    tool execution. It is the gatekeeper for all tool calls.
+
+class HookManager:
+    """Manages pre/post tool call hooks and PCP injection.
+
+    This manager:
+    - Enforces tool permissions before any side-effect tool execution
+    - Injects PromptContextPack into pre_llm_call with fail-closed behavior
+    - All decisions are auditable with reason_code and policy_version
 
     Guarantees:
     - Every side-effect tool call is checked against permission matrix
-    - All decisions are auditable with reason_code and policy_version
-    - Roleplay mode blocks L2+ tools without explicit approval
+    - PCP injection is fail-closed - no injection if anything fails
+    - All traces are redacted - no raw content
     - No raw prompts or private text appear in audit entries
     """
 
@@ -107,6 +135,20 @@ class HookManager:
         self._fail_safe = fail_safe
         self._roleplay_blocks_l2 = roleplay_blocks_l2
         self._audit_log: list[HookAuditEntry] = []
+        self._pcp_builder = None  # Lazy loaded
+        self._pcp_trace = None  # Lazy loaded
+
+    def _get_pcp_builder(self):
+        """Lazy load PCP builder."""
+        if self._pcp_builder is None:
+            from relic.context_pack.builder import PCPBuilder
+            from relic.context_pack.trace import PCPTrace
+            self._pcp_trace = PCPTrace()
+            self._pcp_builder = PCPBuilder(
+                fail_safe=self._fail_safe,
+                trace=self._pcp_trace,
+            )
+        return self._pcp_builder
 
     def pre_tool_call(self, context: ToolCallContext) -> HookResult:
         """Check permissions before tool execution.
@@ -207,6 +249,82 @@ class HookManager:
             trace_id=context.trace_id,
         )
 
+    def pre_llm_call(self, context: LLMSessionContext) -> PCPInjectionResult:
+        """Inject PromptContextPack before LLM call.
+
+        This is the main entry point for PCP injection with fail-closed behavior.
+        If anything goes wrong, no injection occurs.
+
+        Args:
+            context: LLM session context
+
+        Returns:
+            PCPInjectionResult with context pack or fail-closed result
+        """
+        trace_id = context.trace_id or str(uuid4())
+
+        try:
+            # Check fail-safe first
+            if self._fail_safe and self._fail_safe.is_triggered:
+                return PCPInjectionResult(
+                    success=False,
+                    trace_id=trace_id,
+                    context_pack=None,
+                    fail_closed=True,
+                    reason="fail_safe_triggered",
+                )
+
+            # Build PCP
+            from relic.context_pack.builder import (
+                PCPBuilder,
+                TaskType,
+                RoleplayLevel,
+                ContinuityMode,
+            )
+
+            # Map task type
+            try:
+                task_type = TaskType(context.task_type)
+            except ValueError:
+                task_type = TaskType.TECHNICAL
+
+            builder = self._get_pcp_builder()
+            pcp = builder.build(
+                session_id=context.session_id,
+                turn_id=context.turn_id,
+                task_type=task_type,
+                roleplay_level=RoleplayLevel.NORMAL if context.is_roleplay else RoleplayLevel.OFF,
+                continuity_mode=ContinuityMode.COMPACT,
+            )
+
+            if pcp is None:
+                # Fail-closed: build failed
+                return PCPInjectionResult(
+                    success=False,
+                    trace_id=trace_id,
+                    context_pack=None,
+                    fail_closed=True,
+                    reason="pcp_build_failed",
+                )
+
+            return PCPInjectionResult(
+                success=True,
+                trace_id=trace_id,
+                context_pack=pcp.to_dict(),
+                fail_closed=False,
+                reason=None,
+            )
+
+        except Exception as exc:
+            # Fail-closed on any exception
+            return PCPInjectionResult(
+                success=False,
+                trace_id=trace_id,
+                context_pack=None,
+                fail_closed=True,
+                reason=f"pre_llm_call_exception: {str(exc)}",
+            )
+
     def post_tool_call(
         self,
         context: ToolCallContext,
@@ -250,3 +368,9 @@ class HookManager:
             if entry.event == HookEvent.TOOL_BLOCKED:
                 return entry.blocked_reason
         return None
+
+    def get_pcp_trace(self) -> list[dict[str, Any]]:
+        """Get PCP construction trace for /relic why."""
+        if self._pcp_trace:
+            return self._pcp_trace.get_trace()
+        return []
