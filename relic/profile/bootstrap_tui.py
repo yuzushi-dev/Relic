@@ -180,10 +180,10 @@ class BootstrapTUI:
         # Step 5b: Delivery configuration (gated by consent.delivery)
 
         # Step 5c: Gemini API Key (if any media consent is True)
-        gemini_api_key = ""
+        gemini_key = ""
         if consent_record.get("generated_images") or consent_record.get("generated_audio") or consent_record.get("generated_music"):
-            gemini_api_key = collect_gemini_api_key(self.io_in, self.io_out)
-            self._log_step("gemini_api_key", "provided" if gemini_api_key else "skipped")
+            gemini_key = collect_gemini_api_key(self.io_in, self.io_out)
+            self._log_step("gemini_api_key", "provided" if gemini_key else "skipped")
         delivery_config = collect_delivery_config(self.io_in, self.io_out, consent_record, subject_id=subject_id)
 
         # Create the profile via registry
@@ -392,9 +392,9 @@ class BootstrapTUI:
                         self._log_step("delivery_configured", "telegram")
 
                         # Write GEMINI_API_KEY to .env if provided
-                        if gemini_api_key:
+                        if gemini_key:
                             env_path = profile.hermes_home / ".env"
-                            _upsert_env_var(env_path, "GEMINI_API_KEY", gemini_api_key)
+                            _upsert_env_var(env_path, "GEMINI_API_KEY", gemini_key)
                     except Exception as exc:
                         self._log_step("delivery_config_failed", str(exc))
 
