@@ -19,8 +19,8 @@ def dispatch(event: str, payload: dict[str, Any]) -> list[Any]:
     for h in _REGISTERED.get(event, []):
         try:
             out.append(h(payload))
-        except Exception as exc:  # fail-closed: never propagate
-            out.append({"error": str(exc), "fail_closed": True})
+        except Exception:  # fail-closed: no error dict injected into context
+            out.append(None)
     return out
 
 

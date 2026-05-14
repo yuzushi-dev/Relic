@@ -16,9 +16,9 @@ class GumiPlugin:
     def is_ready(self) -> bool:
         return self.enabled and bool(self.config)
 
-    def fail_closed(self) -> dict[str, Any]:
+    def fail_closed(self) -> None:
         """Returned when context-pack assembly fails. Hermes must inject nothing."""
-        return {"context_pack": None, "reason": "fail_closed", "redacted": True}
+        return None
 
 
 def load_plugin(config_path: str | Path | None = None) -> GumiPlugin:

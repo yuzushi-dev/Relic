@@ -4,3 +4,4 @@ description: Relic Shared Continuity Memory tools and hooks for Gumi.
 hooks:
   - pre_llm_call
   - post_llm_call
+  - transform_llm_output
