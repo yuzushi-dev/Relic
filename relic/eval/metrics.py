@@ -109,6 +109,11 @@ class SeverityMetrics:
                 "count": len(self.passed),
                 "percentage": len(self.passed) / total if total > 0 else 0,
             },
+            # PR09-T09b: explicit rate fields required by RESEARCH_PROTOCOL.md
+            "quarantine_rate": len(self.s1_quarantine) / total if total > 0 else 0.0,
+            "warning_rate": len(self.s2_warnings) / total if total > 0 else 0.0,
+            # defer_rate: fraction of items requiring manual reviewer disposition (S1)
+            "defer_rate": len(self.s1_quarantine) / total if total > 0 else 0.0,
             "hard_fail": len(self.s0_hard_violations) > 0,
         }
 
