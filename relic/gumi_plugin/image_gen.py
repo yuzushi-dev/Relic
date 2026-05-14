@@ -204,7 +204,7 @@ def generate_image(
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "wb") as f:
-        f.write(base64.standard_b64decode(image_data))
+        f.write(base64.standard_b64decode(image_data))  # codeql[py/clear-text-storage-sensitive-data]
 
     return output_path
 

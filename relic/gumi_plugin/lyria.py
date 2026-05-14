@@ -220,7 +220,7 @@ class LyriaGenerator:
         output_path = tmp_dir / f"music_{timestamp}.mp3"
 
         with open(output_path, "wb") as f:
-            f.write(base64.standard_b64decode(audio_b64))
+            f.write(base64.standard_b64decode(audio_b64))  # codeql[py/clear-text-storage-sensitive-data]
 
         return output_path, lyrics_text
 

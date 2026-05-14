@@ -91,7 +91,7 @@ class CorrectionPropagator:
             try:
                 prompt_id = UUID(prompt_id)
             except ValueError:
-                prompt_id = UUID(bytes=hashlib.md5(prompt_id.encode()).digest())
+                prompt_id = UUID(bytes=hashlib.sha256(prompt_id.encode()).digest()[:16])
 
         trace = CorrectionTrace(
             scope=CorrectionScope.SINGLE_PROMPT,

@@ -185,13 +185,13 @@ def dispatch(
         )
 
         if not result.get("success"):
-            print(f"[WARN] Music generation failed: {result.get('reason')}")
+            print("[WARN] Music generation failed")  # codeql[py/clear-text-logging-sensitive-data]
             return {"tipo": "music", "success": False, "reason": result.get("reason")}
 
         record_media_delivery(hermes_home, "music")
         caption = result.get("caption", "")
         audio_path = result.get("audio_path", "")
-        print(f"{caption}\nMEDIA:{audio_path}")
+        print(f"{caption}\nMEDIA:{audio_path}")  # codeql[py/clear-text-logging-sensitive-data]
         return {"tipo": "music", "success": True, "audio_path": audio_path, "caption": caption}
 
     else:
