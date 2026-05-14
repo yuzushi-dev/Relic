@@ -30,18 +30,19 @@ export function generateStaticParams() {
   }));
 }
 
-export default function BaselinePage({ params }: { params: { subject_id: string } }) {
+export default async function BaselinePage({ params }: { params: Promise<{ subject_id: string }> }) {
+  const { subject_id } = await params;
   const study = getStudyOverview();
-  const baselineData = getSubjectBaseline(params.subject_id);
-  const gumiProfile = getGumiProfile(params.subject_id);
+  const baselineData = getSubjectBaseline(subject_id);
+  const gumiProfile = getGumiProfile(subject_id);
   if (!baselineData) {
     return (
       <>
-        <SubjectNav subjects={study.subject_registry} currentSubjectId={params.subject_id} view="baseline" />
+        <SubjectNav subjects={study.subject_registry} currentSubjectId={subject_id} view="baseline" />
         <section className="hero">
           <div style={{ position: "relative", zIndex: 1 }}>
             <div className="eyebrow">BASELINE PROFILE</div>
-            <h1>{params.subject_id}</h1>
+            <h1>{subject_id}</h1>
             <p className="lede">No live baseline artifact is available for this subject yet.</p>
           </div>
         </section>
@@ -55,7 +56,7 @@ export default function BaselinePage({ params }: { params: { subject_id: string 
     );
   }
 
-  const d = { ...baselineData, subject_id: params.subject_id };
+  const d = { ...baselineData, subject_id };
   const fields = [
     ...flattenFields(d.self_report_fields, "Self-Report"),
     ...flattenFields(d.researcher_coded_fields, "Researcher-Coded"),
@@ -68,7 +69,7 @@ export default function BaselinePage({ params }: { params: { subject_id: string 
 
   return (
     <>
-      <SubjectNav subjects={study.subject_registry} currentSubjectId={params.subject_id} view="baseline" />
+      <SubjectNav subjects={study.subject_registry} currentSubjectId={subject_id} view="baseline" />
       <section className="hero">
         <div style={{ position: "relative", zIndex: 1 }}>
           <div className="eyebrow">BASELINE PROFILE · VERSION {d.baseline_version}</div>

@@ -10,30 +10,31 @@ export function generateStaticParams() {
   }));
 }
 
-export default function SubjectPage({ params }: { params: { subject_id: string } }) {
-  const d = getSubjectOverview(params.subject_id);
+export default async function SubjectPage({ params }: { params: Promise<{ subject_id: string }> }) {
+  const { subject_id } = await params;
+  const d = getSubjectOverview(subject_id);
   if (!d) {
     return (
       <>
         <section className="hero">
           <div style={{ position: "relative", zIndex: 1 }}>
             <div className="eyebrow">Subject profile</div>
-            <h1>{params.subject_id}</h1>
+            <h1>{subject_id}</h1>
             <p className="lede">No live subject profile was found for this id.</p>
           </div>
         </section>
         <div className="workbench-grid">
           <article className="card span-12">
             <div className="card-title">Live Data Source</div>
-            <p className="analysis-copy">Expected `$RELIC_HOME/subjects/{params.subject_id}/subject_profile.json`.</p>
+            <p className="analysis-copy">Expected `$RELIC_HOME/subjects/{subject_id}/subject_profile.json`.</p>
           </article>
         </div>
       </>
     );
   }
   const prov = d.hermes_profile_status;
-  const subjectIntelligence = getSubjectIntelligence(params.subject_id);
-  const gumiProfile = getGumiProfile(params.subject_id);
+  const subjectIntelligence = getSubjectIntelligence(subject_id);
+  const gumiProfile = getGumiProfile(subject_id);
 
   return (
     <>

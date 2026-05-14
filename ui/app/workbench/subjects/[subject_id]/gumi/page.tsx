@@ -75,18 +75,19 @@ function MarkdownBlock({ title, content }: { title: string; content: string | nu
   );
 }
 
-export default function GumiPage({ params }: { params: { subject_id: string } }) {
+export default async function GumiPage({ params }: { params: Promise<{ subject_id: string }> }) {
+  const { subject_id } = await params;
   const study = getStudyOverview();
-  const g = getGumiProfile(params.subject_id);
+  const g = getGumiProfile(subject_id);
 
   if (!g) {
     return (
       <>
-        <SubjectNav subjects={study.subject_registry} currentSubjectId={params.subject_id} view="gumi" />
+        <SubjectNav subjects={study.subject_registry} currentSubjectId={subject_id} view="gumi" />
         <section className="hero">
           <div style={{ position: "relative", zIndex: 1 }}>
             <div className="eyebrow">GUMI PROFILE</div>
-            <h1>{params.subject_id}</h1>
+            <h1>{subject_id}</h1>
             <p className="lede">No Gumi profile found. Run <code>relic subject</code> to provision.</p>
           </div>
         </section>
@@ -107,11 +108,11 @@ export default function GumiPage({ params }: { params: { subject_id: string } })
 
   return (
     <>
-      <SubjectNav subjects={study.subject_registry} currentSubjectId={params.subject_id} view="gumi" />
+      <SubjectNav subjects={study.subject_registry} currentSubjectId={subject_id} view="gumi" />
       <section className="hero">
         <div className="hero-grid">
           <div>
-            <div className="eyebrow">GUMI PROFILE · {params.subject_id}</div>
+            <div className="eyebrow">GUMI PROFILE · {subject_id}</div>
             <h1>{g.agent_name}</h1>
             <p className="lede">
               Mode: <span style={{ color: "var(--gold)" }}>{g.generation_mode}</span>
@@ -218,7 +219,7 @@ export default function GumiPage({ params }: { params: { subject_id: string } })
 
       </div>
 
-      <div className="footer">Gumi profile · {params.subject_id}</div>
+      <div className="footer">Gumi profile · {subject_id}</div>
     </>
   );
 }

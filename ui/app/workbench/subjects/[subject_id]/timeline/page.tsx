@@ -9,17 +9,18 @@ export function generateStaticParams() {
   }));
 }
 
-export default function TimelinePage({ params }: { params: { subject_id: string } }) {
+export default async function TimelinePage({ params }: { params: Promise<{ subject_id: string }> }) {
+  const { subject_id } = await params;
   const study = getStudyOverview();
-  const eventStreamData = getEventStream(params.subject_id);
+  const eventStreamData = getEventStream(subject_id);
 
   if (!eventStreamData) {
     return (
       <>
-        <SubjectNav subjects={study.subject_registry} currentSubjectId={params.subject_id} view="timeline" />
+        <SubjectNav subjects={study.subject_registry} currentSubjectId={subject_id} view="timeline" />
         <section className="hero">
           <div style={{ position: "relative", zIndex: 1 }}>
-            <div className="eyebrow">EVENT TIMELINE · {params.subject_id}</div>
+            <div className="eyebrow">EVENT TIMELINE · {subject_id}</div>
             <h1>Event Stream</h1>
             <p className="lede">No live event stream is available for this subject yet.</p>
           </div>
@@ -36,8 +37,8 @@ export default function TimelinePage({ params }: { params: { subject_id: string 
 
   return (
     <>
-      <SubjectNav subjects={study.subject_registry} currentSubjectId={params.subject_id} view="timeline" />
-      <TimelineView subjectId={params.subject_id} eventStreamData={eventStreamData} />
+      <SubjectNav subjects={study.subject_registry} currentSubjectId={subject_id} view="timeline" />
+      <TimelineView subjectId={subject_id} eventStreamData={eventStreamData} />
     </>
   );
 }
