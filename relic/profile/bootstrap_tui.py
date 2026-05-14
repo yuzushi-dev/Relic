@@ -27,6 +27,10 @@ from relic.profile._bootstrap_steps.delivery_config import collect_delivery_conf
 from relic.profile._bootstrap_steps.gumi_review import review_gumi_background
 from relic.profile._bootstrap_steps.gumi_overrides import collect_gumi_overrides
 from relic.profile._bootstrap_steps.first_contact_controls import run_first_contact_controls
+from relic.profile._bootstrap_steps.self_report import collect_self_report_fields
+from relic.profile._bootstrap_steps.researcher_coded import collect_researcher_coded_fields
+from relic.profile._bootstrap_steps.interaction_prefs import collect_interaction_preferences
+from relic.profile._bootstrap_steps.relational_expectations import collect_relational_expectations
 from relic.gumi_plugin.cron_wiring import provision_for_subject
 from relic.cli import start_hermes_gateway_for_profile
 
@@ -161,6 +165,26 @@ class BootstrapTUI:
         interaction_preferences = baseline_sections["interaction_preferences"]
         relational_expectations = baseline_sections["relational_expectations"]
 
+        # Step 3a: Self-report descriptive fields (name, age, gender, language, timezone, etc.)
+        self._print("\n--- Subject Self-Report ---")
+        sr_extra = collect_self_report_fields(self.io_in, self.io_out)
+        self_report_fields.update(sr_extra)
+
+        # Step 3b-rc: Researcher-coded clinical/observational fields
+        self._print("\n--- Researcher-Coded Fields ---")
+        rc_extra = collect_researcher_coded_fields(self.io_in, self.io_out)
+        researcher_coded_fields.update(rc_extra)
+
+        # Step 3b-ip: Interaction preferences (message length, emoji, timing, topics)
+        self._print("\n--- Interaction Preferences ---")
+        ip_extra = collect_interaction_preferences(self.io_in, self.io_out)
+        interaction_preferences.update(ip_extra)
+
+        # Step 3b-re: Relational expectations (tone, continuity, disclosure, role)
+        self._print("\n--- Relational Expectations ---")
+        re_extra = collect_relational_expectations(self.io_in, self.io_out)
+        relational_expectations.update(re_extra)
+
         # Step 3b: Boundaries, opt-out categories, risk flags
         boundaries_data = collect_boundaries(self.io_in, self.io_out)
 
@@ -207,9 +231,13 @@ class BootstrapTUI:
         self._log_step("baseline_method_selected", baseline_method)
         self._log_step("item_battery_collected", str(len(item_battery["responses"])))
         self._log_step("self_report_fields_collected", str(len(self_report_fields)))
+        self._log_step("self_report_extra_collected", str(len(sr_extra)))
         self._log_step("researcher_coded_fields_collected", str(len(researcher_coded_fields)))
+        self._log_step("researcher_coded_extra_collected", str(len(rc_extra)))
         self._log_step("interaction_preferences_collected", str(len(interaction_preferences)))
+        self._log_step("interaction_preferences_extra_collected", str(len(ip_extra)))
         self._log_step("relational_expectations_collected", str(len(relational_expectations)))
+        self._log_step("relational_expectations_extra_collected", str(len(re_extra)))
         self._log_step("boundaries_collected", str(len(boundaries_data)))
         self._log_step("consent_collected", "yes")
         self._log_step("gumi_mode_selected", gumi_mode)
