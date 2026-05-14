@@ -113,13 +113,13 @@ class TestCollectDeliveryConfig:
     def test_full_configure_with_defaults(self):
         """User configures Telegram with default quiet hours, skips token value."""
         consent = {"delivery": True}
-        # y=configure, user_id, env_name, blank=skip token, then defaults for rest
-        inp = StringIO("y\n123456789\nMY_BOT_TOKEN\n\n\n\n\n\n\n")
+        # y=configure, user_id, skip token, then defaults for rest
+        inp = StringIO("y\n123456789\n\n\n\n\n\n\n")
         out = StringIO()
         result = collect_delivery_config(inp, out, consent)
         assert result["delivery_enabled"] is True
         assert result["telegram_user_id"] == "123456789"
-        assert result["bot_token_env"] == "MY_BOT_TOKEN"
+        assert result["bot_token_env"] == "GUMI_BOT_TOKEN"  # auto-set from no subject_id
         assert result["contact_channel"] == "telegram"
         assert result["quiet_hours"]["start"] == "22:00"
         assert result["quiet_hours"]["end"] == "08:00"
@@ -130,42 +130,41 @@ class TestCollectDeliveryConfig:
         inp = StringIO(
             "y\n"                   # configure now
             "987654321\n"           # user id
-            "CUSTOM_BOT_TOKEN\n"    # env var name
             "\n"                    # skip token value
             "23:00\n"               # quiet start
             "07:00\n"               # quiet end
             "America/New_York\n"    # timezone
-            "week\n"                # frequency window
-            "3\n"                   # max contacts
+            "09:00-11:00\n"         # delivery window 1
+            "19:00-21:00\n"         # delivery window 2
         )
         out = StringIO()
         result = collect_delivery_config(inp, out, consent)
         assert result["delivery_enabled"] is True
         assert result["telegram_user_id"] == "987654321"
-        assert result["bot_token_env"] == "CUSTOM_BOT_TOKEN"
+        assert result["bot_token_env"] == "GUMI_BOT_TOKEN"  # auto-set
         assert result["quiet_hours"]["start"] == "23:00"
         assert result["quiet_hours"]["end"] == "07:00"
         assert result["quiet_hours"]["timezone"] == "America/New_York"
-        assert result["max_contact_frequency"]["window"] == "week"
-        assert result["max_contact_frequency"]["count"] == 3
+        assert result["delivery_windows"][0]["start"] == "09:00"
+        assert result["delivery_windows"][1]["start"] == "19:00"
 
     def test_full_configure_with_token_value(self):
-        """User enters bot token value — it is exported to os.environ."""
+        """User enters bot token value — it is exported to os.environ under auto env name."""
         import os
         consent = {"delivery": True}
-        env_name = "GUMI_TEST_ONLY_BOT_TOKEN"
-        os.environ.pop(env_name, None)
-        inp = StringIO(f"y\n123456789\n{env_name}\n123456789:ABCdefGhIJKlmnopqrstu\n\n\n\n\n\n")
+        auto_env = "GUMI_BOT_TOKEN"
+        os.environ.pop(auto_env, None)
+        inp = StringIO(f"y\n123456789\n123456789:ABCdefGhIJKlmnopqrstu\n\n\n\n\n\n")
         out = StringIO()
         result = collect_delivery_config(inp, out, consent)
         assert result["delivery_enabled"] is True
-        assert os.environ.get(env_name) == "123456789:ABCdefGhIJKlmnopqrstu"
-        os.environ.pop(env_name, None)
+        assert os.environ.get(auto_env) == "123456789:ABCdefGhIJKlmnopqrstu"
+        os.environ.pop(auto_env, None)
 
     def test_invalid_user_id_retry(self):
         """User enters invalid user ID, then valid one."""
         consent = {"delivery": True}
-        inp = StringIO("y\nnot_a_number\nabc\n123456789\nMY_TOKEN\n\n\n\n\n\n")
+        inp = StringIO("y\nnot_a_number\nabc\n123456789\n\n\n\n\n\n")
         out = StringIO()
         result = collect_delivery_config(inp, out, consent)
         assert result["delivery_enabled"] is True
@@ -173,16 +172,13 @@ class TestCollectDeliveryConfig:
         output = out.getvalue()
         assert "valid numeric" in output.lower()
 
-    def test_invalid_env_name_retry(self):
-        """User enters invalid env name, then valid one."""
+    def test_env_name_auto_set_no_prompt(self):
+        """Env var name is auto-set from subject_id — no user input required."""
         consent = {"delivery": True}
-        inp = StringIO("y\n123456789\nlowercase\ninvalid-name\nMY_VALID_TOKEN\n\n\n\n\n\n")
+        inp = StringIO("y\n123456789\n\n\n\n\n\n\n")
         out = StringIO()
-        result = collect_delivery_config(inp, out, consent)
-        assert result["delivery_enabled"] is True
-        assert result["bot_token_env"] == "MY_VALID_TOKEN"
-        output = out.getvalue()
-        assert "invalid" in output.lower()
+        result = collect_delivery_config(inp, out, consent, subject_id="mysubj")
+        assert result["bot_token_env"] == "GUMI_MYSUBJ_BOT_TOKEN"
 
     def test_eof_handling(self):
         """EOF during input returns safe defaults."""
@@ -206,7 +202,7 @@ class TestCollectDeliveryConfig:
     def test_configure_now_shows_steps(self):
         """When configuring, step-by-step guidance is shown."""
         consent = {"delivery": True}
-        inp = StringIO("y\n123456789\nMY_TOKEN\n\n\n\n\n\n")
+        inp = StringIO("y\n123456789\n\n\n\n\n\n")
         out = StringIO()
         collect_delivery_config(inp, out, consent)
         output = out.getvalue()
@@ -215,32 +211,23 @@ class TestCollectDeliveryConfig:
         assert "STEP 3" in output
 
     def test_successful_config_shows_token_instruction(self):
-        """After config, show env var name."""
+        """After config, show auto env var name."""
         consent = {"delivery": True}
-        inp = StringIO("y\n123456789\nMY_BOT_TOKEN\n\n\n\n\n\n")
+        inp = StringIO("y\n123456789\n\n\n\n\n\n")
         out = StringIO()
         collect_delivery_config(inp, out, consent)
         output = out.getvalue()
-        assert "MY_BOT_TOKEN" in output
+        assert "GUMI_BOT_TOKEN" in output
 
     def test_auto_generated_env_from_subject_id(self):
         """When subject_id is provided, env var is auto-generated from it."""
         consent = {"delivery": True}
-        # Accept default env name (blank), skip token, defaults for rest
         inp = StringIO("y\n123456789\n\n\n\n\n\n\n")
         out = StringIO()
         result = collect_delivery_config(inp, out, consent, subject_id="subj_test_123")
         output = out.getvalue()
         assert "GUMI_SUBJ_TEST_123_BOT_TOKEN" in output or "GUMI_SUBJ_TEST_123" in output
         assert result["delivery_enabled"] is True
-
-    def test_custom_env_overrides_suggested(self):
-        """User can override the suggested env name."""
-        consent = {"delivery": True}
-        inp = StringIO("y\n123456789\nMY_CUSTOM_TOKEN\n\n\n\n\n\n")
-        out = StringIO()
-        result = collect_delivery_config(inp, out, consent, subject_id="subj_test_123")
-        assert result["bot_token_env"] == "MY_CUSTOM_TOKEN"
 
     def test_empty_subject_id_uses_default(self):
         """When no subject_id, uses generic default."""

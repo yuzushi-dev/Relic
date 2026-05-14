@@ -93,9 +93,18 @@ def test_ecrrs_scoring_contract() -> None:
     }
 
 
-def test_ios_like_item_marked_adapted_not_validated() -> None:
-    ios = next(item for item in BOOTSTRAP_ITEM_REGISTRY if item["item_id"] == "IOS_001")
-    assert ios["source_class"] == "adapted_validated_construct"
+def test_desired_initial_closeness_derived_from_rel010() -> None:
+    # IOS_001 removed; desired_initial_closeness derived from REL_010 (distance_7, inverse)
+    from relic.profile._bootstrap_steps.item_battery import score_item_battery
+    from io import StringIO
+    responses = {"REL_010": 2}  # distance=2 → closeness=6
+    battery = {"responses": responses}
+    # Build minimal responses for all required items
+    all_items = {item["item_id"]: 4 for item in BOOTSTRAP_ITEM_REGISTRY}
+    all_items["REL_010"] = 2
+    scores = score_item_battery(all_items)
+    closeness = scores["project_calibration"]["desired_initial_closeness"]
+    assert closeness > 0.5  # REL_010=2 (low distance) → high closeness
 
 
 def test_required_addendum_sections_are_present() -> None:
@@ -108,7 +117,6 @@ def test_required_addendum_sections_are_present() -> None:
         "diegetic_tolerance",
         "proactivity_permissions",
         "safety_boundary_gates",
-        "ios_like_closeness",
     } <= screens
 
 

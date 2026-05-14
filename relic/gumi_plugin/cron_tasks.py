@@ -19,12 +19,6 @@ _JOBS: tuple[CronJob, ...] = (
         description="Nightly world-state compaction (no autonomous events)",
         side_effects=False,
     ),
-    CronJob(
-        name="gumi-diary-rotate",
-        schedule="30 3 * * 0",
-        description="Weekly diary rotation",
-        side_effects=False,
-    ),
 )
 
 

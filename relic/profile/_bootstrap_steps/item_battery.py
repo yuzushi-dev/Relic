@@ -34,6 +34,32 @@ YES_NO = {
     0: "No",
     1: "Yes",
 }
+IOS_OVERLAP_7 = {
+    1: "Completely separate — no sense of closeness",
+    2: "Very distant — minimal connection",
+    3: "Slightly distant — occasional connection",
+    4: "Neutral — some overlap, some distance",
+    5: "Somewhat close — meaningful connection",
+    6: "Close — strong sense of overlap",
+    7: "Very close — feels like a significant presence",
+}
+DISTANCE_7 = {
+    1: "No distance — very close from the start",
+    2: "Very little distance — highly familiar tone",
+    3: "Slight distance — warm but measured",
+    4: "Moderate distance — neutral starting point",
+    5: "Considerable distance — reserved and formal",
+    6: "Much distance — minimal personal engagement",
+    7: "Maximum distance — strictly impersonal",
+}
+EMOJI_5 = {
+    0: "No emoji — plain text only",
+    1: "Minimal — one emoji rarely, only if clearly fitting",
+    2: "Sparing — a few emoji across a conversation",
+    3: "Moderate — emoji when they feel natural",
+    4: "Frequent — emoji as a regular expressive tool",
+    5: "Maximum — emoji freely and abundantly",
+}
 
 TIPI_CITATION = "Gosling, Rentfrow, & Swann, 2003"
 ECRRS_CITATION = "Fraley, Heffernan, Vicary, & Brumbaugh, 2011"
@@ -109,6 +135,7 @@ PROJECT_ITEMS = [
     _item("INT_008", "interaction_preferences", "I prefer fewer, better-timed messages over frequent contact.", "Preferisco pochi messaggi ben scelti rispetto a contatti frequenti.", "agreement_7", "low_frequency_preference", "project_derived_calibration", "Relic/Gumi calibration", PROJECT_CITATION),
     _item("INT_009", "interaction_preferences", "I am comfortable with the agent disagreeing with me.", "Mi sento a mio agio se l'agente non e d'accordo con me.", "agreement_7", "disagreement_tolerance", "project_derived_calibration", "Relic/Gumi calibration", PROJECT_CITATION),
     _item("INT_010", "interaction_preferences", "I prefer practical support over emotional reflection.", "Preferisco supporto pratico rispetto a riflessioni emotive.", "agreement_7", "support_style_preference", "project_derived_calibration", "Relic/Gumi calibration", PROJECT_CITATION),
+    _item("INT_011", "interaction_preferences", "How many emoji should Gumi use in messages?", "Quante emoji dovrebbe usare Gumi nei messaggi?", "emoji_5", "emoji_density_level", "project_derived_calibration", "Relic/Gumi calibration", PROJECT_CITATION),
     _item("REL_001", "relational_comfort", "How comfortable would you be if Gumi occasionally wrote first?", "Quanto ti sentiresti a tuo agio se Gumi ogni tanto ti scrivesse per prima?", "tolerance_7", "comfort_with_initiative", "project_derived_calibration", "Relic/Gumi relational comfort", PROJECT_CITATION),
     _item("REL_002", "relational_comfort", "How comfortable would you be if Gumi remembered something you left unresolved?", "Quanto ti sentiresti a tuo agio se Gumi ricordasse qualcosa che hai lasciato in sospeso?", "tolerance_7", "continuity_comfort", "project_derived_calibration", "Relic/Gumi relational comfort", PROJECT_CITATION),
     _item("REL_003", "relational_comfort", "How comfortable would you be if Gumi showed warmth or affection in a non-romantic way?", "Quanto ti sentiresti a tuo agio se Gumi mostrasse calore o affetto in modo non romantico?", "tolerance_7", "warmth_tolerance", "project_derived_calibration", "Relic/Gumi relational comfort", PROJECT_CITATION),
@@ -117,8 +144,7 @@ PROJECT_ITEMS = [
     _item("REL_006", "relational_comfort", "How comfortable would you be if Gumi had her own preferences and opinions?", "Quanto ti sentiresti a tuo agio se Gumi avesse preferenze e opinioni proprie?", "tolerance_7", "gumi_autonomy_tolerance", "project_derived_calibration", "Relic/Gumi relational comfort", PROJECT_CITATION),
     _item("REL_007", "relational_comfort", "How comfortable would you be if Gumi sometimes challenged your interpretation of something?", "Quanto ti sentiresti a tuo agio se Gumi ogni tanto mettesse in discussione una tua interpretazione?", "tolerance_7", "challenge_tolerance", "project_derived_calibration", "Relic/Gumi relational comfort", PROJECT_CITATION),
     _item("REL_008", "relational_comfort", "How comfortable would you be if Gumi explicitly encouraged you to rely also on people outside the system?", "Quanto ti sentiresti a tuo agio se Gumi ti incoraggiasse esplicitamente ad appoggiarti anche a persone fuori dal sistema?", "tolerance_7", "careful_distancing_acceptance", "project_derived_safety_gate", "Relic/Gumi safety gate", PROJECT_CITATION),
-    _item("REL_010", "relational_comfort", "How much distance should Gumi preserve at the beginning?", "Quanta distanza dovrebbe mantenere Gumi all'inizio?", "tolerance_7", "preferred_initial_distance", "project_derived_calibration", "Relic/Gumi relational comfort", PROJECT_CITATION),
-    _item("IOS_001", "ios_like_closeness", "Which option best describes how close Gumi should feel at the beginning?", "Quale opzione descrive meglio quanto Gumi dovrebbe sembrarti vicina all'inizio?", "ios_overlap_7", "desired_initial_closeness", "adapted_validated_construct", "IOS-like closeness marker", "Aron, Aron, & Smollan, 1992; adapted per Relic addendum"),
+    _item("REL_010", "relational_comfort", "How much distance should Gumi preserve at the beginning?", "Quanta distanza dovrebbe mantenere Gumi all'inizio?", "distance_7", "preferred_initial_distance", "project_derived_calibration", "Relic/Gumi relational comfort", PROJECT_CITATION),
     _item("DIE_001", "diegetic_tolerance", "How comfortable would you be if Gumi had a place where she lives?", "Quanto ti sentiresti a tuo agio se Gumi avesse un luogo in cui vive?", "tolerance_7", "embodiment_world_tolerance", "project_derived_calibration", "Relic/Gumi diegetic tolerance", PROJECT_CITATION),
     _item("DIE_002", "diegetic_tolerance", "How comfortable would you be if Gumi talked about her daily routines?", "Quanto ti sentiresti a tuo agio se Gumi parlasse delle sue routine quotidiane?", "tolerance_7", "routine_fragment_tolerance", "project_derived_calibration", "Relic/Gumi diegetic tolerance", PROJECT_CITATION),
     _item("DIE_003", "diegetic_tolerance", "How comfortable would you be if Gumi mentioned people in her world, such as friends or colleagues?", "Quanto ti sentiresti a tuo agio se Gumi citasse persone del suo mondo, come amici o colleghi?", "tolerance_7", "gumi_has_others_tolerance", "project_derived_calibration", "Relic/Gumi diegetic tolerance", PROJECT_CITATION),
@@ -253,16 +279,25 @@ def score_project_items(responses: dict[str, int]) -> dict[str, float]:
                 scores[item["construct"]] = round(responses[item_id] / 4, 3)
             elif item["response_scale"] == "yes_no":
                 scores[item["construct"]] = float(responses[item_id])
+            elif item["response_scale"] == "emoji_5":
+                scores[item["construct"]] = int(responses[item_id])
             else:
                 scores[item["construct"]] = normalize_1_to_7(responses[item_id])
     return scores
 
 
 def score_item_battery(responses: dict[str, int]) -> dict[str, Any]:
+    project = score_project_items(responses)
+    # Derive desired_initial_closeness from preferred_initial_distance (REL_010)
+    # distance_7 is inverse of closeness: closeness = 8 - distance_raw
+    if "REL_010" in responses:
+        distance_raw = responses["REL_010"]
+        closeness_raw = 8 - distance_raw  # 1→7, 7→1
+        project["desired_initial_closeness"] = normalize_1_to_7(closeness_raw)
     return {
         "tipi": score_tipi(responses),
         "ecrrs": score_ecrrs(responses),
-        "project_calibration": score_project_items(responses),
+        "project_calibration": project,
     }
 
 
@@ -271,16 +306,24 @@ def _scale_bounds(response_scale: str) -> tuple[int, int, int]:
         return 0, 4, 1
     if response_scale == "yes_no":
         return 0, 1, 0
+    if response_scale == "emoji_5":
+        return 0, 5, 2
     return 1, 7, 4
 
 
 def _scale_labels(response_scale: str) -> dict[int, str]:
     if response_scale == "tolerance_7":
         return TOLERANCE_7
+    if response_scale == "ios_overlap_7":
+        return IOS_OVERLAP_7
+    if response_scale == "distance_7":
+        return DISTANCE_7
     if response_scale == "frequency_permission_4":
         return FREQUENCY_4
     if response_scale == "yes_no":
         return YES_NO
+    if response_scale == "emoji_5":
+        return EMOJI_5
     return AGREEMENT_7
 
 
@@ -318,9 +361,14 @@ def collect_item_battery(io_in: TextIO, io_out: TextIO) -> dict[str, Any]:
         "are labelled separately.",
         file=io_out,
     )
+    _AUTO_DEFAULT_SCREENS = {"proactivity_permissions", "safety_boundary_gates"}
     responses: dict[str, int] = {}
     current_screen: str | None = None
     for item in BOOTSTRAP_ITEM_REGISTRY:
+        if item["screen"] in _AUTO_DEFAULT_SCREENS:
+            low, high, default = _scale_bounds(item["response_scale"])
+            responses[item["item_id"]] = int(item["default_response"]) if item.get("default_response") is not None else default
+            continue
         if item["screen"] != current_screen:
             current_screen = item["screen"]
             preamble = SCREEN_PREAMBLES.get(current_screen)

@@ -16,7 +16,6 @@ from typing import Optional, TextIO
 
 from relic.bootstrap import build_pr28_bootstrap_outputs, subject_data_from_bootstrap_state
 from relic.profile.registry import ProfileRegistry, SubjectProfile, VALID_STATES
-from relic.gumi.initial_contact import InitialContactComposer, CalibrationConfig
 from relic.profile.baseline_artifact import build_baseline_artifact, write_baseline_artifact
 from relic.profile._bootstrap_steps.item_battery import (
     battery_to_baseline_sections,
@@ -24,7 +23,7 @@ from relic.profile._bootstrap_steps.item_battery import (
 )
 from relic.profile._bootstrap_steps.boundaries import collect_boundaries
 from relic.profile._bootstrap_steps.consent import collect_consent_record
-from relic.profile._bootstrap_steps.delivery_config import collect_delivery_config
+from relic.profile._bootstrap_steps.delivery_config import collect_delivery_config, collect_gemini_api_key
 from relic.profile._bootstrap_steps.gumi_review import review_gumi_background
 from relic.profile._bootstrap_steps.gumi_overrides import collect_gumi_overrides
 from relic.profile._bootstrap_steps.first_contact_controls import run_first_contact_controls
@@ -35,40 +34,6 @@ from relic.cli import start_hermes_gateway_for_profile
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
-
-def _calibration_from_baseline(
-    relational_expectations: dict,
-    interaction_preferences: dict,
-    researcher_coded_fields: dict,
-) -> CalibrationConfig:
-    """Derive CalibrationConfig from collected baseline data with safe defaults."""
-
-    def _val(d: dict, key: str) -> str:
-        entry = d.get(key, {})
-        if isinstance(entry, dict):
-            return (entry.get("value") or "").lower()
-        return ""
-
-    tone = _val(relational_expectations, "desired_relationship_tone")
-    disclosure = _val(relational_expectations, "disclosure_comfort_level")
-    comm_style = _val(researcher_coded_fields, "communication_style")
-    msg_length = _val(interaction_preferences, "message_length_preference")
-
-    warmth = "high" if any(k in tone for k in ("cald", "warm", "amich")) else "medium"
-    self_disclosure = "high" if any(k in disclosure for k in ("alto", "high", "molt")) else "low"
-    directness = "high" if any(k in comm_style for k in ("dirett", "direct")) else "medium"
-    diegetic_density = "high" if any(k in msg_length for k in ("lung", "long", "dett")) else "medium"
-
-    return CalibrationConfig(
-        warmth=warmth,
-        playfulness="medium",
-        directness=directness,
-        initiative="medium",
-        self_disclosure=self_disclosure,
-        boundary_strength="medium",
-        romantic_avoidance="high",
-        diegetic_density=diegetic_density,
-    )
 
 
 class BootstrapTUI:
@@ -159,6 +124,25 @@ class BootstrapTUI:
         else:
             self._print(f"Subject ID: {subject_id}")
 
+        # Check if subject already exists (before collecting any data)
+        existing = self.registry.get_subject(subject_id)
+        if existing is not None:
+            self._print(f"\nSubject '{subject_id}' already exists!")
+            self._print(f"  Status: {existing.status}")
+            self._print(f"  Hermes: {existing.hermes_profile_name}")
+            self._print("")
+            choice = self._prompt("Choose: [U]pdate existing / [N]ew subject ID / [Q]uit", default="Q")
+            choice = choice.lower().strip()
+            if choice in ("u", "update", "edit"):
+                self._print("\nOpening edit mode for existing subject...")
+                return self.run_edit(subject_id)
+            elif choice in ("n", "new"):
+                self._print("\nEnter a new subject ID:")
+                return self.run_init()
+            else:
+                self._print("\nAborted.")
+                return existing
+
         # Step 2: experiment_id
         if experiment_id is None:
             experiment_id = self._prompt("Enter experiment ID")
@@ -194,30 +178,14 @@ class BootstrapTUI:
         hermes_value = "yes" if hermes_provision else "no"
 
         # Step 5b: Delivery configuration (gated by consent.delivery)
+
+        # Step 5c: Gemini API Key (if any media consent is True)
+        gemini_api_key = ""
+        if consent_record.get("generated_images") or consent_record.get("generated_audio") or consent_record.get("generated_music"):
+            gemini_api_key = collect_gemini_api_key(self.io_in, self.io_out)
+            self._log_step("gemini_api_key", "provided" if gemini_api_key else "skipped")
         delivery_config = collect_delivery_config(self.io_in, self.io_out, consent_record, subject_id=subject_id)
 
-        # Check if subject already exists
-        existing = self.registry.get_subject(subject_id)
-        if existing is not None:
-            self._print(f"\nSubject '{subject_id}' already exists!")
-            self._print(f"  Status: {existing.status}")
-            self._print(f"  Hermes: {existing.hermes_profile_name}")
-            self._print("")
-            
-            # Offer choices
-            choice = self._prompt("Choose: [U]pdate existing / [N]ew subject ID / [Q]uit", default="Q")
-            choice = choice.lower().strip()
-            
-            if choice in ("u", "update", "edit"):
-                self._print("\nOpening edit mode for existing subject...")
-                return self.run_edit(subject_id)
-            elif choice in ("n", "new"):
-                self._print("\nEnter a new subject ID:")
-                return self.run_init()  # Restart with new ID
-            else:
-                self._print("\nAborted.")
-                return existing
-        
         # Create the profile via registry
         self._print(f"\nCreating subject '{subject_id}'...")
         profile = self.registry.create_subject(subject_id, experiment_id)
@@ -249,6 +217,11 @@ class BootstrapTUI:
         self._log_step("gumi_overrides_collected", str(len(gumi_overrides)))
         self._log_step("hermes_provisioning", hermes_value)
         self._log_step("delivery_config_collected", "yes" if delivery_config.get("delivery_enabled") else "no")
+
+        # Persist delivery_config immediately so telegram_user_id survives hermes failures
+        (profile.relic_subject_home / "delivery_config_draft.json").write_text(
+            json.dumps(delivery_config, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+        )
 
         # Status transitions + Gumi generation + review loop
         try:
@@ -355,6 +328,10 @@ class BootstrapTUI:
         if hermes_provision:
             try:
                 current = self.registry.get_subject(subject_id)
+                if current is not None and current.status == "baseline_complete":
+                    current = self.registry.update_status(subject_id, "gumi_seed_generated")
+                    self._log_step("gumi_seed_generated_auto", current.status)
+                current = self.registry.get_subject(subject_id)
                 if current is not None and current.status == "gumi_seed_generated":
                     profile = self.registry.update_status(subject_id, "gumi_seed_reviewed")
                     self._log_step("gumi_seed_reviewed", profile.status)
@@ -379,6 +356,7 @@ class BootstrapTUI:
                         hermes_profile_id=hermes_profile_id,
                         schedule="*/30 * * * *",
                         dry_run=False,
+                        hermes_home=str(profile.hermes_home),
                     )
                     self._log_step("no_agent_cron_provisioned", str(list(cron_result.get("scripts", {}).keys())))
                 except Exception as exc:
@@ -395,29 +373,40 @@ class BootstrapTUI:
                     try:
                         quiet_start = delivery_config.get("quiet_hours", {}).get("start", "22:00")
                         quiet_end = delivery_config.get("quiet_hours", {}).get("end", "08:00")
-                        freq_count = delivery_config.get("max_contact_frequency", {}).get("count", 1)
-                        freq_window = delivery_config.get("max_contact_frequency", {}).get("window", "day")
+                        delivery_windows = delivery_config.get("delivery_windows") or [
+                            {"start": "09:00", "end": "11:00"},
+                            {"start": "19:00", "end": "21:00"},
+                        ]
                         self.registry.configure_telegram_delivery(
                             subject_id=subject_id,
                             telegram_bot_token_env=telegram_bot_token_env,
                             telegram_user_id=telegram_user_id,
                             quiet_hours=f"{quiet_start}-{quiet_end}",
-                            maximum_contact_frequency=f"{freq_count}/{freq_window}",
+                            delivery_windows=delivery_windows,
+                            timezone=delivery_config.get("timezone", "Europe/Rome"),
                             consent_for_active_elicitation=consent_record.get("active_elicitation", False),
                             consent_for_generated_images=consent_record.get("generated_images", False),
                             consent_for_generated_audio=consent_record.get("generated_audio", False),
                             consent_for_generated_music=consent_record.get("generated_music", False),
                         )
                         self._log_step("delivery_configured", "telegram")
+
+                        # Write GEMINI_API_KEY to .env if provided
+                        if gemini_api_key:
+                            env_path = profile.hermes_home / ".env"
+                            _upsert_env_var(env_path, "GEMINI_API_KEY", gemini_api_key)
                     except Exception as exc:
                         self._log_step("delivery_config_failed", str(exc))
 
-                # B2: provision cron specs — maintenance always, initiative if delivery configured
+                # B2: provision cron specs — maintenance always, initiative if delivery configured,
+                # media if any generated-content consent granted
                 try:
                     cron_families = ["maintenance"]
                     delivery_policy_path = profile.relic_subject_home / "delivery_policy.json"
                     if delivery_policy_path.exists():
                         cron_families.append("initiative")
+                    if any(consent_record.get(k) for k in ("generated_images", "generated_audio", "generated_music")):
+                        cron_families.append("media")
                     self.registry.provision_subject_cron_specs(
                         subject_id, families=cron_families, dry_run=False
                     )
@@ -437,74 +426,30 @@ class BootstrapTUI:
 
         if send_first:
             try:
-                current = self.registry.get_subject(subject_id)
-                if current is None:
-                    raise KeyError(f"Subject '{subject_id}' not found.")
-                background_path = current.relic_subject_home / "gumi_background_profile.json"
-                background = json.loads(background_path.read_text(encoding="utf-8"))
-                composer = InitialContactComposer()
-                calibration = _calibration_from_baseline(
-                    relational_expectations, interaction_preferences, researcher_coded_fields
-                )
-                message_text, contact_event = composer.compose(
-                    subject_profile=current.to_dict(),
-                    gumi_background=background.get("domains", {}),
-                    calibration=calibration,
-                    language="it",
-                )
+                delivery_enabled = bool(delivery_config.get("delivery_enabled"))
+                if delivery_enabled:
+                    self._print("\nInvia il primo messaggio tramite Hermes? Gumi lo genererà e invierà via Telegram. [s]end / [b]lock")
+                    raw = self.io_in.readline()
+                    choice = raw.strip().lower() if raw else "block"
+                    action = "send" if choice in ("s", "send") else "block"
+                else:
+                    self._print("\nDelivery non configurato — primo messaggio non inviato.")
+                    action = "block"
 
-                # First contact controls loop
-                action = "preview"
-                while True:
-                    fcc_result = run_first_contact_controls(
-                        self.io_in,
-                        self.io_out,
-                        ctx={
-                            "profile_dir": str(current.relic_subject_home),
-                            "delivery_config": delivery_config,
-                            "message_text": message_text,
-                        },
-                    )
-                    action = fcc_result.get("action", "preview")
-                    self._log_step("first_contact_action", action)
+                self._log_step("first_contact_action", action)
 
-                    if action == "regenerate":
-                        new_composer = InitialContactComposer()
-                        message_text, contact_event = new_composer.compose(
-                            subject_profile=current.to_dict(),
-                            gumi_background=background.get("domains", {}),
-                            calibration=calibration,
-                            language="it",
-                        )
-                        composer = new_composer
-                        continue
-
-                    if action == "edit":
-                        message_text = fcc_result.get("payload", {}).get(
-                            "message_text", message_text
-                        )
-                        continue
-
-                    break  # preview, block, dry_run, send
-
-                if action != "block":
-                    if action == "dry_run":
-                        contact_event = composer.send_dry_run(contact_event)
-                    composer.log_event(contact_event, current.relic_subject_home)
-                    if (
-                        current.status == "hermes_profile_provisioned"
-                        and contact_event.status in ("composed", "sent")
-                    ):
+                if action == "send":
+                    import os as _os
+                    _os.environ.setdefault("RELIC_ALLOW_LIVE_DELIVERY", "1")
+                    try:
+                        self.registry.dispatch_intro_via_hermes(subject_id)
                         profile = self.registry.mark_intro_composed(subject_id)
-                    self._log_step("intro_composed", contact_event.status)
-                    if action == "send":
-                        try:
-                            self.registry.prepare_intro_delivery(subject_id, live=True)
-                            profile = self.registry.mark_intro_sent(subject_id)
-                            self._log_step("intro_sent_via_hermes", "sent")
-                        except Exception as send_exc:
-                            self._log_step("intro_send_failed", str(send_exc))
-                            self._print(f"\n[warn] Telegram send failed: {send_exc}")
+                        profile = self.registry.mark_intro_sent(subject_id)
+                        self._log_step("intro_dispatched_via_hermes", "scheduled")
+                        self._print("\nPrimo messaggio affidato a Hermes (invio entro ~1 min).")
+                    except Exception as send_exc:
+                        self._log_step("intro_dispatch_failed", str(send_exc))
+                        self._print(f"\n[warn] Dispatch fallito: {send_exc}")
 
             except Exception as exc:
                 self._log_step("intro_composed_failed", str(exc))
@@ -569,3 +514,25 @@ class BootstrapTUI:
 
         self._print("\nEdit complete.")
         return profile
+
+
+def _upsert_env_var(env_path: Path, key: str, value: str) -> None:
+    """Update or append a single line in .env file."""
+    lines = []
+    if env_path.exists():
+        lines = env_path.read_text(encoding="utf-8").splitlines()
+    
+    updated = False
+    new_lines = []
+    for line in lines:
+        if line.strip().startswith(f"{key}="):
+            new_lines.append(f"{key}={value}")
+            updated = True
+        else:
+            new_lines.append(line)
+    
+    if not updated:
+        new_lines.append(f"{key}={value}")
+    
+    env_path.parent.mkdir(parents=True, exist_ok=True)
+    env_path.write_text("\n".join(new_lines) + "\n", encoding="utf-8")

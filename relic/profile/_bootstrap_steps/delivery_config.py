@@ -100,25 +100,8 @@ def collect_delivery_config(io_in: TextIO, io_out: TextIO, consent_record: dict,
     else:
         suggested_env = "GUMI_BOT_TOKEN"
     
-    print(f"  Suggested env variable: {suggested_env}", file=io_out)
-    print("  (Press Enter to accept, or type a different name)", file=io_out)
-
-    bot_token_env = None
-    while bot_token_env is None:
-        candidate = prompt_optional(
-            "bot_token_env",
-            "Env variable name for bot token",
-            io_in,
-            io_out,
-            default=suggested_env,
-        )
-        if not candidate:
-            bot_token_env = suggested_env
-            print(f"  Using default: {bot_token_env}", file=io_out)
-        elif _ENV_RE.match(candidate):
-            bot_token_env = candidate
-        else:
-            print("  Invalid env name. Use uppercase letters, digits, and underscores.", file=io_out)
+    bot_token_env = suggested_env
+    print(f"  Env variable name: {bot_token_env}", file=io_out)
 
     # Prompt for the actual token value and export it immediately
     print("", file=io_out)
@@ -151,17 +134,24 @@ def collect_delivery_config(io_in: TextIO, io_out: TextIO, consent_record: dict,
     quiet_tz = prompt_optional("quiet_hours.timezone", "Timezone", io_in, io_out, default="Europe/Rome")
     
     print("\n" + "-" * 60, file=io_out)
-    print("  STEP 5: Contact Frequency Limit (optional)", file=io_out)
+    print("  STEP 5: Delivery Windows", file=io_out)
+    print("  Define up to 2 daily time windows when Gumi may send proactive", file=io_out)
+    print("  messages. Format HH:MM-HH:MM. Leave blank to skip.", file=io_out)
     print("-" * 60, file=io_out)
-    freq_window = prompt_optional("max_contact_frequency.window", "Frequency window (day/week)", io_in, io_out, default="day")
-    freq_count_raw = prompt_optional("max_contact_frequency.count", "Max contacts per window", io_in, io_out, default="1")
-    try:
-        freq_count = int(freq_count_raw) if freq_count_raw else 1
-    except ValueError:
-        freq_count = 1
-    
+    win1_raw = prompt_optional(
+        "delivery_windows.1", "Window 1 (e.g. 09:00-11:00)", io_in, io_out, default="09:00-11:00"
+    )
+    win2_raw = prompt_optional(
+        "delivery_windows.2", "Window 2 (e.g. 19:00-21:00)", io_in, io_out, default="19:00-21:00"
+    )
+    delivery_windows = []
+    for raw in [win1_raw, win2_raw]:
+        if raw and "-" in raw:
+            parts = raw.split("-", 1)
+            delivery_windows.append({"start": parts[0].strip(), "end": parts[1].strip()})
+
     enabled = bool(telegram_user_id and bot_token_env)
-    
+
     token_set = bool(os.environ.get(bot_token_env)) if bot_token_env else False
     enabled = bool(telegram_user_id and bot_token_env)
 
@@ -174,15 +164,44 @@ def collect_delivery_config(io_in: TextIO, io_out: TextIO, consent_record: dict,
             print(f"  Token:     set in environment.", file=io_out)
         else:
             print(f"  Token:     NOT set — export {bot_token_env}=YOUR_BOT_TOKEN before sending.", file=io_out)
+        if delivery_windows:
+            for w in delivery_windows:
+                print(f"  Window:    {w['start']} – {w['end']}", file=io_out)
     else:
         print("  Telegram delivery not configured.", file=io_out)
     print("=" * 60, file=io_out)
-    
+
     return {
         "delivery_enabled": enabled,
         "contact_channel": "telegram",
         "telegram_user_id": telegram_user_id,
         "bot_token_env": bot_token_env,
+        "timezone": quiet_tz,
         "quiet_hours": {"start": quiet_start, "end": quiet_end, "timezone": quiet_tz},
-        "max_contact_frequency": {"window": freq_window, "count": freq_count},
+        "delivery_windows": delivery_windows,
     }
+
+
+def collect_gemini_api_key(io_in: TextIO, io_out: TextIO) -> str:
+    """Collect Gemini API key for media generation."""
+    print("\n" + "-" * 60, file=io_out)
+    print("  GEMINI API KEY (per immagini, voce e musica)", file=io_out)
+    print("-" * 60, file=io_out)
+    print("  Per generare immagini, voce e musica serve una chiave", file=io_out)
+    print("  Google Gemini API. Gratuita su aistudio.google.com", file=io_out)
+    print("", file=io_out)
+    print("  Steps:", file=io_out)
+    print("    1. Vai su https://aistudio.google.com", file=io_out)
+    print("    2. Sign in con Google", file=io_out)
+    print("    3. 'Get API key' → 'Create API key'", file=io_out)
+    print("    4. Copia la chiave (inizia con AIza...)", file=io_out)
+    print("", file=io_out)
+    
+    gemini_key = prompt_optional(
+        "GEMINI_API_KEY",
+        "Incolla chiave (invio per saltare)",
+        io_in,
+        io_out,
+        default="",
+    )
+    return gemini_key.strip()

@@ -14,9 +14,9 @@ def get_project_root() -> Path:
 
 def get_relic_home() -> Path:
     """Get relic home directory for user data."""
-    home = Path(os.environ.get("RELIC_HOME", ""))
-    if home:
-        return home
+    env_val = os.environ.get("RELIC_HOME", "").strip()
+    if env_val:
+        return Path(env_val)
     return Path.home() / ".relic"
 
 

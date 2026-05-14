@@ -324,8 +324,11 @@ class InitialContactComposer:
         event.researcher_previewed = True
         return event
 
-    def log_event(self, event: ContactEvent, subject_home: Path) -> Path:
+    def log_event(self, event: ContactEvent, subject_home: Path, message_text: str | None = None) -> Path:
         """Write the ContactEvent to subject_home/gumi_intro_message.json.
+
+        Also writes the message text to local_only/{message_id}.txt if provided,
+        so that prepare_intro_delivery can locate it cross-process.
 
         Returns the path of the written file.
         """
@@ -334,6 +337,10 @@ class InitialContactComposer:
         out_path = subject_home / "gumi_intro_message.json"
         with open(out_path, "w", encoding="utf-8") as fh:
             json.dump(event.to_dict(), fh, ensure_ascii=False, indent=2)
+        if message_text is not None:
+            local_only = subject_home / "local_only"
+            local_only.mkdir(parents=True, exist_ok=True)
+            (local_only / f"{event.message_id}.txt").write_text(message_text, encoding="utf-8")
         return out_path
 
     # ------------------------------------------------------------------

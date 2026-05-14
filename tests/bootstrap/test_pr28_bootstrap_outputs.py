@@ -4,7 +4,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 from jsonschema import Draft7Validator
+
+pytestmark = pytest.mark.slow
 
 from relic.bootstrap import (
     BootstrapCheckpointStore,

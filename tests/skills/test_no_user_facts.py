@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-SKILLS_DIR = Path(__file__).parent.parent.parent / "skills"
+SKILLS_DIR = Path(__file__).parent.parent.parent / "contracts"
 REQUIRED_SKILLS = [
     "relic-critique-calibration.md",
     "relic-correction-workflow.md",

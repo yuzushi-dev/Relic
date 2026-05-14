@@ -9,6 +9,8 @@ import hashlib
 import shutil
 import subprocess
 from dataclasses import dataclass, field, asdict
+import shutil
+import requests
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
@@ -240,6 +242,8 @@ class DeliveryPolicy:
     delivery_enabled: bool
     quiet_hours: str
     maximum_contact_frequency: str
+    delivery_windows: list  # [{"start": "HH:MM", "end": "HH:MM"}, ...]
+    timezone: str  # IANA timezone string, e.g. "Europe/Rome"
     consent_for_active_elicitation: bool
     consent_for_generated_images: bool
     consent_for_generated_audio: bool
@@ -565,7 +569,9 @@ class ProfileRegistry:
         telegram_user_id: str,
         contact_channel: str = "telegram",
         quiet_hours: str = "22:00-08:00",
-        maximum_contact_frequency: str = "1/day",
+        maximum_contact_frequency: str = "2/day",
+        delivery_windows: list | None = None,
+        timezone: str = "Europe/Rome",
         consent_for_active_elicitation: bool = False,
         consent_for_generated_images: bool = False,
         consent_for_generated_audio: bool = False,
@@ -584,6 +590,10 @@ class ProfileRegistry:
             telegram_user_id=telegram_user_id,
         )
 
+        _default_windows = [
+            {"start": "09:00", "end": "11:00"},
+            {"start": "19:00", "end": "21:00"},
+        ]
         policy = DeliveryPolicy(
             subject_id=subject_id,
             contact_channel=contact_channel,
@@ -593,6 +603,8 @@ class ProfileRegistry:
             delivery_enabled=True,
             quiet_hours=quiet_hours,
             maximum_contact_frequency=maximum_contact_frequency,
+            delivery_windows=delivery_windows if delivery_windows is not None else _default_windows,
+            timezone=timezone,
             consent_for_active_elicitation=consent_for_active_elicitation,
             consent_for_generated_images=consent_for_generated_images,
             consent_for_generated_audio=consent_for_generated_audio,
@@ -603,6 +615,17 @@ class ProfileRegistry:
 
         self._write_delivery_env(profile, telegram_bot_token_env, telegram_user_id)
         _write_json(self._delivery_policy_path(subject_id), policy.to_dict())
+
+        # Propagate consent flags to media_policy.json so the media dispatcher can
+        # gate generation without re-reading delivery_policy.json.
+        media_policy_path = self._hermes_workspace_gumi_dir(profile) / "media_policy.json"
+        if media_policy_path.exists():
+            media_policy = _read_json(media_policy_path)
+            media_policy["image_generation_enabled"] = consent_for_generated_images
+            media_policy["audio_generation_enabled"] = consent_for_generated_audio
+            media_policy["music_generation_enabled"] = consent_for_generated_music
+            _write_json(media_policy_path, media_policy)
+
         now = _now_iso()
         allowlist_entry = {
             "subject_id": subject_id,
@@ -750,6 +773,65 @@ class ProfileRegistry:
         _write_json(workspace / "voice_canon.json", voice)
         _write_json(workspace / "lyria_canon.json", lyria)
         _write_json(workspace / "media_policy.json", policy)
+        # C3: Add voice_id to voice dict
+        try:
+            from relic.gumi_plugin.tts import select_voice_for_canon
+            voice["voice_id"] = select_voice_for_canon(background)
+        except Exception:
+            voice["voice_id"] = "Kore"  # fallback
+        _write_json(paths["voice"], voice)
+        _write_json(workspace / "voice_canon.json", voice)
+
+        # C1: Generate AVATAR_SPEC.md (placeholder - LLM generation skipped for now)
+        avatar_spec = f"""Gumi - {background.get('display_name', subject_id)}
+
+A warm, friendly companion with a quiet presence. {background.get('domains', {}).get('life_context', {}).get('living_situation', 'Normal everyday life.')}
+
+Visual style: quiet naturalism, desaturated teal and warm gray palette, soft ambient indoor lighting. No artificial glow or stock portrait aesthetics.
+"""
+        (profile.hermes_home / "AVATAR_SPEC.md").write_text(avatar_spec, encoding="utf-8")
+
+        # C1: Generate PHOTO_MODES.md
+        photo_modes = """# Photo Modes for Gumi
+
+Eight visual modes for consistent photography:
+
+1. **close_selfie**: Tight frame on face and shoulders, natural expression, soft side light
+2. **mirror_corner_selfie**: Bathroom mirror shot, slightly candid, warm reflected light
+3. **bed_soft_frame**: Morning bed scene, soft sheets, sleepy atmosphere, natural window light
+4. **desk_process_shot**: Workspace detail with hands or small objects, focused, afternoon light
+5. **window_or_balcony_portrait**: Subject with window/balcony backdrop, soft bokeh, natural outdoor light
+6. **room_detail**: Environmental shot showing room context, objects, natural composition
+7. **neighborhood_ambient**: Outdoor neighborhood context, casual, real locations
+8. **idol_in_progress_frame**: Late night scene, intimate atmosphere, artificial lamp light
+"""
+        (profile.hermes_home / "PHOTO_MODES.md").write_text(photo_modes, encoding="utf-8")
+
+        # C2: Generate anchor image if GEMINI_API_KEY available
+        gemini_key = os.environ.get("GEMINI_API_KEY", "")
+        if gemini_key:
+            try:
+                from relic.gumi_plugin.image_gen import (
+                    build_image_prompt, generate_image, collect_reference_images, load_avatar_spec
+                )
+                avatar_text = load_avatar_spec(profile.hermes_home)
+                prompt = build_image_prompt(avatar_text, visual, "close_selfie")
+                anchor_path = profile.relic_subject_home / "gumi_visual_anchor.jpg"
+                generate_image(prompt, [], anchor_path, gemini_key)
+                # Copy to Visual_Identity/
+                vi_dir = profile.relic_subject_home / "Visual_Identity"
+                vi_dir.mkdir(exist_ok=True)
+                shutil.copy(anchor_path, vi_dir / "gumi_anchor_001.jpg")
+                manifest = {"entries": [{"file": "gumi_anchor_001.jpg", "use_for_identity_anchor": True, "strength": 1.0}]}
+                (vi_dir / "manifest.json").write_text(json.dumps(manifest, indent=2))
+                # Update visual_canon with anchor_hash
+                anchor_hash = hashlib.sha256(anchor_path.read_bytes()).hexdigest()
+                visual["anchor_hash"] = anchor_hash
+                visual["seed_prompt"] = prompt
+                _write_json(paths["visual"], visual)
+            except Exception:
+                pass  # Skip image generation on error
+
         _write_json(profile.relic_subject_home / "provenance" / "gumi_media_canon.json", payload)
         return profile, canon, paths
 
@@ -834,6 +916,7 @@ class ProfileRegistry:
             target = self._telegram_target(profile)
             if target is None:
                 raise ValueError("Initiative cron requires TELEGRAM_ALLOWED_USERS or TELEGRAM_HOME_CHANNEL in Hermes .env.")
+            checkin_script = f"{subject_id}/relic_checkin_decision.sh"
             data = {
                 "version": "1.0",
                 "family": "initiative",
@@ -841,22 +924,23 @@ class ProfileRegistry:
                 "success_contract": "Hermes delivers the final response to the target; do not perform a second delivery action.",
                 "jobs": [
                     {
-                        "id": f"{subject_id}_checkin_gap_probe",
-                        "task": "gumi_checkin_gap_probe",
-                        "schedule": "every 30m",
-                        "target": target,
+                        "id": f"{subject_id}_checkin_gate",
+                        "task": "gumi_checkin_gate",
+                        "schedule": "*/30 * * * *",
+                        "target": "local",
+                        "no_agent": True,
+                        "script": checkin_script,
                         "dry_run_default": True,
-                        "output": str(workspace_cron / "checkin_decision_log.jsonl"),
-                        "prompt_contract": "Evaluate whether contact is warranted; if not warranted, respond exactly [SILENT].",
                     },
                     {
-                        "id": f"{subject_id}_first_contact_delivery",
-                        "task": "gumi_first_contact_delivery",
-                        "schedule": "immediate",
+                        "id": f"{subject_id}_checkin_message",
+                        "task": "gumi_checkin_message",
+                        "schedule": "*/30 * * * *",
                         "target": target,
+                        "script": checkin_script,
                         "dry_run_default": True,
-                        "output": str(workspace_cron / "delivery_decision_log.jsonl"),
-                        "prompt_contract": "Deliver only the approved local intro message when policy gates pass; otherwise respond [SILENT] with local audit output.",
+                        "output": str(workspace_cron / "checkin_decision_log.jsonl"),
+                        "prompt_contract": "The gate script result above shows whether contact is warranted. If it is empty or indicates BLOCKED/NO_REPLY, respond exactly [SILENT]. Otherwise write a natural message as Gumi.",
                     },
                 ],
             }
@@ -864,43 +948,37 @@ class ProfileRegistry:
             path.write_text(_render_simple_yaml(data), encoding="utf-8")
             paths["initiative"] = path
             jobs_to_apply.extend(data["jobs"])
+        # T5: gumi_memory_sync — no-agent script that syncs cron sessions → MEMORY.md
+        memory_sync_script = f"{subject_id}/relic_memory_sync.sh"
+        memory_sync_job = {
+            "id": f"{subject_id}_memory_sync",
+            "task": "gumi_memory_sync",
+            "schedule": "2-59/30 * * * *",
+            "target": "local",
+            "no_agent": True,
+            "script": memory_sync_script,
+            "dry_run_default": False,
+        }
+        jobs_to_apply.append(memory_sync_job)
+
+        # T6: One-shot backfill — seed watermark so first tick skips historical sessions.
+        from relic.gumi_plugin.memory_sync import sync as memory_sync_sync
+        if not dry_run:
+            memory_sync_result = memory_sync_sync(profile.hermes_home)
+            manifest["memory_sync_backfill"] = memory_sync_result
+
         if "media" in families:
+            # Media is injected probabilistically inside checkin_message (Phase D).
+            # No standalone cron jobs needed; record the family as provisioned.
             data = {
                 "version": "1.0",
                 "family": "media",
-                "target": "local",
-                "success_contract": "[SILENT]",
-                "jobs": [
-                    {
-                        "id": f"{subject_id}_visual_prompt_rollup",
-                        "task": "gumi_visual_prompt_rollup",
-                        "schedule": "0 5 * * 0",
-                        "target": "local",
-                        "dry_run_default": True,
-                        "output": str(workspace_cron / "visual_prompt_rollup.json"),
-                    },
-                    {
-                        "id": f"{subject_id}_voice_prompt_rollup",
-                        "task": "gumi_voice_prompt_rollup",
-                        "schedule": "0 6 * * 0",
-                        "target": "local",
-                        "dry_run_default": True,
-                        "output": str(workspace_cron / "voice_prompt_rollup.json"),
-                    },
-                    {
-                        "id": f"{subject_id}_lyria_prompt_rollup",
-                        "task": "gumi_lyria_prompt_rollup",
-                        "schedule": "0 7 * * 0",
-                        "target": "local",
-                        "dry_run_default": True,
-                        "output": str(workspace_cron / "lyria_prompt_rollup.json"),
-                    },
-                ],
+                "note": "Media delivered inline in checkin_message via probabilistic dispatcher.",
+                "jobs": [],
             }
             path = cron_dir / "media.yaml"
             path.write_text(_render_simple_yaml(data), encoding="utf-8")
             paths["media"] = path
-            jobs_to_apply.extend(data["jobs"])
         manifest["install_commands"] = [
             self._render_hermes_cron_create_command(profile, job) for job in jobs_to_apply
         ]
@@ -912,18 +990,34 @@ class ProfileRegistry:
 
     def _cron_prompt_for_job(self, job: dict[str, Any]) -> str:
         task = job["task"]
-        output = job["output"]
-        if task == "gumi_checkin_gap_probe":
+        output = job.get("output", "")
+        if task == "gumi_checkin_gate":
+            return ""
+        if task == "gumi_memory_sync":
+            return ""
+        if task == "gumi_checkin_message":
             return (
-                "Run a subject-specific Gumi check-in policy probe. Read only the private "
-                "Gumi workspace for this HERMES_HOME. If no contact is warranted, respond exactly [SILENT]. "
-                f"Append a redacted decision record to {output}."
-            )
-        if task == "gumi_first_contact_delivery":
-            return (
-                "Run the approved Gumi first-contact delivery gate for this subject. Use only local-only "
-                "intro content and the private Hermes Telegram target. If any policy gate fails, respond exactly [SILENT]. "
-                f"Append a redacted delivery decision to {output}. The final response is the only user-facing message."
+                "Il gate mostra DELIVER con tipo e ora. Comportati così:\n"
+                "\n"
+                "- tipo: text → scrivi un messaggio breve naturale come Gumi, max 2 frasi, in italiano. "
+                "Non ripetere argomenti già usati di recente. Includi una domanda genuina solo se naturale.\n"
+                "\n"
+                "- tipo: voice → scrivi SOLO il testo del messaggio vocale (max 2 frasi, tono parlato, in italiano). "
+                "Il sistema lo converte in audio automaticamente.\n"
+                "\n"
+                "- tipo: image → scrivi esattamente in questo formato (due righe, nient'altro):\n"
+                "  caption: <1 frase in italiano, stile 'Oggi ho fatto questo'>\n"
+                "  image_prompt: <descrizione fotorealistica dettagliata in inglese per generare una foto di Gumi: "
+                "aspetto, abbigliamento casual, ambiente, luce naturale, stile candid. Max 100 parole.>\n"
+                "\n"
+                "- tipo: music → scrivi un prompt completo per Lyria 3 in inglese, includendo:\n"
+                "  singer profile (es. 'Female mezzo-soprano, warm timbre'), stile musicale,\n"
+                "  [Verse] con 2 righe di testo in inglese (max 10 parole per riga),\n"
+                "  [Chorus] con 2 righe in inglese. Scrivi SOLO il prompt, nient'altro.\n"
+                "\n"
+                "Se il gate non inizia con DELIVER o dice BLOCKED/NO_REPLY → rispondi esattamente [SILENT].\n"
+                "L'ora calibra il tono (mattina/sera) ma non menzionarla esplicitamente.\n"
+                + (f"Aggiungi un record decisionale redatto a {output}." if output else "")
             )
         if task in {"world_state_compaction", "continuity_candidate_review"}:
             return (
@@ -949,11 +1043,20 @@ class ProfileRegistry:
         )
 
     def _render_hermes_cron_create_command(self, profile: SubjectProfile, job: dict[str, Any]) -> str:
-        return (
-            f"HERMES_HOME={profile.hermes_home} hermes cron create "
-            f"{json.dumps(job['schedule'])} {json.dumps(self._cron_prompt_for_job(job))} "
-            f"--name {json.dumps(job['id'])} --deliver {json.dumps(job['target'])}"
-        )
+        parts = [f"HERMES_HOME={profile.hermes_home}", "hermes", "cron", "create"]
+        if job.get("no_agent"):
+            parts.append("--no-agent")
+        if job.get("script"):
+            parts += ["--script", job["script"]]
+        parts.append(json.dumps(job["schedule"]))
+        prompt = self._cron_prompt_for_job(job)
+        if prompt:
+            parts.append(json.dumps(prompt))
+        parts += ["--name", json.dumps(job["id"])]
+        # Skip --deliver for local no-agent jobs (memory_sync etc.)
+        if not (job.get("no_agent") and job.get("target") == "local"):
+            parts += ["--deliver", json.dumps(job["target"])]
+        return " ".join(parts)
 
     def _apply_hermes_cron_jobs(
         self,
@@ -969,18 +1072,21 @@ class ProfileRegistry:
         run_env["HERMES_HOME"] = str(profile.hermes_home)
         results: list[dict[str, Any]] = []
         for job in jobs:
+            cmd = [hermes_bin, "cron", "create"]
+            if job.get("no_agent"):
+                cmd.append("--no-agent")
+            if job.get("script"):
+                cmd += ["--script", job["script"]]
+            cmd.append(job["schedule"])
+            prompt = self._cron_prompt_for_job(job)
+            if prompt:
+                cmd.append(prompt)
+            cmd += ["--name", job["id"]]
+            # Skip --deliver for local no-agent jobs (memory_sync etc.)
+            if not (job.get("no_agent") and job.get("target") == "local"):
+                cmd += ["--deliver", job["target"]]
             result = subprocess.run(
-                [
-                    hermes_bin,
-                    "cron",
-                    "create",
-                    job["schedule"],
-                    self._cron_prompt_for_job(job),
-                    "--name",
-                    job["id"],
-                    "--deliver",
-                    job["target"],
-                ],
+                cmd,
                 env=run_env,
                 check=False,
                 capture_output=True,
@@ -1004,8 +1110,17 @@ class ProfileRegistry:
 
         profile = self._load_required_subject(subject_id)
 
-        # Check allowlist entry first
+        # Check allowlist entry — fall back to disk if in-memory store is empty (cross-process)
         entry = get_allowlist_entry(subject_id, platform)
+        if entry is None:
+            allowlist_path = self._subject_dir(subject_id) / "delivery_allowlist.json"
+            if allowlist_path.exists():
+                from relic.hermes_runtime import register_allowlist_entry
+                allowlist_data = _read_json(allowlist_path)
+                for disk_entry in allowlist_data.get("allowlist", []):
+                    if disk_entry.get("subject_id") == subject_id:
+                        register_allowlist_entry(disk_entry)
+                entry = get_allowlist_entry(subject_id, platform)
         if entry is None:
             return False, "platform_not_allowlisted"
 
@@ -1025,6 +1140,92 @@ class ProfileRegistry:
         if decision == DeliveryGateDecision.ALLOW:
             return True, None
         return False, "delivery_gate_blocked"
+
+    def dispatch_intro_via_hermes(self, subject_id: str) -> dict[str, Any]:
+        """Schedule a first-contact message generated and delivered by the Hermes agent.
+
+        Uses ``hermes cron create --deliver`` so the LLM runs with the subject's
+        profile (SOUL.md / USER.md / MEMORY.md) and the result is recorded in the
+        Hermes session store.  Status must be 'hermes_profile_provisioned'.
+        """
+        if os.environ.get("RELIC_ALLOW_LIVE_DELIVERY") != "1":
+            raise ValueError("Live delivery requires RELIC_ALLOW_LIVE_DELIVERY=1.")
+        hermes_bin = shutil.which("hermes")
+        if hermes_bin is None:
+            raise FileNotFoundError("hermes command not found.")
+
+        profile = self._load_required_subject(subject_id)
+        allowed, reason = self._check_delivery_gate(subject_id, "telegram")
+        if not allowed:
+            raise ValueError(f"Delivery blocked: {reason or 'platform not allowlisted'}")
+
+        target = self._telegram_target(profile)
+        if target is None:
+            raise ValueError("Missing Hermes Telegram target.")
+        env_values = self._load_hermes_env(profile)
+
+        prompt = (
+            "Scrivi il tuo primissimo messaggio a questa persona — non ci siamo mai parlati prima. "
+            "Presentati: digli il tuo nome e accenna brevemente a chi sei nel tuo mondo, "
+            "senza spiegazioni elaborate. "
+            "Concludi con una domanda breve e naturale per invitarla a presentarsi — "
+            "trovane una che suoni autentica per il tuo carattere, non formulaica. "
+            "Il messaggio deve essere: breve (3-5 frasi totali), caldo ma misurato, "
+            "autentico rispetto al tuo profilo, senza coinvolgimento emotivo eccessivo, "
+            "senza riferimenti a sistemi o tecnologia. "
+            "Non usare saluti formali. Parla dalla tua vita diegetica come faresti naturalmente. "
+            "Lingua: italiano."
+        )
+
+        run_env = os.environ.copy()
+        run_env.update(env_values)
+        run_env["HERMES_HOME"] = str(profile.hermes_home)
+
+        result = subprocess.run(
+            [
+                hermes_bin, "cron", "create", "1m", prompt,
+                "--deliver", target,
+                "--repeat", "1",
+                "--name", f"gumi_intro_{subject_id}",
+            ],
+            env=run_env,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        now = _now_iso()
+        decision: dict[str, Any] = {
+            "event_type": "gumi_delivery_dispatch",
+            "subject_id": subject_id,
+            "status": "delivery_scheduled" if result.returncode == 0 else "blocked",
+            "delivery_backend": "hermes_cron",
+            "target": target,
+            "hermes_cron_job": f"gumi_intro_{subject_id}",
+            "created_at": now,
+        }
+        if result.returncode != 0:
+            decision["error"] = (result.stderr or result.stdout).strip()[:500]
+            self._append_delivery_decision(profile, decision)
+            raise RuntimeError(
+                f"hermes cron create failed (exit {result.returncode}): {decision['error']}"
+            )
+        # Note intro dispatch in MEMORY.md as context for upcoming sessions
+        memory_path = profile.hermes_home / "MEMORY.md"
+        if memory_path.exists():
+            existing = memory_path.read_text(encoding="utf-8")
+            if "## Intro message dispatched" not in existing:
+                memory_path.write_text(
+                    existing.rstrip() + (
+                        f"\n\n## Intro message dispatched\n"
+                        f"- Dispatched at: {now}\n"
+                        f"- This was your first contact with this subject.\n"
+                        f"- The message was generated by you and delivered via Telegram.\n"
+                    ),
+                    encoding="utf-8",
+                )
+        self._append_delivery_decision(profile, decision)
+        return decision
 
     def prepare_intro_delivery(self, subject_id: str, live: bool = False) -> dict[str, Any]:
         profile = self._load_required_subject(subject_id)
@@ -1098,26 +1299,73 @@ class ProfileRegistry:
             hermes_bin = shutil.which("hermes")
             if hermes_bin is None:
                 raise FileNotFoundError("hermes command not found.")
+            # Write message to a temp script that echoes it verbatim; hermes cron
+            # delivers via gateway (records outbound in gateway state) without LLM.
+            import tempfile
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".sh", delete=False, encoding="utf-8"
+            ) as tmp:
+                # Use printf to avoid echo interpretation of escape sequences
+                escaped = message_text.replace("'", "'\\''")
+                tmp.write(f"#!/bin/sh\nprintf '%s' '{escaped}'\n")
+                tmp_path = tmp.name
+            os.chmod(tmp_path, 0o700)
             run_env = os.environ.copy()
             run_env.update(env_values)
             run_env["HERMES_HOME"] = str(profile.hermes_home)
-            result = subprocess.run(
-                [hermes_bin, "send", target, message_text],
-                env=run_env,
-                check=False,
-                capture_output=True,
-                text=True,
-                timeout=60,
-            )
-            decision["status"] = "sent" if result.returncode == 0 else "blocked"
-            decision["returncode"] = result.returncode
+            try:
+                result = subprocess.run(
+                    [
+                        hermes_bin, "cron", "create",
+                        "1m",  # schedule (run on next tick ≈ <1 min)
+                        "--script", tmp_path,
+                        "--no-agent",
+                        "--deliver", target,
+                        "--repeat", "1",
+                        "--name", f"gumi_intro_{profile.subject_id}",
+                    ],
+                    env=run_env,
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                )
+            finally:
+                try:
+                    os.unlink(tmp_path)
+                except OSError:
+                    pass
             if result.returncode != 0:
+                decision["status"] = "blocked"
                 decision["error"] = (result.stderr or result.stdout).strip()[:500]
                 self._append_delivery_decision(profile, decision)
-                raise RuntimeError(f"Hermes delivery failed with exit code {result.returncode}.")
+                raise RuntimeError(
+                    f"hermes cron create failed (exit {result.returncode}): {decision['error']}"
+                )
+            decision["status"] = "delivery_scheduled"
+            decision["hermes_cron_job"] = f"gumi_intro_{profile.subject_id}"
+            # Record in Hermes MEMORY.md so sessions carry intro context
+            self._record_intro_in_hermes_memory(profile, message_text, now)
 
         self._append_delivery_decision(profile, decision)
         return decision
+
+    def _record_intro_in_hermes_memory(
+        self, profile: SubjectProfile, message_text: str, sent_at: str
+    ) -> None:
+        """Append intro-sent fact to MEMORY.md so Hermes sessions carry this context."""
+        memory_path = profile.hermes_home / "MEMORY.md"
+        if not memory_path.exists():
+            return
+        existing = memory_path.read_text(encoding="utf-8")
+        entry = (
+            f"\n## Intro message sent\n"
+            f"- Sent at: {sent_at}\n"
+            f"- Text (verbatim):\n\n"
+            f"> {message_text.strip()}\n"
+        )
+        if "## Intro message sent" not in existing:
+            memory_path.write_text(existing.rstrip() + "\n" + entry, encoding="utf-8")
 
     def _append_delivery_decision(self, profile: SubjectProfile, decision: dict[str, Any]) -> None:
         safe_decision = dict(decision)
@@ -1370,13 +1618,19 @@ class ProfileRegistry:
     def _render_relationship_policy(self, background: dict[str, Any]) -> str:
         boundaries = background.get("domains", {}).get("boundaries", {})
         stance = background.get("domains", {}).get("relationship_stance", {})
+        name = "Gumi"
         return (
-            "# Gumi Relationship Policy\n\n"
+            f"# {name} Relationship Policy\n\n"
             "- This profile is private to one Relic subject.\n"
             "- It must not claim real-world embodiment, dependency, suffering or coercive attachment.\n"
             "- It must not expose Relic internals, scores or raw private data.\n"
             f"- Attachment stance: {stance.get('attachment_style', 'bounded')}\n"
-            f"- Boundary style: {boundaries.get('romantic_boundaries', 'high romantic avoidance')}\n"
+            f"- Boundary style: {boundaries.get('romantic_boundaries', 'high romantic avoidance')}\n\n"
+            f"## Hard limits\n"
+            f"- {name} never invites the subject to meet in person, visit, come over, or share a physical space.\n"
+            f"- {name} never suggests phone or video calls.\n"
+            f"- {name} never fabricates continuity — she does not claim to know how long it has been since they last spoke without explicit evidence.\n"
+            f"- {name} never expresses dependency, possessiveness, or longing for the subject.\n"
         )
 
     def _derive_gumi_outputs(self, background: dict[str, Any]) -> dict[str, dict[str, Any]]:
@@ -1421,6 +1675,7 @@ class ProfileRegistry:
 
         # Load personalization if item battery available
         personalization = None
+        emoji_level = 2  # default: sparing
         baseline_path = profile.relic_subject_home / "baseline_user_profile.json"
         if baseline_path.exists():
             baseline = _read_json(baseline_path)
@@ -1428,11 +1683,15 @@ class ProfileRegistry:
             if battery and "scores" in battery:
                 mapper = SubjectPersonalizationMapper()
                 personalization = mapper.map(battery, baseline)
+                raw_emoji = battery["scores"].get("project_calibration", {}).get("emoji_density_level")
+                if raw_emoji is not None:
+                    emoji_level = int(raw_emoji)
 
         ctx = GumiBuildContext.from_background_and_personalization(
             agent_name=agent_name,
             background=background,
             personalization=personalization,
+            emoji_level=emoji_level,
         )
 
         # Derive Ollama config from relic config if available

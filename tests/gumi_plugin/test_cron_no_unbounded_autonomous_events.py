@@ -12,4 +12,3 @@ def test_no_side_effect_jobs() -> None:
 def test_required_jobs_present() -> None:
     names = {j.name for j in list_cron_jobs()}
     assert "gumi-world-state-compact" in names
-    assert "gumi-diary-rotate" in names

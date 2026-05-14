@@ -7,6 +7,8 @@ from pathlib import Path
 
 import pytest
 
+pytestmark = pytest.mark.slow
+
 from relic.profile.registry import ProfileRegistry
 
 
@@ -257,3 +259,69 @@ def test_each_subject_profile_uses_private_hindsight_memory_provider(
     assert second_hindsight["bank_id"] == "gumi-subj_002"
     assert first_hindsight["memory_mode"] == "tools"
     assert second_hindsight["memory_mode"] == "tools"
+
+
+def test_provision_subject_cron_specs_includes_memory_sync_job(
+    registry: ProfileRegistry,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _bootstrap_subject(registry)
+    monkeypatch.setenv("GUMI_SUBJ_001_TELEGRAM_BOT_TOKEN", "123456:telegram-token-test")
+    registry.configure_telegram_delivery(
+        "subj_001",
+        telegram_bot_token_env="GUMI_SUBJ_001_TELEGRAM_BOT_TOKEN",
+        telegram_user_id="123456789",
+    )
+
+    profile, paths = registry.provision_subject_cron_specs(
+        "subj_001",
+        families=["initiative"],
+        dry_run=True,
+    )
+
+    manifest_path = profile.relic_subject_home / "gumi_cron_manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+    commands = manifest["install_commands"]
+    # Check memory_sync job is present in commands
+    mem_commands = [c for c in commands if "memory_sync" in c]
+    assert len(mem_commands) == 1, f"Expected 1 memory_sync command, got {len(mem_commands)}: {mem_commands}"
+
+    mem_cmd = mem_commands[0]
+    # Must be --no-agent
+    assert "--no-agent" in mem_cmd
+    # Must include --script with memory_sync.sh
+    assert "relic_memory_sync.sh" in mem_cmd
+    # Must NOT have --deliver (local target)
+    assert "--deliver" not in mem_cmd
+    # Schedule offset
+    assert "2-59/30" in mem_cmd
+
+
+def test_memory_sync_cron_job_no_deliver_for_local_target(
+    registry: ProfileRegistry,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify memory_sync (local no-agent) does not get --deliver in rendered command."""
+    _bootstrap_subject(registry)
+    monkeypatch.setenv("GUMI_SUBJ_001_TELEGRAM_BOT_TOKEN", "123456:telegram-token-test")
+    registry.configure_telegram_delivery(
+        "subj_001",
+        telegram_bot_token_env="GUMI_SUBJ_001_TELEGRAM_BOT_TOKEN",
+        telegram_user_id="123456789",
+    )
+
+    profile, _ = registry.provision_subject_cron_specs(
+        "subj_001",
+        families=["maintenance", "initiative"],
+        dry_run=True,
+    )
+
+    manifest_path = profile.relic_subject_home / "gumi_cron_manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+    # memory_sync must have --no-agent and no --deliver
+    mem_cmds = [c for c in manifest["install_commands"] if "subj_001_memory_sync" in c]
+    assert len(mem_cmds) == 1, f"Expected 1 memory_sync command: {mem_cmds}"
+    assert "--no-agent" in mem_cmds[0]
+    assert "--deliver" not in mem_cmds[0]

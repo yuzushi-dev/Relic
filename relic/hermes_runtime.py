@@ -386,7 +386,7 @@ class DecisionEvent:
 
 HERMES_OLLAMA_BASE_URL = "http://localhost:11434/v1"
 HERMES_DEFAULT_MODEL = "qwen3.5:cloud"
-HERMES_CONTEXT_LENGTH = 32768
+HERMES_CONTEXT_LENGTH = 65536
 HINDSIGHT_DEFAULT_PROVIDER = "ollama"
 
 
@@ -436,7 +436,22 @@ def render_subject_hermes_config(
             f"  default: {model}",
             f"  context_length: {HERMES_CONTEXT_LENGTH}",
             "agent:",
-            "  tool_use_enforcement: true",
+            "  tool_use_enforcement: auto",
+            "  disabled_toolsets:",
+            "    - web",
+            "    - browser",
+            "    - terminal",
+            "    - file",
+            "    - code_execution",
+            "    - image_gen",
+            "    - tts",
+            "    - clarify",
+            "    - todo",
+            "    - delegation",
+            "    - cronjob",
+            "    - messaging",
+            "    - skills",
+            "    - session_search",
             "approvals:",
             "  mode: manual",
             "privacy:",
@@ -459,6 +474,12 @@ def render_subject_hermes_config(
             "display:",
             "  streaming: false",
             "  interim_assistant_messages: false",
+            "  tool_progress: 'off'",
+            "  busy_input_mode: queue",
+            "streaming:",
+            "  enabled: false",
+            "timezone: Europe/Rome",
+            "personality: none",
             "group_sessions_per_user: true",
             "",
         ]

@@ -12,6 +12,7 @@ BLOCKED/ERROR: audit event only
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import subprocess
@@ -19,6 +20,49 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
+
+from relic.gumi_plugin.media_state import is_media_eligible, last_media_ts
+
+MEDIA_COOLDOWN_DAYS = {"image": 2.0, "voice": 1.0, "music": 7.0}
+_MEDIA_PROB_THRESHOLDS = {"music": 5, "voice": 30, "image": 50}  # cumulative %
+
+
+def _select_media_type(subject_id: str, hermes_home: Path, now: datetime) -> str:
+    """Return 'text'|'voice'|'image'|'music'. Deterministic per subject+day."""
+    policy_path = hermes_home / "workspace" / "gumi" / "media_policy.json"
+    if not policy_path.exists():
+        return "text"
+    try:
+        policy = json.loads(policy_path.read_text())
+    except Exception:
+        return "text"
+
+    eligible: dict[str, bool] = {}
+    for mtype in ("image", "voice", "music"):
+        key = f"{mtype}_generation_enabled"
+        if policy.get(key):
+            eligible[mtype] = is_media_eligible(hermes_home, mtype, now, MEDIA_COOLDOWN_DAYS)
+
+    if not any(eligible.values()):
+        return "text"
+
+    # Music floor: force if > 14 days since last generation
+    if eligible.get("music"):
+        last_music = last_media_ts(hermes_home, "music")
+        if last_music is None or (now - last_music).days >= 14:
+            return "music"
+
+    # Deterministic daily roll
+    day_seed = f"{subject_id}|media|{now.date()}"
+    roll = int(hashlib.sha256(day_seed.encode()).hexdigest(), 16) % 100
+
+    if eligible.get("music") and roll < _MEDIA_PROB_THRESHOLDS["music"]:
+        return "music"
+    if eligible.get("voice") and roll < _MEDIA_PROB_THRESHOLDS["voice"]:
+        return "voice"
+    if eligible.get("image") and roll < _MEDIA_PROB_THRESHOLDS["image"]:
+        return "image"
+    return "text"
 
 from relic.hermes_runtime import (
     DecisionEvent,
@@ -33,6 +77,37 @@ NO_AGENT_SCRIPT_PATH = Path("~/.hermes/scripts/relic_no_agent_decision.sh")
 
 # Default cron schedule for no-agent probe (every 30 minutes)
 DEFAULT_NO_AGENT_CRON_SCHEDULE = "*/30 * * * *"
+
+
+def _subject_timezone(subject_id: str) -> "zoneinfo.ZoneInfo | None":
+    """Return the subject's ZoneInfo from delivery_policy.json, or None."""
+    try:
+        import zoneinfo
+        from relic.profile.registry import ProfileRegistry
+
+        policy_path = ProfileRegistry()._delivery_policy_path(subject_id)
+        if not policy_path.exists():
+            return None
+        with open(policy_path, encoding="utf-8") as f:
+            policy = json.load(f)
+        tz_str = policy.get("timezone") or policy.get("quiet_hours_timezone")
+        if not tz_str and isinstance(policy.get("quiet_hours"), dict):
+            tz_str = policy["quiet_hours"].get("timezone")
+        if tz_str:
+            return zoneinfo.ZoneInfo(tz_str)
+    except Exception:
+        pass
+    return None
+
+
+def _subject_now(subject_id: str) -> "datetime":
+    """Return current datetime in the subject's configured timezone (falls back to local)."""
+    import zoneinfo
+
+    tz = _subject_timezone(subject_id)
+    if tz:
+        return datetime.now(tz)
+    return datetime.now()
 
 
 def _is_quiet_hours(subject_id: str) -> bool:
@@ -62,7 +137,7 @@ def _is_quiet_hours(subject_id: str) -> bool:
         start_hour, start_min = int(start_str.split(":")[0]), int(start_str.split(":")[1])
         end_hour, end_min = int(end_str.split(":")[0]), int(end_str.split(":")[1])
 
-        now = datetime.now(timezone.utc)
+        now = _subject_now(subject_id)
         current_minutes = now.hour * 60 + now.minute
         start_minutes = start_hour * 60 + start_min
         end_minutes = end_hour * 60 + end_min
@@ -129,6 +204,133 @@ def _is_followup_not_due(subject_id: str, gumi_instance_id: str, hermes_profile_
     return len(due) == 0
 
 
+def _load_delivery_windows(subject_id: str) -> list[tuple[int, int, int, int]]:
+    """Load delivery windows from delivery_policy.json.
+
+    Returns list of (start_h, start_m, end_h, end_m) tuples in local time.
+    Falls back to [(9,0,11,0),(19,0,21,0)] if not configured.
+    """
+    import re
+
+    default = [(9, 0, 11, 0), (19, 0, 21, 0)]
+    try:
+        from relic.profile.registry import ProfileRegistry
+
+        registry = ProfileRegistry()
+        policy_path = registry._delivery_policy_path(subject_id)
+        if not policy_path.exists():
+            return default
+        with open(policy_path, encoding="utf-8") as f:
+            policy = json.load(f)
+        raw = policy.get("delivery_windows")
+        if not raw or not isinstance(raw, list):
+            return default
+        windows = []
+        for w in raw:
+            # Accept {"start": "09:00", "end": "11:00"} or "09:00-11:00"
+            if isinstance(w, dict):
+                s, e = w.get("start", ""), w.get("end", "")
+            elif isinstance(w, str):
+                parts = w.split("-", 1)
+                s, e = (parts[0].strip(), parts[1].strip()) if len(parts) == 2 else ("", "")
+            else:
+                continue
+            ms = re.match(r"^(\d{1,2}):(\d{2})$", s.strip())
+            me = re.match(r"^(\d{1,2}):(\d{2})$", e.strip())
+            if ms and me:
+                windows.append((int(ms.group(1)), int(ms.group(2)), int(me.group(1)), int(me.group(2))))
+        return windows if windows else default
+    except Exception:
+        return default
+
+
+def _last_outbound_datetime(hermes_home: Path, subject_id: str = "") -> "datetime | None":
+    """Return datetime of last outbound cron delivery in subject's timezone, or None."""
+    import zoneinfo as _zi
+
+    tz = _subject_timezone(subject_id) if subject_id else None
+    watermark_path = hermes_home / "state" / "memory_sync_watermark.json"
+    try:
+        if watermark_path.exists():
+            with open(watermark_path, encoding="utf-8") as f:
+                wm = json.load(f)
+            mtime_ns = wm.get("last_session_mtime_ns", 0)
+            if mtime_ns:
+                return datetime.fromtimestamp(mtime_ns / 1e9, tz=tz)
+        memory_path = hermes_home / "MEMORY.md"
+        if memory_path.exists():
+            return datetime.fromtimestamp(memory_path.stat().st_mtime, tz=tz)
+    except Exception:
+        pass
+    return None
+
+
+def _active_delivery_window(
+    windows: list[tuple[int, int, int, int]],
+    now: "datetime",
+) -> "tuple[int,int,int,int] | None":
+    """Return the window (sh,sm,eh,em) that contains `now`, or None."""
+    for sh, sm, eh, em in windows:
+        start_min = sh * 60 + sm
+        end_min = eh * 60 + em
+        now_min = now.hour * 60 + now.minute
+        if start_min <= now_min < end_min:
+            return (sh, sm, eh, em)
+    return None
+
+
+def _last_outbound_in_window(
+    last_dt: "datetime | None",
+    window: tuple[int, int, int, int],
+    today: "datetime",
+) -> bool:
+    """Return True if the last outbound falls within `window` on the same calendar day as `today`."""
+    if last_dt is None:
+        return False
+    if last_dt.date() != today.date():
+        return False
+    sh, sm, eh, em = window
+    last_min = last_dt.hour * 60 + last_dt.minute
+    return sh * 60 + sm <= last_min < eh * 60 + em
+
+
+def _window_jitter_minute(subject_id: str, window: tuple[int, int, int, int], date: "datetime") -> int:
+    """Return today's target send-minute (absolute, local time) within the window.
+
+    Seeded by subject + window + date so it is stable within a day but varies
+    across days.  The offset stays at least 30 min from the window end so
+    cron has room to catch it.  Minimum jitter range: 30 min per window.
+    """
+    import hashlib
+
+    sh, sm, eh, em = window
+    start_min = sh * 60 + sm
+    end_min = eh * 60 + em
+    # Reserve 30 min before window end so the message can actually fire
+    available = max(end_min - start_min - 30, 0)
+    seed = f"{subject_id}|{window}|{date.strftime('%Y-%m-%d')}"
+    h = int(hashlib.sha256(seed.encode()).hexdigest(), 16)
+    return start_min + (h % (available + 1))
+
+
+def _is_delivery_window_open(subject_id: str, hermes_home: Path) -> bool:
+    """Return True if now is inside a delivery window, past today's jitter minute, and not yet sent."""
+    now = _subject_now(subject_id)
+    windows = _load_delivery_windows(subject_id)
+    active = _active_delivery_window(windows, now)
+    if active is None:
+        return False  # outside all windows
+    last_dt = _last_outbound_datetime(hermes_home, subject_id)
+    if _last_outbound_in_window(last_dt, active, now):
+        return False  # already sent in this window today
+    # Check jitter: only fire once we've reached today's randomised target minute
+    target_min = _window_jitter_minute(subject_id, active, now)
+    now_min = now.hour * 60 + now.minute
+    if now_min < target_min:
+        return False  # too early within the window — wait for next tick
+    return True
+
+
 def _is_followup_expired(subject_id: str, gumi_instance_id: str, hermes_profile_id: str) -> bool:
     """Check if all followups for this subject have expired."""
     service = get_continuity_service()
@@ -191,42 +393,20 @@ def _evaluate_decision(
         reasons.append(RuntimeDecisionReason.continuity_scope_paused)
         return RuntimeDecision.BLOCKED, reasons, None
 
-    # Check followup not due
-    if _is_followup_not_due(subject_id, gumi_instance_id, hermes_profile_id):
+    # Delivery window gate: fire only inside a configured time window,
+    # past today's jitter offset, and only once per window per day.
+    hermes_home_str = os.environ.get("HERMES_HOME", "")
+    hermes_home = Path(hermes_home_str) if hermes_home_str else Path.home() / ".hermes"
+
+    if not _is_delivery_window_open(subject_id, hermes_home):
         reasons.append(RuntimeDecisionReason.followup_not_due)
         return RuntimeDecision.NO_REPLY, reasons, None
 
-    # Check followup expired
-    if _is_followup_expired(subject_id, gumi_instance_id, hermes_profile_id):
-        reasons.append(RuntimeDecisionReason.followup_expired)
-        return RuntimeDecision.BLOCKED, reasons, None
-
-    # Check followup max attempts
-    if _is_followup_max_attempts_reached(subject_id, gumi_instance_id, hermes_profile_id):
-        reasons.append(RuntimeDecisionReason.followup_max_attempts_reached)
-        return RuntimeDecision.BLOCKED, reasons, None
-
-    # All gates passed - we have a CANDIDATE
-    # Note: DELIVER requires additional sanitizer + delivery gate which is
-    # handled by the caller after this function returns CANDIDATE
-    service = get_continuity_service()
-    due = service.due_followups(subject_id, gumi_instance_id, hermes_profile_id)
-
-    if due:
-        # Check delivery gate BEFORE returning CANDIDATE
-        if not _is_followup_delivery_allowed(subject_id, gumi_instance_id, hermes_profile_id):
-            reasons.append(RuntimeDecisionReason.platform_not_allowlisted)
-            return RuntimeDecision.BLOCKED, reasons, None
-
-        candidate_data = {
-            "message": f"Continuity follow-up due for subject {subject_id}",
-            "followups": due,
-        }
-        return RuntimeDecision.CANDIDATE, reasons, candidate_data
-
-    # No due work
-    reasons.append(RuntimeDecisionReason.no_due_work)
-    return RuntimeDecision.NO_REPLY, reasons, None
+    reasons.append(RuntimeDecisionReason.no_due_work)  # reuse existing enum value
+    now_dt = _subject_now(subject_id)
+    now_str = now_dt.strftime("%H:%M %Z")
+    media_type = _select_media_type(subject_id, hermes_home, now_dt)
+    return RuntimeDecision.DELIVER, reasons, {"message": f"DELIVER\ntipo: {media_type}\nora: {now_str}"}
 
 
 def emit_decision_event(
@@ -302,12 +482,12 @@ def render_no_agent_script(script_path: Path) -> str:
 
 set -euo pipefail
 
-SUBJECT_ID="${{1:-}}"
-GUMI_INSTANCE_ID="${{2:-}}"
-HERMES_PROFILE_ID="${{3:-}}"
+SUBJECT_ID="${{1:-${{RELIC_SUBJECT_ID:-}}}}"
+GUMI_INSTANCE_ID="${{2:-${{RELIC_GUMI_INSTANCE_ID:-$SUBJECT_ID}}}}"
+HERMES_PROFILE_ID="${{3:-${{RELIC_HERMES_PROFILE_ID:-${{GUMI_HERMES_PROFILE_NAME:-}}}}}}"
 
 if [[ -z "$SUBJECT_ID" ]]; then
-    echo "ERROR: subject_id required" >&2
+    echo "ERROR: subject_id required (set RELIC_SUBJECT_ID or pass as arg)" >&2
     exit 1
 fi
 
@@ -480,6 +660,7 @@ def provision_for_subject(
     hermes_profile_id: str,
     schedule: str = DEFAULT_NO_AGENT_CRON_SCHEDULE,
     dry_run: bool = True,
+    hermes_home: Optional[str] = None,
 ) -> dict:
     """Provision subject-specific no-agent cron jobs for check-in, follow-up, and proactivity decisions.
 
@@ -501,12 +682,28 @@ def provision_for_subject(
             stdout: stdout from hermes command (if not dry_run)
             stderr: stderr from hermes command (if not dry_run)
     """
-    scripts_base = Path("~/.hermes/scripts").expanduser() / subject_id
+    if hermes_home:
+        scripts_base = Path(hermes_home) / "scripts" / subject_id
+    else:
+        scripts_base = Path("~/.hermes/scripts").expanduser() / subject_id
     scripts_base.mkdir(parents=True, exist_ok=True)
 
     decision_types = ["checkin", "followup", "proactivity"]
     scripts: dict[str, Path] = {}
     hermes_commands: list[str] = []
+
+    # Write the memory sync script
+    sync_script_path = scripts_base / "relic_memory_sync.sh"
+    sync_script_content = render_memory_sync_script()
+    sync_script_path.write_text(sync_script_content, encoding="utf-8")
+    sync_script_path.chmod(0o700)
+    scripts["memory_sync"] = sync_script_path
+
+    if dry_run:
+        hermes_commands.append(
+            f"hermes cron create --no-agent --script {sync_script_path} "
+            f'"2-59/30 * * * *" --name gumi_memory_sync_{subject_id}'
+        )
 
     for dtype in decision_types:
         script_path = scripts_base / f"relic_{dtype}_decision.sh"
@@ -536,9 +733,9 @@ def provision_for_subject(
             if not hermes_bin:
                 raise FileNotFoundError("hermes command not found in PATH")
 
-            hermes_home = os.environ.get("HERMES_HOME", str(Path.home() / ".hermes"))
+            _hermes_home = hermes_home or os.environ.get("HERMES_HOME", str(Path.home() / ".hermes"))
             run_env = os.environ.copy()
-            run_env["HERMES_HOME"] = hermes_home
+            run_env["HERMES_HOME"] = _hermes_home
 
             cmd = [
                 hermes_bin,
@@ -581,3 +778,47 @@ def provision_for_subject(
         result["stderr"] = proc.stderr.strip()[:500]
 
     return result
+
+
+# ---------------------------------------------------------------------------
+# Memory sync script
+# ---------------------------------------------------------------------------
+
+def render_checkin_delivery_script() -> str:
+    """Render the post-LLM delivery wrapper script for checkin_message cron job.
+
+    Hermes passes the LLM output via stdin. This script delegates to
+    checkin_media_dispatcher which handles text/voice/image/music dispatch.
+    """
+    return '''#!/usr/bin/env bash
+# Hermes checkin delivery post-processor for Relic
+# Generated by cron_wiring.py - do not edit manually
+#
+# Reads LLM output from stdin, dispatches media or text via checkin_media_dispatcher.
+
+set -euo pipefail
+
+LLM_OUTPUT=$(cat)
+
+exec python3 -m relic.gumi_plugin.checkin_media_dispatcher \\
+  --llm-output "$LLM_OUTPUT" \\
+  --hermes-home "${HERMES_HOME:-$HOME/.hermes}" \\
+  --subject-home "${RELIC_SUBJECT_HOME:-}" \\
+  --subject-id "${RELIC_SUBJECT_ID:-}"
+'''
+
+
+def render_memory_sync_script() -> str:
+    """Render the memory sync shell script content for gumi_memory_sync cron job."""
+    return f'''#!/usr/bin/env bash
+# Hermes no-agent memory sync script for Relic
+# Generated by cron_wiring.py - do not edit manually
+#
+# Scans session JSONs and syncs outbound messages into MEMORY.md
+
+set -euo pipefail
+
+HERMES_PROFILE_ID="${{RELIC_HERMES_PROFILE_ID:-${{GUMI_HERMES_PROFILE_NAME:-}}}}"
+
+exec python3 -m relic.gumi_plugin.memory_sync --hermes-home "${{HERMES_HOME:-$HOME/.hermes}}"
+'''

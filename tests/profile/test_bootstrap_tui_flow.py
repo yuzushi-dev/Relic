@@ -32,7 +32,7 @@ def _make_full_inputs(
     experiment_id: str | None = None,
     hermes: str = "yes",
     gumi_review_action: str = "accept",
-    first_contact: str = "1",
+    first_contact: str = "k",
     consent_researcher_id: str = "researcher_test",
     first_message_gate: str = "yes",
 ) -> str:
@@ -58,7 +58,7 @@ def _make_full_inputs(
         lines.append(subject_id)
     if experiment_id is not None:
         lines.append(experiment_id)
-    lines.extend([""] * 69)  # structured item battery: 69 items, neutral/default
+    lines.extend([""] * 49)  # structured item battery: 49 prompted items (PRO/SAFE auto-default, IOS_001 removed, INT_011 added)
     lines.extend([""] * 5)   # boundaries: 4 string arrays + risk_flags exit
     lines.extend(["n"] * 5)  # consent: 5 booleans (all denied)
     lines.append(consent_researcher_id)  # consent: researcher_id (required)
@@ -70,10 +70,11 @@ def _make_full_inputs(
     lines.append(gumi_review_action)     # gumi_review: accept/regenerate/abort
     lines.append(first_message_gate)     # first message gate: yes/no
     if first_message_gate.lower() in ("y", "yes"):
-        lines.append(first_contact)      # first_contact_controls action
+        lines.append(first_contact)      # first contact choice: s=send, k=keep, r=regen, e=edit, b=block
     return "\n".join(lines) + "\n"
 
 
+@pytest.mark.slow
 class TestRunInit:
     def test_run_init_creates_profile(self, registry: ProfileRegistry) -> None:
         inputs = _make_full_inputs(

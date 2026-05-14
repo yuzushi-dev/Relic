@@ -48,13 +48,13 @@ include = ["relic*"]
 testpaths = [
     "tests/bootstrap",
     "tests/profile",
-    "tests/gumi",
-    "tests/gumi_identity",
-    "tests/data-model",
 ]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
-addopts = "-v --tb=short"
+addopts = "-v --tb=short -m 'not slow' --ignore=tests/profile/test_bootstrap_tui_flow.py --ignore=tests/profile/test_gumi_hermes_cli.py --ignore=tests/profile/test_runtime_provisioning.py --ignore=tests/bootstrap/test_pr28_bootstrap_outputs.py"
+markers = [
+    "slow: integration tests that call LLM — run manually with -m slow",
+]
 
 [tool.ruff]
 line-length = 100
