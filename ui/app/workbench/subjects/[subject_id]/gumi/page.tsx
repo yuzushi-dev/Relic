@@ -45,11 +45,19 @@ function ScoreBar({ label, value, max = 7 }: { label: string; value: number; max
 }
 
 function MarkdownBlock({ title, content }: { title: string; content: string | null }) {
-  if (!content) {
+  if (content === null) {
     return (
       <div className="card span-12">
         <div className="card-title">{title}</div>
         <p style={{ fontFamily: "var(--mono)", fontSize: "12px", color: "var(--text-muted)" }}>File not found.</p>
+      </div>
+    );
+  }
+  if (content.trim() === "") {
+    return (
+      <div className="card span-12">
+        <div className="card-title">{title}</div>
+        <p style={{ fontFamily: "var(--mono)", fontSize: "12px", color: "var(--text-muted)" }}>Empty.</p>
       </div>
     );
   }
