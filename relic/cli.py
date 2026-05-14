@@ -177,9 +177,9 @@ def _configure_hindsight_local(available: bool, model: str) -> None:
             api_key_env = "HINDSIGHT_LLM_API_KEY"
         api_key = os.environ.get(api_key_env)
         if not api_key:
-            env_var_name = api_key_env  # name only, value never logged
-            print(f"  [skip] env var not set; skipping Hindsight local config.")  # codeql[py/clear-text-logging-sensitive-data]
-            print(f"       Export {env_var_name}=... and rerun `relic setup --with-runtime`.")  # codeql[py/clear-text-logging-sensitive-data]
+            # Print static message only — no user-supplied variable in output
+            print("  [skip] LLM API key env var is not set; skipping Hindsight local config.")
+            print("       Export the configured env var and rerun `relic setup --with-runtime`.")
             return
 
     hindsight_dir = _hermes_home() / "hindsight"

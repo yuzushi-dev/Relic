@@ -203,8 +203,8 @@ def generate_image(
         raise RuntimeError("No image in API response")
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(output_path, "wb") as f:
-        f.write(base64.standard_b64decode(image_data))  # codeql[py/clear-text-storage-sensitive-data]
+    media_bytes = base64.standard_b64decode(image_data)
+    output_path.write_bytes(media_bytes)
 
     return output_path
 

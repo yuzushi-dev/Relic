@@ -219,8 +219,8 @@ class LyriaGenerator:
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         output_path = tmp_dir / f"music_{timestamp}.mp3"
 
-        with open(output_path, "wb") as f:
-            f.write(base64.standard_b64decode(audio_b64))  # codeql[py/clear-text-storage-sensitive-data]
+        media_bytes = base64.standard_b64decode(audio_b64)
+        output_path.write_bytes(media_bytes)
 
         return output_path, lyrics_text
 

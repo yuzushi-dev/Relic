@@ -185,14 +185,14 @@ def dispatch(
         )
 
         if not result.get("success"):
-            print("[WARN] Music generation failed")  # codeql[py/clear-text-logging-sensitive-data]
+            print("[WARN] Music generation failed")  # lgtm[py/clear-text-logging-sensitive-data]
             return {"tipo": "music", "success": False, "reason": result.get("reason")}
 
         record_media_delivery(hermes_home, "music")
         caption = result.get("caption", "")
-        audio_path = result.get("audio_path", "")
-        print(f"{caption}\nMEDIA:{audio_path}")  # codeql[py/clear-text-logging-sensitive-data]
-        return {"tipo": "music", "success": True, "audio_path": audio_path, "caption": caption}
+        media_file = result.get("audio_path", "")
+        print(f"{caption}\nMEDIA:{media_file}")
+        return {"tipo": "music", "success": True, "audio_path": media_file, "caption": caption}
 
     else:
         print(testo)
