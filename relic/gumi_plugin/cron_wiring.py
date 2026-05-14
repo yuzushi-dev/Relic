@@ -79,7 +79,7 @@ NO_AGENT_SCRIPT_PATH = Path("~/.hermes/scripts/relic_no_agent_decision.sh")
 DEFAULT_NO_AGENT_CRON_SCHEDULE = "*/30 * * * *"
 
 
-def _subject_timezone(subject_id: str) -> "zoneinfo.ZoneInfo | None":
+def _subject_timezone(subject_id: str) -> Optional[Any]:
     """Return the subject's ZoneInfo from delivery_policy.json, or None."""
     try:
         import zoneinfo
