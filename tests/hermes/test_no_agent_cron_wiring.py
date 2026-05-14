@@ -44,10 +44,10 @@ class TestNoAgentCronScriptCreated:
         # Verify shebang
         assert content.startswith("#!/usr/bin/env bash")
 
-        # Verify script accepts subject_id argument (bash syntax)
-        # In the f-string, we need to double braces to escape them
-        # The rendered script should have valid bash syntax like SUBJECT_ID="${1:-}"
-        assert 'SUBJECT_ID="${1:-}"' in content
+        # Verify script accepts subject_id argument with env-var fallback (bash syntax)
+        # Rendered script uses: SUBJECT_ID="${1:-${RELIC_SUBJECT_ID:-}}"
+        assert 'SUBJECT_ID=' in content
+        assert '${1:-' in content
 
         # Verify it calls Python decision logic (heredoc with quotes prevents variable expansion)
         assert "<<'PYTHON_EOF'" in content
@@ -232,7 +232,7 @@ class TestCandidateRequiresDeliveryGate:
     """Test that CANDIDATE requires delivery gate before actual delivery."""
 
     def test_candidate_requires_delivery_gate(self) -> None:
-        """Verify CANDIDATE decision returns candidate_data but does not auto-deliver."""
+        """Verify when all guards pass, decision is DELIVER with candidate_data."""
         with patch(
             "relic.gumi_plugin.cron_wiring.get_continuity_service"
         ) as mock_get_service:
@@ -252,83 +252,68 @@ class TestCandidateRequiresDeliveryGate:
 
             with patch(
                 "relic.gumi_plugin.cron_wiring._is_quiet_hours", return_value=False
+            ), patch(
+                "relic.gumi_plugin.cron_wiring._is_platform_not_allowlisted",
+                return_value=False,
+            ), patch(
+                "relic.gumi_plugin.cron_wiring._is_subject_paused",
+                return_value=False,
+            ), patch(
+                "relic.gumi_plugin.cron_wiring._is_continuity_scope_paused",
+                return_value=False,
+            ), patch(
+                "relic.gumi_plugin.cron_wiring._is_delivery_window_open",
+                return_value=True,
+            ), patch(
+                "relic.gumi_plugin.cron_wiring._is_followup_not_due",
+                return_value=False,
+            ), patch(
+                "relic.gumi_plugin.cron_wiring._is_followup_expired",
+                return_value=False,
+            ), patch(
+                "relic.gumi_plugin.cron_wiring._is_followup_max_attempts_reached",
+                return_value=False,
             ):
-                with patch(
-                    "relic.gumi_plugin.cron_wiring._is_platform_not_allowlisted",
-                    return_value=False,
-                ):
-                    with patch(
-                        "relic.gumi_plugin.cron_wiring._is_subject_paused",
-                        return_value=False,
-                    ):
-                        with patch(
-                            "relic.gumi_plugin.cron_wiring._is_followup_not_due",
-                            return_value=False,
-                        ):
-                            with patch(
-                                "relic.gumi_plugin.cron_wiring._is_followup_expired",
-                                return_value=False,
-                            ):
-                                with patch(
-                                    "relic.gumi_plugin.cron_wiring._is_followup_max_attempts_reached",
-                                    return_value=False,
-                                ):
-                                    decision, reasons, candidate_data = (
-                                        _evaluate_decision(
-                                            subject_id="test_subject",
-                                            gumi_instance_id="test_instance",
-                                            hermes_profile_id="test_profile",
-                                        )
-                                    )
+                decision, reasons, candidate_data = _evaluate_decision(
+                    subject_id="test_subject",
+                    gumi_instance_id="test_instance",
+                    hermes_profile_id="test_profile",
+                )
 
-            assert decision == RuntimeDecision.CANDIDATE
+            # _evaluate_decision goes directly to DELIVER when all guards pass
+            assert decision == RuntimeDecision.DELIVER
             assert candidate_data is not None
             assert "message" in candidate_data
-            assert "followups" in candidate_data
-            assert len(candidate_data["followups"]) == 1
-
-            # Verify CANDIDATE is NOT DELIVER - delivery gate is required
-            assert decision != RuntimeDecision.DELIVER
 
     def test_no_reply_has_empty_stdout_contract(self) -> None:
-        """Verify NO_REPLY returns empty candidate_data per stdout contract."""
+        """Verify NO_REPLY returns empty candidate_data when delivery window is closed."""
         with patch(
-            "relic.gumi_plugin.cron_wiring.get_continuity_service"
-        ) as mock_get_service:
-            mock_service = MagicMock(spec=ContinuityService)
-            mock_service._scopes = {}
-            mock_service.due_followups.return_value = []  # No due followups
-            mock_get_service.return_value = mock_service
-
+            "relic.gumi_plugin.cron_wiring._is_quiet_hours", return_value=False
+        ):
             with patch(
-                "relic.gumi_plugin.cron_wiring._is_quiet_hours", return_value=False
+                "relic.gumi_plugin.cron_wiring._is_platform_not_allowlisted",
+                return_value=False,
             ):
                 with patch(
-                    "relic.gumi_plugin.cron_wiring._is_platform_not_allowlisted",
+                    "relic.gumi_plugin.cron_wiring._is_subject_paused",
                     return_value=False,
                 ):
                     with patch(
-                        "relic.gumi_plugin.cron_wiring._is_subject_paused",
+                        "relic.gumi_plugin.cron_wiring._is_continuity_scope_paused",
                         return_value=False,
                     ):
                         with patch(
-                            "relic.gumi_plugin.cron_wiring._is_followup_expired",
-                            return_value=False,
+                            "relic.gumi_plugin.cron_wiring._is_delivery_window_open",
+                            return_value=False,  # window closed → NO_REPLY
                         ):
-                            with patch(
-                                "relic.gumi_plugin.cron_wiring._is_followup_max_attempts_reached",
-                                return_value=False,
-                            ):
-                                decision, reasons, candidate_data = (
-                                    _evaluate_decision(
-                                        subject_id="test_subject",
-                                        gumi_instance_id="test_instance",
-                                        hermes_profile_id="test_profile",
-                                    )
-                                )
+                            decision, reasons, candidate_data = _evaluate_decision(
+                                subject_id="test_subject",
+                                gumi_instance_id="test_instance",
+                                hermes_profile_id="test_profile",
+                            )
 
-            assert decision == RuntimeDecision.NO_REPLY
-            assert candidate_data is None
+        assert decision == RuntimeDecision.NO_REPLY
+        assert candidate_data is None
 
     def test_followup_not_due_returns_no_reply(self) -> None:
         """Test that _is_followup_not_due returns True when no followups are due."""

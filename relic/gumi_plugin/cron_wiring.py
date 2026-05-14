@@ -27,6 +27,31 @@ MEDIA_COOLDOWN_DAYS = {"image": 2.0, "voice": 1.0, "music": 7.0}
 _MEDIA_PROB_THRESHOLDS = {"music": 5, "voice": 30, "image": 50}  # cumulative %
 
 
+_PRO_MEDIA_KEY: dict[str, str] = {
+    "image": "PRO_IMAGE",
+    "voice": "PRO_AUDIO",
+    "music": "PRO_LYRIA",
+}
+
+
+def _pro_media_allowed(subject_id: str, mtype: str) -> bool:
+    """Return False if subject has set the PRO_* permission for mtype to 0."""
+    try:
+        from relic.profile.registry import ProfileRegistry
+
+        policy_path = ProfileRegistry()._delivery_policy_path(subject_id)
+        if not policy_path.exists():
+            return True
+        with open(policy_path, encoding="utf-8") as fh:
+            policy = json.load(fh)
+        key = _PRO_MEDIA_KEY.get(mtype)
+        if key is None:
+            return True
+        return int(policy.get(key, 2)) > 0
+    except Exception:
+        return True  # fail-open
+
+
 def _select_media_type(subject_id: str, hermes_home: Path, now: datetime) -> str:
     """Return 'text'|'voice'|'image'|'music'. Deterministic per subject+day."""
     policy_path = hermes_home / "workspace" / "gumi" / "media_policy.json"
@@ -40,7 +65,7 @@ def _select_media_type(subject_id: str, hermes_home: Path, now: datetime) -> str
     eligible: dict[str, bool] = {}
     for mtype in ("image", "voice", "music"):
         key = f"{mtype}_generation_enabled"
-        if policy.get(key):
+        if policy.get(key) and _pro_media_allowed(subject_id, mtype):
             eligible[mtype] = is_media_eligible(hermes_home, mtype, now, MEDIA_COOLDOWN_DAYS)
 
     if not any(eligible.values()):
@@ -173,6 +198,23 @@ def _is_platform_not_allowlisted(subject_id: str) -> bool:
         return False
 
 
+def _pro_checkin_allowed(subject_id: str) -> bool:
+    """Return False if subject has set PRO_CHECKIN=0 (opt-out of proactive check-ins)."""
+    try:
+        from relic.profile.registry import ProfileRegistry
+
+        registry = ProfileRegistry()
+        policy_path = registry._delivery_policy_path(subject_id)
+        if not policy_path.exists():
+            return True
+        with open(policy_path, encoding="utf-8") as fh:
+            policy = json.load(fh)
+        # PRO_CHECKIN: 0=never, 1=rarely, 2=default, 3=often, 4=maximum
+        return int(policy.get("PRO_CHECKIN", 2)) > 0
+    except Exception:
+        return True  # fail-open: allow if unreadable
+
+
 def _is_subject_paused(subject_id: str) -> bool:
     """Check if the subject is globally paused."""
     try:
@@ -294,12 +336,51 @@ def _last_outbound_in_window(
     return sh * 60 + sm <= last_min < eh * 60 + em
 
 
+_RESPONSE_TIMING_FACTOR: dict[str, float] = {
+    "high": 0.25,    # fires early in window (fast responder expectation)
+    "medium": 0.5,   # normal midpoint
+    "low": 0.85,     # fires late in window (relaxed expectation)
+}
+
+
+def _response_timing_factor(subject_id: str) -> float:
+    """Return [0,1] position within delivery window based on response_timing_expectation.
+
+    Reads interaction_preferences.response_timing_expectation from
+    baseline_user_profile.json. Fails open to 0.5 (normal).
+    """
+    try:
+        from relic.profile.registry import ProfileRegistry
+
+        registry = ProfileRegistry()
+        profile = registry.get_subject(subject_id)
+        if profile is None:
+            return 0.5
+        baseline_path = profile.relic_subject_home / "baseline_user_profile.json"
+        if not baseline_path.exists():
+            return 0.5
+        with open(baseline_path, encoding="utf-8") as fh:
+            baseline = json.load(fh)
+        value = (
+            baseline.get("interaction_preferences", {}).get("response_timing_expectation")
+            or baseline.get("response_timing_expectation")
+        )
+        return _RESPONSE_TIMING_FACTOR.get(str(value).lower(), 0.5)
+    except Exception:
+        return 0.5
+
+
 def _window_jitter_minute(subject_id: str, window: tuple[int, int, int, int], date: "datetime") -> int:
     """Return today's target send-minute (absolute, local time) within the window.
 
     Seeded by subject + window + date so it is stable within a day but varies
     across days.  The offset stays at least 30 min from the window end so
     cron has room to catch it.  Minimum jitter range: 30 min per window.
+
+    response_timing_expectation shifts the target position within the window:
+    - high  → early quarter  (subject expects fast responses)
+    - medium → midpoint (default)
+    - low   → late quarter (subject is relaxed about timing)
     """
     import hashlib
 
@@ -308,9 +389,18 @@ def _window_jitter_minute(subject_id: str, window: tuple[int, int, int, int], da
     end_min = eh * 60 + em
     # Reserve 30 min before window end so the message can actually fire
     available = max(end_min - start_min - 30, 0)
+
+    # Base deterministic offset from hash
     seed = f"{subject_id}|{window}|{date.strftime('%Y-%m-%d')}"
     h = int(hashlib.sha256(seed.encode()).hexdigest(), 16)
-    return start_min + (h % (available + 1))
+    base_offset = h % (available + 1)
+
+    # Shift offset toward timing preference (blended 50/50 with hash for stability)
+    timing_factor = _response_timing_factor(subject_id)
+    preferred_offset = int(available * timing_factor)
+    blended_offset = (base_offset + preferred_offset) // 2
+
+    return start_min + min(blended_offset, available)
 
 
 def _is_delivery_window_open(subject_id: str, hermes_home: Path) -> bool:
@@ -372,6 +462,11 @@ def _evaluate_decision(
         candidate_data is a dict with 'message' key for CANDIDATE/DELIVER, None otherwise.
     """
     reasons: list[RuntimeDecisionReason] = []
+
+    # Check PRO_CHECKIN permission — respect subject opt-out
+    if not _pro_checkin_allowed(subject_id):
+        reasons.append(RuntimeDecisionReason.subject_paused)
+        return RuntimeDecision.NO_REPLY, reasons, None
 
     # Check quiet hours
     if _is_quiet_hours(subject_id):

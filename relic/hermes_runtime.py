@@ -385,20 +385,27 @@ class DecisionEvent:
 # ---------------------------------------------------------------------------
 
 HERMES_OLLAMA_BASE_URL = "http://localhost:11434/v1"
-HERMES_DEFAULT_MODEL = "qwen3.5:cloud"
+HERMES_DEFAULT_MODEL = "gemma4:31b-cloud"
 HERMES_CONTEXT_LENGTH = 65536
 HINDSIGHT_DEFAULT_PROVIDER = "ollama"
+
+# Profile-scoped defaults (subject Gumi profiles — alibaba-coding-plan SKU)
+HERMES_PROFILE_DEFAULT_MODEL = "qwen3-coder-plus"
+HERMES_PROFILE_DEFAULT_PROVIDER = "alibaba-coding-plan"
+HERMES_PROFILE_CONTEXT_LENGTH = 1000000
+HERMES_CODING_BASE_URL = "https://coding-intl.dashscope.aliyuncs.com/v1"
+HINDSIGHT_PROFILE_DEFAULT_PROVIDER = "openai_compatible"
 
 
 def render_hindsight_local_config(
     *,
     bank_id: str,
-    llm_provider: str = HINDSIGHT_DEFAULT_PROVIDER,
-    model: str = HERMES_DEFAULT_MODEL,
+    llm_provider: str = HINDSIGHT_PROFILE_DEFAULT_PROVIDER,
+    model: str = HERMES_PROFILE_DEFAULT_MODEL,
     llm_api_key: str | None = None,
     llm_api_key_env: str | None = None,
 ) -> dict[str, str]:
-    """Render Hindsight local config with Ollama as the no-secret default."""
+    """Render Hindsight config for subject profiles (alibaba-coding-plan by default)."""
     config = {
         "mode": "local",
         "llm_provider": llm_provider,
@@ -410,6 +417,9 @@ def render_hindsight_local_config(
     if llm_provider == "ollama":
         config["base_url"] = HERMES_OLLAMA_BASE_URL
         config["model"] = model
+    elif llm_provider == "openai_compatible":
+        config["llm_base_url"] = HERMES_CODING_BASE_URL
+        config["llm_model"] = model
     if llm_api_key is not None:
         config["llm_api_key"] = llm_api_key
     if llm_api_key_env is not None:
@@ -421,7 +431,9 @@ def render_subject_hermes_config(
     *,
     profile_name: str,
     subject_id: str,
-    model: str = HERMES_DEFAULT_MODEL,
+    model: str = HERMES_PROFILE_DEFAULT_MODEL,
+    provider: str = HERMES_PROFILE_DEFAULT_PROVIDER,
+    timezone: str = "Europe/Rome",
 ) -> str:
     """Render a subject-private Hermes config."""
     return "\n".join(
@@ -431,8 +443,7 @@ def render_subject_hermes_config(
             "runtime_class: Hermes-native",
             "relic_managed: true",
             "model:",
-            "  provider: custom",
-            f"  base_url: {HERMES_OLLAMA_BASE_URL}",
+            f"  provider: {provider}",
             f"  default: {model}",
             f"  context_length: {HERMES_CONTEXT_LENGTH}",
             "agent:",
@@ -478,7 +489,7 @@ def render_subject_hermes_config(
             "  busy_input_mode: queue",
             "streaming:",
             "  enabled: false",
-            "timezone: Europe/Rome",
+            f"timezone: {timezone}",
             "personality: none",
             "group_sessions_per_user: true",
             "",
