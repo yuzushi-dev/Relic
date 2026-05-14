@@ -16,8 +16,7 @@
     "continuity_items",
     "memory_candidates",
     "knowledge_candidates",
-    "blocked_items",
-    "input_hash"
+    "blocked_items"
   ],
   "properties": {
     "schema_version": {
@@ -74,7 +73,10 @@
       "type": "boolean"
     },
     "system_sources": {
-      "type": "object"
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
     },
     "continuity_items": {
       "type": "array",
@@ -108,7 +110,8 @@
     },
     "input_hash": {
       "type": "string",
-      "pattern": "^sha256:"
+      "pattern": "^sha256:",
+      "description": "Optional SHA-256 hash of input for audit trail"
     }
   },
   "additionalProperties": false

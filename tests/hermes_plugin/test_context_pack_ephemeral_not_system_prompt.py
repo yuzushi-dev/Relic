@@ -16,38 +16,39 @@ from relic.hermes_plugin.plugin import PluginConfig, RelicHermesPlugin
 class TestEphemeralContext:
     """Verify ephemeral context behavior."""
 
-    def test_inject_returns_ephemeral_type(self) -> None:
-        """Injected context should have ephemeral type."""
+    def test_inject_returns_pcp_type(self) -> None:
+        """Injected context should be a PCP with schema_version."""
         plugin = RelicHermesPlugin()
         plugin.load()
         context = plugin.inject_ephemeral_context()
         assert context is not None
-        assert context["type"] == "ephemeral_guidance"
+        assert "schema_version" in context
 
     def test_inject_includes_timestamp(self) -> None:
-        """Injected context should include timestamp."""
+        """Injected context should include created_at timestamp."""
         plugin = RelicHermesPlugin()
         plugin.load()
         context = plugin.inject_ephemeral_context()
         assert context is not None
-        assert "timestamp" in context
+        assert "created_at" in context
 
     def test_inject_includes_policy_version(self) -> None:
-        """Injected context should include policy version."""
+        """Injected context should include schema version."""
         plugin = RelicHermesPlugin()
         plugin.load()
         context = plugin.inject_ephemeral_context()
         assert context is not None
-        assert "policy_version" in context
-        assert context["policy_version"] == "1.0.0"
+        assert "schema_version" in context
+        assert context["schema_version"] == "1.0"
 
-    def test_inject_includes_privacy_gateway_status(self) -> None:
-        """Injected context should include privacy gateway status."""
+    def test_inject_includes_session_and_turn_ids(self) -> None:
+        """Injected context should include session and turn IDs."""
         plugin = RelicHermesPlugin()
         plugin.load()
         context = plugin.inject_ephemeral_context()
         assert context is not None
-        assert "privacy_gateway_active" in context
+        assert "session_id" in context
+        assert "turn_id" in context
 
     def test_inject_does_not_include_memory_paths(self) -> None:
         """Injected context should NOT include memory file paths."""
@@ -79,7 +80,6 @@ class TestEphemeralContext:
         plugin.load()
         # Should not raise - nothing to persist
         plugin.inject_ephemeral_context()
-        # If we get here, no persistent state was modified
 
 
 class TestNoSystemPromptModification:
@@ -113,8 +113,8 @@ class TestNoSystemPromptModification:
         plugin.load()
         context1 = plugin.inject_ephemeral_context()
         context2 = plugin.inject_ephemeral_context()
-        # Timestamps should be different (ephemeral)
-        assert context1["timestamp"] != context2["timestamp"]
+        # Different pack_id or timestamps for ephemeral context
+        assert context1["pack_id"] != context2["pack_id"]
 
 
 class TestEphemeralPerTurnBehavior:
@@ -137,4 +137,5 @@ class TestEphemeralPerTurnBehavior:
             context = plugin.inject_ephemeral_context()
             assert context is not None
             # Should always have same structure, no accumulation
-            assert len(context) <= 5  # Only metadata fields
+            # PCP has a fixed number of fields
+            assert len(context) <= 20

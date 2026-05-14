@@ -1,17 +1,11 @@
-"""Prompt context pack — multiple independent context sources."""
+"""Prompt context pack — multiple independent context sources.
+
+Backward-compatible stub that imports from the new context_pack package.
+"""
 
 from __future__ import annotations
 
-from relic.hermes_plugin.context_injection import ContextSource
+from relic.context_pack import PromptContextPack
+from relic.context_pack.types import ContextSource
 
-
-class PromptContextPack:
-    """Context pack with independent sources. Never monolithic."""
-
-    def get_context_sources(self) -> list[ContextSource]:
-        return [
-            ContextSource.MEMORY,
-            ContextSource.USER,
-            ContextSource.SYSTEM,
-            ContextSource.SKILL,
-        ]
+__all__ = ["PromptContextPack", "ContextSource"]

@@ -123,16 +123,14 @@ class TestPluginFailureNoInjection:
         assert result is None
 
     def test_inject_context_returns_ephemeral_only(self) -> None:
-        """inject_ephemeral_context should return ephemeral data only."""
+        """inject_ephemeral_context should return PCP data only."""
         plugin = RelicHermesPlugin()
         plugin.load()
         result = plugin.inject_ephemeral_context()
         assert result is not None
-        # Should NOT have persistent store fields
-        assert "type" in result
-        assert result["type"] == "ephemeral_guidance"
-        assert "timestamp" in result
-        assert "policy_version" in result
+        # Should have PCP fields
+        assert "schema_version" in result
+        assert "pack_id" in result
         # Should NOT have memory store paths
         assert "soul_md" not in result
         assert "memory_md" not in result
