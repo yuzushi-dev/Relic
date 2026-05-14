@@ -203,12 +203,16 @@ class BootstrapTUI:
 
         # Step 5b: Delivery configuration (gated by consent.delivery)
 
+        # Scan existing subjects for reusable API keys (QoL: avoid re-entering)
+        from relic.profile._bootstrap_steps.delivery_config import scan_existing_api_keys
+        existing_keys = scan_existing_api_keys(self.registry)
+
         # Step 5c: Gemini API Key (if any media consent is True)
         gemini_key = ""
         if consent_record.get("generated_images") or consent_record.get("generated_audio") or consent_record.get("generated_music"):
-            gemini_key = collect_gemini_api_key(self.io_in, self.io_out)
+            gemini_key = collect_gemini_api_key(self.io_in, self.io_out, existing_keys=existing_keys)
             self._log_step("gemini_api_key", "provided" if gemini_key else "skipped")
-        delivery_config = collect_delivery_config(self.io_in, self.io_out, consent_record, subject_id=subject_id)
+        delivery_config = collect_delivery_config(self.io_in, self.io_out, consent_record, subject_id=subject_id, existing_keys=existing_keys)
 
         # Create the profile via registry
         self._print(f"\nCreating subject '{subject_id}'...")

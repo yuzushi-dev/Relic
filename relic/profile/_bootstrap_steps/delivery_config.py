@@ -3,9 +3,81 @@ from __future__ import annotations
 
 import os
 import re
+from pathlib import Path
 from typing import TextIO
 
 from relic.profile._bootstrap_steps._io import prompt_optional
+
+
+def _read_env_file(env_path: Path) -> dict[str, str]:
+    """Parse a .env file and return key→value dict (no shell expansion)."""
+    result: dict[str, str] = {}
+    try:
+        for line in env_path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, val = line.partition("=")
+            result[key.strip()] = val.strip().strip('"').strip("'")
+    except OSError:
+        pass
+    return result
+
+
+def scan_existing_api_keys(registry=None) -> dict[str, str]:
+    """Scan all existing subjects' .env files for reusable API keys.
+
+    Returns {key_name: value} for keys worth reusing: GEMINI_API_KEY and
+    any *_BOT_TOKEN vars. Deduplicates by value; first found wins per key.
+    """
+    if registry is None:
+        try:
+            from relic.profile.registry import ProfileRegistry
+            registry = ProfileRegistry()
+        except Exception:
+            return {}
+
+    found: dict[str, str] = {}
+    try:
+        for profile in registry.list_subjects():
+            env_path = profile.hermes_home / ".env"
+            if not env_path.exists():
+                continue
+            for k, v in _read_env_file(env_path).items():
+                if not v:
+                    continue
+                if k == "GEMINI_API_KEY" or k.endswith("_BOT_TOKEN"):
+                    if k not in found:
+                        found[k] = v
+    except Exception:
+        pass
+    return found
+
+
+def _offer_existing_key(
+    io_in: TextIO,
+    io_out: TextIO,
+    label: str,
+    candidates: dict[str, str],
+) -> str | None:
+    """If candidates non-empty, list them and let researcher pick one or enter new."""
+    if not candidates:
+        return None
+    items = list(candidates.items())
+    print(f"\n  Chiavi {label} già configurate per altri soggetti:", file=io_out)
+    for i, (k, v) in enumerate(items, 1):
+        masked = v[:8] + "..." if len(v) > 8 else v
+        print(f"    {i}. {k} = {masked}", file=io_out)
+    print(f"    0. Inserisci nuova chiave", file=io_out)
+    print(f"  Scelta (0-{len(items)}): ", end="", flush=True, file=io_out)
+    try:
+        raw = io_in.readline().strip()
+        idx = int(raw)
+        if 1 <= idx <= len(items):
+            return items[idx - 1][1]
+    except (ValueError, EOFError, OSError):
+        pass
+    return None
 
 _ENV_RE = re.compile(r"^[A-Z][A-Z0-9_]*$")
 
@@ -32,7 +104,13 @@ def _ask_yes_no(io_in: TextIO, io_out: TextIO, question: str, default: bool = Fa
             return default
 
 
-def collect_delivery_config(io_in: TextIO, io_out: TextIO, consent_record: dict, subject_id: str = "") -> dict:
+def collect_delivery_config(
+    io_in: TextIO,
+    io_out: TextIO,
+    consent_record: dict,
+    subject_id: str = "",
+    existing_keys: dict[str, str] | None = None,
+) -> dict:
     """Collect delivery settings, gated by consent."""
     print("\n" + "=" * 60, file=io_out)
     print("  TELEGRAM DELIVERY SETUP", file=io_out)
@@ -107,24 +185,38 @@ def collect_delivery_config(io_in: TextIO, io_out: TextIO, consent_record: dict,
     print("", file=io_out)
     print("  Enter your bot token now (it will be set in the current environment).", file=io_out)
     print("  Leave blank to skip — you can export it manually before sending.", file=io_out)
+
+    # Offer import from existing subjects
+    bot_candidates: dict[str, str] = {}
+    if existing_keys:
+        for k, v in existing_keys.items():
+            if k.endswith("_BOT_TOKEN") and v:
+                bot_candidates[k] = v
+    imported_token = _offer_existing_key(io_in, io_out, "Bot Token", bot_candidates)
+
     bot_token_value = None
-    while True:
-        raw_token = prompt_optional(
-            "bot_token_value",
-            f"Bot token value for {bot_token_env}",
-            io_in,
-            io_out,
-            default="",
-        )
-        if not raw_token:
-            print("  Token not set. Export it before sending the first message.", file=io_out)
-            break
-        if ":" in raw_token and len(raw_token) > 20:
-            bot_token_value = raw_token
-            os.environ[bot_token_env] = bot_token_value
-            print(f"  Token exported as {bot_token_env}.", file=io_out)
-            break
-        print("  Token format invalid (expected digits:letters, e.g. 123456789:ABCdef...).", file=io_out)
+    if imported_token:
+        bot_token_value = imported_token
+        os.environ[bot_token_env] = bot_token_value
+        print(f"  Token importato ed esportato come {bot_token_env}.", file=io_out)
+    else:
+        while True:
+            raw_token = prompt_optional(
+                "bot_token_value",
+                f"Bot token value for {bot_token_env}",
+                io_in,
+                io_out,
+                default="",
+            )
+            if not raw_token:
+                print("  Token not set. Export it before sending the first message.", file=io_out)
+                break
+            if ":" in raw_token and len(raw_token) > 20:
+                bot_token_value = raw_token
+                os.environ[bot_token_env] = bot_token_value
+                print(f"  Token exported as {bot_token_env}.", file=io_out)
+                break
+            print("  Token format invalid (expected digits:letters, e.g. 123456789:ABCdef...).", file=io_out)
     
     print("\n" + "-" * 60, file=io_out)
     print("  STEP 4: Quiet Hours (optional)", file=io_out)
@@ -182,11 +274,30 @@ def collect_delivery_config(io_in: TextIO, io_out: TextIO, consent_record: dict,
     }
 
 
-def collect_gemini_api_key(io_in: TextIO, io_out: TextIO) -> str:
-    """Collect Gemini API key for media generation."""
+def collect_gemini_api_key(
+    io_in: TextIO,
+    io_out: TextIO,
+    existing_keys: dict[str, str] | None = None,
+) -> str:
+    """Collect Gemini API key for media generation.
+
+    If existing_keys contains a GEMINI_API_KEY from another subject,
+    the researcher can import it directly instead of re-typing.
+    """
     print("\n" + "-" * 60, file=io_out)
     print("  GEMINI API KEY (per immagini, voce e musica)", file=io_out)
     print("-" * 60, file=io_out)
+
+    # Offer import from existing subjects
+    candidates: dict[str, str] = {}
+    if existing_keys and "GEMINI_API_KEY" in existing_keys:
+        candidates["GEMINI_API_KEY"] = existing_keys["GEMINI_API_KEY"]
+
+    imported = _offer_existing_key(io_in, io_out, "GEMINI_API_KEY", candidates)
+    if imported:
+        print("  Chiave importata.", file=io_out)
+        return imported
+
     print("  Per generare immagini, voce e musica serve una chiave", file=io_out)
     print("  Google Gemini API. Gratuita su aistudio.google.com", file=io_out)
     print("", file=io_out)
@@ -196,7 +307,7 @@ def collect_gemini_api_key(io_in: TextIO, io_out: TextIO) -> str:
     print("    3. 'Get API key' → 'Create API key'", file=io_out)
     print("    4. Copia la chiave (inizia con AIza...)", file=io_out)
     print("", file=io_out)
-    
+
     gemini_key = prompt_optional(
         "GEMINI_API_KEY",
         "Incolla chiave (invio per saltare)",
