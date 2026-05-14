@@ -31,4 +31,5 @@ def test_handler_exception_is_fail_closed() -> None:
 
     hooks.register(hooks.PRE_LLM_CALL, boom)
     out = hooks.dispatch(hooks.PRE_LLM_CALL, {})
-    assert out and out[0]["fail_closed"] is True
+    # Hermes contract: exception → None in output, never an error dict
+    assert out == [None]

@@ -11,8 +11,7 @@ def test_default_plugin_is_disabled() -> None:
     assert p.is_ready() is False
 
 
-def test_fail_closed_returns_redacted() -> None:
+def test_fail_closed_returns_none() -> None:
     p = GumiPlugin()
     fc = p.fail_closed()
-    assert fc["context_pack"] is None
-    assert fc["redacted"] is True
+    assert fc is None  # Hermes contract: fail-closed returns None, never an error dict
