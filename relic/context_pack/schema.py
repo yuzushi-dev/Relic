@@ -5,9 +5,12 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from jsonschema import ValidationError, validate
+
+if TYPE_CHECKING:
+    from relic.context_pack.types import PromptContextPack
 
 SCHEMA_PATH = Path(__file__).parent.parent.parent / "schemas" / "prompt_context_pack.schema.json"
 
