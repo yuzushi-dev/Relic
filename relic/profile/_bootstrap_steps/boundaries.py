@@ -73,10 +73,18 @@ def collect_boundaries(io_in: TextIO = None, io_out: TextIO = None) -> dict:
 
     risk_flags = _collect_risk_flags(io_in, io_out)
 
+    # Collect escalation contacts
+    io_out.write("\nESCALATION CONTACTS (sperimentatore da avvisare in caso di segnali di crisi)\n")
+    io_out.write("-" * 50 + "\n\n")
+    io_out.flush()
+
+    escalation_contacts = _collect_escalation_contacts(io_in, io_out)
+
     return {
         "boundaries": boundaries,
         "opt_out_categories": opt_out_categories,
         "risk_flags": risk_flags,
+        "escalation_contacts": escalation_contacts,
     }
 
 
@@ -172,6 +180,67 @@ def _collect_risk_flags(io_in: TextIO, io_out: TextIO) -> list:
         flag_num += 1
 
     return risk_flags
+
+
+def _collect_escalation_contacts(io_in: TextIO, io_out: TextIO) -> list:
+    """Collect researcher/experimenter escalation contacts (loop, skippable)."""
+    contacts = []
+    contact_num = 1
+
+    while True:
+        io_out.write(f"Add escalation contact? (y/n) [default: n]: ")
+        io_out.flush()
+        response = io_in.readline().strip().lower()
+
+        if not response or response.startswith("n"):
+            break
+        if not response.startswith("y"):
+            io_out.write("Enter 'y' or 'n'.\n")
+            io_out.flush()
+            continue
+
+        io_out.write(f"\n--- Escalation Contact {contact_num} ---\n")
+        io_out.flush()
+
+        io_out.write("Name (e.g. 'Dr. Rossi'): ")
+        io_out.flush()
+        name = io_in.readline().strip()
+        if not name:
+            io_out.write("Name required. Skipping.\n")
+            io_out.flush()
+            continue
+
+        io_out.write("Contact method (email | telegram | sms) [default: email]: ")
+        io_out.flush()
+        method = io_in.readline().strip().lower() or "email"
+        if method not in ("email", "telegram", "sms"):
+            method = "email"
+
+        io_out.write(f"Contact value (e.g. researcher@uni.it or @username): ")
+        io_out.flush()
+        value = io_in.readline().strip()
+        if not value:
+            io_out.write("Contact value required. Skipping.\n")
+            io_out.flush()
+            continue
+
+        valid_signals = ["crisis_language", "self_harm_language", "dependency_escalation", "all"]
+        io_out.write(f"Notify on signals ({', '.join(valid_signals)}) [default: all]: ")
+        io_out.flush()
+        signals_raw = io_in.readline().strip().lower() or "all"
+        notify_on = [s.strip() for s in signals_raw.split(",") if s.strip() in valid_signals]
+        if not notify_on:
+            notify_on = ["all"]
+
+        contacts.append({
+            "name": name,
+            "method": method,
+            "value": value,
+            "notify_on": notify_on,
+        })
+        contact_num += 1
+
+    return contacts
 
 
 def _collect_severity(io_in: TextIO, io_out: TextIO) -> str:

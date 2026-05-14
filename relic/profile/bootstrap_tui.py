@@ -194,7 +194,7 @@ class BootstrapTUI:
         # Step 4: Gumi generation mode — always hybrid; structured battery already provides
         # all calibration inputs. Optional domain overrides remain available.
         gumi_mode = "hybrid"
-        gumi_overrides, gumi_name = collect_gumi_overrides(self.io_in, self.io_out, mode=gumi_mode)
+        gumi_overrides, gumi_name, gumi_signature_emoji = collect_gumi_overrides(self.io_in, self.io_out, mode=gumi_mode)
 
         # Step 5: Hermes provisioning
         self._print("\n--- Hermes Provisioning ---")
@@ -292,6 +292,13 @@ class BootstrapTUI:
                 regen_idx += 1
                 background_path = profile.relic_subject_home / "gumi_background_profile.json"
                 gumi_profile_dict = json.loads(background_path.read_text(encoding="utf-8"))
+                # Persist signature_emoji into the background profile
+                if gumi_signature_emoji:
+                    gumi_profile_dict["signature_emoji"] = gumi_signature_emoji
+                    background_path.write_text(
+                        json.dumps(gumi_profile_dict, indent=2, ensure_ascii=False) + "\n",
+                        encoding="utf-8",
+                    )
                 gumi_action = review_gumi_background(self.io_in, self.io_out, gumi_profile_dict)
                 self._log_step("gumi_review_action", gumi_action)
                 if gumi_action == "accept":
@@ -321,6 +328,7 @@ class BootstrapTUI:
                 "opt_out_categories", {"values": [], "origin": "subject-stated"}
             ),
             "risk_flags": boundaries_data.get("risk_flags", []),
+            "escalation_contacts": boundaries_data.get("escalation_contacts", []),
             "item_battery": item_battery,
         }
         write_baseline_artifact(profile.relic_subject_home, build_baseline_artifact(state))

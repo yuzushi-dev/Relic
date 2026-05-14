@@ -26,13 +26,23 @@ _FIELDS = [
         str,
     ),
     (
-        "timezone",
-        "Fuso orario del soggetto (es. Europe/Rome, UTC+1). Usato per quiet hours e scheduling.",
+        "contact_channel_preference",
+        "Canale di contatto preferito dal soggetto (es. telegram, email, sms).",
         str,
     ),
     (
-        "contact_channel_preference",
-        "Canale di contatto preferito dal soggetto (es. telegram, email, sms).",
+        "occupation_or_study",
+        "Occupazione o campo di studio del soggetto (es. insegnante, studente ingegneria, infermiere).",
+        str,
+    ),
+    (
+        "location",
+        "Tipo di contesto geografico del soggetto (es. coastal city, urban center, rural village, mountain town).",
+        str,
+    ),
+    (
+        "family_structure",
+        "Struttura familiare del soggetto (es. single, coppia senza figli, genitore, famiglia allargata).",
         str,
     ),
     (
