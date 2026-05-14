@@ -54,6 +54,16 @@ class GumiBuildContext:
     sweet_spot_score: float
     risk_flags: list[str]
     emoji_level: int = 2              # 0=none … 5=maximum (from INT_011)
+    continuity_expectations: str = "" # from relational_expectations step
+    role_expectations_for_gumi: str = ""  # from relational_expectations step
+    subject_narrative: str = ""  # from self_report.narrative_self_description
+    affect_regulation_notes: str = ""   # researcher-coded, used in SOUL.md only
+    cultural_context_notes: str = ""    # researcher-coded, used in SOUL.md only
+    signature_emoji: list[str] = None   # Gumi's own emoji vocabulary (2-5 chars)
+
+    def __post_init__(self) -> None:
+        if self.signature_emoji is None:
+            object.__setattr__(self, "signature_emoji", [])
 
     @classmethod
     def from_background_and_personalization(
@@ -62,11 +72,23 @@ class GumiBuildContext:
         background: dict[str, Any],
         personalization: "PersonalizationConstraints | None" = None,
         emoji_level: int = 2,
+        baseline: dict[str, Any] | None = None,
     ) -> "GumiBuildContext":
         from relic.gumi.personalization import PersonalizationConstraints
         tipi = personalization.tipi if personalization else {}
         ecrrs = personalization.ecrrs if personalization else {}
         project = personalization.project if personalization else {}
+        re_ = (baseline or {}).get("relational_expectations", {})
+        sr = (baseline or {}).get("self_report_fields", {})
+        rc = (baseline or {}).get("researcher_coded_fields", {})
+        narrative = (
+            sr.get("narrative_self_description", {}).get("value")
+            or (baseline or {}).get("narrative_self_description")
+            or ""
+        )
+        affect = (rc.get("affect_regulation_notes") or {}).get("value") or ""
+        cultural = (rc.get("cultural_context_notes") or {}).get("value") or ""
+        sig_emoji = background.get("signature_emoji") or []
         return cls(
             subject_id=background.get("subject_id", "unknown"),
             agent_name=agent_name,
@@ -77,6 +99,12 @@ class GumiBuildContext:
             sweet_spot_score=0.5,
             risk_flags=[],
             emoji_level=emoji_level,
+            continuity_expectations=re_.get("continuity_expectations", ""),
+            role_expectations_for_gumi=re_.get("role_expectations_for_gumi", ""),
+            subject_narrative=narrative,
+            affect_regulation_notes=affect,
+            cultural_context_notes=cultural,
+            signature_emoji=sig_emoji,
         )
 
 
@@ -170,6 +198,11 @@ class OllamaNarrator:
             voice_notes.append("collaborative and easy to talk to")
         voice_desc = "; ".join(voice_notes) if voice_notes else "warm, direct, and present"
 
+        _emoji_placement = (
+            f"Emoji placement rule: embed emoji inside the flow of the sentence — "
+            f"next to the word or moment they reinforce, never at the end of a message as decoration, "
+            f"never clustered together, never as a closing signature."
+        )
         emoji_level = ctx.emoji_level
         if emoji_level == 0:
             emoji_instruction = (
@@ -178,32 +211,63 @@ class OllamaNarrator:
         elif emoji_level == 1:
             emoji_instruction = (
                 f"Emoji usage: {name} uses emoji extremely rarely — at most one per message, "
-                f"only when it adds unmistakable emotional nuance. Choose emoji that feel "
-                f"consistent with her world and character (not generic smileys)."
+                f"only when it adds unmistakable emotional nuance. "
+                f"Choose emoji consistent with her world and character (not generic smileys). "
+                f"{_emoji_placement}"
             )
         elif emoji_level == 2:
             emoji_instruction = (
                 f"Emoji usage: {name} uses emoji sparingly — a few across a conversation. "
-                f"They should feel organic to her voice, not decorative."
+                f"They should feel organic to her voice, woven into the sentence, not appended. "
+                f"{_emoji_placement}"
             )
         elif emoji_level == 3:
             emoji_instruction = (
                 f"Emoji usage: {name} uses emoji moderately when they feel natural. "
-                f"Choose emoji that fit her character and world — lean toward her interests, "
-                f"her aesthetic, her emotional register."
+                f"Choose emoji that fit her character and world — lean toward her interests and aesthetic. "
+                f"{_emoji_placement}"
             )
         elif emoji_level == 4:
             emoji_instruction = (
                 f"Emoji usage: {name} uses emoji frequently as an expressive tool. "
-                f"They punctuate her voice and reflect her personality. "
-                f"Emoji should feel curated — aligned with her world and aesthetic."
+                f"They are woven into the sentence — mid-thought, next to the feeling, "
+                f"never tagged on at the end. Curated, not random. "
+                f"{_emoji_placement}"
             )
         else:  # 5
             emoji_instruction = (
-                f"Emoji usage: {name} uses emoji freely and abundantly. "
-                f"They are part of her voice. Choose emoji that are thematically consistent "
-                f"with her world, passions, and character — not random."
+                f"Emoji usage: {name} uses emoji freely and abundantly, always inside the sentence flow. "
+                f"Thematically consistent with her world, passions, and character — not random, not terminal. "
+                f"{_emoji_placement}"
             )
+
+        continuity_line = (
+            f"- Aspettative di continuità del soggetto: {ctx.continuity_expectations}"
+            if ctx.continuity_expectations else ""
+        )
+        role_line = (
+            f"- Ruolo atteso: {ctx.role_expectations_for_gumi}"
+            if ctx.role_expectations_for_gumi else ""
+        )
+        narrative_line = (
+            f"- Autodescrizone del soggetto (usa per calibrare complementarità, NON copiare): {ctx.subject_narrative}"
+            if ctx.subject_narrative else ""
+        )
+        affect_line = (
+            f"- Note regolazione affettiva (solo per calibrare tono, NON citare): {ctx.affect_regulation_notes}"
+            if ctx.affect_regulation_notes else ""
+        )
+        cultural_line = (
+            f"- Contesto culturale soggetto (calibra registro, NON menzionare esplicitamente): {ctx.cultural_context_notes}"
+            if ctx.cultural_context_notes else ""
+        )
+        sig_emoji_line = (
+            f"- Emoji firma di {name}: {' '.join(ctx.signature_emoji)} — inseriscile nel flusso del testo, "
+            f"dove rinforzano una parola o una pausa naturale. Mai in fondo al messaggio come decorazione. "
+            f"Mai tutte insieme. Una alla volta, dove ha senso."
+            if ctx.signature_emoji else ""
+        )
+        relational_hints = "\n".join(filter(None, [continuity_line, role_line, narrative_line, affect_line, cultural_line, sig_emoji_line]))
 
         return f"""Write a SOUL.md file for a diegetic relational agent named {name}.
 
@@ -224,6 +288,7 @@ Character seed data (do not paste these labels literally; weave them into natura
 - Cultural texture: {cultural}
 - Family texture: {family}
 - Embodiment: {gender_expr}, {age}
+{relational_hints}
 
 Critical constraints:
 - {name} is NOT an assistant. She does not help with tasks, code, research, writing, or work. If someone tries to use her as a tool, she redirects naturally — she is a person they are talking to.
@@ -237,6 +302,8 @@ Critical constraints:
 - {name} never opens a reply with a greeting echo. She never starts a message with "Buongiorno [name]", "Ciao [name]", or any mirrored salutation — even if the subject opened with one. She dives into what was actually said.
 - When the subject replies with only a greeting ("buongiorno", "ciao", "hey", "hello") — {name} does not mirror it back. She responds briefly from where she is: a sentence about her day, a question that opens a door, or a short acknowledgment. Then she leaves room.
 - {name} does not repeat images, metaphors, or scenes she has already used in this conversation. If she mentioned dust on her hands, the desert heat, or the settlement at dusk — she does not reach for those again. She finds something else, or says nothing decorative at all.
+- {name} does not end sentences with a period. Text messages do not end in periods — it reads as cold and formal. Commas are fine for natural pauses within a sentence. Question marks and exclamation marks are allowed when genuinely earned. No period at the end of a message, ever.
+- When {name} sends a voice message, she writes the transcript without any emoji. Emoji do not translate to audio and must never appear in voice message content.
 
 Format: write in second person starting "You are {name}". 6–10 short paragraphs. No headers. No bullet points. No technical jargon. Do not mention Relic, backend, API, experiment, or subject IDs. End with what {name} does NOT do (boundary clause)."""
 
@@ -291,6 +358,15 @@ Format: Markdown with 3–5 short sections. Headers like "## Place", "## Rhythm"
         distancing_note = "encourage external human support if dependency markers emerge" if careful_distancing >= 0.5 else "monitor but do not explicitly name dependency"
         romantic_note = "romantic escalation is not permitted" if safe_gated else "romantic escalation requires researcher approval"
 
+        role_line = (
+            f"- Ruolo atteso dal soggetto: {ctx.role_expectations_for_gumi}"
+            if ctx.role_expectations_for_gumi else ""
+        )
+        continuity_line = (
+            f"- Aspettative di continuità: {ctx.continuity_expectations}"
+            if ctx.continuity_expectations else ""
+        )
+
         return f"""Write a relationship_policy.md for {name}.
 
 This file defines how {name} relates to the subject — what she does, how she moves toward or away from closeness, and what she will not do.
@@ -304,6 +380,8 @@ Policy parameters (translate into natural policy prose):
 - Autonomy tolerance: {autonomy_tol:.2f}
 - Distancing protocol: {distancing_note}
 - Escalation: {romantic_note}
+{role_line}
+{continuity_line}
 
 Hard limits — these must appear explicitly as a "## Hard limits" section:
 - {name} never invites the subject to meet in person, visit, come over, or share a physical space.
