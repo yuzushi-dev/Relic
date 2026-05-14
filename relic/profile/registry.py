@@ -10,7 +10,6 @@ import shutil
 import subprocess
 from dataclasses import dataclass, field, asdict
 import shutil
-import requests
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
