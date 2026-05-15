@@ -76,7 +76,13 @@ function liveProfiles() {
     return fs
       .readdirSync(subjectsDir, { withFileTypes: true })
       .filter((entry) => entry.isDirectory())
-      .map((entry) => readJson<LiveSubjectProfile>(path.join(subjectsDir, entry.name, "subject_profile.json")))
+      .map((entry) => {
+        const profile = readJson<LiveSubjectProfile>(path.join(subjectsDir, entry.name, "subject_profile.json"));
+        if (profile?.subject_id) {
+          profile.relic_subject_home = path.join(relicHome(), "subjects", profile.subject_id);
+        }
+        return profile;
+      })
       .filter((profile): profile is LiveSubjectProfile => Boolean(profile?.subject_id));
   } catch {
     return [];
