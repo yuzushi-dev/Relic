@@ -70,12 +70,146 @@ def _get_api_key() -> Optional[str]:
     return os.environ.get("GEMINI_API_KEY")
 
 
+def _load_env(hermes_home: Path) -> dict[str, str]:
+    env: dict[str, str] = {}
+    env_path = hermes_home / ".env"
+    if env_path.exists():
+        for line in env_path.read_text().splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, v = line.split("=", 1)
+                env[k.strip()] = v.strip()
+    return env
+
+
+def _send_telegram_media(
+    hermes_home: Path,
+    media_path: Path,
+    media_type: str,
+    caption: str = "",
+    title: str = "",
+    performer: str = "",
+) -> bool:
+    """Send a media file to Telegram via Bot API.
+
+    media_type: 'voice' | 'image' | 'music'
+    - voice: no caption, no text — pure voice note
+    - image: caption shown below photo (stripped of trailing punctuation)
+    - music: title + performer set on audio player, no caption
+    Returns True on success.
+    """
+    import urllib.request
+
+    env = _load_env(hermes_home)
+    bot_token = env.get("TELEGRAM_BOT_TOKEN") or os.environ.get("TELEGRAM_BOT_TOKEN")
+    chat_id = env.get("TELEGRAM_HOME_CHANNEL") or env.get("TELEGRAM_ALLOWED_USERS")
+
+    if not bot_token or not chat_id:
+        print("[WARN] Missing TELEGRAM_BOT_TOKEN or chat_id — skipping Telegram delivery")
+        return False
+
+    if not media_path.exists():
+        print(f"[WARN] Media file not found: {media_path}")
+        return False
+
+    _METHOD = {"voice": "sendVoice", "image": "sendPhoto", "music": "sendAudio"}
+    _FIELD  = {"voice": "voice",     "image": "photo",     "music": "audio"}
+    method = _METHOD.get(media_type, "sendDocument")
+    field  = _FIELD.get(media_type, "document")
+
+    url = f"https://api.telegram.org/bot{bot_token}/{method}"
+
+    boundary = "ReLiCboundary123"
+    body_parts: list[bytes] = []
+
+    def _part(name: str, value: str) -> bytes:
+        return (
+            f"--{boundary}\r\n"
+            f'Content-Disposition: form-data; name="{name}"\r\n\r\n'
+            f"{value}\r\n"
+        ).encode()
+
+    body_parts.append(_part("chat_id", str(chat_id)))
+
+    # voice: no caption, no extra text
+    if media_type == "image" and caption:
+        # Strip trailing punctuation except commas; keep clean
+        import re
+        clean_caption = re.sub(r"[.!?;:]+$", "", caption.strip())
+        if clean_caption:
+            body_parts.append(_part("caption", clean_caption[:1024]))
+
+    if media_type == "music":
+        # title from lyrics (first meaningful line), no caption
+        if title:
+            body_parts.append(_part("title", title[:64]))
+        if performer:
+            body_parts.append(_part("performer", performer[:64]))
+
+    with open(media_path, "rb") as fh:
+        file_data = fh.read()
+
+    filename = media_path.name
+    body_parts.append(
+        (
+            f"--{boundary}\r\n"
+            f'Content-Disposition: form-data; name="{field}"; filename="{filename}"\r\n'
+            f"Content-Type: application/octet-stream\r\n\r\n"
+        ).encode() + file_data + b"\r\n"
+    )
+    body_parts.append(f"--{boundary}--\r\n".encode())
+
+    body = b"".join(body_parts)
+
+    try:
+        req = urllib.request.Request(
+            url,
+            data=body,
+            headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            result = json.loads(resp.read().decode())
+            if result.get("ok"):
+                return True
+            print(f"[WARN] Telegram API error: {result.get('description')}")
+            return False
+    except Exception as exc:
+        print(f"[WARN] Telegram delivery failed: {exc}")
+        return False
+
+
+def _get_gumi_name(relic_subject_home: Path) -> str:
+    """Read Gumi's display name from background profile."""
+    bg_path = relic_subject_home / "gumi_background_profile.json"
+    if bg_path.exists():
+        try:
+            import json as _json
+            bg = _json.loads(bg_path.read_text(encoding="utf-8"))
+            return bg.get("display_name") or bg.get("agent_name") or "Gumi"
+        except Exception:
+            pass
+    return "Gumi"
+
+
+def _music_title_from_lyrics(caption: str) -> str:
+    """Extract a short song title from the first lyric line."""
+    import re
+    # Strip timestamp prefix like "[0.0:2.9] " if present
+    lines = [re.sub(r"^\[\d+\.\d+[:\d.]*\]\s*", "", l).strip() for l in caption.splitlines() if l.strip()]
+    first = lines[0] if lines else ""
+    # Capitalise, max 40 chars, no trailing punctuation
+    title = re.sub(r"[.!?;:]+$", "", first).strip()
+    return title[:40] if title else "Canzone di Gumi"
+
+
 def dispatch(
     llm_output: str,
     hermes_home: Path,
     relic_subject_home: Path,
     subject_id: str,
     dry_run: bool = False,
+    force: bool = False,
 ) -> dict:
     """Dispatch media based on gate output.
     
@@ -115,8 +249,11 @@ def dispatch(
             api_key=api_key,
         )
         record_media_delivery(hermes_home, "voice")
+        delivered = _send_telegram_media(hermes_home, audio_path, "voice")
+        status = "DELIVERED" if delivered else "LOCAL_ONLY"
+        print(f"MEDIA:{audio_path} [{status}]", file=sys.stderr)
         print(f"MEDIA:{audio_path}")
-        return {"tipo": "voice", "success": True, "audio_path": str(audio_path)}
+        return {"tipo": "voice", "success": True, "audio_path": str(audio_path), "telegram_delivered": delivered}
 
     elif tipo == "image":
         if dry_run:
@@ -156,8 +293,11 @@ def dispatch(
             )
 
         record_media_delivery(hermes_home, "image")
+        delivered = _send_telegram_media(hermes_home, image_path, "image", caption=caption[:1024])
+        status = "DELIVERED" if delivered else "LOCAL_ONLY"
+        print(f"MEDIA:{image_path} [{status}]", file=sys.stderr)
         print(f"{caption}\nMEDIA:{image_path}")
-        return {"tipo": "image", "success": True, "image_path": str(image_path), "caption": caption}
+        return {"tipo": "image", "success": True, "image_path": str(image_path), "caption": caption, "telegram_delivered": delivered}
 
     elif tipo == "music":
         if dry_run:
@@ -182,6 +322,7 @@ def dispatch(
             target=subject_id,
             lyria_prompt=lyria_prompt,
             dry_run=False,
+            force=force,
         )
 
         if not result.get("success"):
@@ -191,8 +332,16 @@ def dispatch(
         record_media_delivery(hermes_home, "music")
         caption = result.get("caption", "")
         media_file = result.get("audio_path", "")
+        music_title = _music_title_from_lyrics(caption)
+        performer = _get_gumi_name(relic_subject_home)
+        delivered = _send_telegram_media(
+            hermes_home, Path(media_file), "music",
+            title=music_title, performer=performer,
+        ) if media_file else False
+        status = "DELIVERED" if delivered else "LOCAL_ONLY"
+        print(f"MEDIA:{media_file} [{status}] title={music_title!r}", file=sys.stderr)
         print(f"{caption}\nMEDIA:{media_file}")
-        return {"tipo": "music", "success": True, "audio_path": media_file, "caption": caption}
+        return {"tipo": "music", "success": True, "audio_path": media_file, "caption": caption, "telegram_delivered": delivered}
 
     else:
         print(testo)
@@ -209,7 +358,8 @@ def main():
     parser.add_argument("--subject-home", type=Path, help="Relic subject home path")
     parser.add_argument("--subject-id", required=True, help="Subject ID")
     parser.add_argument("--dry-run", action="store_true", help="Simulate without API calls")
-    
+    parser.add_argument("--force", action="store_true", help="Bypass cooldowns (for testing)")
+
     args = parser.parse_args()
     
     # Get paths from environment if not provided
@@ -222,12 +372,14 @@ def main():
         f"{os.environ.get('HOME')}/.relic/subjects/{args.subject_id}"
     ))
     
+    force = args.force or os.environ.get("RELIC_FORCE_MEDIA_TYPE", "") != ""
     dispatch(
         llm_output=args.llm_output,
         hermes_home=hermes_home,
         relic_subject_home=relic_subject_home,
         subject_id=args.subject_id,
         dry_run=args.dry_run,
+        force=force,
     )
 
 

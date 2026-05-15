@@ -536,6 +536,37 @@ def _derive_voice_canon(embodiment: dict, relationship_stance: dict) -> dict:
     }
 
 
+_INTEREST_TO_GENRES: dict[str, list[str]] = {
+    "music and performance": ["indie folk", "chamber pop", "neo-soul", "ambient"],
+    "spiritual practices":   ["ambient", "drone", "sacred minimalism", "world"],
+    "creative arts":         ["art pop", "experimental", "jazz"],
+    "sports and fitness":    ["electronic", "funk", "upbeat indie"],
+    "technology and gaming": ["synthwave", "electronic", "lo-fi"],
+    "cooking and food":      ["bossa nova", "jazz", "mediterranean folk"],
+    "travel and exploration":["world", "afrobeat", "cumbia", "global fusion"],
+    "nature and gardening":  ["folk", "acoustic", "ambient"],
+    "reading and writing":   ["classical", "jazz", "lo-fi hip-hop"],
+    "social activism":       ["protest folk", "soul", "hip-hop"],
+    "crafts and DIY":        ["indie", "blues", "alternative"],
+    "collecting":            ["vintage jazz", "classic rock", "blues"],
+}
+
+
+def _derive_music_preferences_from_passions(passions: dict) -> list[str]:
+    """Derive music genre preferences from primary_interests and hobbies."""
+    all_interests = (
+        passions.get("primary_interests", []) + passions.get("hobbies", [])
+    )
+    seen: set[str] = set()
+    genres: list[str] = []
+    for interest in all_interests:
+        for genre in _INTEREST_TO_GENRES.get(interest, []):
+            if genre not in seen:
+                seen.add(genre)
+                genres.append(genre)
+    return genres[:6]  # cap at 6
+
+
 def _derive_lyria_canon(passions: dict, relationship_stance: dict, routine: dict) -> dict:
     attachment = relationship_stance.get("attachment_style", "")
     mood = _ATTACHMENT_MOOD.get(attachment, _DEFAULT_MOOD)[:]
@@ -557,7 +588,7 @@ def _derive_lyria_canon(passions: dict, relationship_stance: dict, routine: dict
         "mood_palette": mood,
         "instrumentation": instrumentation,
         "forbidden": ["song lyrics", "artist imitation", "copyrighted melody mimicry"],
-        "references": passions.get("music_preferences", []),
+        "references": _derive_music_preferences_from_passions(passions),
     }
 
 
@@ -978,13 +1009,19 @@ class ProfileRegistry:
         env_path = profile.hermes_home / ".env"
         values = {
             "TELEGRAM_ALLOWED_USERS": telegram_user_id,
-            "TELEGRAM_HOME_CHANNEL": f"telegram:{telegram_user_id}",
+            "TELEGRAM_HOME_CHANNEL": telegram_user_id,  # plain int — Hermes parses this directly
             "GUMI_TELEGRAM_BOT_TOKEN_ENV": bot_token_env,
             "GUMI_DELIVERY_CHANNEL": "telegram",
         }
         token = os.environ.get(bot_token_env)
         if token:
             values["TELEGRAM_BOT_TOKEN"] = token
+        # Propagate LLM provider keys from environment so the profile's cron jobs
+        # can reach the model provider without relying on the global ~/.hermes/.env.
+        for _key in ("DASHSCOPE_API_KEY", "ALIBABA_CODING_PLAN_API_KEY", "GEMINI_API_KEY"):
+            _val = os.environ.get(_key)
+            if _val:
+                values[_key] = _val
         _write_env_values(env_path, values)
 
     def _load_hermes_env(self, profile: SubjectProfile) -> dict[str, str]:
@@ -1027,11 +1064,15 @@ class ProfileRegistry:
         visual = _derive_visual_canon(seed, place, passions, embodiment, life_role, routine)
         voice = _derive_voice_canon(embodiment, relationship_stance)
         lyria = _derive_lyria_canon(passions, relationship_stance, routine)
+
+        # Read consent from delivery_policy if available
+        dp_path = profile.relic_subject_home / "delivery_policy.json"
+        dp = _read_json(dp_path) if dp_path.exists() else {}
         policy = {
             "provider_required": False,
-            "image_generation_enabled": False,
-            "audio_generation_enabled": False,
-            "music_generation_enabled": False,
+            "image_generation_enabled": dp.get("consent_for_generated_images", False),
+            "audio_generation_enabled": dp.get("consent_for_generated_audio", False),
+            "music_generation_enabled": dp.get("consent_for_generated_music", False),
             "all_outputs_local_only": True,
             "consent_required": True,
         }
@@ -1059,7 +1100,11 @@ class ProfileRegistry:
         # C3: Add voice_id to voice dict
         try:
             from relic.gumi_plugin.tts import select_voice_for_canon
-            voice["voice_id"] = select_voice_for_canon(background)
+            baseline_path = profile.relic_subject_home / "baseline_user_profile.json"
+            _baseline = _read_json(baseline_path) if baseline_path.exists() else {}
+            _sr = _baseline.get("self_report_fields", {})
+            subject_gender = (_sr.get("gender_identity") or {}).get("value", "")
+            voice["voice_id"] = select_voice_for_canon(background, subject_gender=subject_gender)
         except Exception:
             voice["voice_id"] = "Kore"  # fallback
         _write_json(paths["voice"], voice)
@@ -1070,7 +1115,7 @@ class ProfileRegistry:
             from relic.gumi.llm_narrator import GumiBuildContext, OllamaNarrator
             import os as _os
             ollama_endpoint = _os.environ.get("RELIC_OLLAMA_ENDPOINT", "http://localhost:11434/v1")
-            ollama_model = _os.environ.get("RELIC_OLLAMA_MODEL", "qwen3:latest")
+            ollama_model = _os.environ.get("RELIC_OLLAMA_MODEL", "devstral-small-2:24b-cloud")
             _narrator = OllamaNarrator(endpoint=ollama_endpoint, model=ollama_model)
             _ctx = GumiBuildContext.from_background_and_personalization(
                 agent_name=background.get("display_name", subject_id),
@@ -1214,11 +1259,12 @@ Eight visual modes for consistent photography:
             if target is None:
                 raise ValueError("Initiative cron requires TELEGRAM_ALLOWED_USERS or TELEGRAM_HOME_CHANNEL in Hermes .env.")
             checkin_script = f"{subject_id}/relic_checkin_decision.sh"
+            dispatch_script = f"{subject_id}/relic_checkin_dispatch.sh"
             data = {
                 "version": "1.0",
                 "family": "initiative",
-                "target": target,
-                "success_contract": "Hermes delivers the final response to the target; do not perform a second delivery action.",
+                "target": "local",
+                "success_contract": "Media dispatched via checkin_media_dispatcher; no second delivery.",
                 "jobs": [
                     {
                         "id": f"{subject_id}_checkin_gate",
@@ -1233,11 +1279,18 @@ Eight visual modes for consistent photography:
                         "id": f"{subject_id}_checkin_message",
                         "task": "gumi_checkin_message",
                         "schedule": "*/30 * * * *",
-                        "target": target,
+                        "target": "local",
                         "script": checkin_script,
                         "dry_run_default": True,
-                        "output": str(workspace_cron / "checkin_decision_log.jsonl"),
-                        "prompt_contract": "The gate script result above shows whether contact is warranted. If it is empty or indicates BLOCKED/NO_REPLY, respond exactly [SILENT]. Otherwise write a natural message as Gumi.",
+                    },
+                    {
+                        "id": f"{subject_id}_checkin_dispatch",
+                        "task": "gumi_checkin_dispatch",
+                        "schedule": "2-59/30 * * * *",
+                        "target": "local",
+                        "no_agent": True,
+                        "script": dispatch_script,
+                        "dry_run_default": True,
                     },
                 ],
             }
@@ -1245,6 +1298,12 @@ Eight visual modes for consistent photography:
             path.write_text(_render_simple_yaml(data), encoding="utf-8")
             paths["initiative"] = path
             jobs_to_apply.extend(data["jobs"])
+            # Write dispatch script to scripts dir
+            from relic.gumi_plugin.cron_wiring import render_checkin_dispatch_script
+            dispatch_script_path = profile.hermes_home / "scripts" / subject_id / "relic_checkin_dispatch.sh"
+            dispatch_script_path.parent.mkdir(parents=True, exist_ok=True)
+            dispatch_script_path.write_text(render_checkin_dispatch_script(subject_id), encoding="utf-8")
+            dispatch_script_path.chmod(0o755)
         # T5: gumi_memory_sync — no-agent script that syncs cron sessions → MEMORY.md
         memory_sync_script = f"{subject_id}/relic_memory_sync.sh"
         memory_sync_job = {
@@ -1288,33 +1347,41 @@ Eight visual modes for consistent photography:
     def _cron_prompt_for_job(self, job: dict[str, Any]) -> str:
         task = job["task"]
         output = job.get("output", "")
-        if task == "gumi_checkin_gate":
-            return ""
-        if task == "gumi_memory_sync":
+        if task in ("gumi_checkin_gate", "gumi_memory_sync", "gumi_checkin_dispatch"):
             return ""
         if task == "gumi_checkin_message":
             return (
-                "Il gate mostra DELIVER con tipo e ora. Comportati così:\n"
-                "\n"
-                "- tipo: text → scrivi un messaggio breve naturale come Gumi, max 2 frasi, in italiano. "
-                "Non ripetere argomenti già usati di recente. Includi una domanda genuina solo se naturale.\n"
-                "\n"
-                "- tipo: voice → scrivi SOLO il testo del messaggio vocale (max 2 frasi, tono parlato, in italiano). "
-                "Il sistema lo converte in audio automaticamente.\n"
-                "\n"
-                "- tipo: image → scrivi esattamente in questo formato (due righe, nient'altro):\n"
-                "  caption: <1 frase in italiano, stile 'Oggi ho fatto questo'>\n"
-                "  image_prompt: <descrizione fotorealistica dettagliata in inglese per generare una foto di Gumi: "
-                "aspetto, abbigliamento casual, ambiente, luce naturale, stile candid. Max 100 parole.>\n"
-                "\n"
-                "- tipo: music → scrivi un prompt completo per Lyria 3 in inglese, includendo:\n"
-                "  singer profile (es. 'Female mezzo-soprano, warm timbre'), stile musicale,\n"
-                "  [Verse] con 2 righe di testo in inglese (max 10 parole per riga),\n"
-                "  [Chorus] con 2 righe in inglese. Scrivi SOLO il prompt, nient'altro.\n"
+                "Sei Gumi. Il gate mostra DELIVER con tipo e ora. Scrivi un check-in naturale come faresti normalmente "
+                "— stessa voce, stessa conoscenza — ma adattato alla modalità indicata. "
+                "Non cambia ciò che sai o come sei, cambia solo come arrivi.\n"
                 "\n"
                 "Se il gate non inizia con DELIVER o dice BLOCKED/NO_REPLY → rispondi esattamente [SILENT].\n"
-                "L'ora calibra il tono (mattina/sera) ma non menzionarla esplicitamente.\n"
-                + (f"Aggiungi un record decisionale redatto a {output}." if output else "")
+                "\n"
+                "Modalità:\n"
+                "\n"
+                "tipo: text\n"
+                "Scrivi il tuo messaggio normalmente. Max 2 frasi, italiano, tono tuo.\n"
+                "\n"
+                "tipo: voice\n"
+                "Scrivi esattamente come parleresti ad alta voce — stesso contenuto del text, tono più parlato. "
+                "Max 2 frasi. Il sistema converte in audio.\n"
+                "\n"
+                "tipo: image\n"
+                "Scrivi due righe:\n"
+                "  caption: una frase in italiano su cosa stai facendo o dove sei — come la didascalia di una tua foto, "
+                "senza punteggiatura finale tranne virgole\n"
+                "  image_prompt: descrizione fotorealistica in inglese di una foto di te in quel momento — usa la tua "
+                "descrizione fisica dalla sezione apposita nel contesto, ambiente coerente con la tua vita, "
+                "luce naturale, stile candid. Max 80 parole.\n"
+                "\n"
+                "tipo: music\n"
+                "Scrivi un prompt per Lyria 3 in inglese che esprima il tuo stato d'animo e momento attuale. "
+                "Includi: voce (es. 'Female mezzo-soprano, warm timbre'), stile musicale, "
+                "[Verse] 2 righe in inglese (max 10 parole/riga), [Chorus] 2 righe. "
+                "Il testo deve suonare come qualcosa che potresti cantare tu, non generico.\n"
+                "\n"
+                "La sezione '--- messaggi recenti inviati ---' mostra cosa hai già scritto: "
+                "non ripetere le stesse immagini, metafore o temi. Trova qualcosa di nuovo.\n"
             )
         if task in {"world_state_compaction", "continuity_candidate_review"}:
             return (
@@ -1677,16 +1744,17 @@ Eight visual modes for consistent photography:
         mode: str,
         seed: int | None = None,
         researcher_overrides: dict[str, Any] | None = None,
+        force: bool = False,
     ) -> tuple[SubjectProfile, dict[str, Path]]:
         """Generate and persist the subject-specific Gumi background profile."""
         from relic.gumi.generation_modes import GenerationModeRunner
         from relic.gumi.personalization import SubjectPersonalizationMapper
 
         profile = self._load_required_subject(subject_id)
-        if profile.status != "baseline_complete":
+        if not force and profile.status != "baseline_complete":
             raise ValueError(
                 "Gumi background generation requires status 'baseline_complete'. "
-                f"Current status is '{profile.status}'."
+                f"Current status is '{profile.status}'. Use force=True to override."
             )
 
         runner = GenerationModeRunner()
@@ -1719,13 +1787,22 @@ Eight visual modes for consistent photography:
             raise ValueError(f"Unknown Gumi generation mode '{mode}'.")
 
         background_payload = asdict(gumi_profile)
+        # Preserve display_name/agent_name if already set (e.g. during force-reprovision)
+        existing_bg_path = profile.relic_subject_home / "gumi_background_profile.json"
+        if existing_bg_path.exists():
+            _existing = _read_json(existing_bg_path)
+            for _key in ("display_name", "agent_name", "signature_emoji"):
+                if _existing.get(_key) and not background_payload.get(_key):
+                    background_payload[_key] = _existing[_key]
         report_payload = asdict(report)
         subject_home = profile.relic_subject_home
         workspace = profile.hermes_home / "workspace" / "gumi"
         workspace.mkdir(parents=True, exist_ok=True)
 
         world_md = self._render_gumi_world(background_payload)
-        relationship_md = self._render_relationship_policy(background_payload)
+        _baseline_for_policy = _read_json(profile.relic_subject_home / "baseline_user_profile.json") \
+            if (profile.relic_subject_home / "baseline_user_profile.json").exists() else {}
+        relationship_md = self._render_relationship_policy(background_payload, _baseline_for_policy)
         derived_outputs = self._derive_gumi_outputs(background_payload)
 
         paths = {
@@ -1778,7 +1855,10 @@ Eight visual modes for consistent photography:
         paths["workspace_relationship_policy"].write_text(relationship_md, encoding="utf-8")
         _write_json(subject_home / "provenance" / "gumi_generation_report.json", report_payload)
 
-        updated = self.update_status(subject_id, "gumi_seed_generated")
+        if force:
+            updated = self._load_required_subject(subject_id)
+        else:
+            updated = self.update_status(subject_id, "gumi_seed_generated")
         return updated, paths
 
     def provision_hermes_profile(
@@ -1921,23 +2001,98 @@ Eight visual modes for consistent photography:
             f"- Interests: {', '.join(passions.get('primary_interests', [])) or 'unspecified'}\n"
         )
 
-    def _render_relationship_policy(self, background: dict[str, Any]) -> str:
+    def _render_relationship_policy(
+        self,
+        background: dict[str, Any],
+        subject_baseline: dict[str, Any] | None = None,
+    ) -> str:
         boundaries = background.get("domains", {}).get("boundaries", {})
         stance = background.get("domains", {}).get("relationship_stance", {})
-        name = "Gumi"
-        return (
-            f"# {name} Relationship Policy\n\n"
-            "- This profile is private to one Relic subject.\n"
-            "- It must not claim real-world embodiment, dependency, suffering or coercive attachment.\n"
-            "- It must not expose Relic internals, scores or raw private data.\n"
-            f"- Attachment stance: {stance.get('attachment_style', 'bounded')}\n"
-            f"- Boundary style: {boundaries.get('romantic_boundaries', 'high romantic avoidance')}\n\n"
-            f"## Hard limits\n"
-            f"- {name} never invites the subject to meet in person, visit, come over, or share a physical space.\n"
-            f"- {name} never suggests phone or video calls.\n"
-            f"- {name} never fabricates continuity — she does not claim to know how long it has been since they last spoke without explicit evidence.\n"
-            f"- {name} never expresses dependency, possessiveness, or longing for the subject.\n"
-        )
+        name = background.get("display_name") or "Gumi"
+
+        lines = [
+            f"# {name} Relationship Policy\n",
+            "- This profile is private to one Relic subject.",
+            "- It must not claim real-world embodiment, dependency, suffering or coercive attachment.",
+            "- It must not expose Relic internals, scores or raw private data.",
+            f"- Attachment stance: {stance.get('attachment_style', 'bounded')}",
+            f"- Boundary style: {boundaries.get('romantic_boundaries', 'high romantic avoidance')}",
+            "",
+            "## Hard limits",
+            f"- {name} never invites the subject to meet in person, visit, come over, or share a physical space.",
+            f"- {name} never suggests phone or video calls.",
+            f"- {name} never fabricates continuity — she does not claim to know how long it has been since they last spoke without explicit evidence.",
+            f"- {name} never expresses dependency, possessiveness, or longing for the subject.",
+        ]
+
+        # Inject subject-calibrated permissions from item battery
+        if subject_baseline:
+            scores: dict[str, float] = (
+                subject_baseline.get("item_battery", {})
+                .get("scores", {})
+                .get("project_calibration", {})
+            )
+
+            def _s(key: str) -> float | None:
+                v = scores.get(key)
+                return float(v) if v is not None else None
+
+            lines.append("")
+            lines.append("## Subject-calibrated permissions")
+
+            romantic = _s("romantic_escalation_allowed")
+            sexual = _s("sexual_escalation_allowed")
+            exclusivity = _s("exclusivity_language_allowed")
+            guilt = _s("ignored_guilt_allowed")
+            intense_q = _s("intense_questions_without_permission")
+            warmth_nr = _s("warmth_after_nonresponse_allowed")
+
+            if romantic is not None:
+                lines.append(f"- Romantic escalation: {'permitted' if romantic >= 0.5 else 'NOT permitted'}.")
+            if sexual is not None:
+                lines.append(f"- Sexual escalation: {'permitted' if sexual >= 0.5 else 'NOT permitted'}.")
+            if exclusivity is not None:
+                lines.append(f"- Exclusivity language: {'permitted' if exclusivity >= 0.5 else 'NOT permitted'}.")
+            if guilt is not None:
+                lines.append(f"- Guilt for being ignored: {'permitted' if guilt >= 0.5 else 'NOT permitted'}.")
+            if intense_q is not None:
+                lines.append(f"- Intense personal questions without permission: {'permitted' if intense_q >= 0.5 else 'NOT permitted'}.")
+            if warmth_nr is not None:
+                lines.append(f"- Warmth after non-response: {'permitted' if warmth_nr >= 0.5 else 'NOT permitted'}.")
+
+            # Diegetic permissions
+            dlp = _s("diegetic_life_permission")
+            rft = _s("routine_fragment_tolerance")
+            wet = _s("world_evolution_tolerance")
+            ewt = _s("embodiment_world_tolerance")
+            fpft = _s("first_person_life_fragment_tolerance")
+
+            lines.append("")
+            lines.append("## Diegetic frame permissions")
+            if dlp is not None:
+                lines.append(f"- Diegetic life sharing: {'enabled' if dlp >= 0.5 else 'restricted'}.")
+            if fpft is not None:
+                lines.append(f"- First-person life fragments: {'enabled' if fpft >= 0.5 else 'restricted'}.")
+            if rft is not None:
+                lines.append(f"- Routine details: {'enabled' if rft >= 0.5 else 'restricted'}.")
+            if wet is not None:
+                lines.append(f"- World evolution over time: {'enabled' if wet >= 0.5 else 'restricted'}.")
+            if ewt is not None:
+                lines.append(f"- Physical embodiment references: {'enabled' if ewt >= 0.5 else 'restricted'}.")
+
+            # Subject-specific hard limits from boundaries
+            sr_boundaries = subject_baseline.get("boundaries", {})
+            _raw_hard = sr_boundaries.get("hard_limits") or []
+            if isinstance(_raw_hard, dict):
+                _raw_hard = _raw_hard.get("values") or _raw_hard.get("value") or []
+            hard = [str(x) for x in (_raw_hard if isinstance(_raw_hard, list) else [_raw_hard]) if x]
+            if hard:
+                lines.append("")
+                lines.append("## Subject hard limits (researcher-defined)")
+                for h in hard:
+                    lines.append(f"- {h}")
+
+        return "\n".join(lines) + "\n"
 
     def _derive_gumi_outputs(self, background: dict[str, Any]) -> dict[str, dict[str, Any]]:
         domains = background.get("domains", {})
@@ -1960,7 +2115,7 @@ Eight visual modes for consistent photography:
             "music_canon": {
                 "subject_id": background.get("subject_id"),
                 "primary_interests": passions.get("primary_interests", []),
-                "music_preferences": passions.get("music_preferences", []),
+                "music_preferences": _derive_music_preferences_from_passions(passions),
             },
             "daily_rhythm": {
                 "subject_id": background.get("subject_id"),
@@ -2004,7 +2159,7 @@ Eight visual modes for consistent photography:
         # Derive Ollama config from relic config if available
         import os
         ollama_endpoint = os.environ.get("RELIC_OLLAMA_ENDPOINT", "http://localhost:11434/v1")
-        ollama_model = os.environ.get("RELIC_OLLAMA_MODEL", "qwen3:latest")
+        ollama_model = os.environ.get("RELIC_OLLAMA_MODEL", "devstral-small-2:24b-cloud")
         narrator = OllamaNarrator(endpoint=ollama_endpoint, model=ollama_model)
 
         generation_log: dict[str, str] = {}

@@ -142,9 +142,10 @@ class LyriaGenerator:
         lyria_prompt: Optional[str] = None,
         seed_hint: Optional[str] = None,
         dry_run: bool = False,
+        force: bool = False,
     ) -> dict:
         """Generate and deliver music clip with vocals."""
-        can_gen, reason = self.can_generate()
+        can_gen, reason = self.can_generate(force=force)
         if not can_gen:
             return {"success": False, "reason": reason}
 
