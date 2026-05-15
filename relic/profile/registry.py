@@ -553,7 +553,7 @@ _INTEREST_TO_GENRES: dict[str, list[str]] = {
 
 
 def _derive_music_preferences_from_passions(passions: dict) -> list[str]:
-    """Derive music genre preferences from primary_interests and hobbies."""
+    """Derive music genre preferences from primary_interests, hobbies, and music_preferences."""
     all_interests = (
         passions.get("primary_interests", []) + passions.get("hobbies", [])
     )
@@ -564,6 +564,10 @@ def _derive_music_preferences_from_passions(passions: dict) -> list[str]:
             if genre not in seen:
                 seen.add(genre)
                 genres.append(genre)
+    for genre in passions.get("music_preferences", []):
+        if genre not in seen:
+            seen.add(genre)
+            genres.append(genre)
     return genres[:6]  # cap at 6
 
 
