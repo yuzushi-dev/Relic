@@ -1,4 +1,5 @@
 // Subject Overview — PR27C
+export const dynamic = 'force-dynamic'
 import Link from "next/link";
 import { SubjectIntelligence } from "../../../../components/SubjectIntelligence";
 import { formatDate } from "../../../../lib/format";
@@ -38,132 +39,120 @@ export default async function SubjectPage({ params }: { params: Promise<{ subjec
 
   return (
     <>
-      <section className="hero">
-        <div className="hero-grid">
-          <div>
-            <div className="eyebrow">Subject profile · {d.experiment_id}</div>
-            <h1>{d.subject_id}</h1>
-            <p className="lede">
-              Status: <span style={{ color: "#84d1a4", textTransform: "uppercase" }}>{d.subject_status}</span>
-              {" · "}Condition: <span style={{ color: "var(--gold)" }}>{d.active_condition}</span>
-              {" · "}Consent: <span style={{ color: "#84d1a4" }}>{d.consent_status}</span>
-            </p>
-          </div>
-          <aside className="hero-side">
-            <div className="eyebrow">Subject state</div>
-            <div className="token-row" style={{ marginTop: "14px" }}>
-              <span className="token active-token">{d.bootstrap_status}</span>
-              <span className="token">{prov.profile_name}</span>
-              <span className="token">{d.pending_review_count} reviews</span>
-            </div>
-          </aside>
+      <header className="page-header">
+        <div className="page-eyebrow">Subject Profile · {d.experiment_id}</div>
+        <h1 className="page-title">{d.subject_id}</h1>
+        <div className="page-meta">
+          <span>Status: <span style={{ color: "var(--ok)", fontWeight: 600 }}>{d.subject_status.toUpperCase()}</span></span>
+          <span className="mono" style={{ opacity: 0.5 }}>|</span>
+          <span>Condition: <span style={{ color: "var(--pend)", fontWeight: 600 }}>{d.active_condition}</span></span>
+          <span className="mono" style={{ opacity: 0.5 }}>|</span>
+          <span>Consent: <span style={{ color: "var(--ok)" }}>{d.consent_status}</span></span>
         </div>
-      </section>
+      </header>
 
-      <div className="summary-strip" style={{ marginTop: "20px" }}>
+      <div className="stat-bar" role="region" aria-label="Subject Summary">
         {[
           { label: "Gumi Instance", value: d.active_gumi_instance },
           { label: "Hermes Profile", value: prov.profile_name },
           { label: "Last Interaction", value: formatDate(d.last_user_interaction) },
-          { label: "Pending Reviews", value: d.pending_review_count },
+          { label: "Pending Reviews", value: d.pending_review_count, state: d.pending_review_count > 0 ? "warn" : undefined },
         ].map(s => (
-          <div key={s.label} className="strip-item">
-            <div className="strip-label">{s.label}</div>
-            <div style={{ marginTop: "6px", fontFamily: "var(--mono)", fontSize: "12px", color: "var(--ash)", wordBreak: "break-all" }}>{s.value}</div>
+          <div key={s.label} className="stat-item">
+            <div className="stat-key">{s.label}</div>
+            <div className="stat-val" style={{ fontSize: "16px", wordBreak: "break-all" }} data-warn={s.state === "warn" || undefined}>
+              {s.value}
+            </div>
           </div>
         ))}
       </div>
 
       <SubjectIntelligence subjectIntelligence={subjectIntelligence} />
 
-      <div className="workbench-grid">
-
-        <div className="card span-4">
-          <div className="card-title">HERMES PROFILE</div>
-          <div className="status-chip">
-            <div className="status-dot" />
+      <div className="wgrid">
+        <div className="card col-4">
+          <h2 className="card-label">HERMES PROFILE</h2>
+          <div className="state-marker" data-state={prov.provisioned ? "active" : "failed"}>
             {prov.provisioned ? "Provisioned" : "Not Provisioned"}
           </div>
-          <div style={{ marginTop: "12px", fontFamily: "var(--mono)", fontSize: "12px", color: "var(--text-muted)" }}>{prov.profile_name}</div>
+          <div className="mono text-dim" style={{ marginTop: "12px", fontSize: "11px" }}>{prov.profile_name}</div>
         </div>
 
-        <div className="card span-4">
-          <div className="card-title">BOOTSTRAP</div>
-          <div className="status-chip">
-            <div className="status-dot" />
+        <div className="card col-4">
+          <h2 className="card-label">BOOTSTRAP</h2>
+          <div className="state-marker" data-state="active">
             {d.bootstrap_status}
           </div>
         </div>
 
-        <div className="card span-4">
-          <div className="card-title">RISK ASSESSMENT</div>
-          <div style={{ fontFamily: "var(--head)", fontSize: "32px", color: d.risk_summary.severity === "none" ? "#84d1a4" : "#fbbf24" }}>
+        <div className="card col-4">
+          <h2 className="card-label">RISK ASSESSMENT</h2>
+          <div className="stat-val" data-fault={d.risk_summary.severity !== "none" || undefined} data-ok={d.risk_summary.severity === "none" || undefined}>
             {d.risk_summary.severity.toUpperCase()}
           </div>
-          <div style={{ fontFamily: "var(--mono)", fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>
-            {d.risk_summary.flag_count} flags
+          <div className="mono text-dim" style={{ marginTop: "4px", fontSize: "11px" }}>
+            {d.risk_summary.flag_count} flags detected
           </div>
         </div>
 
-        <div className="card span-6">
-          <div className="card-title">ACTIVE CRON MODES</div>
-          <div className="token-row">
+        <div className="card col-6">
+          <h2 className="card-label">ACTIVE CRON MODES</h2>
+          <div className="tag-row">
             {d.active_cron_modes.map(m => (
-              <span key={m} className="token">{m}</span>
+              <span key={m} className="tag">{m}</span>
             ))}
           </div>
         </div>
 
-        <div className="card span-6">
-          <div className="card-title">PAUSE STATE</div>
-          <div className="token-row">
+        <div className="card col-6">
+          <h2 className="card-label">PAUSE STATE</h2>
+          <div className="tag-row">
             {Object.entries(d.pause_state).filter(([,v]) => v).map(([k]) => (
-              <span key={k} className="token" style={{ borderColor: "var(--red)", color: "var(--red-soft)", background: "color-mix(in srgb, var(--red) 20%, transparent)" }}>{k}</span>
+              <span key={k} className="tag" style={{ borderColor: "var(--block)", color: "var(--block)" }}>{k}</span>
             ))}
             {Object.values(d.pause_state).every(v => !v) && (
-              <span style={{ color: "var(--text-muted)", fontFamily: "var(--mono)", fontSize: "11px" }}>All active</span>
+              <span className="mono text-dim">All components active</span>
             )}
           </div>
         </div>
 
         {gumiProfile && (
-          <div className="card span-12">
-            <div className="card-title">GUMI · {gumiProfile.agent_name}</div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "16px" }}>
+          <div className="card col-12">
+            <h2 className="card-label">GUMI AGENT · {gumiProfile.agent_name}</h2>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
-                <div className="token-row" style={{ marginBottom: "8px" }}>
-                  <span className="token">{gumiProfile.generation_mode}</span>
+                <div className="tag-row" style={{ marginBottom: "12px" }}>
+                  <span className="tag">{gumiProfile.generation_mode}</span>
                   {gumiProfile.sweet_spot_score !== null && (
-                    <span className="token" style={{ borderColor: "#84d1a4", color: "#84d1a4" }}>
+                    <span className="tag" style={{ borderColor: "var(--ok)", color: "var(--ok)" }}>
                       score {gumiProfile.sweet_spot_score.toFixed(3)}
                     </span>
                   )}
                 </div>
                 {gumiProfile.soul_md && (
-                  <p style={{ fontFamily: "var(--mono)", fontSize: "12px", color: "var(--text-muted)", margin: "0", maxWidth: "600px", lineHeight: "1.5", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical" }}>
-                    {gumiProfile.soul_md.split("\n").slice(0, 3).join(" ")}
+                  <p className="prose" style={{ maxWidth: "800px" }}>
+                    {gumiProfile.soul_md.split("\n").slice(0, 3).join(" ")}...
                   </p>
                 )}
               </div>
-              <Link href={`/workbench/subjects/${d.subject_id}/gumi` as any} className="token" style={{ textDecoration: "none", whiteSpace: "nowrap" }}>
-                View Profile →
+              <Link href={`/workbench/subjects/${d.subject_id}/gumi` as any} className="filter-btn active" style={{ textDecoration: "none" }}>
+                View Agent Details →
               </Link>
             </div>
           </div>
         )}
 
-        <div className="card span-12">
-          <div className="card-title">VIEWS</div>
-          <div className="token-row">
-            <Link href={`/workbench/subjects/${d.subject_id}/baseline`} className="token" style={{ textDecoration: "none" }}>Baseline Profile</Link>
-            <Link href={`/workbench/subjects/${d.subject_id}/timeline`} className="token" style={{ textDecoration: "none" }}>Event Timeline</Link>
-            <Link href={`/workbench/subjects/${d.subject_id}/gumi` as any} className="token" style={{ textDecoration: "none" }}>Gumi Profile</Link>
+        <div className="card col-12">
+          <h2 className="card-label">QUICK NAVIGATION</h2>
+          <div className="tag-row">
+            <Link href={`/workbench/subjects/${d.subject_id}/baseline`} className="filter-btn" style={{ textDecoration: "none" }}>Baseline Profile</Link>
+            <Link href={`/workbench/subjects/${d.subject_id}/timeline`} className="filter-btn" style={{ textDecoration: "none" }}>Event Timeline</Link>
+            <Link href={`/workbench/subjects/${d.subject_id}/gumi` as any} className="filter-btn" style={{ textDecoration: "none" }}>Gumi Profile</Link>
           </div>
         </div>
-
       </div>
 
-      <div className="footer">Subject scope: {d.subject_id}</div>
+      <footer className="page-footer">Subject Scope: {d.subject_id}</footer>
     </>
   );
 }

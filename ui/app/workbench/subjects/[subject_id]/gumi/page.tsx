@@ -1,4 +1,5 @@
 // Gumi Identity — Profile files + item battery scores
+export const dynamic = 'force-dynamic'
 import { formatDate } from "../../../../../lib/format";
 import { SubjectNav } from "../../../../../components/SubjectNav";
 import { getGumiProfile, getStudyOverview } from "../../../../../lib/workbench-data";
@@ -117,107 +118,131 @@ export default async function GumiPage({ params }: { params: Promise<{ subject_i
   return (
     <>
       <SubjectNav subjects={study.subject_registry} currentSubjectId={subject_id} view="gumi" />
-      <section className="hero">
-        <div className="hero-grid">
-          <div>
-            <div className="eyebrow">GUMI PROFILE · {subject_id}</div>
-            <h1>{g.agent_name}</h1>
-            <p className="lede">
-              Mode: <span style={{ color: "var(--gold)" }}>{g.generation_mode}</span>
-              {g.sweet_spot_score !== null && (
-                <>
-                  {" · "}Sweet Spot:{" "}
-                  <span style={{ color: "#84d1a4" }}>{g.sweet_spot_score.toFixed(3)}</span>
-                </>
-              )}
-              {g.created_at && <>{" · "}Created {formatDate(g.created_at)}</>}
-            </p>
-          </div>
-          {g.risk_flags.length > 0 && (
-            <aside className="hero-side">
-              <div className="eyebrow">Risk flags</div>
-              <div className="token-row" style={{ marginTop: "14px" }}>
-                {g.risk_flags.map((f) => (
-                  <span key={f} className="token" style={{ borderColor: "#fbbf24", color: "#fbbf24" }}>
-                    {f}
-                  </span>
-                ))}
-              </div>
-            </aside>
+      <header className="page-header">
+        <div className="page-eyebrow">Gumi Agent Profile · {subject_id}</div>
+        <h1 className="page-title">{g.agent_name}</h1>
+        <div className="page-meta">
+          <span>Mode: <span style={{ color: "var(--pend)", fontWeight: 600 }}>{g.generation_mode.toUpperCase()}</span></span>
+          <span className="mono" style={{ opacity: 0.5 }}>|</span>
+          {g.sweet_spot_score !== null && (
+            <>
+              <span>Sweet Spot: <span style={{ color: "var(--ok)" }}>{g.sweet_spot_score.toFixed(3)}</span></span>
+              <span className="mono" style={{ opacity: 0.5 }}>|</span>
+            </>
           )}
+          {g.created_at && <span>Created {formatDate(g.created_at)}</span>}
         </div>
-      </section>
+      </header>
 
-      <div className="workbench-grid">
-
+      <div className="wgrid">
         {/* Item battery scores */}
         {g.item_battery_scores && (
           <>
-            <div className="card span-4">
-              <div className="card-title">TIPI — BIG FIVE</div>
-              {tipiEntries.map(([k, v]) => (
-                <ScoreBar key={k} label={TIPI_LABELS[k] ?? k} value={v} max={7} />
-              ))}
-            </div>
+            <article className="card col-4">
+              <h2 className="card-label">TIPI — BIG FIVE</h2>
+              {tipiEntries.map(([k, v]) => {
+                const pct = Math.min(100, Math.round((v / 7) * 100));
+                return (
+                  <div key={k} className="facet-row">
+                    <div className="facet-header">
+                      <span className="facet-name">{TIPI_LABELS[k] ?? k}</span>
+                      <span className="facet-stats">{v.toFixed(2)}</span>
+                    </div>
+                    <div className="facet-track">
+                      <div className="facet-needle" style={{ left: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </article>
 
-            <div className="card span-4">
-              <div className="card-title">ECR-RS — ATTACHMENT</div>
-              {ecrrsEntries.map(([k, v]) => (
-                <ScoreBar key={k} label={ECRRS_LABELS[k] ?? k} value={v} max={7} />
-              ))}
+            <article className="card col-4">
+              <h2 className="card-label">ECR-RS — ATTACHMENT</h2>
+              {ecrrsEntries.map(([k, v]) => {
+                const pct = Math.min(100, Math.round((v / 7) * 100));
+                return (
+                  <div key={k} className="facet-row">
+                    <div className="facet-header">
+                      <span className="facet-name">{ECRRS_LABELS[k] ?? k}</span>
+                      <span className="facet-stats">{v.toFixed(2)}</span>
+                    </div>
+                    <div className="facet-track">
+                      <div className="facet-needle" style={{ left: `${pct}%`, background: "var(--inf)" }} />
+                    </div>
+                  </div>
+                );
+              })}
               {projectEntries.length > 0 && (
                 <>
-                  <div className="card-title" style={{ marginTop: "16px" }}>PROJECT CALIBRATION</div>
-                  {projectEntries.map(([k, v]) => (
-                    <ScoreBar key={k} label={k.replace(/_/g, " ")} value={v} max={10} />
-                  ))}
+                  <h2 className="card-label" style={{ marginTop: "24px" }}>PROJECT CALIBRATION</h2>
+                  {projectEntries.map(([k, v]) => {
+                    const pct = Math.min(100, Math.round((v / 10) * 100));
+                    return (
+                      <div key={k} className="facet-row">
+                        <div className="facet-header">
+                          <span className="facet-name">{k.replace(/_/g, " ")}</span>
+                          <span className="facet-stats">{v.toFixed(2)}</span>
+                        </div>
+                        <div className="facet-track">
+                          <div className="facet-needle" style={{ left: `${pct}%`, background: "var(--gumi)" }} />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </>
               )}
-            </div>
+            </article>
 
-            <div className="card span-4">
-              <div className="card-title">SWEET SPOT</div>
+            <article className="card col-4">
+              <h2 className="card-label">SWEET SPOT</h2>
               {g.sweet_spot_score !== null ? (
-                <>
-                  <div style={{ fontFamily: "var(--head)", fontSize: "48px", color: "#84d1a4" }}>
+                <div style={{ textAlign: "center", padding: "20px 0" }}>
+                  <div className="stat-val" style={{ fontSize: "64px", color: "var(--ok)" }}>
                     {g.sweet_spot_score.toFixed(2)}
                   </div>
-                  <div style={{ fontFamily: "var(--mono)", fontSize: "11px", color: "var(--text-muted)", marginTop: "6px" }}>
-                    target 0.3 – 0.7 · higher = stronger match
+                  <div className="mono text-dim" style={{ marginTop: "12px", fontSize: "11px" }}>
+                    target 0.3 – 0.7 range<br/>higher values = stronger profile match
                   </div>
-                </>
+                </div>
               ) : (
-                <p style={{ fontFamily: "var(--mono)", fontSize: "12px", color: "var(--text-muted)" }}>Not computed.</p>
+                <p className="empty-state">Metric not computed.</p>
               )}
-            </div>
+
+              {g.risk_flags.length > 0 && (
+                <div style={{ marginTop: "24px" }}>
+                  <h2 className="card-label">RISK FLAGS</h2>
+                  <div className="tag-row">
+                    {g.risk_flags.map((f) => (
+                      <span key={f} className="tag" style={{ color: "var(--block)", borderColor: "var(--block)" }}>
+                        {f}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </article>
           </>
         )}
 
         {/* Background domains */}
         {domains.length > 0 && (
-          <div className="card span-12">
-            <div className="card-title">BACKGROUND DOMAINS</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "10px", marginTop: "8px" }}>
+          <article className="card col-12">
+            <h2 className="card-label">BACKGROUND DOMAINS</h2>
+            <div className="wgrid" style={{ marginTop: "12px", gap: "10px" }}>
               {domains.map(([domain, value]) => (
                 <div
                   key={domain}
-                  style={{
-                    padding: "10px 14px",
-                    background: "var(--panel)",
-                    border: "1px solid var(--border)",
-                    borderRadius: "4px",
-                  }}
+                  className="card col-3"
+                  style={{ background: "var(--s1)", borderStyle: "dashed" }}
                 >
-                  <div style={{ fontFamily: "var(--mono)", fontSize: "10px", color: "var(--gold)", textTransform: "uppercase", letterSpacing: ".1em", marginBottom: "4px" }}>
-                    {domain.replace(/_/g, " ")}
-                  </div>
-                  <div style={{ fontFamily: "var(--mono)", fontSize: "13px" }}>
+                  <div className="stat-key">{domain.replace(/_/g, " ")}</div>
+                  <div className="mono" style={{ fontSize: "13px", marginTop: "4px" }}>
                     {typeof value === "object" ? JSON.stringify(value) : String(value)}
                   </div>
                 </div>
               ))}
             </div>
-          </div>
+          </article>
         )}
 
         {/* Identity files */}
@@ -227,7 +252,7 @@ export default async function GumiPage({ params }: { params: Promise<{ subject_i
 
       </div>
 
-      <div className="footer">Gumi profile · {subject_id}</div>
+      <footer className="page-footer">Gumi Artifact · {subject_id}</footer>
     </>
   );
 }

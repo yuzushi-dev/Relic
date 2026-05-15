@@ -1,4 +1,5 @@
 // Timeline Event Stream — PR27G
+export const dynamic = 'force-dynamic'
 import { TimelineView } from "../../../../../components/TimelineView";
 import { SubjectNav } from "../../../../../components/SubjectNav";
 import { getEventStream, getStudyOverview } from "../../../../../lib/workbench-data";
@@ -18,19 +19,17 @@ export default async function TimelinePage({ params }: { params: Promise<{ subje
     return (
       <>
         <SubjectNav subjects={study.subject_registry} currentSubjectId={subject_id} view="timeline" />
-        <section className="hero">
-          <div style={{ position: "relative", zIndex: 1 }}>
-            <div className="eyebrow">EVENT TIMELINE · {subject_id}</div>
-            <h1>Event Stream</h1>
-            <p className="lede">No live event stream is available for this subject yet.</p>
-          </div>
-        </section>
-        <div className="workbench-grid">
-          <article className="card span-12">
-            <div className="card-title">Live Data Source</div>
-            <p className="analysis-copy">Demo event records are intentionally hidden in live mode.</p>
-          </article>
-        </div>
+      <header className="page-header">
+        <div className="page-eyebrow">Subject History · {subject_id}</div>
+        <h1 className="page-title">Event Timeline</h1>
+        <p className="page-meta">No live event stream available</p>
+      </header>
+      <div className="wgrid">
+        <article className="card col-12">
+          <h2 className="card-label">Live Data Source</h2>
+          <p className="empty-state">Demo event records are intentionally hidden in live mode.</p>
+        </article>
+      </div>
       </>
     );
   }
