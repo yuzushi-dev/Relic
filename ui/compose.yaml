@@ -21,5 +21,5 @@ services:
     ports:
       - "4144:4144"
     volumes:
-      - ${RELIC_HOME:-./.relic-live}:/data/relic:ro
+      - ${RELIC_HOME:-$HOME/.relic}:/data/relic:ro
     restart: unless-stopped
