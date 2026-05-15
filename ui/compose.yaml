@@ -14,6 +14,7 @@ services:
     build:
       context: .
       target: runner
+    user: "${UID:-1000}:${GID:-1000}"
     environment:
       PORT: "4144"
       RELIC_UI_DATA_SOURCE: live
