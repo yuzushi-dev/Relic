@@ -48,6 +48,10 @@ function relicHome() {
   return process.env.RELIC_HOME || path.join(process.cwd(), ".relic-live");
 }
 
+function hermesProfilesHome() {
+  return process.env.HERMES_PROFILES_HOME || path.join(process.env.HOME || "", ".hermes", "profiles");
+}
+
 function readJson<T>(filePath: string): T | null {
   try {
     return JSON.parse(fs.readFileSync(filePath, "utf8")) as T;
@@ -80,6 +84,10 @@ function liveProfiles() {
         const profile = readJson<LiveSubjectProfile>(path.join(subjectsDir, entry.name, "subject_profile.json"));
         if (profile?.subject_id) {
           profile.relic_subject_home = path.join(relicHome(), "subjects", profile.subject_id);
+          // hermes_home: remap from host-absolute to container path using hermes_profile_name
+          if (profile.hermes_profile_name) {
+            profile.hermes_home = path.join(hermesProfilesHome(), profile.hermes_profile_name);
+          }
         }
         return profile;
       })
