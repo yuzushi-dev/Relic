@@ -29,3 +29,7 @@
 - A5 demonstrates measurable advantage over A0
 - A5 shows improvement over A2 in correction scenarios
 - Forgetting-aware behavior produces appropriate uncertainty responses
+
+---
+
+See [docs/reference/fixtures.md](../../docs/reference/fixtures.md) for the full fixture catalog and how to add new scenarios.

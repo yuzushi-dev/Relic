@@ -87,6 +87,20 @@ The goal is not to make Gumi identical to the subject, nor to make her arbitrari
 
 Gumi can take initiative inside the relationship: proactive messages, expressive media, audio, images, music, diegetic life fragments, and continuity events. These acts are part of the user’s lived experience with Gumi, but they are not passive observations about the user. They can shape the relationship, and the user’s responses to them can become eligible data, but Gumi’s own diegetic events do not update the user model by themselves.
 
+## Documentation
+
+| Section | Description |
+|---|---|
+| [Ethics](docs/ethics/index.md) | Behavioral constraints, data separation, consent, no clinicalization |
+| [Concepts](docs/concepts/longitudinal-modeling.md) | Longitudinal modeling, facet model, Relic vs. Gumi, provenance |
+| [Architecture](docs/architecture/pipeline.md) | Runtime pipeline, data model, privacy stages, artifact lifecycle |
+| [Guides](docs/guides/installation.md) | Installation, first subject, Hermes integration, eval, corrections |
+| [Reference](docs/reference/cli.md) | CLI, configuration, glossary, fixtures |
+| [Research](docs/research/theoretical-grounding.md) | Theoretical grounding, limitations, citing |
+| [Contributing](docs/contributing/index.md) | Dev setup, testing, contract tests, release status |
+
+Hosted at [yuzushi-dev.github.io/Relic](https://yuzushi-dev.github.io/Relic/).
+
 ## Quick Start
 
 Requirements: Python 3.10+, `pip`. Optional: Hermes for live delivery.

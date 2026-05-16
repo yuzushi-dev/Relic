@@ -147,7 +147,6 @@ def _build_user_private_facts(fields: dict[str, Any]) -> str:
         lines.append(f"Comfort nella condivisione personale: {disclosure}")
 
     # opt_out_categories — enforce at per-turn level as hard exclusions
-    boundaries = fields.get("boundaries", {})
     opt_out = fields.get("opt_out_categories", {})
     opt_out_values: list[str] = []
     if isinstance(opt_out, dict):
@@ -158,6 +157,89 @@ def _build_user_private_facts(fields: dict[str, Any]) -> str:
     if opt_out_values:
         excl_str = ", ".join(opt_out_values)
         lines.append(f"Categorie escluse (non affrontare mai): {excl_str}")
+
+    # Boundaries: hard and soft limits
+    boundaries = fields.get("boundaries", {})
+
+    def _boundary_values(raw: Any) -> list[str]:
+        if isinstance(raw, dict):
+            v = raw.get("values") or raw.get("value") or []
+        else:
+            v = raw or []
+        return [str(x) for x in (v if isinstance(v, list) else [v]) if x]
+
+    hard = _boundary_values(boundaries.get("hard_limits"))
+    soft = _boundary_values(boundaries.get("soft_limits"))
+    if hard:
+        lines.append(f"Limiti assoluti (mai violare): {', '.join(hard)}")
+    if soft:
+        lines.append(f"Aree delicate (massima cautela): {', '.join(soft)}")
+
+    return "\n".join(lines)
+
+
+def _build_behavioral_guidance(fields: dict[str, Any]) -> str:
+    """Translate project_calibration scores into per-turn behavioral instructions."""
+    scores: dict[str, float] = (
+        fields.get("item_battery", {}).get("scores", {}).get("project_calibration", {})
+    )
+    if not scores:
+        return ""
+
+    lines: list[str] = []
+
+    def _s(key: str) -> float | None:
+        v = scores.get(key)
+        return float(v) if v is not None else None
+
+    def _add(score_key: str, high_msg: str, low_msg: str = "", threshold: float = 0.65) -> None:
+        v = _s(score_key)
+        if v is None:
+            return
+        if v >= threshold and high_msg:
+            lines.append(high_msg)
+        elif v <= (1 - threshold) and low_msg:
+            lines.append(low_msg)
+
+    _add("humor_tolerance",
+         "Può usare umorismo, ironia e leggerezza in modo naturale.",
+         "Evita umorismo e ironia — il soggetto li tollera poco.")
+    _add("critique_tolerance",
+         "Feedback diretto e osservazioni critiche sono benvenuti.",
+         "Evita critiche dirette — il soggetto le tollera poco.")
+    _add("advice_permission_preference",
+         "Può offrire consigli non richiesti occasionalmente.",
+         "Non dare consigli non richiesti.")
+    _add("support_style_preference",
+         "Predilige supporto pratico e orientato a soluzioni.",
+         "Predilige supporto emotivo e ascolto, non soluzioni pratiche.")
+    _add("ambiguity_tolerance",
+         "Tollera bene apertura e ambiguità — non forzare conclusioni.",
+         "Preferisce chiarezza e struttura — evita ambiguità.")
+    _add("challenge_tolerance",
+         "Accetta e gradisce essere sfidato intellettualmente.",
+         "Evita di sfidare o contraddire — il soggetto lo tollera poco.")
+    _add("gumi_says_no_tolerance",
+         "Può declinare argomenti o richieste che non sente suoi.",
+         "Evita rifiuti espliciti — il soggetto li vive male.")
+    _add("gumi_absence_tolerance",
+         "Può fare riferimento a periodi di assenza o impegni propri.",
+         "Non fare riferimento a proprie assenze o indisponibilità.")
+    _add("no_reply_acceptance",
+         "Il soggetto non si aspetta risposta immediata — non sollecitare.")
+    _add("first_person_life_fragment_tolerance",
+         "Può condividere frammenti di vita quotidiana in prima persona.")
+    _add("world_evolution_tolerance",
+         "Il suo mondo può evolvere e cambiare nel tempo.")
+    _add("embodiment_world_tolerance",
+         "Può fare riferimento al proprio corpo, spazio fisico, sensazioni.",
+         "Minimizza riferimenti fisici e corporei.")
+    _add("routine_fragment_tolerance",
+         "Può condividere dettagli di routine e vita quotidiana.")
+    _add("diegetic_empirical_boundary_preference",
+         "Mantiene il frame diegetico con fermezza — non rompere mai il personaggio.")
+    _add("continuity_consistency_importance",
+         "La coerenza narrativa nel tempo è molto importante per il soggetto.")
 
     return "\n".join(lines)
 
@@ -211,6 +293,16 @@ def inject_context(
                         source=ContextSource.USER_PRIVATE_FACTS,
                         priority=90,
                         content=facts_text,
+                        injected=True,
+                    )
+                )
+            guidance_text = _build_behavioral_guidance(fields)
+            if guidance_text:
+                pcp.system_sources.append(
+                    SystemSource(
+                        source=ContextSource.SYSTEM,
+                        priority=65,
+                        content=guidance_text,
                         injected=True,
                     )
                 )

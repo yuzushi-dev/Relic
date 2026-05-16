@@ -375,9 +375,9 @@ class GenerationModeRunner:
         _raw_interests = (
             subject_profile.get("interests")
             or _ip.get("preferred_topics")
-            or [v.get("value") for v in _sr.values() if isinstance(v, dict) and v.get("value")]
+            or [v.get("value") for v in _sr.values() if isinstance(v, dict) and isinstance(v.get("value"), str)]
         )
-        subject_interests = set(_raw_interests) if _raw_interests else set()
+        subject_interests = set(x for x in _raw_interests if isinstance(x, str)) if _raw_interests else set()
         gumi_hobbies = set(gumi_passions.get("hobbies", []))
         if subject_interests and (gumi_primary | gumi_hobbies):
             overlap = len(subject_interests & (gumi_primary | gumi_hobbies))

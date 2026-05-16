@@ -11,3 +11,7 @@ make memory-dynamics-report
 ```
 
 The fixture set must not require Dory, mem7, A-MEM or Hippo to be installed. Candidate-specific adapters are optional and must be skipped with explicit reasons if unavailable.
+
+---
+
+See [docs/reference/fixtures.md](../../docs/reference/fixtures.md) for the full fixture catalog and how to add new scenarios.

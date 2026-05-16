@@ -77,9 +77,15 @@ def collect_self_report_fields(io_in: TextIO, io_out: TextIO) -> dict:
         file=io_out,
     )
 
+    _DEFAULTS = {
+        "contact_channel_preference": "telegram",
+    }
+
     result: dict = {}
     for key, description, _ in _FIELDS:
         raw = _prompt_field(key, description, io_in, io_out)
+        if raw is None and key in _DEFAULTS:
+            raw = _DEFAULTS[key]
         result[key] = {"value": raw, "origin": "subject-stated"}
 
     filled = sum(1 for v in result.values() if v["value"] is not None)

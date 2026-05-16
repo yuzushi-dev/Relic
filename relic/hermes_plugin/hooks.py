@@ -141,13 +141,10 @@ class HookManager:
     def _get_pcp_builder(self):
         """Lazy load PCP builder."""
         if self._pcp_builder is None:
-            from relic.context_pack.builder import PCPBuilder
+            from relic.context_pack.builder import ContextPackBuilder
             from relic.context_pack.trace import PCPTrace
             self._pcp_trace = PCPTrace()
-            self._pcp_builder = PCPBuilder(
-                fail_safe=self._fail_safe,
-                trace=self._pcp_trace,
-            )
+            self._pcp_builder = ContextPackBuilder()
         return self._pcp_builder
 
     def pre_tool_call(self, context: ToolCallContext) -> HookResult:
@@ -275,12 +272,12 @@ class HookManager:
                 )
 
             # Build PCP
-            from relic.context_pack.builder import (
-                PCPBuilder,
+            from relic.context_pack.types import (
                 TaskType,
                 RoleplayLevel,
                 ContinuityMode,
             )
+            from relic.context_pack.builder import ContextPackBuilder
 
             # Map task type
             try:
@@ -288,14 +285,11 @@ class HookManager:
             except ValueError:
                 task_type = TaskType.TECHNICAL
 
-            builder = self._get_pcp_builder()
-            pcp = builder.build(
+            builder = ContextPackBuilder(
                 session_id=context.session_id,
-                turn_id=context.turn_id,
                 task_type=task_type,
-                roleplay_level=RoleplayLevel.NORMAL if context.is_roleplay else RoleplayLevel.OFF,
-                continuity_mode=ContinuityMode.COMPACT,
             )
+            pcp = builder.build()
 
             if pcp is None:
                 # Fail-closed: build failed

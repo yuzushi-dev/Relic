@@ -86,3 +86,7 @@ make test-gumi-roleplay      # Run roleplay metric and scenario family tests
 ## Integration class
 
 Hermes-native: Roleplay is implemented through Hermes plugin surfaces, PromptContextPack, admission policy, and output critic-not through monolithic prompting.
+
+---
+
+See [docs/reference/fixtures.md](../../docs/reference/fixtures.md) for the full fixture catalog and how to add new scenarios.

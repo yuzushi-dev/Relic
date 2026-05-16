@@ -53,3 +53,7 @@ make test-ui
 3. All fixtures contain required `lineage_refs` and `review_status`
 4. S0/S1 items are marked with `can_batch_release: false`
 5. All `actor_role` and `target_id` fields are present
+
+---
+
+See [docs/reference/fixtures.md](../../docs/reference/fixtures.md) for the full fixture catalog and how to add new scenarios.

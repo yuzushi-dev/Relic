@@ -35,3 +35,7 @@ C5_HONCHO
 ```
 
 Each condition must be testable without live cloud access. Live providers may be verified separately when available, but core tests must use fixtures or skipped reasons.
+
+---
+
+See [docs/reference/fixtures.md](../../docs/reference/fixtures.md) for the full fixture catalog and how to add new scenarios.

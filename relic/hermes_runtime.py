@@ -390,7 +390,7 @@ HERMES_CONTEXT_LENGTH = 65536
 HINDSIGHT_DEFAULT_PROVIDER = "ollama"
 
 # Profile-scoped defaults (subject Gumi profiles — alibaba-coding-plan SKU)
-HERMES_PROFILE_DEFAULT_MODEL = "qwen3-coder-plus"
+HERMES_PROFILE_DEFAULT_MODEL = "qwen3.5-plus"
 HERMES_PROFILE_DEFAULT_PROVIDER = "alibaba-coding-plan"
 HERMES_PROFILE_CONTEXT_LENGTH = 1000000
 HERMES_CODING_BASE_URL = "https://coding-intl.dashscope.aliyuncs.com/v1"
@@ -487,6 +487,11 @@ def render_subject_hermes_config(
             "  interim_assistant_messages: false",
             "  tool_progress: 'off'",
             "  busy_input_mode: queue",
+            "  final_response_markdown: strip",
+            "human_delay:",
+            "  mode: auto",
+            "  min_ms: 800",
+            "  max_ms: 2500",
             "streaming:",
             "  enabled: false",
             f"timezone: {timezone}",

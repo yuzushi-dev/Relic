@@ -522,6 +522,196 @@ class BootstrapTUI:
 
         return profile
 
+    def _detect_incomplete_baseline(self, profile: SubjectProfile) -> list[str]:
+        """Return list of baseline sections missing fields added after initial bootstrap."""
+        baseline_path = profile.relic_subject_home / "baseline_user_profile.json"
+        if not baseline_path.exists():
+            return []
+        try:
+            bl = json.loads(baseline_path.read_text(encoding="utf-8"))
+        except Exception:
+            return []
+
+        missing = []
+        sr = bl.get("self_report_fields", {})
+        rc = bl.get("researcher_coded_fields", {})
+        re_ = bl.get("relational_expectations", {})
+        bg_path = profile.relic_subject_home / "gumi_background_profile.json"
+        bg_display_name = None
+        if bg_path.exists():
+            try:
+                bg = json.loads(bg_path.read_text(encoding="utf-8"))
+                bg_display_name = bg.get("display_name")
+            except Exception:
+                pass
+
+        sr_new_fields = [
+            "preferred_name", "age_range", "gender_identity", "language",
+            "occupation_or_study", "location", "family_structure",
+            "narrative_self_description", "contact_channel_preference",
+        ]
+        if any(f not in sr for f in sr_new_fields):
+            missing.append("self_report_fields (campi mancanti post-TUI)")
+
+        rc_new_fields = ["attachment_style", "affect_regulation_notes", "cultural_context_notes"]
+        if any(f not in rc for f in rc_new_fields):
+            missing.append("researcher_coded_fields (campi mancanti post-TUI)")
+
+        re_new_fields = [
+            "desired_relationship_tone", "continuity_expectations",
+            "disclosure_comfort_level", "role_expectations_for_gumi",
+        ]
+        if any(f not in re_ for f in re_new_fields):
+            missing.append("relational_expectations (campi mancanti post-TUI)")
+
+        if bg_display_name is None:
+            missing.append("gumi_background_profile.display_name (agent_name non impostato)")
+
+        # Check if background was generated without LLM (model_used=None in provenance)
+        provenance_path = profile.relic_subject_home / "provenance" / "gumi_generation_report.json"
+        if provenance_path.exists():
+            try:
+                prov = json.loads(provenance_path.read_text(encoding="utf-8"))
+                if prov.get("model_used") is None:
+                    missing.append("gumi_background_profile (generato senza LLM — calibrazione incompleta)")
+            except Exception:
+                pass
+
+        return missing
+
+    def _reprovision_baseline_fields(self, profile: SubjectProfile) -> bool:
+        """Re-collect baseline fields missing due to TUI changes, merge into existing baseline.
+
+        Returns True if baseline was updated and background should be regenerated.
+        """
+        baseline_path = profile.relic_subject_home / "baseline_user_profile.json"
+        bl = json.loads(baseline_path.read_text(encoding="utf-8"))
+
+        self._print("\n--- Raccolta campi baseline mancanti ---")
+        self._print("Rispondere ai campi aggiunti dopo il bootstrap iniziale.")
+        self._print("Lasciare vuoto per saltare un campo.\n")
+
+        updated = False
+
+        # self_report_fields
+        sr = bl.get("self_report_fields", {})
+        sr_new_fields = [
+            "preferred_name", "age_range", "gender_identity", "language",
+            "occupation_or_study", "location", "family_structure",
+            "narrative_self_description", "contact_channel_preference",
+        ]
+        if any(f not in sr for f in sr_new_fields):
+            self._print("--- Self Report ---")
+            new_sr = collect_self_report_fields(self.io_in, self.io_out)
+            for k, v in new_sr.items():
+                if k not in sr and v not in (None, "", {}):
+                    sr[k] = v
+                    updated = True
+            bl["self_report_fields"] = sr
+
+        # researcher_coded_fields
+        rc = bl.get("researcher_coded_fields", {})
+        rc_new_fields = ["attachment_style", "affect_regulation_notes", "cultural_context_notes"]
+        if any(f not in rc for f in rc_new_fields):
+            self._print("--- Researcher Coded Fields ---")
+            new_rc = collect_researcher_coded_fields(self.io_in, self.io_out)
+            for k, v in new_rc.items():
+                if k not in rc and v not in (None, "", {}):
+                    rc[k] = v
+                    updated = True
+            bl["researcher_coded_fields"] = rc
+
+        # relational_expectations
+        re_ = bl.get("relational_expectations", {})
+        re_new_fields = [
+            "desired_relationship_tone", "continuity_expectations",
+            "disclosure_comfort_level", "role_expectations_for_gumi",
+        ]
+        if any(f not in re_ for f in re_new_fields):
+            self._print("--- Relational Expectations ---")
+            new_re = collect_relational_expectations(self.io_in, self.io_out)
+            for k, v in new_re.items():
+                if k not in re_ and v not in (None, "", {}):
+                    re_[k] = v
+                    updated = True
+            bl["relational_expectations"] = re_
+
+        if updated:
+            # bump version_history
+            vh = bl.get("version_history", [])
+            vh.append({
+                "version": len(vh) + 1,
+                "edited_at": _now_iso(),
+                "edited_by": bl.get("researcher_id", ""),
+                "fields_changed": ["baseline_reprovision_post_tui_update"],
+                "edit_mode": "reprovision",
+                "change_summary": "re-collected fields missing from initial bootstrap (TUI update)",
+            })
+            bl["version_history"] = vh
+            baseline_path.write_text(json.dumps(bl, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+            self._print("  Baseline aggiornato.")
+            self._log_edit_step("baseline_fields_reprovisioned", "ok")
+
+        return updated
+
+    def _reprovision_gumi_identity(self, profile: SubjectProfile, subject_id: str) -> None:
+        """Regenerate gumi_background_profile from updated baseline, fix display_name, regenerate SOUL/world."""
+        import os as _os
+
+        self._print("\n--- Gumi Identity ---")
+
+        # Collect agent name + signature emoji
+        _, agent_name, signature_emoji = collect_gumi_overrides(
+            self.io_in, self.io_out, mode="random"
+        )
+        if not agent_name:
+            agent_name = "Gumi"
+
+        # Regenerate full background from updated baseline (force bypasses status check)
+        self._print("  Rigenerazione background Gumi dal baseline aggiornato...")
+        try:
+            _, paths = self.registry.generate_gumi_background(
+                subject_id, mode="hybrid", force=True
+            )
+            self._print("  Background rigenerato.")
+            self._log_edit_step("gumi_background_regenerated", "ok")
+        except Exception as exc:
+            self._print(f"  [warn] Rigenerazione background fallita: {exc}")
+            self._log_edit_step("gumi_background_regeneration_failed", str(exc))
+
+        # Patch display_name + signature_emoji
+        bg_path = profile.relic_subject_home / "gumi_background_profile.json"
+        if not bg_path.exists():
+            self._print("  [warn] gumi_background_profile.json mancante dopo rigenerazione.")
+            return
+        bg = json.loads(bg_path.read_text(encoding="utf-8"))
+        bg["display_name"] = agent_name
+        bg["agent_name"] = agent_name
+        if signature_emoji:
+            bg["signature_emoji"] = signature_emoji
+        bg_path.write_text(json.dumps(bg, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        ws_bg = profile.hermes_home / "workspace" / "gumi" / "background.json"
+        if ws_bg.parent.exists():
+            ws_bg.write_text(json.dumps(bg, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        self._log_edit_step("gumi_display_name_set", agent_name)
+        self._print(f"  display_name impostato: {agent_name}")
+
+        # Regenerate SOUL.md + world.md with new background
+        self._print("  Rigenerazione SOUL.md e world.md...")
+        try:
+            ws = profile.hermes_home / "workspace" / "gumi"
+            self.registry._generate_identity_files(
+                profile=profile,
+                agent_name=agent_name,
+                background=bg,
+                workspace=ws,
+            )
+            self._print("  SOUL.md e world.md rigenerati.")
+            self._log_edit_step("gumi_identity_files_regenerated", "ok")
+        except Exception as exc:
+            self._print(f"  [warn] Rigenerazione identity files fallita: {exc}")
+            self._log_edit_step("gumi_identity_files_regeneration_failed", str(exc))
+
     def _detect_missing_artifacts(self, profile: SubjectProfile) -> list[str]:
         """Return list of missing provisioning artifacts for an active subject."""
         missing = []
@@ -560,14 +750,37 @@ class BootstrapTUI:
         self._print(f"\n=== Re-provision Subject: {subject_id} ===\n")
 
         missing = self._detect_missing_artifacts(profile)
-        if not missing:
+        incomplete = self._detect_incomplete_baseline(profile)
+
+        if not missing and not incomplete:
             self._print("All artifacts present. Nothing to re-provision.")
             return profile
 
-        self._print("Missing artifacts:")
-        for m in missing:
-            self._print(f"  - {m}")
-        self._print("")
+        if missing:
+            self._print("Missing artifacts:")
+            for m in missing:
+                self._print(f"  - {m}")
+            self._print("")
+
+        # --- Baseline fields missing due to TUI changes ---
+        if incomplete:
+            self._print("Campi baseline incompleti (aggiunti dopo bootstrap iniziale):")
+            for f in incomplete:
+                self._print(f"  - {f}")
+            self._print("")
+            needs_identity = any(
+                k in f for f in incomplete
+                for k in ("display_name", "senza LLM")
+            )
+            if any("campi mancanti" in f for f in incomplete):
+                if self._confirm("Raccogliere i campi baseline mancanti?"):
+                    baseline_updated = self._reprovision_baseline_fields(profile)
+                    needs_identity = needs_identity or baseline_updated
+            if needs_identity:
+                if self._confirm("Rigenerare identità Gumi (background, SOUL.md, world.md)?"):
+                    self._reprovision_gumi_identity(profile, subject_id)
+                    # Identity regenerated → force media canon refresh too
+                    missing = list(missing) + ["voice_canon (dopo rigenerazione identità)"]
 
         # --- Identity files (world.md empty → regenerate via Ollama) ---
         ws = profile.hermes_home / "workspace" / "gumi"
@@ -586,7 +799,7 @@ class BootstrapTUI:
                         agent_name=agent_name, background=background
                     )
                     ollama_endpoint = _os.environ.get("RELIC_OLLAMA_ENDPOINT", "http://localhost:11434/v1")
-                    ollama_model = _os.environ.get("RELIC_OLLAMA_MODEL", "qwen3:latest")
+                    ollama_model = _os.environ.get("RELIC_OLLAMA_MODEL", "devstral-small-2:24b-cloud")
                     narrator = OllamaNarrator(endpoint=ollama_endpoint, model=ollama_model)
                     if narrator.is_available():
                         world_text = narrator.generate_world_md(ctx)
@@ -608,14 +821,16 @@ class BootstrapTUI:
         )
         if needs_media:
             if self._confirm("Provision media identity (voice, visual canon, anchor image)?"):
-                gemini_key = ""
-                if self._confirm("Provide Gemini API key for anchor image generation?"):
-                    gemini_key = self._prompt("GEMINI_API_KEY", default="").strip()
+                import os as _os
+                # Read existing key from .env or env
+                env_path = profile.hermes_home / ".env"
+                gemini_key = _os.environ.get("GEMINI_API_KEY", "") or _read_env_var(env_path, "GEMINI_API_KEY")
+                if not gemini_key:
+                    if self._confirm("Provide Gemini API key for anchor image generation?"):
+                        gemini_key = self._prompt("GEMINI_API_KEY", default="").strip()
                 try:
-                    import os as _os
                     if gemini_key:
                         _os.environ["GEMINI_API_KEY"] = gemini_key
-                        env_path = profile.hermes_home / ".env"
                         _upsert_env_var(env_path, "GEMINI_API_KEY", gemini_key)
                     self.registry.generate_gumi_media_canon(subject_id)
                     self._log_edit_step("media_canon_reprovisioned", "ok")
@@ -685,6 +900,16 @@ class BootstrapTUI:
 
         self._print("\nEdit complete.")
         return profile
+
+
+def _read_env_var(env_path: Path, key: str) -> str:
+    """Read a single variable from .env file, return empty string if not found."""
+    if not env_path.exists():
+        return ""
+    for line in env_path.read_text(encoding="utf-8").splitlines():
+        if line.strip().startswith(f"{key}="):
+            return line.strip()[len(key) + 1:]
+    return ""
 
 
 def _upsert_env_var(env_path: Path, key: str, value: str) -> None:

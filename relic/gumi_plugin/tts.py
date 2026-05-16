@@ -33,18 +33,37 @@ _ATTACHMENT_TO_TONE = {
 }
 
 
-def select_voice_for_canon(background_profile: dict) -> str:
-    """Select Gemini voice from domains.embodiment.gender_expression and attachment_style."""
+def select_voice_for_canon(
+    background_profile: dict,
+    subject_gender: str | None = None,
+) -> str:
+    """Select Gemini voice from Gumi's gender_expression and attachment_style.
+
+    For androgynous/non-binary/unknown gender_expression, falls back to the
+    opposite of subject_gender (if provided) to ensure Gumi differs from subject.
+    """
     domains = background_profile.get("domains", {})
     embodiment = domains.get("embodiment", {})
     gender_expr = embodiment.get("gender_expression", "").lower()
 
-    if gender_expr in ("feminine",):
-        gender = "female"
-    elif gender_expr in ("masculine",):
-        gender = "male"
+    _neutral = {"androgynous", "non-binary", "nonbinary", "gender non-conforming", ""}
+    if gender_expr in _neutral:
+        # Neutral Gumi expression → opposite of subject for voice contrast
+        if subject_gender and subject_gender.lower() in ("male", "uomo", "man", "m"):
+            gender = "female"
+        elif subject_gender and subject_gender.lower() in ("female", "donna", "woman", "f"):
+            gender = "male"
+        else:
+            gender = ""
     else:
-        gender = ""
+        # Non-neutral Gumi expression → always opposite of subject
+        if subject_gender and subject_gender.lower() in ("male", "uomo", "man", "m"):
+            gender = "female"
+        elif subject_gender and subject_gender.lower() in ("female", "donna", "woman", "f"):
+            gender = "male"
+        else:
+            # No subject gender info → use Gumi's expression directly
+            gender = "female" if gender_expr == "feminine" else "male" if gender_expr == "masculine" else ""
 
     attachment = domains.get("relationship_stance", {}).get("attachment_style", "").lower()
     tone = _ATTACHMENT_TO_TONE.get(attachment, "calm")

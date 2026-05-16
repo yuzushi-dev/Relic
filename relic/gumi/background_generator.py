@@ -239,8 +239,10 @@ class GumiBackgroundGenerator:
     _GENDER_COMPLEMENT: dict[str, list[str]] = {
         "male":        ["feminine", "androgynous", "fluid"],
         "man":         ["feminine", "androgynous", "fluid"],
+        "uomo":        ["feminine", "androgynous", "fluid"],
         "female":      ["masculine", "androgynous", "fluid"],
         "woman":       ["masculine", "androgynous", "fluid"],
+        "donna":       ["masculine", "androgynous", "fluid"],
         "non-binary":  ["feminine", "masculine", "androgynous", "fluid", "gender non-conforming"],
         "non binary":  ["feminine", "masculine", "androgynous", "fluid", "gender non-conforming"],
         "genderqueer": ["feminine", "masculine", "androgynous", "fluid", "gender non-conforming"],
