@@ -5,63 +5,45 @@ import { useState } from "react";
 import { formatDate, formatDateTime } from "../lib/format";
 import type { StudyOverview, SubjectRow } from "../lib/workbench-data";
 
-function StatusBadge({ status }: { status: SubjectRow["status"] }) {
-  const map: Record<string, string> = {
-    active: "#84d1a4",
-    paused: "#fbbf24",
-    archived: "#a69691",
-  };
-  const color = map[status] ?? map.archived;
-
-  return (
-    <span
-      className="status-chip"
-      style={{
-        borderColor: `color-mix(in srgb, ${color} 28%, transparent)`,
-        background: `color-mix(in srgb, ${color} 12%, transparent)`,
-        color,
-      }}
-    >
-      <span className="status-dot" style={{ background: color, boxShadow: `0 0 10px ${color}` }} />
-      {status}
-    </span>
-  );
+function StatusMarker({ status }: { status: SubjectRow["status"] }) {
+  return <span className="state-marker" data-state={status}>{status}</span>;
 }
 
 function RiskBadge({ risk }: { risk: SubjectRow["risk"] }) {
-  const map: Record<string, string> = {
-    none: "#84d1a4",
-    low: "#60a5fa",
-    medium: "#fbbf24",
-    high: "#f87171",
-  };
-  const color = map[risk] ?? "#a69691";
+  return <span className="risk-badge" data-risk={risk}>{risk}</span>;
+}
 
+function HermesCell({ profileId }: { profileId: string | null | undefined }) {
+  if (!profileId) {
+    return <span className="stream-chip" data-stream="blocked">provisioning failed</span>;
+  }
   return (
-    <span
-      className="token"
-      style={{
-        borderColor: `color-mix(in srgb, ${color} 40%, transparent)`,
-        background: `color-mix(in srgb, ${color} 14%, transparent)`,
-        color,
-      }}
-    >
-      {risk}
+    <span className="mono" style={{ fontSize: "11.5px", fontVariantNumeric: "tabular-nums" }}>
+      {profileId}
     </span>
   );
 }
 
+function ReviewCell({ pending }: { pending: boolean }) {
+  if (pending) return <span className="stream-chip" data-stream="pending">queued</span>;
+  return <span className="text-dim">—</span>;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+
 export function StudyDashboard({ studyOverviewData }: { studyOverviewData: StudyOverview }) {
   const [conditionFilter, setConditionFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter]       = useState("all");
 
-  const subjects = studyOverviewData.subject_registry;
-  const filtered = subjects.filter((subject) => {
-    return (
-      (conditionFilter === "all" || subject.condition === conditionFilter) &&
-      (statusFilter === "all" || subject.status === statusFilter)
-    );
-  });
+  const subjects   = studyOverviewData.subject_registry;
+  const conditions = ["all", ...Array.from(new Set(subjects.map((s) => s.condition)))];
+  const statuses   = ["all", "active", "paused", "archived"];
+
+  const filtered = subjects.filter(
+    (s) =>
+      (conditionFilter === "all" || s.condition === conditionFilter) &&
+      (statusFilter === "all" || s.status === statusFilter),
+  );
 
   const validation = studyOverviewData.last_validation_run
     ? formatDateTime(studyOverviewData.last_validation_run)
@@ -69,134 +51,125 @@ export function StudyDashboard({ studyOverviewData }: { studyOverviewData: Study
 
   return (
     <>
-      <section className="hero">
-        <div className="hero-grid">
-          <div>
-            <div className="eyebrow">Study dashboard</div>
-            <h1>{studyOverviewData.study_id}</h1>
-            <p className="lede">
-              Protocol {studyOverviewData.protocol_version} · {subjects.length} registered subjects · validated {validation}.
-            </p>
+      {/* Page header */}
+      <header className="page-header">
+        <div className="page-eyebrow">Study Monitoring</div>
+        <h1 className="page-title">{studyOverviewData.study_id}</h1>
+        <div className="page-meta">
+          <span>Protocol {studyOverviewData.protocol_version}</span>
+          <span className="mono" style={{ fontSize: "10px", opacity: 0.5 }}>|</span>
+          <span>{subjects.length} Subjects Registered</span>
+          <span className="mono" style={{ fontSize: "10px", opacity: 0.5 }}>|</span>
+          <span>Validated {validation}</span>
+        </div>
+      </header>
+
+      {/* Stat bar */}
+      <div className="stat-bar" role="region" aria-label="Study Metrics">
+        {[
+          { key: "Active Subjects", val: studyOverviewData.subjects_active,    state: studyOverviewData.subjects_active    > 0 ? "ok"   : undefined },
+          { key: "Paused Subjects", val: studyOverviewData.subjects_paused,    state: studyOverviewData.subjects_paused    > 0 ? "warn" : undefined },
+          { key: "Archived",        val: studyOverviewData.subjects_archived,  state: undefined },
+          { key: "Active Risks",    val: studyOverviewData.active_risk_alerts, state: studyOverviewData.active_risk_alerts > 0 ? "fault": undefined },
+          { key: "Pending Review",  val: studyOverviewData.pending_reviews,    state: studyOverviewData.pending_reviews    > 0 ? "warn" : undefined },
+        ].map((item) => (
+          <div key={item.key} className="stat-item">
+            <div className="stat-key">{item.key}</div>
+            <div
+              className="stat-val"
+              data-ok={item.state === "ok" || undefined}
+              data-warn={item.state === "warn" || undefined}
+              data-fault={item.state === "fault" || undefined}
+            >
+              {item.val}
+            </div>
           </div>
-          <aside className="hero-side">
-            <div className="eyebrow">Study totals</div>
-            <div className="token-row" style={{ marginTop: "14px" }}>
-              <span className="token active-token">{studyOverviewData.subjects_active} active</span>
-              <span className="token">{studyOverviewData.pending_reviews} pending review</span>
-              <span className="token">{studyOverviewData.hermes_provisioning_failures} provisioning failure</span>
-            </div>
-          </aside>
-        </div>
+        ))}
+      </div>
 
-        <div className="summary-strip">
-          {[
-            { label: "Active", value: studyOverviewData.subjects_active, color: "#84d1a4" },
-            { label: "Paused", value: studyOverviewData.subjects_paused, color: "#fbbf24" },
-            { label: "Archived", value: studyOverviewData.subjects_archived, color: "#a69691" },
-            { label: "Risk Alerts", value: studyOverviewData.active_risk_alerts, color: "#f87171" },
-          ].map((stat) => (
-            <div key={stat.label} className="strip-item">
-              <div className="strip-label">{stat.label}</div>
-              <div className="strip-value" style={{ color: stat.color }}>
-                {stat.value}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* Subject registry */}
+      <div className="wgrid">
+        <article className="card col-12">
+          <h2 className="card-label">Subject Registry</h2>
 
-      <section className="workbench-grid">
-        <article className="card span-12">
-          <div className="card-title">Subject Registry</div>
-          <div className="control-row">
-            <span className="control-label">Condition</span>
-            {["all", "control", "treatment_a", "treatment_b"].map((condition) => (
+          {/* Filter bar */}
+          <div className="filter-bar" role="group" aria-label="Filter registry">
+            <span className="filter-label">Condition</span>
+            {conditions.map((c) => (
               <button
-                key={condition}
-                className={`token token-button ${conditionFilter === condition ? "active-token" : ""}`}
+                key={c}
                 type="button"
-                onClick={() => setConditionFilter(condition)}
+                className={`filter-btn ${conditionFilter === c ? "active" : ""}`}
+                onClick={() => setConditionFilter(c)}
               >
-                {condition.replace(/_/g, " ")}
+                {c.replace(/_/g, " ")}
               </button>
             ))}
-            <span className="control-label">Status</span>
-            {["all", "active", "paused", "archived"].map((status) => (
+
+            <div style={{ flex: 1 }} />
+
+            <span className="filter-label">Status</span>
+            {statuses.map((s) => (
               <button
-                key={status}
-                className={`token token-button ${statusFilter === status ? "active-token" : ""}`}
+                key={s}
                 type="button"
-                onClick={() => setStatusFilter(status)}
+                className={`filter-btn ${statusFilter === s ? "active" : ""}`}
+                onClick={() => setStatusFilter(s)}
               >
-                {status}
+                {s}
               </button>
             ))}
           </div>
 
-          <table className="dense-table">
+          <table className="data-table">
             <thead>
               <tr>
-                {["Subject", "Condition", "Status", "Risk", "Hermes Profile", "Last Interaction", "Review"].map((heading) => (
-                  <th key={heading}>{heading}</th>
-                ))}
+                <th scope="col">Subject ID</th>
+                <th scope="col">Condition</th>
+                <th scope="col">Status</th>
+                <th scope="col">Risk</th>
+                <th scope="col">Hermes Profile</th>
+                <th scope="col">Interaction</th>
+                <th scope="col">Review</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 && (
+              {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="status-text">
-                    No live subjects found. Create one with `relic subject create` or set RELIC_HOME for the live container.
+                  <td colSpan={7} className="empty-state">
+                    No subjects match the current filters.
                   </td>
                 </tr>
+              ) : (
+                filtered.map((subject) => (
+                  <tr key={subject.subject_id}>
+                    <td>
+                      <Link
+                        href={`/workbench/subjects/${subject.subject_id.replace("-", "_")}`}
+                        className="subject-link"
+                      >
+                        {subject.subject_id}
+                      </Link>
+                    </td>
+                    <td>{subject.condition.replace(/_/g, " ")}</td>
+                    <td><StatusMarker status={subject.status} /></td>
+                    <td><RiskBadge risk={subject.risk} /></td>
+                    <td><HermesCell profileId={subject.hermes_profile_id} /></td>
+                    <td className="mono" style={{ fontSize: "11px" }}>
+                      {subject.last_user_interaction_at ? formatDate(subject.last_user_interaction_at) : "—"}
+                    </td>
+                    <td><ReviewCell pending={subject.pending_review} /></td>
+                  </tr>
+                ))
               )}
-              {filtered.map((subject) => (
-                <tr key={subject.subject_id}>
-                  <td>
-                    <Link
-                      href={`/workbench/subjects/${subject.subject_id.replace("-", "_")}`}
-                      style={{ color: "var(--red-soft)", textDecoration: "none", fontFamily: "var(--mono)", fontSize: "12px" }}
-                    >
-                      {subject.subject_id}
-                    </Link>
-                  </td>
-                  <td className="status-text">{subject.condition}</td>
-                  <td>
-                    <StatusBadge status={subject.status} />
-                  </td>
-                  <td>
-                    <RiskBadge risk={subject.risk} />
-                  </td>
-                  <td>
-                    {subject.hermes_profile_id ? (
-                      <span className="status-text" style={{ color: "#84d1a4" }}>
-                        {subject.hermes_profile_id}
-                      </span>
-                    ) : (
-                      <span className="token" style={{ color: "var(--red-soft)" }}>
-                        provisioning failed
-                      </span>
-                    )}
-                  </td>
-                  <td className="status-text">
-                    {subject.last_user_interaction_at
-                      ? formatDate(subject.last_user_interaction_at)
-                      : "--"}
-                  </td>
-                  <td>
-                    {subject.pending_review ? (
-                      <span className="token active-token">queued</span>
-                    ) : (
-                      <span className="status-text">clear</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
             </tbody>
           </table>
         </article>
-      </section>
+      </div>
 
-      <div className="footer">Study dashboard · {studyOverviewData.study_id}</div>
+      <footer className="page-footer">
+        {studyOverviewData.study_id} · {subjects.length} subjects
+      </footer>
     </>
   );
 }

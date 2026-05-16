@@ -134,6 +134,8 @@
     { "name": "subject_summary.json", "kind": "summary", "lineage": "subj_001/extract/summarize/final" },
     { "name": "subject_model_profile.md", "kind": "profile", "lineage": "subj_001/extract/facets/profile" },
     { "name": "subject_portrait.md", "kind": "portrait", "lineage": "subj_001/synthesize/portrait" },
-    { "name": "event_stream.json", "kind": "event_log", "lineage": "subj_001/events/redacted" }
+    { "name": "event_stream.json", "kind": "event_log", "lineage": "subj_001/events/redacted" },
+    { "name": "subject_baseline.json", "kind": "baseline", "lineage": "subj_001/subject_baseline" },
+    { "name": "relic.db", "kind": "model_snapshot", "lineage": "subj_001/relic.db" }
   ]
 }

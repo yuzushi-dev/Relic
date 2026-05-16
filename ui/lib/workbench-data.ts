@@ -54,8 +54,10 @@ function hermesProfilesHome() {
 
 function readJson<T>(filePath: string): T | null {
   try {
-    return JSON.parse(fs.readFileSync(filePath, "utf8")) as T;
-  } catch {
+    const content = fs.readFileSync(filePath, "utf8");
+    return JSON.parse(content) as T;
+  } catch (err) {
+    console.error(`[Data] Error reading JSON from ${filePath}:`, err);
     return null;
   }
 }
@@ -69,30 +71,37 @@ function readJsonLines<T>(filePath: string): T[] {
       .flatMap((line) => {
         try { return [JSON.parse(line) as T]; } catch { return []; }
       });
-  } catch {
+  } catch (err) {
+    console.error(`[Data] Error reading JSONL from ${filePath}:`, err);
     return [];
   }
 }
 
 function liveProfiles() {
-  const subjectsDir = path.join(relicHome(), "subjects");
+  const relic = relicHome();
+  const subjectsDir = path.join(relic, "subjects");
+  console.log(`[Data] Loading live profiles from: ${subjectsDir}`);
   try {
-    return fs
-      .readdirSync(subjectsDir, { withFileTypes: true })
+    const entries = fs.readdirSync(subjectsDir, { withFileTypes: true });
+    console.log(`[Data] Found ${entries.length} entries in subjects directory`);
+    return entries
       .filter((entry) => entry.isDirectory())
       .map((entry) => {
-        const profile = readJson<LiveSubjectProfile>(path.join(subjectsDir, entry.name, "subject_profile.json"));
+        const profilePath = path.join(subjectsDir, entry.name, "subject_profile.json");
+        const profile = readJson<LiveSubjectProfile>(profilePath);
         if (profile?.subject_id) {
-          profile.relic_subject_home = path.join(relicHome(), "subjects", profile.subject_id);
-          // hermes_home: remap from host-absolute to container path using hermes_profile_name
+          profile.relic_subject_home = path.join(relic, "subjects", profile.subject_id);
           if (profile.hermes_profile_name) {
             profile.hermes_home = path.join(hermesProfilesHome(), profile.hermes_profile_name);
           }
+        } else {
+          console.warn(`[Data] Invalid profile at ${profilePath}`);
         }
         return profile;
       })
       .filter((profile): profile is LiveSubjectProfile => Boolean(profile?.subject_id));
-  } catch {
+  } catch (err) {
+    console.error(`[Data] Error listing subjects directory ${subjectsDir}:`, err);
     return [];
   }
 }
@@ -413,10 +422,259 @@ export function getGumiProfile(subjectId: string): GumiProfile | null {
   };
 }
 
-export function getEventStream(_subjectId: string): EventStream | null {
-  return getDataSource() === "live" ? null : eventStreamFixture;
+export function getEventStream(subjectId: string): EventStream | null {
+  if (getDataSource() !== "live") return eventStreamFixture;
+
+  const profile = liveProfiles().find((p) => p.subject_id === subjectId);
+  if (!profile?.relic_subject_home) return null;
+
+  const subjectHome = profile.relic_subject_home;
+
+  type DeliveryEntry = {
+    event_type?: string; status?: string; created_at?: string;
+    delivery_backend?: string; hermes_cron_job?: string;
+    message_text_hash?: string; target_display?: string;
+  };
+  type BootstrapEntry = { step?: string; value?: string; ts?: string };
+  type EditEntry = { step?: string; value?: string; ts?: string };
+
+  const deliveries = readJsonLines<DeliveryEntry>(path.join(subjectHome, "delivery_decision_log.jsonl"));
+  const bootstrapEntries = readJsonLines<BootstrapEntry>(path.join(subjectHome, "bootstrap_session.jsonl"));
+  const editEntries = readJsonLines<EditEntry>(path.join(subjectHome, "profile_edit_log.jsonl"));
+
+  const events: EventStream["events"] = [];
+  let idx = 0;
+
+  for (const e of bootstrapEntries) {
+    if (!e.ts || !e.step) continue;
+    events.push({
+      event_id: `boot_${idx++}`,
+      subject_id: subjectId,
+      gumi_instance_id: profile.hermes_profile_name || "",
+      hermes_profile_id: profile.hermes_profile_name || "",
+      event_class: "system",
+      ontological_class: "bootstrap",
+      timestamp: e.ts,
+      delivered: false,
+      decision: "system",
+      policy_snapshot: { rate_limit_mode: "auto-gated", careful_distancing: false, max_proactive_per_day: 0 },
+      source_refs: [],
+      content_preview: `[bootstrap] ${e.step}: ${String(e.value ?? "").slice(0, 80)}`,
+      raw_content_availability: "none",
+      eligible_for_user_model: false,
+      eligible_for_experience_analysis: false,
+      related_inference_ids: [],
+      related_correction_ids: [],
+      initiator: "system",
+      risk_level: "none",
+      has_user_response: false,
+      has_correction: false,
+      has_boundary_risk: false,
+      has_media: false,
+    });
+  }
+
+  for (const e of deliveries) {
+    if (!e.created_at) continue;
+    const isDelivered = e.status === "sent" || e.status === "delivery_ready";
+    events.push({
+      event_id: `del_${idx++}`,
+      subject_id: subjectId,
+      gumi_instance_id: profile.hermes_profile_name || "",
+      hermes_profile_id: profile.hermes_profile_name || "",
+      event_class: "gumi_initiative",
+      ontological_class: e.hermes_cron_job || e.event_type || "delivery",
+      timestamp: e.created_at,
+      delivered: isDelivered,
+      decision: e.status || "unknown",
+      policy_snapshot: { rate_limit_mode: "auto-gated", careful_distancing: false, max_proactive_per_day: 0 },
+      source_refs: [],
+      content_preview: `[${e.delivery_backend ?? "backend"}] ${e.status ?? ""} → ${e.target_display ?? ""}`,
+      raw_content_availability: isDelivered ? "partial" : "none",
+      eligible_for_user_model: false,
+      eligible_for_experience_analysis: isDelivered,
+      related_inference_ids: [],
+      related_correction_ids: [],
+      initiator: "gumi",
+      risk_level: "none",
+      has_user_response: false,
+      has_correction: false,
+      has_boundary_risk: false,
+      has_media: false,
+    });
+  }
+
+  for (const e of editEntries) {
+    if (!e.ts) continue;
+    events.push({
+      event_id: `edit_${idx++}`,
+      subject_id: subjectId,
+      gumi_instance_id: profile.hermes_profile_name || "",
+      hermes_profile_id: profile.hermes_profile_name || "",
+      event_class: "researcher_action",
+      ontological_class: e.step || "profile_edit",
+      timestamp: e.ts,
+      delivered: false,
+      decision: "researcher",
+      policy_snapshot: { rate_limit_mode: "auto-gated", careful_distancing: false, max_proactive_per_day: 0 },
+      source_refs: [],
+      content_preview: `[edit] ${e.step}: ${String(e.value ?? "").slice(0, 80)}`,
+      raw_content_availability: "none",
+      eligible_for_user_model: false,
+      eligible_for_experience_analysis: false,
+      related_inference_ids: [],
+      related_correction_ids: [],
+      initiator: "researcher",
+      risk_level: "none",
+      has_user_response: false,
+      has_correction: false,
+      has_boundary_risk: false,
+      has_media: false,
+    });
+  }
+
+  events.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+
+  return {
+    subject_id: subjectId,
+    generated_at: new Date().toISOString(),
+    stream: "live",
+    events,
+  };
 }
 
-export function getSubjectIntelligence(_subjectId: string): SubjectIntelligenceData | null {
-  return getDataSource() === "live" ? null : subjectIntelligenceFixture;
+export function getSubjectIntelligence(subjectId: string): SubjectIntelligenceData | null {
+  if (getDataSource() !== "live") return subjectIntelligenceFixture;
+
+  const profile = liveProfiles().find((p) => p.subject_id === subjectId);
+  if (!profile?.relic_subject_home) return null;
+
+  const subjectHome = profile.relic_subject_home;
+
+  type ScoreEntry = {
+    value?: number;
+    confidence?: string;
+    confidence_float?: number;
+    observations?: number;
+    spectrum_low?: string;
+    spectrum_high?: string;
+  };
+
+  const subjectBaseline = readJson<{
+    created_at?: string;
+    last_checkin_update?: string;
+    psychological?: Record<string, ScoreEntry>;
+    interaction?: Record<string, ScoreEntry>;
+    extended_facets?: Record<string, ScoreEntry>;
+  }>(path.join(subjectHome, "subject_baseline.json"));
+
+  const baselineProfile = readJson<{
+    researcher_coded_fields?: Record<string, { value?: unknown; origin?: string }>;
+    self_report_fields?: Record<string, { value?: unknown; origin?: string }>;
+  }>(path.join(subjectHome, "baseline_user_profile.json"));
+
+  function scoreToFacet(k: string, v: ScoreEntry, leftAnchor: string, rightAnchor: string): SubjectIntelligenceData["facet_groups"][number]["facets"][number] {
+    const conf = v.confidence_float !== undefined
+      ? v.confidence_float
+      : (() => {
+          const s = v.confidence ?? "low_initial";
+          return s.startsWith("high") ? 0.8 : s.startsWith("medium") ? 0.5 : 0.25;
+        })();
+    return {
+      facet: k.replace(/_/g, " "),
+      position: v.value ?? 0.5,
+      confidence: conf,
+      confidence_label: conf >= 0.7 ? "high" : conf >= 0.4 ? "medium" : "low",
+      observations: v.observations ?? 0,
+      left_anchor: v.spectrum_low ?? leftAnchor,
+      right_anchor: v.spectrum_high ?? rightAnchor,
+    };
+  }
+
+  const psychFacets = Object.entries(subjectBaseline?.psychological ?? {})
+    .filter(([, v]) => typeof v.value === "number")
+    .map(([k, v]) => scoreToFacet(k, v, "low", "high"));
+
+  const interactionFacets = Object.entries(subjectBaseline?.interaction ?? {})
+    .filter(([, v]) => typeof v.value === "number")
+    .map(([k, v]) => scoreToFacet(k, v, "low", "high"));
+
+  // Group extended_facets by category prefix (e.g. "relational.x" → "relational")
+  const extendedByCategory: Record<string, SubjectIntelligenceData["facet_groups"][number]["facets"]> = {};
+  for (const [k, v] of Object.entries(subjectBaseline?.extended_facets ?? {})) {
+    if (typeof v.value !== "number") continue;
+    const cat = k.includes(".") ? k.split(".")[0] : "other";
+    const label = cat.replace(/_/g, " ");
+    if (!extendedByCategory[label]) extendedByCategory[label] = [];
+    extendedByCategory[label].push(scoreToFacet(k, v, "low", "high"));
+  }
+
+  const facet_groups: SubjectIntelligenceData["facet_groups"] = [];
+  if (psychFacets.length > 0) facet_groups.push({ group: "Psychological", facets: psychFacets });
+  if (interactionFacets.length > 0) facet_groups.push({ group: "Interaction Preferences", facets: interactionFacets });
+  for (const [cat, facets] of Object.entries(extendedByCategory)) {
+    facet_groups.push({ group: cat.charAt(0).toUpperCase() + cat.slice(1), facets });
+  }
+
+  const allFacets = [...psychFacets, ...interactionFacets, ...Object.values(extendedByCategory).flat()];
+  const topConfidence = [...allFacets].sort((a, b) => b.confidence - a.confidence).slice(0, 5).map(f => ({
+    facet: f.facet, position: f.position, confidence: f.confidence,
+    confidence_label: f.confidence_label, observations: f.observations,
+    left_anchor: f.left_anchor, right_anchor: f.right_anchor,
+  }));
+
+  const rcf = baselineProfile?.researcher_coded_fields ?? {};
+  const srf = baselineProfile?.self_report_fields ?? {};
+  const topTraits: string[] = [
+    rcf.communication_style?.value ? `communication: ${rcf.communication_style.value}` : "",
+    rcf.attachment_style?.value ? `attachment: ${rcf.attachment_style.value}` : "",
+    srf.gender_identity?.value ? String(srf.gender_identity.value) : "",
+    srf.occupation_or_study?.value ? String(srf.occupation_or_study.value) : "",
+    srf.contact_channel_preference?.value ? `channel: ${srf.contact_channel_preference.value}` : "",
+    srf.language?.value ? `lang: ${srf.language.value}` : "",
+  ].filter(Boolean).slice(0, 6) as string[];
+
+  const summaryParts: string[] = [];
+  if (rcf.communication_style?.value) summaryParts.push(`Communication: ${rcf.communication_style.value}`);
+  if (rcf.attachment_style?.value) summaryParts.push(`Attachment: ${rcf.attachment_style.value}`);
+  if (rcf.affect_regulation_notes?.value) summaryParts.push(String(rcf.affect_regulation_notes.value).slice(0, 120));
+  const summary = summaryParts.join(". ") || "Live behavioral data collected from subject_baseline.json.";
+
+  const artifacts: SubjectIntelligenceData["artifacts"] = [
+    { name: "subject_baseline.json", kind: "baseline", lineage: `${subjectId}/subject_baseline` },
+    { name: "baseline_user_profile.json", kind: "baseline", lineage: `${subjectId}/baseline_user_profile` },
+  ];
+  if (subjectBaseline?.extended_facets && Object.keys(subjectBaseline.extended_facets).length > 0) {
+    artifacts.push({ name: "extended_facets (checkin-derived)", kind: "model_snapshot", lineage: `${subjectId}/subject_baseline#extended_facets` });
+  }
+  const dbPath = path.join(subjectHome, "relic.db");
+  if (path.isAbsolute(dbPath) && fs.existsSync(dbPath)) {
+    artifacts.push({ name: "relic.db", kind: "model_snapshot", lineage: `${subjectId}/relic.db` });
+  }
+
+  return {
+    subject_id: subjectId,
+    generated_at: subjectBaseline?.created_at ?? new Date().toISOString(),
+    model_summary: {
+      facets_modeled: allFacets.filter(f => f.observations > 0).length,
+      facets_total: subjectIntelligenceFixture.model_summary.facets_total,
+      seed_observations: Object.keys(rcf).length + Object.keys(srf).length,
+      extraction_signals: allFacets.length,
+      hypotheses: 0,
+      summary,
+    },
+    top_traits: topTraits,
+    active_goals: [],
+    top_confidence_facets: topConfidence,
+    hypotheses: [],
+    facet_groups,
+    transcript: [],
+    extraction_sample: allFacets.slice(0, 5).map((f: SubjectIntelligenceData["facet_groups"][number]["facets"][number]) => ({
+      facet: f.facet,
+      direction: f.position > 0.6 ? "positive" : f.position < 0.4 ? "negative" : "neutral",
+      strength: f.confidence,
+      source: "subject_baseline",
+    })),
+    artifacts,
+  };
 }

@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { StudyDashboard } from "../../components/StudyDashboard";
 import { getStudyOverview } from "../../lib/workbench-data";
 

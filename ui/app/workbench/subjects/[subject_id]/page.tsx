@@ -67,6 +67,16 @@ export default async function SubjectPage({ params }: { params: Promise<{ subjec
         ))}
       </div>
 
+      <div className="wgrid" style={{ marginTop: "16px" }}>
+        <div className="card col-12" style={{ padding: "12px 16px" }}>
+          <div className="tag-row" style={{ margin: 0 }}>
+            <Link href={`/workbench/subjects/${d.subject_id}/baseline`} className="filter-btn" style={{ textDecoration: "none" }}>Baseline Profile</Link>
+            <Link href={`/workbench/subjects/${d.subject_id}/timeline`} className="filter-btn" style={{ textDecoration: "none" }}>Event Timeline</Link>
+            <Link href={`/workbench/subjects/${d.subject_id}/gumi` as any} className="filter-btn" style={{ textDecoration: "none" }}>Gumi Profile</Link>
+          </div>
+        </div>
+      </div>
+
       <SubjectIntelligence subjectIntelligence={subjectIntelligence} />
 
       <div className="wgrid">
@@ -142,14 +152,6 @@ export default async function SubjectPage({ params }: { params: Promise<{ subjec
           </div>
         )}
 
-        <div className="card col-12">
-          <h2 className="card-label">QUICK NAVIGATION</h2>
-          <div className="tag-row">
-            <Link href={`/workbench/subjects/${d.subject_id}/baseline`} className="filter-btn" style={{ textDecoration: "none" }}>Baseline Profile</Link>
-            <Link href={`/workbench/subjects/${d.subject_id}/timeline`} className="filter-btn" style={{ textDecoration: "none" }}>Event Timeline</Link>
-            <Link href={`/workbench/subjects/${d.subject_id}/gumi` as any} className="filter-btn" style={{ textDecoration: "none" }}>Gumi Profile</Link>
-          </div>
-        </div>
       </div>
 
       <footer className="page-footer">Subject Scope: {d.subject_id}</footer>
