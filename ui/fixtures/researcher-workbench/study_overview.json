@@ -18,7 +18,7 @@
   "last_validation_run": "2026-05-04T09:15:00Z",
   "subject_registry": [
     {
-      "subject_id": "subj-001",
+      "subject_id": "subj_001",
       "gumi_instance_id": "gumi-inst-9a1b2c",
       "hermes_profile_id": "hermes-prof-alpha-001",
       "condition": "control",
@@ -29,7 +29,7 @@
       "pending_review": false
     },
     {
-      "subject_id": "subj-002",
+      "subject_id": "subj_002",
       "gumi_instance_id": "gumi-inst-3d4e5f",
       "hermes_profile_id": "hermes-prof-alpha-002",
       "condition": "treatment_a",
@@ -40,7 +40,7 @@
       "pending_review": true
     },
     {
-      "subject_id": "subj-003",
+      "subject_id": "subj_003",
       "gumi_instance_id": "gumi-inst-6g7h8i",
       "hermes_profile_id": "hermes-prof-alpha-003",
       "condition": "treatment_b",
@@ -51,7 +51,7 @@
       "pending_review": true
     },
     {
-      "subject_id": "subj-004",
+      "subject_id": "subj_004",
       "gumi_instance_id": "gumi-inst-9j0k1l",
       "hermes_profile_id": null,
       "condition": "treatment_a",
@@ -62,7 +62,7 @@
       "pending_review": false
     },
     {
-      "subject_id": "subj-005",
+      "subject_id": "subj_005",
       "gumi_instance_id": "gumi-inst-2m3n4o",
       "hermes_profile_id": "hermes-prof-alpha-005",
       "condition": "control",

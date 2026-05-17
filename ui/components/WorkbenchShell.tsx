@@ -25,7 +25,7 @@ export function WorkbenchShell({
   const studyId        = studyOverviewData.study_id;
   const protocol       = studyOverviewData.protocol_version;
 
-  const firstSubjectId = studyOverviewData.subject_registry?.[0]?.subject_id ?? "subj_001";
+  const firstSubjectId = (studyOverviewData.subject_registry?.[0]?.subject_id ?? "subj_001").replace(/-/g, "_");
   const navItems: Array<{ href: Route; label: string }> = [
     { href: "/workbench/study", label: "Study Dashboard" },
     { href: `/workbench/subjects/${firstSubjectId}` as Route, label: "Subject Overview" },
