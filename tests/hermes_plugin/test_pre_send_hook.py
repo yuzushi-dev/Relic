@@ -87,8 +87,10 @@ class TestPreSendHandlerBehavior:
         """Handler must not propagate exceptions — fail-open returns {}."""
         _load_plugin()
         handlers = gumi_hooks._REGISTERED.get(gumi_hooks.PRE_SEND, [])
-        with pytest.raises(Exception):
-            raise RuntimeError("test")
-        # Simulate exception inside handler by passing None
-        result = handlers[-1]({"text": None})
-        assert isinstance(result, dict)
+        from unittest.mock import patch
+        with patch(
+            "relic.gumi_plugin.output_sanitizer.sanitize_for_subject",
+            side_effect=RuntimeError("db error"),
+        ):
+            result = handlers[-1]({"text": "qualcosa"})
+        assert result == {}
