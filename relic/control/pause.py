@@ -67,6 +67,30 @@ class PauseController:
 
         return True
 
+    def is_any_session_paused(self) -> bool:
+        """Check if ANY session is currently paused (global check for cron use).
+
+        Unlike is_paused(session_id), this finds pause records created by
+        /relic pause (which stores a real session UUID, not NULL).
+        Returns True if at least one active, non-resumed PAUSED record exists.
+        """
+        conn = get_connection(self._db_path)
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                SELECT id FROM pause_records
+                WHERE state = ? AND resumed_at IS NULL
+                ORDER BY initiated_at DESC
+                LIMIT 1
+                """,
+                (PauseState.PAUSED.value,),
+            )
+            row = cur.fetchone()
+        finally:
+            conn.close()
+        return row is not None
+
     def pause(
         self,
         session_id: UUID | None = None,

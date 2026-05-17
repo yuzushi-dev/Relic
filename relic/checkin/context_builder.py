@@ -187,20 +187,24 @@ def build_topic_hint_section(subject_id: str, db_path: Path, bl_path: Path) -> s
         if not topic_block:
             return ""
 
-        # RO conn closed above — safe to open RW without lock contention
-        conn_rw = sqlite3.connect(str(db_path), timeout=5.0)
+        # RO conn closed above — safe to open RW without lock contention.
+        # Inner try/except so connect/write errors never discard the rendered block.
         try:
-            conn_rw.execute(
-                "INSERT INTO checkin_exchanges "
-                "(facet_id, question_text, asked_at) VALUES (?, ?, ?)",
-                (topic_facet_id, topic_hint_text, datetime.now(timezone.utc).isoformat()),
-            )
-            conn_rw.commit()
-        except Exception as e_ins:
-            if "no such table" not in str(e_ins):
-                print(f"[checkin] persist: {e_ins}", file=sys.stderr)
-        finally:
-            conn_rw.close()
+            conn_rw = sqlite3.connect(str(db_path), timeout=5.0)
+            try:
+                conn_rw.execute(
+                    "INSERT INTO checkin_exchanges "
+                    "(facet_id, question_text, asked_at) VALUES (?, ?, ?)",
+                    (topic_facet_id, topic_hint_text, datetime.now(timezone.utc).isoformat()),
+                )
+                conn_rw.commit()
+            except Exception as e_ins:
+                if "no such table" not in str(e_ins):
+                    print(f"[checkin] persist: {e_ins}", file=sys.stderr)
+            finally:
+                conn_rw.close()
+        except Exception as e_rw:
+            print(f"[checkin] persist (connect failed): {e_rw}", file=sys.stderr)
 
         return f"\n{topic_block}"
     except Exception as e:

@@ -14,12 +14,15 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import os
 import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
+
+logger = logging.getLogger(__name__)
 
 from relic.gumi_plugin.media_state import is_media_eligible, last_media_ts
 
@@ -251,16 +254,22 @@ def _is_continuity_scope_paused(subject_id: str) -> bool:
 
 
 def _is_globally_paused() -> bool:
-    """Return True if the user issued /relic pause and has not yet resumed.
+    """Return True if any session issued /relic pause and has not yet resumed.
 
-    Reads from the global PauseController DB (session_id=None global pause record).
-    Fail-open: returns False on any error so cron is never stuck.
+    Uses is_any_session_paused() which checks ALL pause records regardless of
+    session_id — required because /relic pause stores real session UUIDs, not NULL.
+    Fail-open with ERROR log: DB errors return False so cron is not permanently stuck,
+    but the error is visible (not silently swallowed).
+    Note: single-subject system assumed — if multi-subject, this gate is cross-subject.
     """
     try:
         from relic.control.pause import PauseController
 
-        return PauseController().is_paused()
-    except Exception:
+        return PauseController().is_any_session_paused()
+    except Exception as exc:
+        logger.error(
+            "_is_globally_paused DB error — fail-open, pause may be ignored: %s", exc
+        )
         return False
 
 

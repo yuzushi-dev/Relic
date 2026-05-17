@@ -1,14 +1,16 @@
 """Tests that _evaluate_decision() respects the PauseController gate.
 
 Contract:
-- _is_globally_paused() returns False when PauseController.is_paused() is False
-- _is_globally_paused() returns True when PauseController.is_paused() is True
+- _is_globally_paused() returns False when PauseController.is_any_session_paused() is False
+- _is_globally_paused() returns True when PauseController.is_any_session_paused() is True
 - _is_globally_paused() returns False (fail-open) when PauseController raises
+- _is_globally_paused() logs ERROR (not silently swallows) on exception
 - make_decision() returns NO_REPLY when globally paused
 - make_decision() does not call PauseController when force=True (bypass)
 """
 from __future__ import annotations
 
+import logging
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -19,11 +21,11 @@ from relic.hermes_runtime import RuntimeDecision
 
 class TestIsGloballyPaused:
     def test_returns_false_when_not_paused(self):
-        with patch("relic.control.pause.PauseController.is_paused", return_value=False):
+        with patch("relic.control.pause.PauseController.is_any_session_paused", return_value=False):
             assert _is_globally_paused() is False
 
     def test_returns_true_when_paused(self):
-        with patch("relic.control.pause.PauseController.is_paused", return_value=True):
+        with patch("relic.control.pause.PauseController.is_any_session_paused", return_value=True):
             assert _is_globally_paused() is True
 
     def test_fail_open_on_import_error(self):
@@ -31,8 +33,15 @@ class TestIsGloballyPaused:
             assert _is_globally_paused() is False
 
     def test_fail_open_on_pause_controller_exception(self):
-        with patch("relic.control.pause.PauseController.is_paused", side_effect=RuntimeError("db error")):
+        with patch("relic.control.pause.PauseController.is_any_session_paused", side_effect=RuntimeError("db error")):
             assert _is_globally_paused() is False
+
+    def test_logs_error_on_exception(self, caplog):
+        with caplog.at_level(logging.ERROR, logger="relic.gumi_plugin.cron_wiring"):
+            with patch("relic.control.pause.PauseController.is_any_session_paused", side_effect=RuntimeError("disk full")):
+                result = _is_globally_paused()
+        assert result is False
+        assert any("disk full" in r.message for r in caplog.records)
 
 
 class TestMakeDecisionPauseGate:

@@ -318,14 +318,21 @@ def _promote_observation_to_marker(
     try:
         from relic.gumi_continuity.store import GumiContinuityStore
 
+        # ContinuityService.remember() requires all three IDs to be non-empty
+        # (raises BLOCKED_MARKER_WITHOUT_SUBJECT_SCOPE otherwise).
+        # Fall back to subject_id sentinel — consistent with registry.py pattern.
+        _gumi = gumi_instance_id or subject_id
+        _hermes = hermes_profile_id or subject_id
+
         store = GumiContinuityStore()
-        target_text = extraction.observation_summary
+        target_norm = " ".join(extraction.observation_summary.split())
 
         # Dedup: skip if any recent marker already has the same observation text.
+        # Normalize whitespace on both sides to avoid false negatives.
         existing = store.get_recent_markers(
             subject_id=subject_id,
-            gumi_instance_id=gumi_instance_id or None,
-            hermes_profile_id=hermes_profile_id or None,
+            gumi_instance_id=_gumi or None,
+            hermes_profile_id=_hermes or None,
             limit=50,
         )
         for m in existing:
@@ -334,14 +341,14 @@ def _promote_observation_to_marker(
                 existing_text = " ".join(str(w) for w in words)
             else:
                 existing_text = str(words)
-            if existing_text.strip() == target_text.strip():
+            if " ".join(existing_text.split()) == target_norm:
                 return
 
         store.remember_marker(
             subject_id=subject_id,
-            gumi_instance_id=gumi_instance_id,
-            hermes_profile_id=hermes_profile_id,
-            subject_words=target_text.split(),
+            gumi_instance_id=_gumi,
+            hermes_profile_id=_hermes,
+            subject_words=target_norm.split(),
             source_type="subject_confirmed",
             ttl_seconds=1_209_600,  # 2 weeks
         )
