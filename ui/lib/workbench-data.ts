@@ -41,7 +41,15 @@ type LiveRiskData = {
 };
 
 export function getDataSource() {
-  return process.env.RELIC_UI_DATA_SOURCE === "live" ? "live" : "demo";
+  const source = process.env.RELIC_UI_DATA_SOURCE === "live" ? "live" : "demo";
+  if (source === "live") {
+    // Opt out of Next.js full-route cache so live data is always fresh.
+    // noStore() is only called at request time in standalone server mode;
+    // in static export (demo) this branch is never reached.
+    const { unstable_noStore: noStore } = require("next/cache");
+    noStore();
+  }
+  return source;
 }
 
 function relicHome() {

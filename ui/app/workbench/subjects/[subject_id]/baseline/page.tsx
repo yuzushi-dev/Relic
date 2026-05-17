@@ -1,10 +1,4 @@
 // Subject Baseline — PR27D
-export const dynamic = process.env.RELIC_UI_BUILD_TARGET === 'static' ? 'force-static' : 'force-dynamic'
-
-export async function generateStaticParams() {
-  if (process.env.RELIC_UI_BUILD_TARGET !== 'static') return [];
-  return [{ subject_id: 'subj_001' }];
-}
 import { formatDate } from "../../../../../lib/format";
 import { SubjectNav } from "../../../../../components/SubjectNav";
 import { getGumiProfile, getStudyOverview, getSubjectBaseline } from "../../../../../lib/workbench-data";
