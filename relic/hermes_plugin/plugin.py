@@ -226,6 +226,25 @@ class RelicHermesPlugin:
 
                 gumi_hooks.register(gumi_hooks.PRE_LLM_CALL, _pre_llm_inject_context_handler)
 
+            # Wire output sanitizer as PRE_SEND handler (second layer, in-process path).
+            # Subprocess delivery (cron scripts) use output_sanitizer.sanitize_for_subject
+            # directly; this hook guards any future in-process send path.
+            from relic.gumi_plugin.output_sanitizer import sanitize_for_subject as _sanitize
+
+            def _pre_send_sanitizer(payload: dict) -> dict:
+                try:
+                    text = payload.get("text", "") or ""
+                    safe = _sanitize(text)
+                    if safe is None:
+                        return {"action": "drop", "reason": "sanitized_empty"}
+                    if safe != text:
+                        return {"action": "deliver", "text": safe}
+                    return {}
+                except Exception:
+                    return {}
+
+            gumi_hooks.register(gumi_hooks.PRE_SEND, _pre_send_sanitizer)
+
             # Initialize PCP trace for /relic why
             from relic.context_pack.trace import PCPTrace
             self._pcp_trace = PCPTrace()

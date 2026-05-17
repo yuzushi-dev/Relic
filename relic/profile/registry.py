@@ -1044,6 +1044,10 @@ class ProfileRegistry:
             "TELEGRAM_HOME_CHANNEL": telegram_user_id,  # plain int — Hermes parses this directly
             "GUMI_TELEGRAM_BOT_TOKEN_ENV": bot_token_env,
             "GUMI_DELIVERY_CHANNEL": "telegram",
+            # Suppress Hermes system/lifecycle messages (gateway_started/stopped/restarted)
+            # from the subject chat — operator fills TELEGRAM_ADMIN_CHANNEL to reroute them.
+            "HERMES_SUPPRESS_SYSTEM_MESSAGES": "true",
+            "TELEGRAM_ADMIN_CHANNEL": "",
         }
         token = os.environ.get(bot_token_env)
         if token:

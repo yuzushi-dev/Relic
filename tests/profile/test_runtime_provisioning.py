@@ -75,6 +75,28 @@ def test_configure_telegram_delivery_writes_private_env_and_redacted_policy(
     assert "123456:telegram-token-test" not in json.dumps(allowlist_data)
 
 
+def test_configure_telegram_delivery_writes_system_message_suppression_keys(
+    registry: ProfileRegistry,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Provisioning writes HERMES_SUPPRESS_SYSTEM_MESSAGES and TELEGRAM_ADMIN_CHANNEL (I5)."""
+    _bootstrap_subject(registry)
+    monkeypatch.setenv("GUMI_SUBJ_001_TELEGRAM_BOT_TOKEN", "123456:telegram-token-test")
+
+    profile, _ = registry.configure_telegram_delivery(
+        "subj_001",
+        telegram_bot_token_env="GUMI_SUBJ_001_TELEGRAM_BOT_TOKEN",
+        telegram_user_id="123456789",
+        consent_for_generated_images=False,
+        consent_for_generated_audio=False,
+        consent_for_generated_music=False,
+    )
+
+    env_text = (profile.hermes_home / ".env").read_text(encoding="utf-8")
+    assert "HERMES_SUPPRESS_SYSTEM_MESSAGES=true" in env_text
+    assert "TELEGRAM_ADMIN_CHANNEL=" in env_text
+
+
 def test_configure_telegram_delivery_rejects_reusing_user_or_bot_across_subjects(
     registry: ProfileRegistry,
     monkeypatch: pytest.MonkeyPatch,

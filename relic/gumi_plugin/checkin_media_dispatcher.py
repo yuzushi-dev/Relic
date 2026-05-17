@@ -1,6 +1,14 @@
 """Checkin media dispatcher — routes LLM output to appropriate media generators.
 
 Handles text, voice, image, and music delivery after gate decision.
+
+Stdout contract (subject-facing):
+  - text branch: sanitized message text only
+  - voice/image/music: empty — delivery happens via Telegram Bot API directly
+  - ALL [WARN], [DRY-RUN], MEDIA: lines go to stderr only
+
+Hermes reads stdout and may forward it to the subject chat; nothing
+operator-facing must ever appear there.
 """
 
 from __future__ import annotations
@@ -15,6 +23,7 @@ from relic.gumi_plugin.media_state import record_media_delivery
 from relic.gumi_plugin.image_gen import generate_checkin_image
 from relic.gumi_plugin.tts import synthesize_checkin_audio
 from relic.gumi_plugin.lyria import LyriaGenerator
+from relic.gumi_plugin.output_sanitizer import sanitize_for_subject
 
 
 def parse_gate_output(llm_output: str) -> dict:
@@ -105,11 +114,11 @@ def _send_telegram_media(
     chat_id = env.get("TELEGRAM_HOME_CHANNEL") or env.get("TELEGRAM_ALLOWED_USERS")
 
     if not bot_token or not chat_id:
-        print("[WARN] Missing TELEGRAM_BOT_TOKEN or chat_id — skipping Telegram delivery")
+        print("[WARN] Missing TELEGRAM_BOT_TOKEN or chat_id — skipping Telegram delivery", file=sys.stderr)
         return False
 
     if not media_path.exists():
-        print(f"[WARN] Media file not found: {media_path}")
+        print(f"[WARN] Media file not found: {media_path}", file=sys.stderr)
         return False
 
     _METHOD = {"voice": "sendVoice", "image": "sendPhoto", "music": "sendAudio"}
@@ -172,10 +181,10 @@ def _send_telegram_media(
             result = json.loads(resp.read().decode())
             if result.get("ok"):
                 return True
-            print(f"[WARN] Telegram API error: {result.get('description')}")
+            print(f"[WARN] Telegram API error: {result.get('description')}", file=sys.stderr)
             return False
     except Exception as exc:
-        print(f"[WARN] Telegram delivery failed: {exc}")
+        print(f"[WARN] Telegram delivery failed: {exc}", file=sys.stderr)
         return False
 
 
@@ -212,36 +221,43 @@ def dispatch(
     force: bool = False,
 ) -> dict:
     """Dispatch media based on gate output.
-    
+
     Args:
         llm_output: Raw LLM output from checkin_message
         hermes_home: Path to Hermes profile home
         relic_subject_home: Path to subject's relic home
         subject_id: Subject ID
         dry_run: If True, simulate without API calls
-    
+
     Returns:
         {"tipo": str, "success": bool, "output": str}
+
+    Stdout contract: only sanitized subject-facing text is printed.
+    Voice/image/music deliver via Telegram Bot API — stdout stays empty.
     """
     parsed = parse_gate_output(llm_output)
     tipo = parsed["tipo"]
     testo = parsed["testo"]
-    
+
     api_key = _get_api_key()
 
     if tipo == "text":
-        print(testo)
-        return {"tipo": "text", "success": True, "output": testo}
+        safe = sanitize_for_subject(testo)
+        if safe is None:
+            print("[dispatch] text blocked by sanitizer — silent drop", file=sys.stderr)
+            return {"tipo": "text", "success": False, "reason": "sanitized_empty"}
+        print(safe)  # stdout: subject-facing text message
+        return {"tipo": "text", "success": True, "output": safe}
 
     elif tipo == "voice":
         if dry_run:
-            print("[DRY-RUN] Voice synthesis skipped")
+            print("[DRY-RUN] Voice synthesis skipped", file=sys.stderr)
             return {"tipo": "voice", "success": True, "dry_run": True}
-        
+
         if not api_key:
-            print(f"[WARN] No GEMINI_API_KEY, skipping voice")
+            print("[WARN] No GEMINI_API_KEY, skipping voice", file=sys.stderr)
             return {"tipo": "voice", "success": False, "reason": "no_api_key"}
-        
+
         audio_path = synthesize_checkin_audio(
             text=testo,
             hermes_home=hermes_home,
@@ -252,16 +268,16 @@ def dispatch(
         delivered = _send_telegram_media(hermes_home, audio_path, "voice")
         status = "DELIVERED" if delivered else "LOCAL_ONLY"
         print(f"MEDIA:{audio_path} [{status}]", file=sys.stderr)
-        print(f"MEDIA:{audio_path}")
+        # No stdout: voice delivered directly via Telegram Bot API
         return {"tipo": "voice", "success": True, "audio_path": str(audio_path), "telegram_delivered": delivered}
 
     elif tipo == "image":
         if dry_run:
-            print("[DRY-RUN] Image generation skipped")
+            print("[DRY-RUN] Image generation skipped", file=sys.stderr)
             return {"tipo": "image", "success": True, "dry_run": True}
 
         if not api_key:
-            print("[WARN] No GEMINI_API_KEY, skipping image")
+            print("[WARN] No GEMINI_API_KEY, skipping image", file=sys.stderr)
             return {"tipo": "image", "success": False, "reason": "no_api_key"}
 
         caption = parsed["caption"] or testo
@@ -296,19 +312,18 @@ def dispatch(
         delivered = _send_telegram_media(hermes_home, image_path, "image", caption=caption[:1024])
         status = "DELIVERED" if delivered else "LOCAL_ONLY"
         print(f"MEDIA:{image_path} [{status}]", file=sys.stderr)
-        print(f"{caption}\nMEDIA:{image_path}")
+        # No stdout: image + caption delivered directly via Telegram Bot API
         return {"tipo": "image", "success": True, "image_path": str(image_path), "caption": caption, "telegram_delivered": delivered}
 
     elif tipo == "music":
         if dry_run:
-            print("[DRY-RUN] Music generation skipped")
+            print("[DRY-RUN] Music generation skipped", file=sys.stderr)
             return {"tipo": "music", "success": True, "dry_run": True}
 
         if not api_key:
-            print("[WARN] No GEMINI_API_KEY, skipping music")
+            print("[WARN] No GEMINI_API_KEY, skipping music", file=sys.stderr)
             return {"tipo": "music", "success": False, "reason": "no_api_key"}
 
-        # testo IS the Lyria prompt written by Gumi
         lyria_prompt = testo
         if not lyria_prompt:
             return {"tipo": "music", "success": False, "reason": "empty_lyria_prompt"}
@@ -326,7 +341,7 @@ def dispatch(
         )
 
         if not result.get("success"):
-            print("[WARN] Music generation failed")  # lgtm[py/clear-text-logging-sensitive-data]
+            print("[WARN] Music generation failed", file=sys.stderr)
             return {"tipo": "music", "success": False, "reason": result.get("reason")}
 
         record_media_delivery(hermes_home, "music")
@@ -340,18 +355,22 @@ def dispatch(
         ) if media_file else False
         status = "DELIVERED" if delivered else "LOCAL_ONLY"
         print(f"MEDIA:{media_file} [{status}] title={music_title!r}", file=sys.stderr)
-        print(f"{caption}\nMEDIA:{media_file}")
+        # No stdout: music delivered directly via Telegram Bot API
         return {"tipo": "music", "success": True, "audio_path": media_file, "caption": caption, "telegram_delivered": delivered}
 
     else:
-        print(testo)
-        return {"tipo": "text", "success": True, "output": testo}
+        safe = sanitize_for_subject(testo)
+        if safe is None:
+            print("[dispatch] fallback text blocked by sanitizer — silent drop", file=sys.stderr)
+            return {"tipo": "text", "success": False, "reason": "sanitized_empty"}
+        print(safe)  # stdout: subject-facing text message
+        return {"tipo": "text", "success": True, "output": safe}
 
 
 def main():
     """CLI entry point for checkin media dispatcher."""
     import argparse
-    
+
     parser = argparse.ArgumentParser(description="Checkin media dispatcher")
     parser.add_argument("--llm-output", required=True, help="LLM output from checkin_message")
     parser.add_argument("--hermes-home", type=Path, help="Hermes profile home path")
@@ -361,7 +380,7 @@ def main():
     parser.add_argument("--force", action="store_true", help="Bypass cooldowns (for testing)")
 
     args = parser.parse_args()
-    
+
     # Get paths from environment if not provided
     hermes_home = args.hermes_home or Path(os.environ.get(
         "HERMES_HOME",
@@ -371,7 +390,7 @@ def main():
         "RELIC_SUBJECT_HOME",
         f"{os.environ.get('HOME')}/.relic/subjects/{args.subject_id}"
     ))
-    
+
     force = args.force or os.environ.get("RELIC_FORCE_MEDIA_TYPE", "") != ""
     dispatch(
         llm_output=args.llm_output,

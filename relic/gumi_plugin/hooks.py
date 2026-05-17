@@ -6,6 +6,7 @@ from typing import Any, Callable
 PRE_LLM_CALL = "pre_llm_call"
 POST_LLM_CALL = "post_llm_call"
 PRE_TOOL_CALL = "pre_tool_call"
+PRE_SEND = "pre_send"
 
 _REGISTERED: dict[str, list[Callable[..., Any]]] = {}
 
