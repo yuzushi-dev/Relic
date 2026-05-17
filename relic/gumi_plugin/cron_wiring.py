@@ -733,6 +733,7 @@ try:
         if _hermes_home:
             _hp = Path(_hermes_home)
             import re, json as _json
+            _recent_checkins = []
             # Recent checkin messages only — resolve checkin job ID from jobs.json
             _mem_path = _hp / "MEMORY.md"
             if _mem_path.exists():
@@ -783,6 +784,37 @@ try:
                     print("\\n--- messaggi recenti inviati (non ripetere immagini o temi già usati) ---")
                     for _ts_str, _msg in _recent_checkins[-5:]:
                         print(f"• [{{_ts_str}}] {{_msg[:120]}}")
+            # Topic hint — question_engine via relic.db (fail-closed)
+            try:
+                import sqlite3 as _sqlite3
+                from relic.checkin.topic_hint import render_topic_hint as _rth
+                from relic.checkin.question_engine import select_facet as _sf
+                _relic_home_t = os.environ.get("RELIC_HOME", str(Path.home() / ".relic"))
+                _db_path_t = Path(_relic_home_t) / "subjects" / subject_id / "relic.db"
+                _bl_path_t = Path(_relic_home_t) / "subjects" / subject_id / "subject_baseline.json"
+                if _db_path_t.exists():
+                    _conn_t = _sqlite3.connect(str(_db_path_t))
+                    _sel = _sf(_conn_t, _bl_path_t if _bl_path_t.exists() else None)
+                    _conn_t.close()
+                    if _sel.get("status") == "ask_now":
+                        _recent_texts_t = [_m for _, _m in _recent_checkins[-5:]]
+                        _topic_block = _rth(_sel["question_hint"], _recent_texts_t)
+                        if _topic_block:
+                            print(f"\\n{{_topic_block}}")
+            except Exception:
+                pass
+            # Style hints — interaction facets from subject_baseline.json (fail-closed)
+            try:
+                from relic.checkin.style_hints import render_style_hints as _rsh
+                _relic_home_s = os.environ.get("RELIC_HOME", str(Path.home() / ".relic"))
+                _bl_path_s = Path(_relic_home_s) / "subjects" / subject_id / "subject_baseline.json"
+                if _bl_path_s.exists():
+                    _bl_s = _json.loads(_bl_path_s.read_text(encoding="utf-8"))
+                    _style_block = _rsh(_bl_s.get("interaction", {{}}))
+                    if _style_block:
+                        print(f"\\n{{_style_block}}")
+            except Exception:
+                pass
             # Avatar spec — always inject so Gumi knows her own appearance
             _avatar_path = _hp / "AVATAR_SPEC.md"
             if _avatar_path.exists():

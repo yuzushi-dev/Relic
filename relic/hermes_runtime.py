@@ -497,6 +497,10 @@ def render_subject_hermes_config(
             f"timezone: {timezone}",
             "personality: none",
             "group_sessions_per_user: true",
+            "session_reset:",
+            "  mode: both",
+            "  idle_minutes: 180",
+            "  at_hour: 3",
             "",
         ]
     )
