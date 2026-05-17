@@ -302,6 +302,12 @@ def _promote_observation_to_marker(
 ) -> None:
     """Promote a strong observation to a ContinuityMarker so prefetch() surfaces it.
 
+    Uses source_type="subject_confirmed" so recent_markers() includes it and
+    prefetch() can surface it — the user confirmed the trait by answering.
+
+    Dedup: skips if an existing marker already encodes the same observation text
+    (exact match on joined subject_words) to prevent re-run duplicates.
+
     Only called when signal_strength >= MARKER_PROMOTION_THRESHOLD.
     Fail-open: any error is logged at WARNING level and silently ignored.
     """
@@ -313,12 +319,30 @@ def _promote_observation_to_marker(
         from relic.gumi_continuity.store import GumiContinuityStore
 
         store = GumiContinuityStore()
+        target_text = extraction.observation_summary
+
+        # Dedup: skip if any recent marker already has the same observation text.
+        existing = store.get_recent_markers(
+            subject_id=subject_id,
+            gumi_instance_id=gumi_instance_id or None,
+            hermes_profile_id=hermes_profile_id or None,
+            limit=50,
+        )
+        for m in existing:
+            words = m.get("subject_words") or m.get("words") or []
+            if isinstance(words, list):
+                existing_text = " ".join(str(w) for w in words)
+            else:
+                existing_text = str(words)
+            if existing_text.strip() == target_text.strip():
+                return
+
         store.remember_marker(
             subject_id=subject_id,
             gumi_instance_id=gumi_instance_id,
             hermes_profile_id=hermes_profile_id,
-            subject_words=extraction.observation_summary.split(),
-            source_type="checkin_observation",
+            subject_words=target_text.split(),
+            source_type="subject_confirmed",
             ttl_seconds=1_209_600,  # 2 weeks
         )
     except Exception as exc:
@@ -454,6 +478,8 @@ def main() -> int:
     parser.add_argument("--db-path", default=None)
     parser.add_argument("--baseline-path", default=None)
     parser.add_argument("--relic-home", default=None)
+    parser.add_argument("--gumi-instance-id", default="")
+    parser.add_argument("--hermes-profile-id", default="")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
@@ -465,7 +491,10 @@ def main() -> int:
 
     conn = sqlite3.connect(str(db_path))
     results = process_pending_exchanges(
-        conn, baseline_path, args.subject_id, dry_run=args.dry_run
+        conn, baseline_path, args.subject_id,
+        dry_run=args.dry_run,
+        gumi_instance_id=args.gumi_instance_id,
+        hermes_profile_id=args.hermes_profile_id,
     )
     conn.close()
 

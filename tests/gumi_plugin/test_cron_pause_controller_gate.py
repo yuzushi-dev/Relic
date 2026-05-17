@@ -27,10 +27,8 @@ class TestIsGloballyPaused:
             assert _is_globally_paused() is True
 
     def test_fail_open_on_import_error(self):
-        with patch("relic.gumi_plugin.cron_wiring._is_globally_paused", side_effect=ImportError):
-            # _is_globally_paused itself should be fail-open, but since we're patching
-            # the whole function, verify the original catches inner exceptions
-            pass
+        with patch("relic.control.pause.PauseController.__init__", side_effect=ImportError("no module")):
+            assert _is_globally_paused() is False
 
     def test_fail_open_on_pause_controller_exception(self):
         with patch("relic.control.pause.PauseController.is_paused", side_effect=RuntimeError("db error")):

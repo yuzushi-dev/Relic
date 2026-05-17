@@ -6,9 +6,10 @@ Contract:
 - _promote_observation_to_marker calls GumiContinuityStore.remember_marker when signal strong
 - remember_marker called with correct subject_id, gumi_instance_id, hermes_profile_id
 - subject_words derived from observation_summary.split()
-- source_type == "checkin_observation"
+- source_type == "subject_confirmed" (required for recent_markers() + prefetch() visibility)
+- dedup: skips remember_marker when existing marker has same text
 - fail-open: GumiContinuityStore exception does not propagate
-- process_pending_exchanges passes gumi_instance_id + hermes_profile_id to _promote
+- ttl_seconds == 1_209_600 (2 weeks)
 """
 from __future__ import annotations
 
@@ -35,6 +36,13 @@ def _make_extraction(signal_strength: float, observation_summary: str = "osserva
     )
 
 
+def _mock_store(existing_markers=None):
+    """Return a configured mock GumiContinuityStore."""
+    mock = MagicMock()
+    mock.get_recent_markers.return_value = existing_markers or []
+    return mock
+
+
 class TestPromoteObservationToMarker:
     def test_below_threshold_no_call(self):
         extraction = _make_extraction(signal_strength=MARKER_PROMOTION_THRESHOLD - 0.01)
@@ -42,46 +50,42 @@ class TestPromoteObservationToMarker:
             _promote_observation_to_marker(extraction, "subj1")
         mock_cls.assert_not_called()
 
-    def test_at_threshold_calls_remember(self):
-        extraction = _make_extraction(signal_strength=MARKER_PROMOTION_THRESHOLD)
-        with patch("relic.gumi_continuity.store.GumiContinuityStore") as mock_cls:
-            mock_store = MagicMock()
-            mock_cls.return_value = mock_store
-            _promote_observation_to_marker(extraction, "subj1")
-        mock_store.remember_marker.assert_called_once()
-
-    def test_above_threshold_calls_remember(self):
-        extraction = _make_extraction(signal_strength=0.9)
-        with patch("relic.gumi_continuity.store.GumiContinuityStore") as mock_cls:
-            mock_store = MagicMock()
-            mock_cls.return_value = mock_store
-            _promote_observation_to_marker(extraction, "subj1")
-        mock_store.remember_marker.assert_called_once()
-
     def test_empty_summary_no_call(self):
         extraction = _make_extraction(signal_strength=0.9, observation_summary="")
         with patch("relic.gumi_continuity.store.GumiContinuityStore") as mock_cls:
             _promote_observation_to_marker(extraction, "subj1")
         mock_cls.assert_not_called()
 
+    def test_at_threshold_calls_remember(self):
+        extraction = _make_extraction(signal_strength=MARKER_PROMOTION_THRESHOLD)
+        with patch("relic.gumi_continuity.store.GumiContinuityStore") as mock_cls:
+            mock_cls.return_value = _mock_store()
+            _promote_observation_to_marker(extraction, "subj1")
+        mock_cls.return_value.remember_marker.assert_called_once()
+
+    def test_above_threshold_calls_remember(self):
+        extraction = _make_extraction(signal_strength=0.9)
+        with patch("relic.gumi_continuity.store.GumiContinuityStore") as mock_cls:
+            mock_cls.return_value = _mock_store()
+            _promote_observation_to_marker(extraction, "subj1")
+        mock_cls.return_value.remember_marker.assert_called_once()
+
     def test_passes_subject_id(self):
         extraction = _make_extraction(signal_strength=0.8, observation_summary="ama leggere")
         with patch("relic.gumi_continuity.store.GumiContinuityStore") as mock_cls:
-            mock_store = MagicMock()
-            mock_cls.return_value = mock_store
+            mock_cls.return_value = _mock_store()
             _promote_observation_to_marker(extraction, "my_subject")
-        call_kwargs = mock_store.remember_marker.call_args.kwargs
+        call_kwargs = mock_cls.return_value.remember_marker.call_args.kwargs
         assert call_kwargs["subject_id"] == "my_subject"
 
     def test_passes_gumi_and_hermes_ids(self):
         extraction = _make_extraction(signal_strength=0.8, observation_summary="ama leggere")
         with patch("relic.gumi_continuity.store.GumiContinuityStore") as mock_cls:
-            mock_store = MagicMock()
-            mock_cls.return_value = mock_store
+            mock_cls.return_value = _mock_store()
             _promote_observation_to_marker(
                 extraction, "subj", gumi_instance_id="gumi-01", hermes_profile_id="hp-01"
             )
-        call_kwargs = mock_store.remember_marker.call_args.kwargs
+        call_kwargs = mock_cls.return_value.remember_marker.call_args.kwargs
         assert call_kwargs["gumi_instance_id"] == "gumi-01"
         assert call_kwargs["hermes_profile_id"] == "hp-01"
 
@@ -90,35 +94,83 @@ class TestPromoteObservationToMarker:
             signal_strength=0.8, observation_summary="preferisce messaggi brevi"
         )
         with patch("relic.gumi_continuity.store.GumiContinuityStore") as mock_cls:
-            mock_store = MagicMock()
-            mock_cls.return_value = mock_store
+            mock_cls.return_value = _mock_store()
             _promote_observation_to_marker(extraction, "subj")
-        call_kwargs = mock_store.remember_marker.call_args.kwargs
+        call_kwargs = mock_cls.return_value.remember_marker.call_args.kwargs
         assert call_kwargs["subject_words"] == ["preferisce", "messaggi", "brevi"]
 
-    def test_source_type_is_checkin_observation(self):
+    def test_source_type_is_subject_confirmed(self):
+        """subject_confirmed required so recent_markers() + prefetch() can surface it."""
         extraction = _make_extraction(signal_strength=0.8)
         with patch("relic.gumi_continuity.store.GumiContinuityStore") as mock_cls:
-            mock_store = MagicMock()
-            mock_cls.return_value = mock_store
+            mock_cls.return_value = _mock_store()
             _promote_observation_to_marker(extraction, "subj")
-        call_kwargs = mock_store.remember_marker.call_args.kwargs
-        assert call_kwargs["source_type"] == "checkin_observation"
-
-    def test_fail_open_on_store_exception(self):
-        extraction = _make_extraction(signal_strength=0.8)
-        with patch("relic.gumi_continuity.store.GumiContinuityStore") as mock_cls:
-            mock_store = MagicMock()
-            mock_store.remember_marker.side_effect = RuntimeError("db unavailable")
-            mock_cls.return_value = mock_store
-            # Must not raise
-            _promote_observation_to_marker(extraction, "subj")
+        call_kwargs = mock_cls.return_value.remember_marker.call_args.kwargs
+        assert call_kwargs["source_type"] == "subject_confirmed"
 
     def test_ttl_is_two_weeks(self):
         extraction = _make_extraction(signal_strength=0.8)
         with patch("relic.gumi_continuity.store.GumiContinuityStore") as mock_cls:
-            mock_store = MagicMock()
-            mock_cls.return_value = mock_store
+            mock_cls.return_value = _mock_store()
             _promote_observation_to_marker(extraction, "subj")
-        call_kwargs = mock_store.remember_marker.call_args.kwargs
+        call_kwargs = mock_cls.return_value.remember_marker.call_args.kwargs
         assert call_kwargs["ttl_seconds"] == 1_209_600
+
+    def test_fail_open_on_store_exception(self):
+        extraction = _make_extraction(signal_strength=0.8)
+        with patch("relic.gumi_continuity.store.GumiContinuityStore") as mock_cls:
+            store = _mock_store()
+            store.remember_marker.side_effect = RuntimeError("db unavailable")
+            mock_cls.return_value = store
+            _promote_observation_to_marker(extraction, "subj")  # must not raise
+
+    def test_fail_open_on_get_recent_markers_exception(self):
+        extraction = _make_extraction(signal_strength=0.8)
+        with patch("relic.gumi_continuity.store.GumiContinuityStore") as mock_cls:
+            store = _mock_store()
+            store.get_recent_markers.side_effect = RuntimeError("db error")
+            mock_cls.return_value = store
+            _promote_observation_to_marker(extraction, "subj")  # must not raise
+
+
+class TestDedup:
+    def test_skip_when_exact_duplicate_exists(self):
+        """If existing marker has same text, remember_marker not called."""
+        extraction = _make_extraction(
+            signal_strength=0.8, observation_summary="preferisce messaggi brevi"
+        )
+        existing = [{"subject_words": ["preferisce", "messaggi", "brevi"]}]
+        with patch("relic.gumi_continuity.store.GumiContinuityStore") as mock_cls:
+            mock_cls.return_value = _mock_store(existing_markers=existing)
+            _promote_observation_to_marker(extraction, "subj")
+        mock_cls.return_value.remember_marker.assert_not_called()
+
+    def test_call_when_no_matching_marker(self):
+        """Different text → remember_marker IS called."""
+        extraction = _make_extraction(
+            signal_strength=0.8, observation_summary="ama leggere di notte"
+        )
+        existing = [{"subject_words": ["preferisce", "messaggi", "brevi"]}]
+        with patch("relic.gumi_continuity.store.GumiContinuityStore") as mock_cls:
+            mock_cls.return_value = _mock_store(existing_markers=existing)
+            _promote_observation_to_marker(extraction, "subj")
+        mock_cls.return_value.remember_marker.assert_called_once()
+
+    def test_skip_handles_words_key_alias(self):
+        """Dedup also checks 'words' key (alias used by some marker serializations)."""
+        extraction = _make_extraction(
+            signal_strength=0.8, observation_summary="tende a procrastinare"
+        )
+        existing = [{"words": ["tende", "a", "procrastinare"]}]
+        with patch("relic.gumi_continuity.store.GumiContinuityStore") as mock_cls:
+            mock_cls.return_value = _mock_store(existing_markers=existing)
+            _promote_observation_to_marker(extraction, "subj")
+        mock_cls.return_value.remember_marker.assert_not_called()
+
+    def test_no_existing_markers_calls_remember(self):
+        """Empty marker list → no dedup → remember_marker called."""
+        extraction = _make_extraction(signal_strength=0.8, observation_summary="osservazione nuova")
+        with patch("relic.gumi_continuity.store.GumiContinuityStore") as mock_cls:
+            mock_cls.return_value = _mock_store(existing_markers=[])
+            _promote_observation_to_marker(extraction, "subj")
+        mock_cls.return_value.remember_marker.assert_called_once()
