@@ -650,6 +650,34 @@ class ProfileRegistry:
     def get_subject(self, subject_id: str) -> Optional[SubjectProfile]:
         return self._load_profile(subject_id)
 
+    def delete_subject(self, subject_id: str) -> dict:
+        """GDPR Art. 17 hard delete — remove all filesystem data for subject.
+
+        Deletes ~/.relic/subjects/{subject_id}/ entirely.
+        Returns hermes_profile_name so caller can also remove the Hermes
+        profile directory if needed.
+
+        Warning: irreversible. Caller must confirm before invoking.
+        """
+        import shutil
+
+        # Read profile BEFORE deletion so we can return hermes_profile_name
+        profile = self._load_profile(subject_id)
+        hermes_profile_name = profile.hermes_profile_name if profile else None
+
+        subject_dir = self._subject_dir(subject_id)
+        deleted_paths: list[str] = []
+
+        if subject_dir.exists():
+            shutil.rmtree(subject_dir)
+            deleted_paths.append(str(subject_dir))
+
+        return {
+            "subject_id": subject_id,
+            "deleted_paths": deleted_paths,
+            "hermes_profile_name": hermes_profile_name,
+        }
+
     def create_subject(self, subject_id: str, experiment_id: str) -> SubjectProfile:
         if self._profile_path(subject_id).exists():
             raise ValueError(f"Subject '{subject_id}' already exists. Will not overwrite.")

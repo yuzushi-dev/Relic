@@ -136,10 +136,17 @@ class SafetySignalExtractor:
         for event in events:
             event_text = event.get("text", "")
             signal_family = self._classify_event(event_text)
-            if signal_family and signal_family not in self.forbidden_labels:
-                if signal_family not in event_signals:
-                    event_signals[signal_family] = []
-                event_signals[signal_family].append(event.get("event_id", "unknown"))
+            if not signal_family:
+                continue
+            # Defense in depth: must be an allowed family AND must not match the
+            # diagnosis denylist (guards against future _classify_event bugs).
+            if signal_family not in self.allowed_families:
+                continue
+            if signal_family in self.forbidden_labels:
+                continue
+            if signal_family not in event_signals:
+                event_signals[signal_family] = []
+            event_signals[signal_family].append(event.get("event_id", "unknown"))
 
         # Build signals with confidence caps
         for family, refs in event_signals.items():

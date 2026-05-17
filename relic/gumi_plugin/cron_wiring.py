@@ -23,6 +23,15 @@ from typing import Any, Optional
 
 from relic.gumi_plugin.media_state import is_media_eligible, last_media_ts
 
+try:
+    from relic.chronicle import emit_event, emit_decision, EventCategory
+    from relic.persistence import PrivacyLevel
+    _CHRONICLE = True
+except Exception:
+    _CHRONICLE = False
+    EventCategory = None  # type: ignore
+    PrivacyLevel = None  # type: ignore
+
 MEDIA_COOLDOWN_DAYS = {"image": 2.0, "voice": 1.0, "music": 7.0}
 _MEDIA_PROB_THRESHOLDS = {"music": 5, "voice": 30, "image": 50}  # cumulative %
 
@@ -126,13 +135,15 @@ def _subject_timezone(subject_id: str) -> Optional[Any]:
 
 
 def _subject_now(subject_id: str) -> "datetime":
-    """Return current datetime in the subject's configured timezone (falls back to local)."""
-    import zoneinfo
+    """Return current datetime in the subject's configured timezone (falls back to local).
 
+    Always returns a tz-aware datetime so callers can compare safely with
+    _last_outbound_datetime without naive/aware mixing.
+    """
     tz = _subject_timezone(subject_id)
     if tz:
         return datetime.now(tz)
-    return datetime.now()
+    return datetime.now().astimezone()
 
 
 def _is_quiet_hours(subject_id: str) -> bool:
@@ -287,10 +298,15 @@ def _load_delivery_windows(subject_id: str) -> list[tuple[int, int, int, int]]:
 
 
 def _last_outbound_datetime(hermes_home: Path, subject_id: str = "") -> "datetime | None":
-    """Return datetime of last outbound cron delivery in subject's timezone, or None."""
-    import zoneinfo as _zi
+    """Return datetime of last outbound cron delivery in subject's timezone, or None.
 
+    When the subject has no configured timezone, falls back to the system local
+    zone so window comparisons remain consistent with _subject_now (which also
+    falls back to local-aware time).
+    """
     tz = _subject_timezone(subject_id) if subject_id else None
+    if tz is None:
+        tz = datetime.now().astimezone().tzinfo
     watermark_path = hermes_home / "state" / "memory_sync_watermark.json"
     try:
         if watermark_path.exists():
@@ -488,12 +504,21 @@ def _evaluate_decision(
         reasons.append(RuntimeDecisionReason.continuity_scope_paused)
         return RuntimeDecision.BLOCKED, reasons, None
 
+    # Check for due followups — used to determine CANDIDATE vs DELIVER vs NO_REPLY
+    _svc = get_continuity_service()
+    _due = _svc.due_followups(subject_id, gumi_instance_id, hermes_profile_id)
+
     # Delivery window gate: fire only inside a configured time window,
     # past today's jitter offset, and only once per window per day.
     hermes_home_str = os.environ.get("HERMES_HOME", "")
     hermes_home = Path(hermes_home_str) if hermes_home_str else Path.home() / ".hermes"
 
     if not _is_delivery_window_open(subject_id, hermes_home):
+        if _due:
+            # Due work is ready but delivery window is closed → CANDIDATE (awaits gate)
+            reasons.append(RuntimeDecisionReason.no_due_work)
+            _msg = _due[0].get("message", "")
+            return RuntimeDecision.CANDIDATE, reasons, {"message": _msg}
         reasons.append(RuntimeDecisionReason.followup_not_due)
         return RuntimeDecision.NO_REPLY, reasons, None
 
@@ -530,6 +555,33 @@ def emit_decision_event(
     with open(event_log_path, "a") as f:
         f.write(json.dumps(event.to_dict()) + "\n")
 
+    if _CHRONICLE:
+        try:
+            metadata = {"source": "no_agent_cron"}
+            emit_event(
+                event_type="cron_decision",
+                event_category=EventCategory.DECISION,
+                source_module="relic.gumi_plugin.cron_wiring",
+                subject_id=subject_id,
+                profile_id=hermes_profile_id,
+                hermes_profile_id=hermes_profile_id,
+                payload={
+                    "decision": decision.value if hasattr(decision, "value") else str(decision),
+                    "reason_codes": [r.value if hasattr(r, "value") else str(r) for r in reason_codes] if reason_codes else [],
+                    "source": metadata.get("source", "no_agent_cron"),
+                },
+            )
+            emit_decision(
+                decision_kind="cron_evaluator",
+                selected_action={"decision": decision.value if hasattr(decision, "value") else str(decision)},
+                actor_type="rule",
+                actor_id="cron_evaluator",
+                subject_id=subject_id,
+                rationale_summary=(f"Cron decision: {','.join(r.value if hasattr(r, 'value') else str(r) for r in reason_codes) if reason_codes else 'ok'}")[:280],
+            )
+        except Exception:
+            pass
+
 
 def make_decision(
     subject_id: str,
@@ -548,6 +600,18 @@ def make_decision(
     Returns:
         Tuple of (decision, reason_codes, candidate_data)
     """
+    if _CHRONICLE:
+        try:
+            emit_event(
+                event_type="cron_fired",
+                event_category=EventCategory.BACKGROUND,
+                source_module="relic.gumi_plugin.cron_wiring",
+                subject_id=subject_id,
+                profile_id=hermes_profile_id,
+                payload={"trigger": "make_decision"},
+            )
+        except Exception:
+            pass
     if force:
         reasons = [RuntimeDecisionReason.no_due_work]
         hermes_home_str = os.environ.get("HERMES_HOME", "")
@@ -668,18 +732,57 @@ try:
         _hermes_home = os.environ.get("HERMES_HOME", "")
         if _hermes_home:
             _hp = Path(_hermes_home)
-            import re
-            # Recent outgoing messages — avoid repetition
+            import re, json as _json
+            # Recent checkin messages only — resolve checkin job ID from jobs.json
             _mem_path = _hp / "MEMORY.md"
             if _mem_path.exists():
                 _mem_text = _mem_path.read_text(encoding="utf-8")
-                _sent = re.findall(r"^> (.+)$", _mem_text, re.MULTILINE)
-                _sent = [l.strip() for l in _sent if l.strip() and l.strip() != "[SILENT]"
-                         and not l.strip().startswith("---") and not l.strip().startswith("**Diagnostic")]
-                if _sent:
+                _checkin_job_id = None
+                _jobs_path = _hp / "cron" / "jobs.json"
+                if _jobs_path.exists():
+                    try:
+                        _jobs_data = _json.loads(_jobs_path.read_text(encoding="utf-8"))
+                        for _job in _jobs_data.get("jobs", []):
+                            _jscript = (_job.get("script") or "")
+                            _jname = (_job.get("name") or "")
+                            if "checkin" in _jscript.lower() or "checkin_message" in _jname.lower():
+                                _checkin_job_id = _job.get("id")
+                                break
+                    except Exception:
+                        pass
+                # Parse memory sync block: only extract entries from the checkin job
+                _block_re = re.compile(
+                    r"<!-- gumi:memory_sync:begin -->(.*?)<!-- gumi:memory_sync:end -->",
+                    re.DOTALL,
+                )
+                _block_m = _block_re.search(_mem_text)
+                _recent_checkins = []
+                if _block_m:
+                    _block = _block_m.group(1)
+                    _header_re = re.compile(
+                        r"### (\\d{{4}}-\\d{{2}}-\\d{{2}} \\d{{2}}:\\d{{2}}) \\(job=(.+?)\\)"
+                    )
+                    _parts = _header_re.split(_block)
+                    _pi = 1
+                    while _pi + 2 <= len(_parts):
+                        _ts_str, _jid, _body = _parts[_pi], _parts[_pi + 1], _parts[_pi + 2]
+                        _pi += 3
+                        if _checkin_job_id and not _jid.startswith(_checkin_job_id):
+                            continue
+                        _lines = [
+                            l.strip()[2:]
+                            for l in _body.splitlines()
+                            if l.strip().startswith("> ")
+                        ]
+                        _text = " ".join(
+                            l for l in _lines if l and l != "[SILENT]"
+                        ).strip()
+                        if _text:
+                            _recent_checkins.append((_ts_str, _text))
+                if _recent_checkins:
                     print("\\n--- messaggi recenti inviati (non ripetere immagini o temi già usati) ---")
-                    for _msg in _sent[-5:]:
-                        print(f"• {{_msg[:120]}}")
+                    for _ts_str, _msg in _recent_checkins[-5:]:
+                        print(f"• [{{_ts_str}}] {{_msg[:120]}}")
             # Avatar spec — always inject so Gumi knows her own appearance
             _avatar_path = _hp / "AVATAR_SPEC.md"
             if _avatar_path.exists():

@@ -377,6 +377,7 @@ class TestCandidateRequiresDeliveryGate:
                     mock_now = MagicMock()
                     mock_now.hour = 23
                     mock_now.minute = 30
+                    mock_now.astimezone.return_value = mock_now
                     mock_dt.now.return_value = mock_now
 
                     with patch("json.load", return_value={"quiet_hours": "23:00-07:00"}):

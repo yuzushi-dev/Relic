@@ -22,6 +22,13 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
+try:
+    from relic.chronicle import emit_event, EventCategory
+    _CHRONICLE = True
+except Exception:
+    _CHRONICLE = False
+    EventCategory = None  # type: ignore
+
 _REDACTED = "[redacted]"
 
 
@@ -45,6 +52,13 @@ class RelicMemoryProvider:
         hermes_profile_id: str | None = None,
         max_prefetch: int = 5,
     ) -> None:
+        # Hard guard: a provider without a subject_id would silently serve the
+        # wrong subject's markers to any Hermes profile that registers it.
+        if not subject_id or not subject_id.strip():
+            raise ValueError(
+                "RelicMemoryProvider requires a non-empty subject_id. "
+                "Each Hermes profile must register its own provider instance."
+            )
         self._subject_id = subject_id
         self._gumi_instance_id = gumi_instance_id or ""
         self._hermes_profile_id = hermes_profile_id or ""
@@ -72,13 +86,18 @@ class RelicMemoryProvider:
         return True
 
     def _format_marker(self, marker: dict[str, Any]) -> str:
-        """Convert a continuity marker to a compact human-readable line."""
+        """Convert a continuity marker to a compact human-readable line.
+
+        Returns an empty string when the marker has no surfaceable content.
+        Callers must filter empty lines — never inject placeholder noise into
+        the LLM context.
+        """
         words = marker.get("subject_words") or marker.get("words") or []
         if isinstance(words, list):
             text = " ".join(str(w) for w in words)
         else:
             text = str(words)
-        return text.strip() if text.strip() else _REDACTED
+        return text.strip()
 
     # ------------------------------------------------------------------
     # Hermes MemoryProvider API
@@ -107,8 +126,27 @@ class RelicMemoryProvider:
             )
             lines = []
             for m in markers:
-                if self._is_safe_to_surface(m):
-                    lines.append(self._format_marker(m))
+                if not self._is_safe_to_surface(m):
+                    continue
+                line = self._format_marker(m)
+                if line:  # drop empty markers — never inject placeholder noise
+                    lines.append(line)
+            if lines and _CHRONICLE:
+                try:
+                    emit_event(
+                        event_type="memory_prefetched",
+                        event_category=EventCategory.MEMORY,
+                        source_module="relic.hermes_plugin.memory_provider",
+                        subject_id=self._subject_id,
+                        profile_id=self._hermes_profile_id or None,
+                        hermes_profile_id=self._hermes_profile_id or None,
+                        payload={
+                            "marker_count": len(lines),
+                            "max_prefetch": self._max_prefetch,
+                        },
+                    )
+                except Exception:
+                    pass  # fail-open: never block prefetch on emit failure
             return "\n".join(lines)
         except Exception:
             logger.exception("RelicMemoryProvider.prefetch failed — returning empty")

@@ -13,11 +13,23 @@ from relic.gumi_plugin.tts import select_voice_for_canon, synthesize
 
 
 def test_select_voice_female_warm() -> None:
-    assert select_voice_for_canon({"gender": "female", "tone": "warm"}) == "Aoede"
+    profile = {
+        "domains": {
+            "embodiment": {"gender_expression": "feminine"},
+            "relationship_stance": {"attachment_style": "secure attachment"},
+        }
+    }
+    assert select_voice_for_canon(profile) == "Aoede"
 
 
 def test_select_voice_male_calm() -> None:
-    assert select_voice_for_canon({"gender": "male", "tone": "calm"}) == "Fenrir"
+    profile = {
+        "domains": {
+            "embodiment": {"gender_expression": "masculine"},
+            "relationship_stance": {"attachment_style": "avoidant attachment"},
+        }
+    }
+    assert select_voice_for_canon(profile) == "Fenrir"
 
 
 def test_select_voice_default_on_unknown() -> None:

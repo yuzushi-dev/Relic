@@ -1,0 +1,84 @@
+site_name: Relic
+site_description: Runtime governance and longitudinal modeling for reflective agents
+site_url: https://yuzushi-dev.github.io/Relic/
+repo_url: https://github.com/yuzushi-dev/Relic
+repo_name: yuzushi-dev/Relic
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    - scheme: slate
+      primary: blue
+      accent: blue
+  font:
+    text: Inter
+    code: JetBrains Mono
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+
+plugins:
+  - search
+  - awesome-pages
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - attr_list
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Ethics:
+    - Overview: ethics/index.md
+    - Behavioral Boundaries: ethics/boundaries.md
+    - Data Stream Separation: ethics/data-streams-separation.md
+    - Consent and Control: ethics/consent-and-control.md
+    - No Clinicalization: ethics/no-clinicalization.md
+  - Concepts:
+    - Longitudinal Modeling: concepts/longitudinal-modeling.md
+    - Facet Model: concepts/facet-model.md
+    - Relic and Gumi: concepts/relic-and-gumi.md
+    - Provenance and Correction: concepts/provenance-and-correction.md
+    - Researcher Boundary: concepts/researcher-boundary.md
+  - Architecture:
+    - Runtime Pipeline: architecture/pipeline.md
+    - Data Model: architecture/data-model.md
+    - Privacy Stages: architecture/privacy-stages.md
+    - Artifact Lifecycle: architecture/artifact-lifecycle.md
+    - Module Map: architecture/module-map.md
+  - Guides:
+    - Installation: guides/installation.md
+    - First Subject: guides/first-subject.md
+    - Export and Deletion: guides/export-and-deletion.md
+    - Running Evaluations: guides/running-evaluations.md
+    - Researcher Workbench: guides/researcher-workbench.md
+    - Hermes Integration: guides/hermes-integration.md
+    - Corrections and Replay: guides/corrections-and-replay.md
+  - Reference:
+    - CLI: reference/cli.md
+    - Configuration: reference/configuration.md
+    - Fixtures: reference/fixtures.md
+    - Glossary: reference/glossary.md
+  - Contributing:
+    - Overview: contributing/index.md
+    - Development Setup: contributing/development-setup.md
+    - Testing: contributing/testing.md
+    - Contract Tests: contributing/contract-tests.md
+    - Release Status: contributing/release-status.md
+  - Research:
+    - Theoretical Grounding: research/theoretical-grounding.md
+    - Limitations: research/limitations.md
+    - Citing Relic: research/citing-relic.md

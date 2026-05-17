@@ -50,7 +50,7 @@ def _run_script(script_path: Path, subject_id: str, gumi_instance_id: str = "", 
 # ---------------------------------------------------------------------------
 
 def test_provision_for_subject_creates_three_scripts(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """provision_for_subject creates 3 no-agent scripts (checkin, followup, proactivity)."""
+    """provision_for_subject creates 4 no-agent scripts (checkin, followup, proactivity, memory_sync)."""
     # Point NO_AGENT_SCRIPT_PATH to tmp_path so we don't pollute ~/.hermes
     scripts_dir = tmp_path / "scripts"
     scripts_dir.mkdir(parents=True, exist_ok=True)
@@ -69,15 +69,15 @@ def test_provision_for_subject_creates_three_scripts(tmp_path: Path, monkeypatch
 
     assert "scripts" in result
     scripts: dict[str, str] = result["scripts"]
-    assert len(scripts) == 3
-    for dtype in ("checkin", "followup", "proactivity"):
+    assert len(scripts) == 4
+    for dtype in ("checkin", "followup", "proactivity", "memory_sync"):
         assert dtype in scripts, f"Missing {dtype} script"
         script_path = Path(scripts[dtype])
         assert script_path.exists(), f"Script not written: {script_path}"
         assert script_path.stat().st_mode & 0o111, f"Script not executable: {script_path}"
 
-    # hermes_commands should be 3 dry-run commands
-    assert len(result["hermes_commands"]) == 3
+    # hermes_commands should be 4 dry-run commands
+    assert len(result["hermes_commands"]) == 4
     assert result["dry_run"] is True
 
 
@@ -257,9 +257,13 @@ def test_bootstrap_tui_calls_provision_for_subject_after_hermes_provisioning(
         "collect_consent_record",
         lambda *_a, **_k: {"delivery": False, "recorded_by_researcher_id": "researcher_test"},
     )
-    monkeypatch.setattr(bootstrap_tui, "collect_gumi_overrides", lambda *_a, **_k: ({}, "Gumi"))
+    monkeypatch.setattr(bootstrap_tui, "collect_gumi_overrides", lambda *_a, **_k: ({}, "Gumi", []))
     monkeypatch.setattr(bootstrap_tui, "collect_delivery_config", lambda *_a, **_k: {})
     monkeypatch.setattr(bootstrap_tui, "review_gumi_background", lambda *_a, **_k: "accept")
+    monkeypatch.setattr(bootstrap_tui, "collect_self_report_fields", lambda *_a, **_k: {})
+    monkeypatch.setattr(bootstrap_tui, "collect_researcher_coded_fields", lambda *_a, **_k: {})
+    monkeypatch.setattr(bootstrap_tui, "collect_interaction_preferences", lambda *_a, **_k: {})
+    monkeypatch.setattr(bootstrap_tui, "collect_relational_expectations", lambda *_a, **_k: {})
 
     def fake_generate_gumi_background(subject_id: str, **_kwargs: Any):
         profile = registry.update_status(subject_id, "gumi_seed_generated")

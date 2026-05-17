@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "Relic: Runtime Governance and Longitudinal Modeling for Reflective Agents"
+abstract: >
+  Relic is a runtime governance and longitudinal modeling layer for conversational
+  agents. It captures behavioral signals from interaction, maintains evolving
+  subject profiles under privacy and provenance constraints, and produces
+  inspectable runtime context for a diegetic relational agent (Gumi). The facet
+  model is grounded in cognitive appraisal theory, self-determination theory,
+  attachment theory, dual-process theory, CAPS, and LIWC.
+authors:
+  - alias: yuzushi-dev
+repository-code: "https://github.com/yuzushi-dev/Relic"
+license: AGPL-3.0-or-later
+version: "0.1.0-alpha"
+date-released: "2025-05-14"
+keywords:
+  - longitudinal modeling
+  - conversational agents
+  - runtime governance
+  - personality modeling
+  - privacy
+  - human-AI interaction

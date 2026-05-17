@@ -155,3 +155,21 @@ def test_crisis_bypass():
     text2 = "i want to hurt myself"
     matched2 = extractor._matches_crisis(text2, "self_harm_language")
     assert matched2 is True
+
+
+def test_extract_rejects_unknown_family_value():
+    """FIX H: family values not in SignalFamily must be silently dropped."""
+    from relic.patterns.signal_extractor import SafetySignalExtractor
+    extractor = SafetySignalExtractor()
+
+    # Monkey-patch _classify_event to return a forbidden diagnosis label
+    extractor._classify_event = lambda text: "bipolar"
+
+    result = extractor.extract(
+        subject_id="s1",
+        gumi_instance_id="g1",
+        hermes_profile_id="h1",
+        events=[{"text": "some text", "event_id": "e1"}],
+    )
+
+    assert result.signals == [], "forbidden/unknown family must be dropped, not included"

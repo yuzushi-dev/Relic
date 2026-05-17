@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://yuzushi-dev.github.io/Relic/schemas/hermes_runtime_envelope.schema.json",
+  "title": "HermesRuntimeEnvelope",
+  "$comment": "FORWARD-TARGET. No implementation exists yet. Worker A (Task A1 in tasks/worker_task_packets.md) is to land relic/hermes_adapter/envelope.py against this schema and promote the file to schemas/hermes/runtime_envelope.schema.json in the live tree. Today, related session-key handling lives in relic/hermes_runtime.py (HermesSessionKey, pass_session_key); the envelope should accept session_key_hash from HermesSessionKey.derive to bind tool calls to a Relic trace.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "trace_id",
+    "received_at",
+    "metadata_redaction_status"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "relic.hermes_runtime_envelope.v1"
+    },
+    "trace_id": {
+      "type": "string",
+      "minLength": 8
+    },
+    "session_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "chat_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "platform": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "channel_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "sender_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "subject_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "hermes_profile_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "gumi_instance_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "model": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "turn_index": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "tool_call_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "message_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "message_hash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "received_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "metadata_redaction_status": {
+      "type": "string",
+      "enum": [
+        "redacted",
+        "hash_only",
+        "raw_allowed"
+      ]
+    }
+  }
+}

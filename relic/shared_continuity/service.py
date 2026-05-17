@@ -63,6 +63,10 @@ class ContinuityMarker:
     final_subject_words: Optional[List[str]] = None
     next_version_id: Optional[str] = None
 
+    # Validated curated labels (clinical-checked at write time; persisted for read-path)
+    normalized_tags: Optional[List[str]] = None
+    gumi_words: Optional[List[str]] = None
+
 
 @dataclass
 class ContinuityFollowup:
@@ -208,9 +212,12 @@ class ContinuityService:
         Strips clinical interpretation from normalized_tags and gumi_words before output.
         subject_words (subject's own language) is preserved but NOT copied to other fields.
         """
+        # Fallback to marker's persisted values when not explicitly overridden (read-path)
+        effective_tags = normalized_tags if normalized_tags is not None else (marker.normalized_tags or [])
+        effective_words = gumi_words if gumi_words is not None else (marker.gumi_words or [])
         # Strip clinical terms from normalized_tags and gumi_words for output
         safe_tags, safe_words = self.normalize_for_gumi(
-            normalized_tags or [], gumi_words or []
+            effective_tags, effective_words
         )
 
         result = {
@@ -310,6 +317,8 @@ class ContinuityService:
             ttl_seconds=ttl_seconds,
             expires_at=expires_at,
             updated_at=created_at,
+            normalized_tags=list(normalized_tags) if normalized_tags else None,
+            gumi_words=list(gumi_words) if gumi_words else None,
         )
 
         self._markers[marker_id] = marker
@@ -380,6 +389,8 @@ class ContinuityService:
             clinical_interpretation_allowed=False,
             previous_version_id=marker_id,
             final_subject_words=subject_words,
+            normalized_tags=list(normalized_tags) if normalized_tags else None,
+            gumi_words=list(gumi_words) if gumi_words else None,
         )
 
         self._markers[new_marker_id] = new_marker
@@ -674,6 +685,38 @@ class ContinuityService:
             "marker_id": marker_id,
             "forgotten": True,
             "gumi_recall_allowed": False,
+        }
+
+    def forget_subject(self, subject_id: str) -> Dict[str, Any]:
+        """GDPR Art. 17 hard delete — remove all in-memory data for subject_id.
+
+        Covers markers, followups, corrections, and scopes. Does NOT touch
+        filesystem or SQLite — callers must also invoke
+        chronicle.retention.purge_subject_records() and
+        ProfileRegistry.delete_subject() for a complete GDPR erasure.
+        """
+        marker_ids = [k for k, m in self._markers.items() if m.subject_id == subject_id]
+        for k in marker_ids:
+            del self._markers[k]
+
+        followup_ids = [k for k, f in self._followups.items() if f.subject_id == subject_id]
+        for k in followup_ids:
+            del self._followups[k]
+
+        correction_ids = [k for k, c in self._corrections.items() if c.subject_id == subject_id]
+        for k in correction_ids:
+            del self._corrections[k]
+
+        scope_keys = [k for k, s in self._scopes.items() if s.get("subject_id") == subject_id]
+        for k in scope_keys:
+            del self._scopes[k]
+
+        return {
+            "subject_id": subject_id,
+            "markers_removed": len(marker_ids),
+            "followups_removed": len(followup_ids),
+            "corrections_removed": len(correction_ids),
+            "scopes_removed": len(scope_keys),
         }
 
     def pause(

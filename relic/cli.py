@@ -444,6 +444,9 @@ def subject_main(argv: list[str] | None = None) -> int:
     show_parser.add_argument("subject_id", help="Subject identifier.")
     reprovision_parser = subparsers.add_parser("reprovision", help="Re-run provisioning for an active subject with missing artifacts.")
     reprovision_parser.add_argument("subject_id", help="Subject identifier.")
+    forget_parser = subparsers.add_parser("forget", help="GDPR Art. 17 hard delete — permanently erase all subject data.")
+    forget_parser.add_argument("subject_id", help="Subject identifier to erase.")
+    forget_parser.add_argument("--yes", action="store_true", help="Skip interactive confirmation (use in automated pipelines only).")
     args = parser.parse_args(argv)
 
     if args.subject_action == "create":
@@ -468,6 +471,9 @@ def subject_main(argv: list[str] | None = None) -> int:
         tui = BootstrapTUI(registry=registry)
         tui.run_reprovision(args.subject_id)
         return 0
+
+    if args.subject_action == "forget":
+        return _subject_forget(args.subject_id, skip_confirm=args.yes)
 
     return 0
 
@@ -547,6 +553,123 @@ def _subject_show(subject_id: str) -> int:
     print(f"  no_agent_cron_status:     {no_agent_cron_status}")
     print(f"  resume_reconciliation:    {resume_reconciliation_status}")
     print(f"  continuity_scope_status:  {continuity_scope_status}")
+    return 0
+
+
+def _subject_forget(subject_id: str, *, skip_confirm: bool = False) -> int:
+    """GDPR Art. 17 hard delete — permanently erase all data for a subject.
+
+    Requires typing the subject_id to confirm unless --yes is passed.
+    Emits an anonymised audit record (subject_id hash, not raw) BEFORE erasure.
+    """
+    import hashlib
+
+    registry = ProfileRegistry()
+    profile = registry.get_subject(subject_id)
+
+    print()
+    print("=" * 64)
+    print("  WARNING: IRREVERSIBLE DATA DELETION  (GDPR Art. 17)")
+    print("=" * 64)
+    print(f"  Subject ID : {subject_id}")
+    if profile:
+        print(f"  Hermes profile : {profile.hermes_profile_name}")
+        print(f"  Status         : {profile.status}")
+    else:
+        print("  [subject not found in registry — filesystem deletion will still run]")
+    print()
+    print("  This will PERMANENTLY DELETE (no recovery possible):")
+    print("    - All continuity markers, followups, and corrections (in-memory)")
+    print("    - Subject directory:  ~/.relic/subjects/{subject_id}/")
+    print("      (profile JSON, baseline, relic.db check-in data, delivery policy,")
+    print("       cron manifest, session key hash, all generated files)")
+    print("    - All chronicle events, decisions, snapshots, access log rows")
+    print("      linked to this subject in the shared SQLite DB")
+    print("    - All daily JSONL journal lines for this subject")
+    print("    - Legacy JSONL entries (cac_trace, privacy_trace, escalation_log)")
+    print()
+
+    if not skip_confirm:
+        print("  To confirm, type the subject ID exactly:")
+        print()
+        try:
+            typed = input("  > ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            print("Aborted.")
+            return 1
+
+        if typed != subject_id:
+            print()
+            print(f"  Mismatch (got '{typed}'). Aborted — no data was deleted.")
+            return 1
+
+    print()
+    print("  Executing erasure...")
+
+    # Emit anonymised audit record BEFORE deletion so the event itself
+    # does not contain subject_id and survives the chronicle purge.
+    subject_hash = hashlib.sha256(subject_id.encode()).hexdigest()
+    try:
+        from relic.chronicle import emit_event, EventCategory
+        emit_event(
+            event_type="subject_forgotten",
+            event_category=EventCategory.DECISION,
+            source_module="relic.cli",
+            subject_id=None,  # intentionally omitted — record must survive purge
+            payload={"subject_id_hash": subject_hash},
+        )
+    except Exception:
+        pass  # fail-open: audit failure must not block erasure
+
+    # 1. In-memory continuity data (no-op if no running session)
+    try:
+        from relic.shared_continuity.service import ContinuityService
+        svc = ContinuityService()
+        svc.forget_subject(subject_id)
+    except Exception:
+        pass
+
+    # 2. Chronicle SQLite + JSONL purge
+    chronicle_result: dict = {}
+    try:
+        from relic.chronicle.retention import purge_subject_records
+        chronicle_result = purge_subject_records(subject_id)
+    except Exception as exc:
+        print(f"  [warn] Chronicle purge failed: {exc}", file=sys.stderr)
+
+    # 3. Filesystem deletion (profile, relic.db, all subject files)
+    fs_result: dict = {}
+    try:
+        fs_result = registry.delete_subject(subject_id)
+    except Exception as exc:
+        print(f"  [warn] Filesystem deletion failed: {exc}", file=sys.stderr)
+        return 1
+
+    # 4. Hermes profile directory (best-effort)
+    hermes_profile_name = fs_result.get("hermes_profile_name")
+    hermes_deleted = False
+    if hermes_profile_name:
+        hermes_profiles_home = registry.hermes_profiles_home
+        hermes_profile_dir = hermes_profiles_home / hermes_profile_name
+        if hermes_profile_dir.exists():
+            try:
+                import shutil as _shutil
+                _shutil.rmtree(hermes_profile_dir)
+                hermes_deleted = True
+            except Exception as exc:
+                print(f"  [warn] Hermes profile deletion failed: {exc}", file=sys.stderr)
+
+    print()
+    print("  Erasure complete.")
+    print(f"  subject_id_hash : {subject_hash[:16]}...")
+    print(f"  chronicle events deleted   : {chronicle_result.get('chronicle_events_deleted', 0)}")
+    print(f"  chronicle decisions deleted: {chronicle_result.get('chronicle_decisions_deleted', 0)}")
+    print(f"  journal lines removed      : {chronicle_result.get('journal_lines_removed', 0)}")
+    print(f"  filesystem paths deleted   : {fs_result.get('deleted_paths', [])}")
+    if hermes_profile_name:
+        print(f"  hermes profile deleted     : {hermes_deleted} ({hermes_profile_name})")
+    print()
     return 0
 
 

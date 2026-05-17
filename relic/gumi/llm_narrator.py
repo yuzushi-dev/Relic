@@ -16,6 +16,13 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from relic.gumi.personalization import PersonalizationConstraints
 
+try:
+    from relic.chronicle import emit_event, EventCategory
+    _CHRONICLE = True
+except Exception:
+    _CHRONICLE = False
+    EventCategory = None  # type: ignore
+
 
 # Validation markers — any generated SOUL.md must NOT contain these
 _FORBIDDEN_PATTERNS = [

@@ -53,6 +53,10 @@ class PluginConfig:
     fail_on_permission_error: bool = True
     # Roleplay restrictions
     roleplay_blocks_l2_tools: bool = True
+    # Subject scoping for RelicMemoryProvider hook wiring.
+    # Falls back to RELIC_SUBJECT_ID env var when empty.
+    subject_id: str = ""
+    hermes_profile_id: str = ""
 
 
 @dataclass
@@ -175,6 +179,37 @@ class RelicHermesPlugin:
                     return {"allow": True, "reason": "critic_error_fail_open"}
 
             gumi_hooks.register(gumi_hooks.POST_LLM_CALL, _post_llm_handler)
+
+            # Wire RelicMemoryProvider as pre/post_llm_call hooks (Fix B).
+            # subject_id sourced from config first, then RELIC_SUBJECT_ID env var.
+            import os as _os
+            _subject_id = self._config.subject_id or _os.environ.get("RELIC_SUBJECT_ID", "")
+            if _subject_id:
+                from relic.hermes_plugin.memory_provider import RelicMemoryProvider
+                _mem_provider = RelicMemoryProvider(
+                    subject_id=_subject_id,
+                    hermes_profile_id=self._config.hermes_profile_id or "",
+                )
+
+                def _pre_llm_memory_handler(payload: dict) -> dict:
+                    try:
+                        query = payload.get("query", "") or ""
+                        lines = _mem_provider.prefetch(query)
+                        return {"memory_context": lines} if lines else {}
+                    except Exception:
+                        return {}
+
+                def _post_llm_memory_handler(payload: dict) -> dict:
+                    try:
+                        user_msg = payload.get("user_message", "") or ""
+                        assistant_msg = payload.get("assistant_response", "") or ""
+                        _mem_provider.sync_turn(user_msg, assistant_msg)
+                        return {}
+                    except Exception:
+                        return {}
+
+                gumi_hooks.register(gumi_hooks.PRE_LLM_CALL, _pre_llm_memory_handler)
+                gumi_hooks.register(gumi_hooks.POST_LLM_CALL, _post_llm_memory_handler)
 
             # Initialize PCP trace for /relic why
             from relic.context_pack.trace import PCPTrace

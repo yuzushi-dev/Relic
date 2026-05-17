@@ -39,6 +39,7 @@ dev = [
 [project.scripts]
 relic = "relic.cli:main"
 relic-profile = "relic.profile.cli:profile_main"
+chronicle = "relic.chronicle.cli.main:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
@@ -48,6 +49,21 @@ include = ["relic*"]
 testpaths = [
     "tests/bootstrap",
     "tests/profile",
+    "tests/hermes_compat",
+    "tests/patterns",
+    "tests/gumi_plugin",
+    "tests/gumi_roleplay",
+    "tests/hermes_plugin",
+    "tests/hermes",
+    "tests/gumi",
+    "tests/gumi_continuity",
+    "tests/gumi_identity",
+    "tests/gumi_memory",
+    "tests/safety",
+    "tests/context_pack",
+    "tests/cac",
+    "tests/control",
+    "tests/privacy",
 ]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]

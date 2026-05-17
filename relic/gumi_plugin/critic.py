@@ -24,6 +24,12 @@ class CriticVerdict:
 
 class OutputCritic:
     def review(self, text: str, *, consensual: bool = True) -> CriticVerdict:
+        # Defensive coercion: post_llm_call must never raise on unexpected payloads.
+        if not isinstance(text, str):
+            try:
+                text = "" if text is None else str(text)
+            except Exception:
+                return CriticVerdict(allow=True, reason="empty", requires_disclosure=False)
         if not text:
             return CriticVerdict(allow=True, reason="empty", requires_disclosure=False)
         if NEED_CLAIM_RE.search(text):
