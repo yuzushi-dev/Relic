@@ -1,5 +1,10 @@
 // Timeline Event Stream — PR27G
-export const dynamic = 'force-dynamic'
+export const dynamic = process.env.RELIC_UI_BUILD_TARGET === 'static' ? 'force-static' : 'force-dynamic'
+
+export async function generateStaticParams() {
+  if (process.env.RELIC_UI_BUILD_TARGET !== 'static') return [];
+  return [{ subject_id: 'subj_001' }];
+}
 import { TimelineView } from "../../../../../components/TimelineView";
 import { SubjectNav } from "../../../../../components/SubjectNav";
 import { getEventStream, getStudyOverview } from "../../../../../lib/workbench-data";

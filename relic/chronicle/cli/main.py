@@ -38,7 +38,7 @@ def _format_table(data: list[dict], columns: list[str] | None = None) -> str:
     rows = []
     for row in data:
         rows.append("  ".join(str(row.get(c, "")).ljust(widths[c])[:widths[c]] for c in cols))
-    return f"{header}\n{secp}\n" + "\n".join(rows)
+    return f"{header}\n{sep}\n" + "\n".join(rows)
 
 
 # ---------------------------------------------------------------------------
