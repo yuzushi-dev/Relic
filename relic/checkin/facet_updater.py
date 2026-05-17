@@ -102,6 +102,9 @@ Regole:
 - confidence_delta: quanto aumenta la confidence (0.05 minimo, 0.25 massimo)"""
 
 
+MARKER_PROMOTION_THRESHOLD = 0.45
+
+
 @dataclass
 class ExtractionResult:
     facet_id: str
@@ -291,12 +294,49 @@ def update_baseline(
     return True
 
 
+def _promote_observation_to_marker(
+    extraction: ExtractionResult,
+    subject_id: str,
+    gumi_instance_id: str = "",
+    hermes_profile_id: str = "",
+) -> None:
+    """Promote a strong observation to a ContinuityMarker so prefetch() surfaces it.
+
+    Only called when signal_strength >= MARKER_PROMOTION_THRESHOLD.
+    Fail-open: any error is logged at WARNING level and silently ignored.
+    """
+    if extraction.signal_strength < MARKER_PROMOTION_THRESHOLD:
+        return
+    if not extraction.observation_summary:
+        return
+    try:
+        from relic.gumi_continuity.store import GumiContinuityStore
+
+        store = GumiContinuityStore()
+        store.remember_marker(
+            subject_id=subject_id,
+            gumi_instance_id=gumi_instance_id,
+            hermes_profile_id=hermes_profile_id,
+            subject_words=extraction.observation_summary.split(),
+            source_type="checkin_observation",
+            ttl_seconds=1_209_600,  # 2 weeks
+        )
+    except Exception as exc:
+        import logging as _logging
+        _logging.getLogger(__name__).warning(
+            "_promote_observation_to_marker failed subject=%s facet=%s: %s",
+            subject_id, extraction.facet_id, exc,
+        )
+
+
 def process_pending_exchanges(
     conn: sqlite3.Connection,
     baseline_path: Path,
     subject_id: str,
     dry_run: bool = False,
     llm_client: Any | None = None,
+    gumi_instance_id: str = "",
+    hermes_profile_id: str = "",
 ) -> list[dict[str, Any]]:
     """Process all unprocessed check-in replies. Returns list of results."""
     rows = conn.execute(
@@ -382,6 +422,11 @@ def process_pending_exchanges(
 
             # Update baseline JSON
             update_baseline(baseline_path, facet_id, extraction, exchange_id)
+
+            # Promote strong observations to ContinuityMarker for prefetch()
+            _promote_observation_to_marker(
+                extraction, subject_id, gumi_instance_id, hermes_profile_id
+            )
 
             entry.update({
                 "signal_position": extraction.signal_position,

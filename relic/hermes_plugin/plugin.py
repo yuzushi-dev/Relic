@@ -21,6 +21,7 @@ from typing import TYPE_CHECKING, Any
 from uuid import UUID, uuid4
 
 from relic.hermes_plugin.commands import RelicCommands
+from relic.hermes_plugin.context_injection import inject_context
 from relic.hermes_plugin.fail_safe import FailSafeRegistry
 from relic.hermes_plugin.hooks import HookManager, LLMSessionContext
 
@@ -211,6 +212,19 @@ class RelicHermesPlugin:
 
                 gumi_hooks.register(gumi_hooks.PRE_LLM_CALL, _pre_llm_memory_handler)
                 gumi_hooks.register(gumi_hooks.POST_LLM_CALL, _post_llm_memory_handler)
+
+                # Wire inject_context for USER_PRIVATE_FACTS + behavioral guidance.
+                # Only registered when subject_id is known — no injection without subject scope.
+                def _pre_llm_inject_context_handler(payload: dict) -> dict:
+                    try:
+                        session_id = payload.get("session_id", "") or ""
+                        user_message = payload.get("user_message", "") or ""
+                        result = inject_context(session_id=session_id, user_message=user_message)
+                        return result if result else {}
+                    except Exception:
+                        return {}
+
+                gumi_hooks.register(gumi_hooks.PRE_LLM_CALL, _pre_llm_inject_context_handler)
 
             # Initialize PCP trace for /relic why
             from relic.context_pack.trace import PCPTrace

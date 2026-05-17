@@ -250,6 +250,20 @@ def _is_continuity_scope_paused(subject_id: str) -> bool:
     return service._scopes.get(scope_key, {}).get("is_paused", False)
 
 
+def _is_globally_paused() -> bool:
+    """Return True if the user issued /relic pause and has not yet resumed.
+
+    Reads from the global PauseController DB (session_id=None global pause record).
+    Fail-open: returns False on any error so cron is never stuck.
+    """
+    try:
+        from relic.control.pause import PauseController
+
+        return PauseController().is_paused()
+    except Exception:
+        return False
+
+
 def _is_followup_not_due(subject_id: str, gumi_instance_id: str, hermes_profile_id: str) -> bool:
     """Check if there are no due followups for this subject."""
     service = get_continuity_service()
@@ -478,6 +492,11 @@ def _evaluate_decision(
         candidate_data is a dict with 'message' key for CANDIDATE/DELIVER, None otherwise.
     """
     reasons: list[RuntimeDecisionReason] = []
+
+    # Check /relic pause — user-initiated global pause
+    if _is_globally_paused():
+        reasons.append(RuntimeDecisionReason.subject_paused)
+        return RuntimeDecision.NO_REPLY, reasons, None
 
     # Check PRO_CHECKIN permission — respect subject opt-out
     if not _pro_checkin_allowed(subject_id):
@@ -725,181 +744,19 @@ try:
             print(candidate_data["message"])
         sys.exit(0)
     elif decision == RuntimeDecision.DELIVER:
-        # Emit deliver message after sanitizer + delivery gate
         if candidate_data and "message" in candidate_data:
             print(candidate_data["message"])
-        # Inject context from profile files
         _hermes_home = os.environ.get("HERMES_HOME", "")
         if _hermes_home:
-            _hp = Path(_hermes_home)
-            import re, json as _json
-            _recent_checkins = []
-            # Recent checkin messages only — resolve checkin job ID from jobs.json
-            _mem_path = _hp / "MEMORY.md"
-            if _mem_path.exists():
-                _mem_text = _mem_path.read_text(encoding="utf-8")
-                _checkin_job_id = None
-                _jobs_path = _hp / "cron" / "jobs.json"
-                if _jobs_path.exists():
-                    try:
-                        _jobs_data = _json.loads(_jobs_path.read_text(encoding="utf-8"))
-                        for _job in _jobs_data.get("jobs", []):
-                            _jscript = (_job.get("script") or "")
-                            _jname = (_job.get("name") or "")
-                            if "checkin" in _jscript.lower() or "checkin_message" in _jname.lower():
-                                _checkin_job_id = _job.get("id")
-                                break
-                    except Exception:
-                        pass
-                # Parse memory sync block: only extract entries from the checkin job
-                _block_re = re.compile(
-                    r"<!-- gumi:memory_sync:begin -->(.*?)<!-- gumi:memory_sync:end -->",
-                    re.DOTALL,
-                )
-                _block_m = _block_re.search(_mem_text)
-                _recent_checkins = []
-                if _block_m:
-                    _block = _block_m.group(1)
-                    _header_re = re.compile(
-                        r"### (\\d{{4}}-\\d{{2}}-\\d{{2}} \\d{{2}}:\\d{{2}}) \\(job=(.+?)\\)"
-                    )
-                    _parts = _header_re.split(_block)
-                    _pi = 1
-                    while _pi + 2 <= len(_parts):
-                        _ts_str, _jid, _body = _parts[_pi], _parts[_pi + 1], _parts[_pi + 2]
-                        _pi += 3
-                        if _checkin_job_id and not _jid.startswith(_checkin_job_id):
-                            continue
-                        _lines = [
-                            l.strip()[2:]
-                            for l in _body.splitlines()
-                            if l.strip().startswith("> ")
-                        ]
-                        _text = " ".join(
-                            l for l in _lines if l and l != "[SILENT]"
-                        ).strip()
-                        if _text:
-                            _recent_checkins.append((_ts_str, _text))
-                if _recent_checkins:
-                    print("\\n--- messaggi recenti inviati (non ripetere immagini o temi già usati) ---")
-                    for _ts_str, _msg in _recent_checkins[-5:]:
-                        print(f"• [{{_ts_str}}] {{_msg[:120]}}")
-            # Inject topic + style hints (fail-closed, consent-gated)
-            _relic_home_fh = os.environ.get("RELIC_HOME", str(Path.home() / ".relic"))
-            _db_path_fh = Path(_relic_home_fh) / "subjects" / subject_id / "relic.db"
-            _bl_path_fh = Path(_relic_home_fh) / "subjects" / subject_id / "subject_baseline.json"
-            _consent_fh = False
-            _dp_path_fh = Path(_relic_home_fh) / "subjects" / subject_id / "delivery_policy.json"
-            if _dp_path_fh.exists():
-                try:
-                    _dp_fh = _json.loads(_dp_path_fh.read_text(encoding="utf-8"))
-                    _consent_fh = bool(_dp_fh.get("consent_for_active_elicitation", False))
-                except Exception as _e_c:
-                    print(f"[checkin] delivery_policy load error: {{_e_c}}", file=sys.stderr)
-            if _consent_fh:
-                # Recent observations — what Gumi has learned from past exchanges
-                try:
-                    import sqlite3 as _sqlite3_obs
-                    from datetime import datetime as _dt_obs, timezone as _tz_obs, timedelta as _td_obs
-                    if _db_path_fh.exists():
-                        _obs_cutoff = (_dt_obs.now(_tz_obs.utc) - _td_obs(days=30)).isoformat()
-                        _obs_conn = _sqlite3_obs.connect(
-                            f"file:{{str(_db_path_fh)}}?mode=ro", uri=True, timeout=5.0
-                        )
-                        try:
-                            _obs_rows = _obs_conn.execute(
-                                """SELECT o.content
-                                   FROM observations o
-                                   WHERE o.source_type = 'checkin_reply'
-                                     AND o.created_at >= ?
-                                   ORDER BY o.created_at DESC
-                                   LIMIT 3""",
-                                (_obs_cutoff,),
-                            ).fetchall()
-                        finally:
-                            _obs_conn.close()
-                        if _obs_rows:
-                            print("\\n--- cosa ho imparato di recente ---")
-                            for (_obs_c,) in _obs_rows:
-                                if _obs_c:
-                                    print(f"• {{_obs_c[:120]}}")
-                except Exception as _e_obs:
-                    print(f"[checkin] observations: {{_e_obs}}", file=sys.stderr)
-                try:
-                    import sqlite3 as _sqlite3
-                    import hashlib as _hl
-                    from datetime import datetime as _dt, timezone as _tz
-                    from relic.checkin.topic_hint import render_topic_hint as _rth
-                    from relic.checkin.question_engine import select_facet as _sf
-                    from relic.checkin.anti_repeat import AntiRepeatGate as _ARG
-                    if _db_path_fh.exists():
-                        _day_seed = int(_hl.sha256(
-                            f"{{subject_id}}|checkin|{{_dt.now(_tz.utc).date()}}".encode()
-                        ).hexdigest(), 16) % (2 ** 32)
-                        _conn_t = None
-                        _topic_block = ""
-                        _topic_facet_id = None
-                        _topic_hint_text = None
-                        try:
-                            _conn_t = _sqlite3.connect(
-                                f"file:{{str(_db_path_fh)}}?mode=ro", uri=True, timeout=5.0
-                            )
-                            _sel = _sf(
-                                _conn_t,
-                                _bl_path_fh if _bl_path_fh.exists() else None,
-                                seed=_day_seed,
-                            )
-                            if _sel.get("status") == "ask_now":
-                                _ar = _ARG(_conn_t, jaccard_threshold=0.60).check(_sel["question_hint"])
-                                if not _ar["duplicate"]:
-                                    try:
-                                        _recent_q = [r[0] for r in _conn_t.execute(
-                                            "SELECT question_text FROM checkin_exchanges "
-                                            "ORDER BY asked_at DESC LIMIT 10"
-                                        ).fetchall() if r[0]]
-                                    except Exception:
-                                        _recent_q = []
-                                    _topic_block = _rth(_sel["question_hint"], _recent_q)
-                                    if _topic_block:
-                                        _topic_facet_id = _sel["selected_facet"]
-                                        _topic_hint_text = _sel["question_hint"]
-                        finally:
-                            if _conn_t is not None:
-                                _conn_t.close()
-                        # RO conn closed above — safe to open RW without lock contention
-                        if _topic_block:
-                            print(f"\\n{{_topic_block}}")
-                            _conn_rw = _sqlite3.connect(str(_db_path_fh), timeout=5.0)
-                            try:
-                                _conn_rw.execute(
-                                    "INSERT INTO checkin_exchanges "
-                                    "(facet_id, question_text, asked_at) VALUES (?, ?, ?)",
-                                    (_topic_facet_id, _topic_hint_text,
-                                     _dt.now(_tz.utc).isoformat()),
-                                )
-                                _conn_rw.commit()
-                            except Exception as _e_ins:
-                                if "no such table" not in str(_e_ins):
-                                    print(f"[checkin] persist: {{_e_ins}}", file=sys.stderr)
-                            finally:
-                                _conn_rw.close()
-                except Exception as _e_t:
-                    print(f"[checkin] topic hint: {{_e_t}}", file=sys.stderr)
-                try:
-                    from relic.checkin.style_hints import render_style_hints as _rsh
-                    if _bl_path_fh.exists():
-                        _bl_s = _json.loads(_bl_path_fh.read_text(encoding="utf-8"))
-                        _style_block = _rsh(_bl_s.get("interaction") or {{}})
-                        if _style_block:
-                            print(f"\\n{{_style_block}}")
-                except Exception as _e_s:
-                    print(f"[checkin] style hints: {{_e_s}}", file=sys.stderr)
-            # Avatar spec — always inject so Gumi knows her own appearance
-            _avatar_path = _hp / "AVATAR_SPEC.md"
-            if _avatar_path.exists():
-                _avatar = _avatar_path.read_text(encoding="utf-8").strip()
-                if _avatar:
-                    print(f"\\n--- aspetto di Gumi ---\\n{{_avatar[:600]}}")
+            from relic.checkin.context_builder import build_deliver_context
+            _relic_home_env = os.environ.get("RELIC_HOME", "") or str(Path.home() / ".relic")
+            _ctx = build_deliver_context(
+                subject_id,
+                Path(_hermes_home),
+                Path(_relic_home_env),
+            )
+            if _ctx:
+                print(_ctx)
         sys.exit(0)
     else:
         # BLOCKED or ERROR - no stdout, exit 0
