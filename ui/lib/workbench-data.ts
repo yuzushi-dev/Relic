@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { execFileSync } from "node:child_process";
 
 import studyOverviewFixture from "../fixtures/researcher-workbench/study_overview.json";
 import subjectOverviewFixture from "../fixtures/researcher-workbench/subject_overview_subj_001.json";
@@ -541,6 +542,16 @@ export function getEventStream(subjectId: string): EventStream | null {
     });
   }
 
+  // Merge Chronicle events (deduplicate by event_id)
+  const chronicleEvents = chronicleQuery(subjectId);
+  const seen = new Set(events.map((e) => e.event_id));
+  for (const ce of chronicleEvents) {
+    if (!seen.has(ce.event_id)) {
+      events.push(ce);
+      seen.add(ce.event_id);
+    }
+  }
+
   events.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
 
   return {
@@ -549,6 +560,117 @@ export function getEventStream(subjectId: string): EventStream | null {
     stream: "live",
     events,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Chronicle integration
+// ---------------------------------------------------------------------------
+
+const SUBJECT_ID_RE = /^[a-zA-Z0-9_-]+$/;
+
+type ChronicleRow = {
+  event_id: string;
+  event_type: string;
+  event_category: string;
+  timestamp: string;
+  subject_id: string;
+  source_module: string | null;
+  actor_type: string | null;
+  payload: string | null;
+  payload_redacted: number;
+  sensitivity: string | null;
+  severity: string | null;
+  hermes_profile_id: string | null;
+};
+
+function _chronicleEventClass(category: string): string {
+  switch (category) {
+    case "decision": return "gumi_initiative";
+    case "agent":    return "gumi_initiative";
+    case "researcher": return "researcher_action";
+    default:         return "system";
+  }
+}
+
+function _chronicleRiskLevel(sensitivity: string | null, severity: string | null): string {
+  const sev = severity ?? "info";
+  const sens = sensitivity ?? "safe";
+  if (sens === "intimate" || sev === "critical") return "high";
+  if (sens === "PII"      || sev === "error")    return "medium";
+  if (sev === "warn")                             return "low";
+  return "none";
+}
+
+function _chroniclePreview(row: ChronicleRow): string {
+  let payloadHint = "";
+  if (!row.payload_redacted && row.payload) {
+    try {
+      const p = JSON.parse(row.payload) as Record<string, unknown>;
+      const parts: string[] = [];
+      if (p.decision)      parts.push(`decision=${p.decision}`);
+      if (p.reason_codes && Array.isArray(p.reason_codes)) parts.push(p.reason_codes.join(","));
+      if (p.trigger)       parts.push(`trigger=${p.trigger}`);
+      if (p.step)          parts.push(`step=${p.step}`);
+      if (p.count !== undefined) parts.push(`count=${p.count}`);
+      payloadHint = parts.join(" ").slice(0, 80);
+    } catch { /* skip */ }
+  }
+  const src = row.source_module?.replace("relic.", "") ?? row.event_category;
+  return `[${row.event_type}] ${src}${payloadHint ? " · " + payloadHint : ""}`;
+}
+
+function chronicleQuery(subjectId: string, limit = 500): EventStream["events"] {
+  if (!SUBJECT_ID_RE.test(subjectId)) return [];
+  const python = process.env.RELIC_PYTHON || "python3";
+  try {
+    const out = execFileSync(
+      python,
+      ["-m", "relic.chronicle.cli.main", "query",
+       "--subject", subjectId,
+       "--limit", String(limit),
+       "--format", "jsonl",
+       "--no-audit"],
+      {
+        encoding: "utf8",
+        env: { ...process.env },
+        timeout: 8000,
+        maxBuffer: 16 * 1024 * 1024,
+      }
+    );
+    const rows: ChronicleRow[] = out
+      .split("\n")
+      .filter(Boolean)
+      .flatMap((l) => { try { return [JSON.parse(l) as ChronicleRow]; } catch { return []; } });
+
+    return rows.map((row) => ({
+      event_id: `chr_${row.event_id}`,
+      subject_id: row.subject_id,
+      gumi_instance_id: row.hermes_profile_id ?? "",
+      hermes_profile_id: row.hermes_profile_id ?? "",
+      event_class: _chronicleEventClass(row.event_category),
+      ontological_class: row.event_type,
+      timestamp: row.timestamp,
+      delivered: false,
+      decision: row.event_category,
+      policy_snapshot: { rate_limit_mode: "auto-gated", careful_distancing: false, max_proactive_per_day: 0 },
+      source_refs: [],
+      content_preview: _chroniclePreview(row),
+      raw_content_availability: row.payload_redacted ? "none" : "partial",
+      eligible_for_user_model: false,
+      eligible_for_experience_analysis: false,
+      related_inference_ids: [],
+      related_correction_ids: [],
+      initiator: row.actor_type ?? row.source_module?.split(".").pop() ?? "system",
+      risk_level: _chronicleRiskLevel(row.sensitivity, row.severity),
+      has_user_response: false,
+      has_correction: false,
+      has_boundary_risk: false,
+      has_media: false,
+    }));
+  } catch (err) {
+    console.error("[chronicle] query failed:", (err as Error).message?.slice(0, 200));
+    return [];
+  }
 }
 
 export function getSubjectIntelligence(subjectId: string): SubjectIntelligenceData | null {
