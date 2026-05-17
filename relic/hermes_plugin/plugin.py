@@ -189,6 +189,7 @@ class RelicHermesPlugin:
                 _mem_provider = RelicMemoryProvider(
                     subject_id=_subject_id,
                     hermes_profile_id=self._config.hermes_profile_id or "",
+                    relic_home=_os.environ.get("RELIC_HOME"),
                 )
 
                 def _pre_llm_memory_handler(payload: dict) -> dict:

@@ -9,28 +9,30 @@ Returns JSON with status: ask_now | not_due | no_candidate | disabled
 from __future__ import annotations
 
 import json
+import random
 import re
 import sqlite3
 
-# Strip parenthetical clinical scale references (ECR-R, DERS, SDT, Schwartz, McAdams, ...)
-# from facet descriptions before exposing them to Gumi.
-_SCALE_REF_RE = re.compile(r"\s*\([A-Z][A-Za-z0-9][A-Za-z0-9\-]*\)")
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from statistics import mean
 from typing import Any
 
+# Strip parenthetical clinical scale references — matches single scales (ECR-R, SDT)
+# and combined multi-scale refs like (ECR-R, DERS) or (Schwartz, McAdams).
+SCALE_REF_RE = re.compile(r"\s*\([A-Z][A-Za-z0-9\-]*(?:,\s*[A-Z][A-Za-z0-9\-]*)*\)")
+
 
 def clamp(v: float, lo: float = 0.0, hi: float = 1.0) -> float:
     return max(lo, min(hi, v))
 
 
-# Confidence string → float
-_CONF_MAP = {
-    "high": 0.80,
-    "medium": 0.50,
-    "low": 0.25,
+# Confidence string → float (shared with style_hints)
+CONFIDENCE_LEVEL_MAP = {
+    "high":        0.80,
+    "medium":      0.50,
+    "low":         0.25,
     "low_initial": 0.10,
 }
 
@@ -119,7 +121,7 @@ def load_facet_states(conn: sqlite3.Connection, subject_baseline_path: Path | No
             for section in ("psychological", "interaction"):
                 for key, val in baseline.get(section, {}).items():
                     conf_str = val.get("confidence", "low_initial")
-                    bootstrap[key] = _CONF_MAP.get(conf_str, 0.10)
+                    bootstrap[key] = CONFIDENCE_LEVEL_MAP.get(conf_str, 0.10)
         except Exception:
             pass
 
@@ -242,11 +244,13 @@ def score_facet(f: FacetState) -> dict[str, float]:
 
 
 def build_question_hint(f: FacetState) -> str:
-    # Strip clinical scale references (ECR-R, DERS, SDT, ...) from description.
+    # Strip clinical scale references (ECR-R, DERS, SDT, ...) from description and spectrum.
     # Never expose facet_id or f.name — those may contain clinical terms.
-    desc = _SCALE_REF_RE.sub("", f.description).strip().rstrip(":").strip()
-    if f.spectrum_low and f.spectrum_high:
-        return f"{desc}. Spettro: {f.spectrum_low} ↔ {f.spectrum_high}."
+    desc = SCALE_REF_RE.sub("", f.description).strip().rstrip(":").strip()
+    sp_low = SCALE_REF_RE.sub("", f.spectrum_low).strip()
+    sp_high = SCALE_REF_RE.sub("", f.spectrum_high).strip()
+    if sp_low and sp_high:
+        return f"{desc}. Spettro: {sp_low} ↔ {sp_high}."
     return desc
 
 
@@ -254,8 +258,14 @@ def select_facet(
     conn: sqlite3.Connection,
     subject_baseline_path: Path | None = None,
     threshold: float = 0.30,
+    top_k: int = 3,
+    seed: int | None = None,
 ) -> dict[str, Any]:
-    """Score all facets and return the best candidate above threshold."""
+    """Score all facets and return a weighted-random candidate from top-k above threshold.
+
+    Args:
+        seed: optional int seed for reproducible selection (e.g. hash of subject_id+date)
+    """
     states = load_facet_states(conn, subject_baseline_path)
     if not states:
         return {"status": "no_facets", "reason": "empty_facet_registry"}
@@ -263,24 +273,32 @@ def select_facet(
     ranking = sorted([score_facet(f) for f in states], key=lambda x: x["score"], reverse=True)
     top5 = ranking[:5]
 
-    best = ranking[0]
-    if best["score"] < threshold:
+    candidates = [r for r in ranking if r["score"] >= threshold]
+    if not candidates:
         return {
             "status": "no_candidate",
             "reason": "no_facet_above_threshold",
             "threshold": threshold,
-            "best_score": best["score"],
+            "best_score": ranking[0]["score"],
             "ranking_top5": top5,
         }
 
-    # Get facet details for question hint
-    f_state = next(s for s in states if s.facet_id == best["facet_id"])
+    # Weighted random selection from top-k candidates above threshold
+    pool = candidates[:top_k]
+    weights = [r["score"] for r in pool]
+    if not any(w > 0 for w in weights):
+        selected = pool[0]
+    else:
+        rng = random.Random(seed)
+        selected = rng.choices(pool, weights=weights, k=1)[0]
+
+    f_state = next(s for s in states if s.facet_id == selected["facet_id"])
 
     return {
         "status": "ask_now",
-        "selected_facet": best["facet_id"],
+        "selected_facet": selected["facet_id"],
         "question_hint": build_question_hint(f_state),
-        "score": best["score"],
+        "score": selected["score"],
         "threshold": threshold,
         "ranking_top5": top5,
         "now": datetime.now(timezone.utc).isoformat(),

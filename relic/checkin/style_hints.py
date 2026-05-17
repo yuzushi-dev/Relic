@@ -10,16 +10,11 @@ Contract:
 - directness_preference: bullet at both extremes (≥0.65 or ≤0.35), neutral → silent
 - Other 4 facets: bullet only at low end (≤0.35), high tolerance → no constraint
 - Output: "--- come scriverle questo messaggio ---\n- bullet\n..." or ""
-- Max 5 bullets, ≤400 chars total
+- Max 5 bullets, ≤400 chars total (drops trailing bullets, never mid-bullet)
 """
 from __future__ import annotations
 
-_CONFIDENCE_MAP = {
-    "high":        0.80,
-    "medium":      0.50,
-    "low":         0.25,
-    "low_initial": 0.10,
-}
+from relic.checkin.question_engine import CONFIDENCE_LEVEL_MAP as _CONFIDENCE_MAP
 
 _CONFIDENCE_FLOOR = 0.20
 
@@ -29,13 +24,23 @@ HEADER = "--- come scriverle questo messaggio ---"
 
 
 def _confidence_float(facet: dict) -> float:
-    if "confidence_float" in facet:
-        return float(facet["confidence_float"])
-    return _CONFIDENCE_MAP.get(str(facet.get("confidence", "low_initial")), 0.10)
+    try:
+        if "confidence_float" in facet:
+            return float(facet["confidence_float"])
+        return _CONFIDENCE_MAP.get(str(facet.get("confidence", "low_initial")), 0.10)
+    except (TypeError, ValueError):
+        return 0.10
 
 
 def _correction_state(facet: dict) -> str:
     return str(facet.get("correction_state", "active"))
+
+
+def _facet_value(facet: dict, default: float) -> float:
+    try:
+        return float(facet.get("value", default))
+    except (TypeError, ValueError):
+        return default
 
 
 def render_style_hints(interaction: dict[str, dict]) -> str:
@@ -51,7 +56,7 @@ def render_style_hints(interaction: dict[str, dict]) -> str:
     if dp and isinstance(dp, dict):
         if _correction_state(dp) not in _BLOCKED_CORRECTION_STATES:
             if _confidence_float(dp) >= _CONFIDENCE_FLOOR:
-                val = float(dp.get("value", 0.5))
+                val = _facet_value(dp, 0.5)
                 if val >= 0.65:
                     bullets.append("lui preferisce messaggi diretti, senza preamboli")
                 elif val <= 0.35:
@@ -75,7 +80,7 @@ def render_style_hints(interaction: dict[str, dict]) -> str:
             continue
         if _confidence_float(facet) < _CONFIDENCE_FLOOR:
             continue
-        if float(facet.get("value", 1.0)) <= 0.35:
+        if _facet_value(facet, 1.0) <= 0.35:
             bullets.append(directive)
 
     if not bullets:
@@ -84,8 +89,9 @@ def render_style_hints(interaction: dict[str, dict]) -> str:
     lines = [HEADER] + [f"- {b}" for b in bullets]
     result = "\n".join(lines)
 
-    # Safety: hard cap at 400 chars
-    if len(result) > 400:
-        result = result[:400]
+    # Hard cap at 400 chars: drop trailing bullets (never truncate mid-line)
+    while len(result) > 400 and len(lines) > 1:
+        lines.pop()
+        result = "\n".join(lines)
 
     return result

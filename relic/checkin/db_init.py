@@ -97,9 +97,12 @@ CREATE TABLE IF NOT EXISTS model_snapshots (
 
 CREATE INDEX IF NOT EXISTS idx_observations_facet ON observations(facet_id);
 CREATE INDEX IF NOT EXISTS idx_observations_source ON observations(source_type);
-CREATE INDEX IF NOT EXISTS idx_checkin_reply ON checkin_exchanges(reply_text);
 CREATE INDEX IF NOT EXISTS idx_inbox_processed ON inbox(processed);
 CREATE INDEX IF NOT EXISTS idx_checkin_unprocessed ON checkin_exchanges(observations_extracted);
+CREATE INDEX IF NOT EXISTS idx_checkin_pending ON checkin_exchanges(asked_at DESC) WHERE reply_text IS NULL AND facet_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_checkin_processable ON checkin_exchanges(asked_at) WHERE reply_text IS NOT NULL AND observations_extracted = 0;
+CREATE INDEX IF NOT EXISTS idx_observations_source_date ON observations(source_type, created_at);
+CREATE INDEX IF NOT EXISTS idx_inbox_pending ON inbox(received_at) WHERE processed = 0;
 """
 
 # 60 canonical facets — derived from the Relic longitudinal model
@@ -177,11 +180,14 @@ FACETS: list[dict] = [
     {"id": "values.core_values",             "category": "values",          "name": "core_values",          "description": "Valori fondamentali (non spettro lineare — lista di valori)",             "spectrum_low": None,                  "spectrum_high": None,                      "sensitivity": "media",  "intrusion_base": 0.45},
 ]
 
-assert len(FACETS) == 60, f"Expected 60 facets, got {len(FACETS)}"
+if len(FACETS) != 60:
+    raise RuntimeError(f"Expected 60 facets, got {len(FACETS)}")
 
 
 def init_db(db_path: Path) -> sqlite3.Connection:
     conn = sqlite3.connect(str(db_path))
+    conn.execute("PRAGMA journal_mode = WAL")
+    conn.execute("PRAGMA foreign_keys = ON")
     conn.executescript(SCHEMA_SQL)
     conn.commit()
     return conn

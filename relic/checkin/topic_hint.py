@@ -5,27 +5,22 @@ into a formatted block for the check-in prompt, with anti-repeat guard.
 
 Contract:
 - Strips clinical scale references (ECR-R, DERS, SDT, ...)
-- Jaccard anti-repeat: if hint ≥ 0.85 similar to any recent message → return ""
+- Forbidden-term filter uses FORBIDDEN_CLINICAL_TERMS from RuntimePackSanitizer
+- Jaccard anti-repeat at threshold 0.60: if hint ≥ 0.60 similar to any recent → return ""
 - Output: "--- spunto di conversazione ... ---\n{hint}" or ""
-- ≤200 chars total
+- ≤200 chars total, truncated at word boundary
 """
 from __future__ import annotations
 
 import re
 from typing import Sequence
 
-# Same pattern as question_engine._SCALE_REF_RE
-_SCALE_REF_RE = re.compile(r"\s*\([A-Z][A-Za-z0-9][A-Za-z0-9\-]*\)")
-
-# Forbidden clinical terms that must never appear in output
-_FORBIDDEN_TERMS = {
-    "disorder", "syndrome", "diagnosis", "diagnosi", "clinical",
-    "clinico", "psychological", "psicologico",
-}
+from relic.checkin.question_engine import SCALE_REF_RE
+from relic.patterns.runtime_pack_sanitizer import FORBIDDEN_CLINICAL_TERMS
 
 HEADER = "--- spunto di conversazione (solo per orientarti, non riprenderlo letteralmente) ---"
 
-_JACCARD_THRESHOLD = 0.85
+_JACCARD_THRESHOLD = 0.60
 
 
 def _tokenize(text: str) -> set[str]:
@@ -39,13 +34,9 @@ def _jaccard(a: set[str], b: set[str]) -> float:
     return len(a & b) / len(union)
 
 
-def _strip_scales(text: str) -> str:
-    return _SCALE_REF_RE.sub("", text).strip()
-
-
 def _has_forbidden(text: str) -> bool:
     low = text.lower()
-    return any(term in low for term in _FORBIDDEN_TERMS)
+    return any(term in low for term in FORBIDDEN_CLINICAL_TERMS)
 
 
 def render_topic_hint(question_hint: str, recent_messages: Sequence[str]) -> str:
@@ -53,17 +44,18 @@ def render_topic_hint(question_hint: str, recent_messages: Sequence[str]) -> str
 
     Args:
         question_hint: sanitized hint from question_engine.build_question_hint
-        recent_messages: list of recent message texts (plain text, no timestamps)
+        recent_messages: list of recent question texts (plain text, no timestamps)
     """
-    hint = _strip_scales(question_hint.strip())
+    hint = SCALE_REF_RE.sub("", question_hint.strip()).strip()
     if not hint:
         return ""
 
-    # Drop if forbidden term leaked through (defensive)
     if _has_forbidden(hint):
+        import sys as _sys
+        print(f"[topic_hint] blocked forbidden term in hint: {hint[:60]!r}", file=_sys.stderr)
         return ""
 
-    # Anti-repeat: Jaccard similarity against recent messages
+    # Anti-repeat: Jaccard similarity against recent question texts
     hint_tokens = _tokenize(hint)
     for msg in recent_messages:
         msg_tokens = _tokenize(msg)
@@ -72,10 +64,13 @@ def render_topic_hint(question_hint: str, recent_messages: Sequence[str]) -> str
 
     result = f"{HEADER}\n{hint}"
 
-    # Hard cap at 200 chars
+    # Hard cap at 200 chars, truncated at word boundary
     if len(result) > 200:
-        # Truncate hint, preserve header
         max_hint = 200 - len(HEADER) - 1  # 1 for newline
-        result = f"{HEADER}\n{hint[:max(0, max_hint)]}"
+        truncated = hint[:max(0, max_hint)]
+        last_space = truncated.rfind(" ")
+        if last_space > 0:
+            truncated = truncated[:last_space]
+        result = f"{HEADER}\n{truncated}"
 
     return result

@@ -64,6 +64,7 @@ testpaths = [
     "tests/cac",
     "tests/control",
     "tests/privacy",
+    "tests/checkin",
 ]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]

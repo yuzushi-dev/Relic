@@ -982,6 +982,103 @@ def delivery_main(argv: list[str] | None = None) -> int:
     return 1
 
 
+def checkin_main(argv: list[str]) -> int:
+    """relic checkin <subcommand> — checkin loop management."""
+    parser = argparse.ArgumentParser(prog="relic checkin")
+    subparsers = parser.add_subparsers(dest="checkin_action", required=True)
+
+    upd_parser = subparsers.add_parser(
+        "update-facets",
+        help="Process pending checkin replies and update subject_baseline.json",
+    )
+    upd_parser.add_argument("--subject-id", required=True, help="Subject identifier")
+    upd_parser.add_argument("--dry-run", action="store_true", help="Show what would change, no writes")
+    upd_parser.add_argument("--relic-home", default=None, help="Override RELIC_HOME")
+
+    status_parser = subparsers.add_parser(
+        "status",
+        help="Show pending/processed exchange counts for a subject",
+    )
+    status_parser.add_argument("--subject-id", required=True)
+    status_parser.add_argument("--relic-home", default=None)
+
+    args = parser.parse_args(argv)
+
+    relic_home = args.relic_home or os.environ.get("RELIC_HOME") or str(Path.home() / ".relic")
+
+    if args.checkin_action == "update-facets":
+        from relic.checkin.facet_updater import process_pending_exchanges
+        from relic.checkin.db_init import init_db as _init_db_schema
+
+        subject_id = args.subject_id
+        db_path = Path(relic_home) / "subjects" / subject_id / "relic.db"
+        baseline_path = Path(relic_home) / "subjects" / subject_id / "subject_baseline.json"
+
+        if not db_path.exists():
+            print(f"Error: relic.db not found at {db_path}", file=sys.stderr)
+            return 1
+
+        conn = _init_db_schema(db_path)  # idempotent — applies any missing tables
+        try:
+            results = process_pending_exchanges(
+                conn, baseline_path, subject_id, dry_run=args.dry_run
+            )
+        finally:
+            conn.close()
+
+        informative = sum(1 for r in results if r.get("informative"))
+        if informative == 0 and len(results) > 0:
+            print(
+                f"Warning: 0 informative observations from {len(results)} replies"
+                " — replies may be ambiguous or facet_updater may need tuning",
+                file=sys.stderr,
+            )
+        print(json.dumps({
+            "status": "ok",
+            "dry_run": args.dry_run,
+            "processed": len(results),
+            "informative": informative,
+            "results": results,
+        }, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.checkin_action == "status":
+        import sqlite3
+
+        subject_id = args.subject_id
+        db_path = Path(relic_home) / "subjects" / subject_id / "relic.db"
+        if not db_path.exists():
+            print(f"Error: relic.db not found at {db_path}", file=sys.stderr)
+            return 1
+
+        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=5.0)
+        try:
+            pending = conn.execute(
+                "SELECT COUNT(*) FROM checkin_exchanges WHERE reply_text IS NOT NULL AND observations_extracted = 0"
+            ).fetchone()[0]
+            total = conn.execute("SELECT COUNT(*) FROM checkin_exchanges").fetchone()[0]
+            processed = conn.execute(
+                "SELECT COUNT(*) FROM checkin_exchanges WHERE observations_extracted = 1"
+            ).fetchone()[0]
+            unanswered = conn.execute(
+                "SELECT COUNT(*) FROM checkin_exchanges WHERE reply_text IS NULL"
+            ).fetchone()[0]
+        finally:
+            conn.close()
+
+        print(json.dumps({
+            "subject_id": subject_id,
+            "exchanges_total": total,
+            "unanswered": unanswered,
+            "pending_extraction": pending,
+            "extracted": processed,
+        }, indent=2))
+        return 0
+
+    parser.print_help()
+    return 1
+
+
 def main(argv: list[str] | None = None) -> int:
     """Main entry point for `python -m relic` and `relic` command."""
     if argv is None:
@@ -1001,6 +1098,8 @@ def main(argv: list[str] | None = None) -> int:
         return delivery_main(argv[1:])
     if argv and argv[0] == "runtime":
         return runtime_main(argv[1:])
+    if argv and argv[0] == "checkin":
+        return checkin_main(argv[1:])
     print("relic 0.1.0")
     print("Run `relic init` to get started, then `relic ui` to open the Researcher UI.")
     return 0

@@ -784,37 +784,116 @@ try:
                     print("\\n--- messaggi recenti inviati (non ripetere immagini o temi già usati) ---")
                     for _ts_str, _msg in _recent_checkins[-5:]:
                         print(f"• [{{_ts_str}}] {{_msg[:120]}}")
-            # Topic hint — question_engine via relic.db (fail-closed)
-            try:
-                import sqlite3 as _sqlite3
-                from relic.checkin.topic_hint import render_topic_hint as _rth
-                from relic.checkin.question_engine import select_facet as _sf
-                _relic_home_t = os.environ.get("RELIC_HOME", str(Path.home() / ".relic"))
-                _db_path_t = Path(_relic_home_t) / "subjects" / subject_id / "relic.db"
-                _bl_path_t = Path(_relic_home_t) / "subjects" / subject_id / "subject_baseline.json"
-                if _db_path_t.exists():
-                    _conn_t = _sqlite3.connect(str(_db_path_t))
-                    _sel = _sf(_conn_t, _bl_path_t if _bl_path_t.exists() else None)
-                    _conn_t.close()
-                    if _sel.get("status") == "ask_now":
-                        _recent_texts_t = [_m for _, _m in _recent_checkins[-5:]]
-                        _topic_block = _rth(_sel["question_hint"], _recent_texts_t)
+            # Inject topic + style hints (fail-closed, consent-gated)
+            _relic_home_fh = os.environ.get("RELIC_HOME", str(Path.home() / ".relic"))
+            _db_path_fh = Path(_relic_home_fh) / "subjects" / subject_id / "relic.db"
+            _bl_path_fh = Path(_relic_home_fh) / "subjects" / subject_id / "subject_baseline.json"
+            _consent_fh = False
+            _dp_path_fh = Path(_relic_home_fh) / "subjects" / subject_id / "delivery_policy.json"
+            if _dp_path_fh.exists():
+                try:
+                    _dp_fh = _json.loads(_dp_path_fh.read_text(encoding="utf-8"))
+                    _consent_fh = bool(_dp_fh.get("consent_for_active_elicitation", False))
+                except Exception as _e_c:
+                    print(f"[checkin] delivery_policy load error: {{_e_c}}", file=sys.stderr)
+            if _consent_fh:
+                # Recent observations — what Gumi has learned from past exchanges
+                try:
+                    import sqlite3 as _sqlite3_obs
+                    from datetime import datetime as _dt_obs, timezone as _tz_obs, timedelta as _td_obs
+                    if _db_path_fh.exists():
+                        _obs_cutoff = (_dt_obs.now(_tz_obs.utc) - _td_obs(days=30)).isoformat()
+                        _obs_conn = _sqlite3_obs.connect(
+                            f"file:{{str(_db_path_fh)}}?mode=ro", uri=True, timeout=5.0
+                        )
+                        try:
+                            _obs_rows = _obs_conn.execute(
+                                """SELECT o.content
+                                   FROM observations o
+                                   WHERE o.source_type = 'checkin_reply'
+                                     AND o.created_at >= ?
+                                   ORDER BY o.created_at DESC
+                                   LIMIT 3""",
+                                (_obs_cutoff,),
+                            ).fetchall()
+                        finally:
+                            _obs_conn.close()
+                        if _obs_rows:
+                            print("\\n--- cosa ho imparato di recente ---")
+                            for (_obs_c,) in _obs_rows:
+                                if _obs_c:
+                                    print(f"• {{_obs_c[:120]}}")
+                except Exception as _e_obs:
+                    print(f"[checkin] observations: {{_e_obs}}", file=sys.stderr)
+                try:
+                    import sqlite3 as _sqlite3
+                    import hashlib as _hl
+                    from datetime import datetime as _dt, timezone as _tz
+                    from relic.checkin.topic_hint import render_topic_hint as _rth
+                    from relic.checkin.question_engine import select_facet as _sf
+                    from relic.checkin.anti_repeat import AntiRepeatGate as _ARG
+                    if _db_path_fh.exists():
+                        _day_seed = int(_hl.sha256(
+                            f"{{subject_id}}|checkin|{{_dt.now(_tz.utc).date()}}".encode()
+                        ).hexdigest(), 16) % (2 ** 32)
+                        _conn_t = None
+                        _topic_block = ""
+                        _topic_facet_id = None
+                        _topic_hint_text = None
+                        try:
+                            _conn_t = _sqlite3.connect(
+                                f"file:{{str(_db_path_fh)}}?mode=ro", uri=True, timeout=5.0
+                            )
+                            _sel = _sf(
+                                _conn_t,
+                                _bl_path_fh if _bl_path_fh.exists() else None,
+                                seed=_day_seed,
+                            )
+                            if _sel.get("status") == "ask_now":
+                                _ar = _ARG(_conn_t, jaccard_threshold=0.60).check(_sel["question_hint"])
+                                if not _ar["duplicate"]:
+                                    try:
+                                        _recent_q = [r[0] for r in _conn_t.execute(
+                                            "SELECT question_text FROM checkin_exchanges "
+                                            "ORDER BY asked_at DESC LIMIT 10"
+                                        ).fetchall() if r[0]]
+                                    except Exception:
+                                        _recent_q = []
+                                    _topic_block = _rth(_sel["question_hint"], _recent_q)
+                                    if _topic_block:
+                                        _topic_facet_id = _sel["selected_facet"]
+                                        _topic_hint_text = _sel["question_hint"]
+                        finally:
+                            if _conn_t is not None:
+                                _conn_t.close()
+                        # RO conn closed above — safe to open RW without lock contention
                         if _topic_block:
                             print(f"\\n{{_topic_block}}")
-            except Exception:
-                pass
-            # Style hints — interaction facets from subject_baseline.json (fail-closed)
-            try:
-                from relic.checkin.style_hints import render_style_hints as _rsh
-                _relic_home_s = os.environ.get("RELIC_HOME", str(Path.home() / ".relic"))
-                _bl_path_s = Path(_relic_home_s) / "subjects" / subject_id / "subject_baseline.json"
-                if _bl_path_s.exists():
-                    _bl_s = _json.loads(_bl_path_s.read_text(encoding="utf-8"))
-                    _style_block = _rsh(_bl_s.get("interaction", {{}}))
-                    if _style_block:
-                        print(f"\\n{{_style_block}}")
-            except Exception:
-                pass
+                            _conn_rw = _sqlite3.connect(str(_db_path_fh), timeout=5.0)
+                            try:
+                                _conn_rw.execute(
+                                    "INSERT INTO checkin_exchanges "
+                                    "(facet_id, question_text, asked_at) VALUES (?, ?, ?)",
+                                    (_topic_facet_id, _topic_hint_text,
+                                     _dt.now(_tz.utc).isoformat()),
+                                )
+                                _conn_rw.commit()
+                            except Exception as _e_ins:
+                                if "no such table" not in str(_e_ins):
+                                    print(f"[checkin] persist: {{_e_ins}}", file=sys.stderr)
+                            finally:
+                                _conn_rw.close()
+                except Exception as _e_t:
+                    print(f"[checkin] topic hint: {{_e_t}}", file=sys.stderr)
+                try:
+                    from relic.checkin.style_hints import render_style_hints as _rsh
+                    if _bl_path_fh.exists():
+                        _bl_s = _json.loads(_bl_path_fh.read_text(encoding="utf-8"))
+                        _style_block = _rsh(_bl_s.get("interaction") or {{}})
+                        if _style_block:
+                            print(f"\\n{{_style_block}}")
+                except Exception as _e_s:
+                    print(f"[checkin] style hints: {{_e_s}}", file=sys.stderr)
             # Avatar spec — always inject so Gumi knows her own appearance
             _avatar_path = _hp / "AVATAR_SPEC.md"
             if _avatar_path.exists():

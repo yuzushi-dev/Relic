@@ -32,8 +32,11 @@ except Exception:
 _REDACTED = "[redacted]"
 
 
+_SHA256_CAP = 65536  # 64 KiB — trace identity only, no need to hash full blobs
+
+
 def _sha256(text: str) -> str:
-    return hashlib.sha256(text.encode()).hexdigest()
+    return hashlib.sha256(text[:_SHA256_CAP].encode()).hexdigest()
 
 
 class RelicMemoryProvider:
@@ -51,6 +54,7 @@ class RelicMemoryProvider:
         gumi_instance_id: str | None = None,
         hermes_profile_id: str | None = None,
         max_prefetch: int = 5,
+        relic_home: str | None = None,
     ) -> None:
         # Hard guard: a provider without a subject_id would silently serve the
         # wrong subject's markers to any Hermes profile that registers it.
@@ -63,6 +67,8 @@ class RelicMemoryProvider:
         self._gumi_instance_id = gumi_instance_id or ""
         self._hermes_profile_id = hermes_profile_id or ""
         self._max_prefetch = max_prefetch
+        import os as _os
+        self._relic_home = relic_home or _os.environ.get("RELIC_HOME") or None
         self._store = None  # lazy
 
     # ------------------------------------------------------------------
@@ -158,8 +164,15 @@ class RelicMemoryProvider:
         Called by Hermes after each turn. Raw text is hashed; only the
         hash is logged.  No raw content ever reaches the Relic store.
 
+        Exception: if consent_for_active_elicitation is True in the subject's
+        delivery_policy.json, the user message is checked against pending
+        checkin exchanges within the capture time window and, if one is found,
+        written to relic.db as reply_text.  This is a specific carve-out: text
+        goes only to the subject's own longitudinal store, not to Hermes memory.
+
         Args:
-            user_msg: Raw user message text (hashed immediately, not stored).
+            user_msg: Raw user message text (hashed immediately, not stored
+                      in Hermes memory; may be captured in relic.db per above).
             assistant_msg: Raw assistant response (hashed immediately, not stored).
         """
         try:
@@ -172,7 +185,11 @@ class RelicMemoryProvider:
                 assistant_hash[:12],
                 datetime.now(timezone.utc).isoformat(),
             )
-            # Raw text is deliberately NOT forwarded to any store.
-            # Future: persist PrivacyTrace(content_hash=user_hash) if needed.
+            # Capture checkin reply — consent-gated carve-out to relic.db only.
+            try:
+                from relic.checkin.reply_capture import capture_reply_if_pending
+                capture_reply_if_pending(user_msg, self._subject_id, relic_home=self._relic_home)
+            except Exception:
+                pass  # fail-open: never block sync_turn on capture error
         except Exception:
             logger.exception("RelicMemoryProvider.sync_turn failed — ignoring")

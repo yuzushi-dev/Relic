@@ -4,7 +4,7 @@ Specifies the contract for render_topic_hint(question_hint, recent_messages) -> 
 - Returns a formatted topic block, or "" if the hint is similar to recent messages
 - Strips clinical scale references (ECR-R, DERS, SDT, ...)
 - Never exposes facet_id or facet name
-- Jaccard anti-repeat: if hint ≥ 0.85 similar to any recent message → ""
+- Jaccard anti-repeat: if hint ≥ 0.60 similar to any recent question text → ""
 - Output passes RuntimePackSanitizer
 - Token budget: ≤ 200 chars
 """
