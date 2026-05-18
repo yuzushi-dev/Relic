@@ -227,6 +227,64 @@ def build_style_hints_section(bl_path: Path) -> str:
         return ""
 
 
+def build_recent_subject_messages_section(
+    hermes_home: Path, hours: int = 24, limit: int = 5
+) -> str:
+    """Read role='user' messages from Hermes state.db; return formatted block or ''.
+
+    Filters out cron task prompts (content starting with '[IMPORTANT:'),
+    which are system-injected, not subject-authored.
+    """
+    try:
+        db_path = hermes_home / "state.db"
+        if not db_path.exists():
+            return ""
+        import sqlite3
+        cutoff_ts = (datetime.now(timezone.utc) - timedelta(hours=hours)).timestamp()
+        conn = sqlite3.connect(
+            f"file:{db_path}?mode=ro", uri=True, timeout=5.0
+        )
+        try:
+            rows = conn.execute(
+                """SELECT timestamp, content
+                   FROM messages
+                   WHERE role='user'
+                     AND timestamp >= ?
+                     AND content IS NOT NULL
+                     AND content NOT LIKE '[IMPORTANT:%'
+                   ORDER BY timestamp DESC
+                   LIMIT ?""",
+                (cutoff_ts, limit),
+            ).fetchall()
+        finally:
+            conn.close()
+
+        if not rows:
+            return ""
+
+        out = [
+            "",
+            "--- cosa ti ha detto di recente (ascoltalo, non parlare solo di te) ---",
+        ]
+        for ts, content in reversed(rows):
+            try:
+                dt_local = datetime.fromtimestamp(ts, tz=timezone.utc).astimezone()
+                ts_str = dt_local.strftime("%Y-%m-%d %H:%M")
+            except Exception:
+                ts_str = "?"
+            text = content.strip()
+            if text.startswith("[Replying to:"):
+                # Keep the reply context but trim its quote bracket
+                end_idx = text.find("]")
+                if end_idx > 0 and end_idx < 250:
+                    text = text[end_idx + 1 :].strip()
+            out.append(f"• [{ts_str}] {text[:280]}")
+        return "\n".join(out)
+    except Exception as e:
+        print(f"[checkin] subject messages: {e}", file=sys.stderr)
+        return ""
+
+
 def build_avatar_section(hermes_home: Path) -> str:
     """Read AVATAR_SPEC.md and return formatted block or ''."""
     try:
@@ -275,6 +333,7 @@ def build_deliver_context(
     parts: list[str] = []
 
     parts.append(build_recent_checkins_section(hermes_home))
+    parts.append(build_recent_subject_messages_section(hermes_home))
 
     if consent:
         parts.append(build_observations_section(db_path))

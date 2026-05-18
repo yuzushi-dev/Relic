@@ -23,6 +23,7 @@ from relic.checkin.context_builder import (
     build_deliver_context,
     build_observations_section,
     build_recent_checkins_section,
+    build_recent_subject_messages_section,
     build_style_hints_section,
     build_topic_hint_section,
 )
@@ -361,3 +362,105 @@ class TestBuildTopicHintSection:
             rows = check.execute("SELECT id FROM checkin_exchanges").fetchall()
             check.close()
             assert len(rows) >= 1
+
+
+# ---------------------------------------------------------------------------
+# build_recent_subject_messages_section
+# ---------------------------------------------------------------------------
+
+
+def _init_hermes_state_db(hermes_home: Path, rows: list[tuple[str, float, str]]) -> None:
+    """Seed state.db with messages rows (role, timestamp, content)."""
+    db_path = hermes_home / "state.db"
+    conn = sqlite3.connect(str(db_path))
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS sessions (
+            id TEXT PRIMARY KEY
+        )"""
+    )
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT NOT NULL,
+            role TEXT NOT NULL,
+            content TEXT,
+            tool_call_id TEXT,
+            tool_calls TEXT,
+            tool_name TEXT,
+            timestamp REAL NOT NULL,
+            token_count INTEGER,
+            finish_reason TEXT,
+            reasoning TEXT,
+            reasoning_content TEXT,
+            reasoning_details TEXT,
+            codex_reasoning_items TEXT,
+            codex_message_items TEXT
+        )"""
+    )
+    conn.execute("INSERT OR IGNORE INTO sessions(id) VALUES (?)", ("s1",))
+    for role, ts, content in rows:
+        conn.execute(
+            "INSERT INTO messages(session_id, role, content, timestamp) VALUES (?, ?, ?, ?)",
+            ("s1", role, content, ts),
+        )
+    conn.commit()
+    conn.close()
+
+
+class TestBuildRecentSubjectMessagesSection:
+    def test_no_state_db_returns_empty(self, hermes_home: Path):
+        assert build_recent_subject_messages_section(hermes_home) == ""
+
+    def test_only_user_messages_within_window(self, hermes_home: Path):
+        from datetime import datetime, timezone
+        now_ts = datetime.now(timezone.utc).timestamp()
+        rows = [
+            ("user", now_ts - 600, "Ciao, oggi sto bene"),
+            ("assistant", now_ts - 500, "Bene Daniele, qui c'è il sole"),
+            ("user", now_ts - 400, "Mi piace questa giornata"),
+            ("user", now_ts - 999999, "vecchio fuori finestra"),
+        ]
+        _init_hermes_state_db(hermes_home, rows)
+        block = build_recent_subject_messages_section(hermes_home, hours=24)
+        assert "Ciao, oggi sto bene" in block
+        assert "Mi piace questa giornata" in block
+        assert "vecchio fuori finestra" not in block
+        assert "qui c'è il sole" not in block
+
+    def test_filters_cron_prompt_injections(self, hermes_home: Path):
+        from datetime import datetime, timezone
+        now_ts = datetime.now(timezone.utc).timestamp()
+        rows = [
+            ("user", now_ts - 100, "[IMPORTANT: You are running as a scheduled cron job. ... DELIVER tipo: text]"),
+            ("user", now_ts - 50, "Vero messaggio del soggetto"),
+        ]
+        _init_hermes_state_db(hermes_home, rows)
+        block = build_recent_subject_messages_section(hermes_home, hours=24)
+        assert "Vero messaggio del soggetto" in block
+        assert "scheduled cron job" not in block
+
+    def test_strips_reply_to_quote_prefix(self, hermes_home: Path):
+        from datetime import datetime, timezone
+        now_ts = datetime.now(timezone.utc).timestamp()
+        rows = [
+            (
+                "user",
+                now_ts - 100,
+                '[Replying to: "Stamattina è bella"]\n\nGrazie, anche per me',
+            ),
+        ]
+        _init_hermes_state_db(hermes_home, rows)
+        block = build_recent_subject_messages_section(hermes_home, hours=24)
+        assert "Grazie, anche per me" in block
+        assert "Replying to" not in block
+
+    def test_no_messages_returns_empty(self, hermes_home: Path):
+        _init_hermes_state_db(hermes_home, [])
+        assert build_recent_subject_messages_section(hermes_home) == ""
+
+    def test_section_header_present(self, hermes_home: Path):
+        from datetime import datetime, timezone
+        now_ts = datetime.now(timezone.utc).timestamp()
+        _init_hermes_state_db(hermes_home, [("user", now_ts - 100, "ok")])
+        block = build_recent_subject_messages_section(hermes_home)
+        assert "--- cosa ti ha detto di recente" in block

@@ -38,6 +38,9 @@ except Exception:
 MEDIA_COOLDOWN_DAYS = {"image": 2.0, "voice": 1.0, "music": 7.0}
 _MEDIA_PROB_THRESHOLDS = {"music": 5, "voice": 30, "image": 50}  # cumulative %
 
+ASK_COOLDOWN_HOURS = 12
+ASK_DAILY_PROB_THRESHOLD = 35  # percent
+
 
 _PRO_MEDIA_KEY: dict[str, str] = {
     "image": "PRO_IMAGE",
@@ -62,6 +65,79 @@ def _pro_media_allowed(subject_id: str, mtype: str) -> bool:
         return int(policy.get(key, 2)) > 0
     except Exception:
         return True  # fail-open
+
+
+def _select_ask_decision(
+    subject_id: str, now: datetime, relic_home: Path | None = None
+) -> tuple[bool, str | None]:
+    """Decide whether this checkin should embed an open question and which topic.
+
+    Returns (ask, topic_hint). Fail-open to (False, None) on any error.
+
+    Gates (all must pass):
+      * select_facet returns status='ask_now'
+      * last checkin_exchanges.asked_at older than ASK_COOLDOWN_HOURS
+      * deterministic daily roll < ASK_DAILY_PROB_THRESHOLD
+    """
+    try:
+        if relic_home is None:
+            relic_home = Path(
+                os.environ.get("RELIC_HOME", "") or str(Path.home() / ".relic")
+            )
+        db_path = relic_home / "subjects" / subject_id / "relic.db"
+        bl_path = relic_home / "subjects" / subject_id / "subject_baseline.json"
+        if not db_path.exists():
+            return (False, None)
+
+        day_seed_src = f"{subject_id}|ask|{now.date()}"
+        roll = int(hashlib.sha256(day_seed_src.encode()).hexdigest(), 16) % 100
+        if roll >= ASK_DAILY_PROB_THRESHOLD:
+            return (False, None)
+
+        import sqlite3
+        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=5.0)
+        try:
+            try:
+                row = conn.execute(
+                    "SELECT MAX(asked_at) FROM checkin_exchanges"
+                ).fetchone()
+                last_asked_iso = row[0] if row else None
+            except sqlite3.OperationalError:
+                last_asked_iso = None
+        finally:
+            conn.close()
+
+        if last_asked_iso:
+            try:
+                last_dt = datetime.fromisoformat(last_asked_iso)
+                if last_dt.tzinfo is None:
+                    last_dt = last_dt.replace(tzinfo=timezone.utc)
+                if (now.astimezone(timezone.utc) - last_dt.astimezone(timezone.utc)).total_seconds() < ASK_COOLDOWN_HOURS * 3600:
+                    return (False, None)
+            except Exception:
+                pass
+
+        from relic.checkin.question_engine import select_facet
+        facet_seed = int(
+            hashlib.sha256(f"{subject_id}|facet|{now.date()}".encode()).hexdigest(),
+            16,
+        ) % (2**32)
+        conn2 = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=5.0)
+        try:
+            sel = select_facet(
+                conn2,
+                bl_path if bl_path.exists() else None,
+                seed=facet_seed,
+            )
+        finally:
+            conn2.close()
+
+        if sel.get("status") != "ask_now":
+            return (False, None)
+        return (True, sel.get("question_hint"))
+    except Exception as e:
+        logger.error("ask decision failed: %s", e)
+        return (False, None)
 
 
 def _select_media_type(subject_id: str, hermes_home: Path, now: datetime) -> str:
@@ -554,7 +630,11 @@ def _evaluate_decision(
     now_dt = _subject_now(subject_id)
     now_str = now_dt.strftime("%H:%M %Z")
     media_type = _select_media_type(subject_id, hermes_home, now_dt)
-    return RuntimeDecision.DELIVER, reasons, {"message": f"DELIVER\ntipo: {media_type}\nora: {now_str}"}
+    ask, ask_topic = _select_ask_decision(subject_id, now_dt)
+    msg = f"DELIVER\ntipo: {media_type}\nora: {now_str}"
+    if ask and ask_topic:
+        msg += f"\nask: true\nask_topic: {ask_topic}"
+    return RuntimeDecision.DELIVER, reasons, {"message": msg}
 
 
 def emit_decision_event(
@@ -652,7 +732,11 @@ def make_decision(
             media_type = forced_media
         else:
             media_type = _select_media_type(subject_id, hermes_home, now_dt)
-        return RuntimeDecision.DELIVER, reasons, {"message": f"DELIVER\ntipo: {media_type}\nora: {now_str} [FORCE]"}
+        ask, ask_topic = _select_ask_decision(subject_id, now_dt)
+        msg = f"DELIVER\ntipo: {media_type}\nora: {now_str} [FORCE]"
+        if ask and ask_topic:
+            msg += f"\nask: true\nask_topic: {ask_topic}"
+        return RuntimeDecision.DELIVER, reasons, {"message": msg}
     return _evaluate_decision(subject_id, gumi_instance_id, hermes_profile_id)
 
 
