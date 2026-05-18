@@ -1,0 +1,25 @@
+# Relic maintainer profile — operator-only runtime for maintenance cron jobs.
+# Full memory access, no subject chat, no provider/tool execution.
+name: relic-maintainer
+description: Operator maintainer profile for scheduled maintenance jobs. No chat, full memory access for compaction/cleanup.
+
+capabilities:
+  chat:
+    enabled: false
+  maintenance:
+    enabled: true
+    full_access: true
+  memory:
+    read: true
+    write: true
+    modify: true
+    delete: true
+
+tools:
+  denied:
+    - provider.call
+    - tool.execute
+
+audit:
+  enabled: true
+  level: verbose

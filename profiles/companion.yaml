@@ -1,0 +1,31 @@
+# Companion profile — subject-facing Gumi runtime.
+# Read/append memory only, no provider/tool execution, lab jobs denied.
+name: companion
+description: Subject-facing companion profile (Gumi). Chat enabled, lab jobs denied, memory append-only.
+
+capabilities:
+  chat:
+    enabled: true
+  memory:
+    read: true
+    write: true
+    modify: false
+    delete: false
+  lab_jobs:
+    allowed: false
+
+tools:
+  denied:
+    - provider.call
+    - tool.execute
+    - memory.update
+    - memory.delete
+
+privacy:
+  output_filter: true
+  pii_detection: true
+  auto_redact: true
+
+audit:
+  enabled: true
+  level: standard

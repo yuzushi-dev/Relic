@@ -1,0 +1,38 @@
+# Relic lab profile — evaluation/research runtime.
+# Lab jobs enabled, promotion gate enforced for runtime artifacts.
+name: relic-lab
+description: Research/evaluation profile. Runs evaluation, dataset-generation, replication jobs. Cannot publish runtime artifacts without security-review approval.
+
+capabilities:
+  lab_jobs:
+    enabled: true
+    job_types:
+      - evaluation
+      - dataset-generation
+      - replication
+  memory:
+    read: true
+    write: true
+    modify: true
+    delete: false
+
+tools:
+  denied:
+    - tool.execute
+    - memory.delete
+
+promotion_gate:
+  enabled: true
+  blocked_actions:
+    - direct_publish
+    - runtime_deployment
+  required_approvals:
+    - security-review
+  artifact_types:
+    runtime_artifact:
+      requires_promotion: true
+      promotion_approval_required: true
+
+audit:
+  enabled: true
+  level: standard
