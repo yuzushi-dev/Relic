@@ -2,9 +2,7 @@ import { chronicleSnapshots, getStudyOverview } from "@/lib/workbench-data";
 import { SnapshotsList } from "@/components/chronicle/SnapshotsList";
 import { SubjectNav } from "@/components/SubjectNav";
 
-export const dynamic = "force-dynamic";
-
-export async function generateStaticParams() {
+export function generateStaticParams() {
   return getStudyOverview().subject_registry.map((s) => ({
     subject_id: s.subject_id.replace(/-/g, "_"),
   }));

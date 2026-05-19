@@ -5,9 +5,7 @@ import { DecisionsList } from "@/components/chronicle/DecisionsList";
 import { SubjectNav } from "@/components/SubjectNav";
 import Link from "next/link";
 
-export const dynamic = "force-dynamic";
-
-export async function generateStaticParams() {
+export function generateStaticParams() {
   return getStudyOverview().subject_registry.map((s) => ({
     subject_id: s.subject_id.replace(/-/g, "_"),
   }));
