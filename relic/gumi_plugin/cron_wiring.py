@@ -847,8 +847,9 @@ fi
 # interpreter that generated the script so test/venv dependencies are preserved.
 FORCE_DELIVER="${{4:-}}"
 DECISION_TYPE="${{RELIC_DECISION_TYPE:-{default_decision_type}}}"
+RELIC_HERMES_WAKE_AGENT_JSON="${{RELIC_HERMES_WAKE_AGENT_JSON:-0}}"
 RELIC_PYTHON="${{RELIC_PYTHON:-{sys.executable}}}"
-"$RELIC_PYTHON" - "$SUBJECT_ID" "$GUMI_INSTANCE_ID" "$HERMES_PROFILE_ID" "$FORCE_DELIVER" "$DECISION_TYPE" <<'PYTHON_EOF'
+"$RELIC_PYTHON" - "$SUBJECT_ID" "$GUMI_INSTANCE_ID" "$HERMES_PROFILE_ID" "$FORCE_DELIVER" "$DECISION_TYPE" "$RELIC_HERMES_WAKE_AGENT_JSON" <<'PYTHON_EOF'
 import json
 import os
 import sys
@@ -869,6 +870,10 @@ force = (
     or os.environ.get("RELIC_FORCE_CHECKIN", "").lower() in ("1", "true", "yes")
 )
 decision_type = (sys.argv[5].strip() if len(sys.argv) > 5 and sys.argv[5].strip() else "checkin")
+wake_agent_json_mode = (sys.argv[6].strip() in ("1", "true", "True", "yes") if len(sys.argv) > 6 else False)
+# Hermes wakeAgent gate contract (Plan §Task 2):
+#   - DELIVER  -> {{"wakeAgent": true,  "context": {{...}}}}
+#   - !DELIVER -> {{"wakeAgent": false, "reason": "<RuntimeDecision>"}}
 
 if not subject_id:
     print("ERROR: subject_id required", file=sys.stderr)
@@ -883,7 +888,49 @@ try:
         decision_type=decision_type,
     )
 
-    # Emit decision event for audit
+    wake_emitted = False
+    if wake_agent_json_mode:
+        if decision == RuntimeDecision.DELIVER:
+            _hermes_home = os.environ.get("HERMES_HOME", "")
+            deliver_ctx = ""
+            if _hermes_home:
+                from relic.checkin.context_builder import build_deliver_context
+                _relic_home_env = os.environ.get("RELIC_HOME", "") or str(Path.home() / ".relic")
+                deliver_ctx = build_deliver_context(
+                    subject_id,
+                    Path(_hermes_home),
+                    Path(_relic_home_env),
+                ) or ""
+            payload = {{
+                "wakeAgent": True,
+                "context": {{
+                    "gate_output": (candidate_data or {{}}).get("message", ""),
+                    "deliver_context": deliver_ctx,
+                    "decision_type": decision_type,
+                }},
+            }}
+            wake_emitted = True
+        else:
+            payload = {{
+                "wakeAgent": False,
+                "reason": decision.value if hasattr(decision, "value") else str(decision),
+                "decision_type": decision_type,
+            }}
+            wake_emitted = False
+        sys.stdout.write(json.dumps(payload) + "\\n")
+        sys.stdout.flush()
+        emit_decision_event(
+            decision=decision,
+            reason_codes=reasons,
+            subject_id=subject_id,
+            gumi_instance_id=gumi_instance_id,
+            hermes_profile_id=hermes_profile_id,
+            decision_type=decision_type,
+            wake_agent_emitted=wake_emitted,
+        )
+        sys.exit(0)
+
+    # Legacy mode — preserve original text-stdout contract.
     emit_decision_event(
         decision=decision,
         reason_codes=reasons,
