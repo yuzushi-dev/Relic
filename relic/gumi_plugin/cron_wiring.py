@@ -736,6 +736,24 @@ def emit_decision_event(
             pass
 
 
+def _run_outcome_reconciler(subject_id: str) -> None:
+    """Best-effort: materialise overdue deliveries into unanswered_24h transitions
+    before the policy reads cadence state. Never raises."""
+    try:
+        from relic.checkin.outcome_reconciler import reconcile_due_outcomes
+        from relic.paths import get_relic_home
+
+        hermes_home_str = os.environ.get("HERMES_HOME", "")
+        hermes_home = Path(hermes_home_str) if hermes_home_str else Path.home() / ".hermes"
+        reconcile_due_outcomes(
+            subject_id,
+            relic_home=get_relic_home(),
+            hermes_home=hermes_home,
+        )
+    except Exception:
+        pass
+
+
 def make_decision(
     subject_id: str,
     gumi_instance_id: str,
@@ -766,6 +784,7 @@ def make_decision(
             )
         except Exception:
             pass
+    _run_outcome_reconciler(subject_id)
     if force:
         reasons = [RuntimeDecisionReason.no_due_work]
         hermes_home_str = os.environ.get("HERMES_HOME", "")
