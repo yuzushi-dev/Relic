@@ -127,6 +127,59 @@ class TestBuildDeliverContextGates:
         )
         assert "Capelli neri" in result
 
+    def test_silent_posture_returns_empty_context(
+        self, hermes_home: Path, relic_dir: Path
+    ):
+        _write_consent(relic_dir, active=True)
+        result = build_deliver_context(
+            "test_subj",
+            hermes_home=hermes_home,
+            relic_home=relic_dir,
+            event_type="silent",
+            posture="quiet",
+        )
+        assert result == ""
+
+    def test_checkin_observe_omits_topic_hint(
+        self, hermes_home: Path, relic_dir: Path
+    ):
+        from relic.checkin.topic_hint import HEADER as TOPIC_HINT_HEADER
+
+        _write_consent(relic_dir, active=True)
+        conn = _init_db(relic_dir)
+        conn.close()
+        result = build_deliver_context(
+            "test_subj",
+            hermes_home=hermes_home,
+            relic_home=relic_dir,
+            event_type="checkin",
+            posture="observe",
+        )
+        assert TOPIC_HINT_HEADER not in result
+
+    def test_followup_terse_only_includes_last_exchange(
+        self, hermes_home: Path, relic_dir: Path
+    ):
+        _write_consent(relic_dir, active=True)
+        conn = _init_db(relic_dir)
+        conn.execute(
+            "INSERT INTO checkin_exchanges (facet_id, question_text, reply_text, asked_at, reply_captured_at) "
+            "VALUES (?, ?, ?, datetime('now'), datetime('now'))",
+            ("cognitive.decision_speed", "come stai?", "tutto ok"),
+        )
+        conn.commit()
+        conn.close()
+
+        result = build_deliver_context(
+            "test_subj",
+            hermes_home=hermes_home,
+            relic_home=relic_dir,
+            event_type="followup",
+            posture="follow_up_terse",
+        )
+        assert "ultimo scambio" in result
+        assert "tutto ok" in result
+
 
 # ---------------------------------------------------------------------------
 # build_recent_checkins_section

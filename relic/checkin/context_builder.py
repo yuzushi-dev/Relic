@@ -299,22 +299,132 @@ def build_avatar_section(hermes_home: Path) -> str:
         return ""
 
 
+_POSTURE_SECTIONS: dict[tuple[str, str], dict[str, bool]] = {
+    # Spike §10.2 — posture-to-section selection. Keys default to True so legacy
+    # callers (no event_type/posture passed) keep the full bundle.
+    ("checkin", "observe"): {
+        "recent_checkins": True,
+        "recent_subject_messages": True,
+        "observations": False,
+        "topic_hint": False,
+        "style_hints": True,
+        "avatar": True,
+    },
+    ("checkin", "brief_share"): {
+        "recent_checkins": False,
+        "recent_subject_messages": True,
+        "observations": False,
+        "topic_hint": False,
+        "style_hints": True,
+        "avatar": True,
+    },
+    ("checkin", "ask"): {
+        "recent_checkins": True,
+        "recent_subject_messages": True,
+        "observations": False,
+        "topic_hint": True,
+        "style_hints": True,
+        "avatar": True,
+    },
+    ("checkin", "small_share"): {
+        "recent_checkins": False,
+        "recent_subject_messages": False,
+        "observations": False,
+        "topic_hint": False,
+        "style_hints": False,
+        "avatar": True,
+    },
+    ("followup", "follow_up_warm"): {
+        "recent_checkins": True,
+        "recent_subject_messages": True,
+        "observations": False,
+        "topic_hint": False,
+        "style_hints": True,
+        "avatar": True,
+        "last_exchange": True,
+    },
+    ("followup", "follow_up_terse"): {
+        "recent_checkins": False,
+        "recent_subject_messages": False,
+        "observations": False,
+        "topic_hint": False,
+        "style_hints": False,
+        "avatar": False,
+        "last_exchange": True,
+    },
+    ("followup", "reflective_mirror"): {
+        "recent_checkins": True,
+        "recent_subject_messages": True,
+        "observations": False,
+        "topic_hint": False,
+        "style_hints": True,
+        "avatar": True,
+        "last_exchange": True,
+    },
+    ("proactive", "brief_share"): {
+        "recent_checkins": False,
+        "recent_subject_messages": True,
+        "observations": False,
+        "topic_hint": False,
+        "style_hints": True,
+        "avatar": True,
+    },
+    ("reflection", "reflective_mirror"): {
+        "recent_checkins": True,
+        "recent_subject_messages": True,
+        "observations": True,
+        "topic_hint": False,
+        "style_hints": True,
+        "avatar": True,
+    },
+}
+
+
+def _default_section_flags() -> dict[str, bool]:
+    return {
+        "recent_checkins": True,
+        "recent_subject_messages": True,
+        "observations": True,
+        "topic_hint": True,
+        "style_hints": True,
+        "avatar": True,
+        "last_exchange": False,
+    }
+
+
+def _resolve_section_flags(event_type: str | None, posture: str | None) -> dict[str, bool]:
+    if event_type is None and posture is None:
+        return _default_section_flags()
+    key = (str(event_type), str(posture))
+    profile = _POSTURE_SECTIONS.get(key)
+    if profile is None:
+        return _default_section_flags()
+    flags = _default_section_flags()
+    flags.update(profile)
+    return flags
+
+
 def build_deliver_context(
     subject_id: str,
     hermes_home: Path | None,
     relic_home: Path | None = None,
+    *,
+    event_type: str | None = None,
+    posture: str | None = None,
+    policy_packet: dict | None = None,
 ) -> str:
     """Build context string for check-in DELIVER output.
 
-    Sections emitted:
-    1. Recent checkin messages from MEMORY.md (not consent-gated)
-    2. Recent observations from relic.db (consent-gated)
-    3. Topic hint + exchange INSERT (consent-gated)
-    4. Style hints from subject_baseline.json (consent-gated)
-    5. Avatar spec from AVATAR_SPEC.md (not consent-gated)
+    Sections are selected from spike §10.2 when ``event_type`` and ``posture``
+    are passed; legacy callers (no posture) keep the full bundle. ``silent``
+    short-circuits to an empty string so the composer is never invoked.
 
-    All sections fail-open.
+    Consent gating applies to observations / topic_hint / style_hints in all
+    profiles.
     """
+    if event_type == "silent" or posture == "quiet":
+        return ""
+
     if not hermes_home:
         return ""
 
@@ -329,17 +439,76 @@ def build_deliver_context(
     bl_path = relic_home / "subjects" / subject_id / "subject_baseline.json"
 
     consent = _load_consent(subject_id, relic_home)
+    flags = _resolve_section_flags(event_type, posture)
 
     parts: list[str] = []
 
-    parts.append(build_recent_checkins_section(hermes_home))
-    parts.append(build_recent_subject_messages_section(hermes_home))
+    if flags.get("recent_checkins"):
+        parts.append(build_recent_checkins_section(hermes_home))
+    if flags.get("recent_subject_messages"):
+        parts.append(build_recent_subject_messages_section(hermes_home))
 
     if consent:
-        parts.append(build_observations_section(db_path))
-        parts.append(build_topic_hint_section(subject_id, db_path, bl_path))
-        parts.append(build_style_hints_section(bl_path))
+        if flags.get("observations"):
+            parts.append(build_observations_section(db_path))
+        if flags.get("topic_hint"):
+            parts.append(build_topic_hint_section(subject_id, db_path, bl_path))
+        if flags.get("style_hints"):
+            parts.append(build_style_hints_section(bl_path))
 
-    parts.append(build_avatar_section(hermes_home))
+    if flags.get("last_exchange"):
+        parts.append(build_last_exchange_section(db_path))
+
+    if flags.get("avatar"):
+        parts.append(build_avatar_section(hermes_home))
 
     return "".join(part for part in parts if part)
+
+
+def build_last_exchange_section(db_path: Path) -> str:
+    """Return a bounded summary of the most recent answered checkin exchange.
+
+    Hard limits: no full transcript; ``reply_excerpt`` capped at 240 chars;
+    no observations/facets unless required by the posture's section profile.
+    """
+    if not db_path.exists():
+        return ""
+    try:
+        import sqlite3
+
+        conn = sqlite3.connect(str(db_path), timeout=5.0)
+        try:
+            row = conn.execute(
+                """SELECT id, facet_id, question_text, reply_text, asked_at,
+                          reply_captured_at, response_latency_seconds, posture
+                   FROM checkin_exchanges
+                   WHERE reply_text IS NOT NULL
+                   ORDER BY reply_captured_at DESC
+                   LIMIT 1""",
+            ).fetchone()
+        except Exception:
+            return ""
+        finally:
+            conn.close()
+    except Exception:
+        return ""
+
+    if not row:
+        return ""
+
+    question_text = (row[2] or "")[:240]
+    reply_excerpt = (row[3] or "")[:240]
+    lines = [
+        "\n--- ultimo scambio (riepilogo) ---",
+        f"• domanda: {question_text}",
+        f"• risposta: {reply_excerpt}",
+    ]
+    if row[4]:
+        lines.append(f"• chiesto: {row[4]}")
+    if row[5]:
+        lines.append(f"• risposto: {row[5]}")
+    if row[6] is not None:
+        lines.append(f"• latenza_sec: {row[6]}")
+    if row[7]:
+        lines.append(f"• postura: {row[7]}")
+    return "\n".join(lines)
