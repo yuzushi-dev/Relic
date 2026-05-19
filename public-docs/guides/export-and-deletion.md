@@ -1,93 +1,95 @@
-# Export and Deletion
+# Export, Pause, Forget, Delete
 
-Subjects can export their data, pause the system, forget specific memories, and delete their data entirely. These operations are first-class in the system, not afterthoughts.
+Subjects can export their data, pause the system, and erase their data. Each operation maps to a specific command or API. The labels are deliberately distinct: **pause** is reversible, **forget** is irreversible.
 
 ## Export
 
-Export produces a bundle of the subject's data in a portable format. By default, content is redacted — raw session text is replaced with a redaction marker, and safety signals are excluded.
+Export a subject profile bundle. Lives on `relic-profile`, not `relic`.
 
 ```bash
-relic subject export <subject_id> --format json --output ./export/
+relic-profile export <subject_id> --out ./export/<subject_id>.json [--redacted]
 ```
 
-Available formats: `json`, `jsonl`, `markdown`.
+| Flag | Description |
+|---|---|
+| `--out` | Required. Output file path. |
+| `--redacted` | Replace raw text with redaction markers. Safety signals always excluded. |
 
-The export manifest includes:
-- Subject identifier
-- Export timestamp
-- Redaction status (what was redacted and why)
-- Hermes profile hash (not the raw profile)
-- Event counts by ontological class
-- Confirmed continuity markers
-
-**What is excluded by default:**
-- Raw session text (redacted)
-- Safety signals (researcher-only, never in subject exports)
-- Unconfirmed continuity markers
-- Internal system traces
-
-To include raw session text (requires explicit opt-in):
+For event-level export (audit ledger as `tar.gz`):
 
 ```bash
-relic subject export <subject_id> --include-raw-text --format json --output ./export/
+chronicle export --subject <subject_id> --output ./export/<subject_id>.tar.gz
 ```
+
+See [`chronicle export`](../reference/chronicle-cli.md#chronicle-export) for the full event-level export.
 
 An audit event is written to `relic.db` on every export.
 
 ## Pause
 
-Pause disables proactive behavior without deleting anything:
+Pause suspends Gumi's proactive behavior and CAC personalization without deleting anything.
 
-```bash
-relic subject pause <subject_id>
+### From the Hermes session (recommended)
+
+Inside the Hermes session, call the researcher tool:
+
+```
+/relic pause
 ```
 
-When paused, Gumi will not send proactive messages or run cron-scheduled outreach. She can still respond to incoming messages in a reduced mode that does not inject personalization context. To resume:
+This sets the subject's pause state. Gumi keeps replying but does not run proactive cron tasks, and the CAC layer suppresses personalization until you resume.
 
-```bash
-relic subject unpause <subject_id>
+To resume, restart the session or use the workbench pause panel.
+
+### From Python (automation / scripts)
+
+```python
+from relic.control.pause import PauseController
+
+pc = PauseController()
+pc.pause(subject_id="subj_demo_01", reason="researcher_pause")
+# ... later
+pc.resume(subject_id="subj_demo_01")
 ```
 
-Use pause when a subject is in a sensitive period and you do not want the system acting on its current model.
+API surface: `relic/control/pause.py`. There is no top-level `relic subject pause` CLI; the operation is performed from inside the Hermes session or from Python.
 
 ## Forget
 
-Forget removes specific data from Gumi's recall without deleting it from `relic.db`:
+Forget is the GDPR Art. 17 hard delete. **Permanently** erases all data for the subject on this machine. There is no undo.
 
 ```bash
-relic subject forget <subject_id> --session-id <session_id>
+relic subject forget <subject_id>          # prompts for confirmation
+relic subject forget <subject_id> --yes    # skip prompt (automation only)
 ```
 
-This is useful in regulatory contexts where audit data must be retained but the subject wants the agent to stop referencing specific content. An audit event is created. Forget is subject-scoped; it cannot affect another subject's data.
-
-## Deletion
-
-!!! danger "Deletion is irreversible"
-    Deleted data cannot be recovered. Run a dry-run first to see what will be affected.
-
-```bash
-# Dry run: shows what would be deleted
-relic subject delete <subject_id> --scope all --dry-run
-
-# Actual deletion
-relic subject delete <subject_id> --scope all
-```
-
-Deletion scopes:
-
-| Scope | What is removed |
+| Flag | Description |
 |---|---|
-| `prompt` | A specific prompt and its derived artifacts |
-| `session` | All data from one session |
-| `all` | All data for the subject, including the profile |
+| `--yes` | Skip the interactive confirmation. |
 
-Deletion invalidates replication bundles and eval cases derived from the deleted data. They are not silently left intact as if the underlying data still existed.
+The command:
 
-An audit event is written on every deletion. Subject scope is preserved in the audit record even after the data is gone.
+- emits an anonymised audit record (hashed `subject_id`) **before** erasure,
+- removes the subject row from the registry,
+- deletes the profile directory under `$HERMES_HOME/`,
+- invalidates replication bundles and eval cases derived from the deleted data.
+
+If you want to keep anything, run `relic-profile export ...` and `chronicle export ...` first.
+
+## Session-scoped delete (chronicle ledger)
+
+To delete a subject's events from the chronicle ledger only, use:
+
+```bash
+chronicle delete --subject <subject_id> --dry-run        # preview
+chronicle delete --subject <subject_id> --cascade        # apply
+```
+
+See [`chronicle delete`](../reference/chronicle-cli.md#chronicle-delete). Always preview with `--dry-run` first.
 
 ## Consent revocation
 
-To revoke specific consent types without a full deletion:
+To revoke specific consent types without a full erase, use the Python API:
 
 ```python
 from relic.control.consent import ConsentManager, ConsentType
@@ -96,4 +98,21 @@ mgr = ConsentManager()
 mgr.revoke_consent(ConsentType.MEMORY_STORAGE)
 ```
 
-Consent revocation takes effect immediately. The system will not process new interaction data after revocation of `memory_storage` consent.
+Revocation takes effect immediately. New interaction data is not processed under the revoked consent type.
+
+## Operation matrix
+
+| Goal | Command | Reversible | Audit event |
+|---|---|---|---|
+| Snapshot subject profile | `relic-profile export ... --out PATH` | n/a | yes |
+| Snapshot audit ledger | `chronicle export --subject ID --output PATH` | n/a | yes |
+| Suspend Gumi proactivity | `/relic pause` in Hermes session | yes | yes |
+| Erase ledger only | `chronicle delete --subject ID --cascade` | no | yes |
+| Erase everything (GDPR) | `relic subject forget ID` | no | yes (anonymised) |
+
+## Before any irreversible operation
+
+1. Run `chronicle export` and `relic-profile export --redacted` to a safe path.
+2. Copy `relic.db` separately (see [Troubleshooting → Backup](troubleshooting.md#backup-relicdb)).
+3. Confirm with the subject that the action matches their request.
+4. Only then run `forget` or `chronicle delete --cascade`.

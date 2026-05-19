@@ -55,6 +55,55 @@ After submission, you will see the correction in the queue, and the system will 
 
 Your access is scoped to the studies you are assigned to. You cannot see subjects from other studies. Study assignment is managed in `relic/ui/permissions.py`.
 
+## Panel map (visual)
+
+The workbench is organised into 12 panels. Layout is approximately:
+
+```
++--------------------------------------------------------------+
+| RELIC WORKBENCH    Subject: subj_demo_01   Researcher: dveri |
++---------+----------------------------------------------------+
+|         |  +-- Subject Overview --------------------------+  |
+|  NAV    |  |  facets, confidence, correction state        |  |
+|         |  |  ------------------------------------------  |  |
+| Overview|  |  [Correct]  [Reprovision]  [Export]          |  |
+| Gumi    |  +----------------------------------------------+  |
+| Hermes  |                                                    |
+| Cron    |  +-- Timeline ----------------+ +-- Review Queue +  |
+| Safety  |  |  sessions, events grouped  | | items flagged  |  |
+| Constr. |  |  by trace_id or time       | | for attention  |  |
+| Cont.   |  +----------------------------+ +----------------+  |
+| Deliv.  |                                                    |
+| Resume  |  +-- CAC Traces --------------+ +-- Corrections -+  |
+| Eval    |  |  per-turn scoring,         | | history, who,  |  |
+| Audit   |  |  factors, decision         | | when, why      |  |
+| Export  |  +----------------------------+ +----------------+  |
+|         |                                                    |
+|         |  +-- Privacy Traces ----------+ +-- Artifact Diff+  |
+|         |  |  redaction scans + outcomes| | before/after   |  |
+|         |  +----------------------------+ +----------------+  |
++---------+----------------------------------------------------+
+```
+
+The 12 panels and what they expose (source: `relic/ui/workbench_panels.py`):
+
+| Panel ID | Purpose | Permission |
+|---|---|---|
+| `subject_overview` | Facets, confidence, correction state, status | `READ_STUDY_OVERVIEW` |
+| `gumi_profile` | SOUL.md preview, generation seed, overrides | `READ_ARTIFACT` |
+| `hermes_profile` | Profile hash, plugin config snapshot | `READ_ARTIFACT` |
+| `cron_proactivity` | Scheduled tasks, last fire times, decisions | `READ_QUEUE` |
+| `safety_signals` | Tier/category, redacted evidence refs, aggregation state | `READ_QUEUE` |
+| `behavior_constraints` | Label-stripped runtime patches in effect | `READ_ARTIFACT` |
+| `shared_continuity` | Subject-confirmed markers, recall stats | `READ_ARTIFACT` |
+| `delivery_allowlists` | Targets, expiry, platform | `READ_STUDY_OVERVIEW` |
+| `session_resume` | Resume reconciliation state | `READ_STUDY_OVERVIEW` |
+| `gumi_evaluation` | Per-subject eval scores | `READ_ARTIFACT` |
+| `audit_log` | Every researcher action on this subject | `READ_QUEUE` |
+| `exports_delete_forget` | Export/delete buttons + confirmations | `EXPORT_BUNDLE` (gated, not default) |
+
+The `safety_signals` panel shows **redacted** evidence refs by default; raw evidence requires explicit researcher unlock and is logged as a forensic-mode access event.
+
 ## Workbench separation from runtime
 
 The workbench is not in the Hermes runtime path. It reads from `relic.db` and writes only feedback events and replay requests. It does not have a connection to the live Hermes session. Changes you make in the workbench take effect at the next turn after the recompile completes, not immediately.

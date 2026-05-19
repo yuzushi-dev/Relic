@@ -85,6 +85,15 @@ When a marker is corrected, the original is preserved. The correction is authori
 
 Sensitive signals (safety signals from `relic/safety/`) are researcher-facing only. They are not included in subject exports, not visible to Gumi, and not stored in shared continuity memory. The field `clinical_interpretation_allowed` is always `false`.
 
+Warning governance adds non-clinical categories and operational tiers to these
+signals. Categories such as `food_body_context`, `sleep_context`,
+`substance_context`, `habit_context`, and `attachment_dependency_context` are
+used for researcher review and label-stripped behavior constraints only. Tiers
+such as `T1_context`, `T2_review`, and `T3_interruptive` describe workflow
+handling, not clinical severity. Crisis/self-harm remains the only immediate
+bypass class. Raw user text must not be stored in sensitive signal records; use
+redacted `evidence_refs`.
+
 ## Export and deletion semantics
 
 | Operation | Effect |

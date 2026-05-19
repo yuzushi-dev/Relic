@@ -1,6 +1,16 @@
 # CLI Reference
 
-The `relic` command is the primary interface for setup, subject management, and runtime operations.
+Relic ships three entry points. Most researchers only need `relic`.
+
+| Command | What it does | Reference |
+|---|---|---|
+| `relic` | Setup, subject lifecycle, runtime, workbench | This page |
+| `relic-profile` | Lower-level profile, Hermes, media, cron management | [Profile CLI](relic-profile-cli.md) |
+| `chronicle` | Query the event ledger (audit, provenance, stats) | [Chronicle CLI](chronicle-cli.md) |
+
+## `relic`
+
+The primary interface for setup, subject management, and runtime operations.
 
 ## `relic init`
 
@@ -60,6 +70,47 @@ relic subject reprovision <subject_id>
 ```
 
 Use this when artifacts are missing after a system update, or when a recompile has not run automatically.
+
+### `relic subject forget`
+
+!!! danger "Irreversible"
+    Hard delete (GDPR Art. 17). Permanently erases all subject data on this machine.
+
+```bash
+relic subject forget <subject_id> [--yes]
+```
+
+| Flag | Description |
+|---|---|
+| `--yes` | Skip interactive confirmation. For automation only. |
+
+Run `relic subject export` first if you need to keep anything.
+
+## `relic checkin`
+
+Manage subject check-ins (longitudinal facet updates from periodic structured prompts).
+
+### `relic checkin update-facets`
+
+Process pending check-in replies for a subject and update `subject_baseline.json`.
+
+```bash
+relic checkin update-facets --subject-id <id> [--dry-run] [--relic-home PATH]
+```
+
+| Flag | Description |
+|---|---|
+| `--subject-id` | Required. Subject identifier. |
+| `--dry-run` | Show what would change without writing. |
+| `--relic-home` | Override `RELIC_HOME`. |
+
+### `relic checkin status`
+
+Show pending and processed exchange counts for a subject.
+
+```bash
+relic checkin status --subject-id <id> [--relic-home PATH]
+```
 
 ## `relic runtime`
 
@@ -126,10 +177,7 @@ relic ui [--port PORT]
 |---|---|---|
 | `--port` | 8080 | Port for the web interface |
 
-## `relic-profile`
+## See also
 
-A separate entry point for profile-level operations. Used internally and in bootstrap scripts.
-
-```bash
-relic-profile --help
-```
+- [`relic-profile`](relic-profile-cli.md) — multi-subject registry, Hermes/Telegram provisioning, Gumi media, cron specs.
+- [`chronicle`](chronicle-cli.md) — query the event ledger (audit, provenance, retention).

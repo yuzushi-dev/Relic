@@ -3,7 +3,8 @@ site_description: Runtime governance and longitudinal modeling for reflective ag
 site_url: https://yuzushi-dev.github.io/Relic/
 repo_url: https://github.com/yuzushi-dev/Relic
 repo_name: yuzushi-dev/Relic
-edit_uri: edit/main/docs/
+docs_dir: public-docs
+edit_uri: edit/main/public-docs/
 
 theme:
   name: material
@@ -46,6 +47,7 @@ nav:
     - Behavioral Boundaries: ethics/boundaries.md
     - Data Stream Separation: ethics/data-streams-separation.md
     - Consent and Control: ethics/consent-and-control.md
+    - Consent Template: ethics/consent-template.md
     - No Clinicalization: ethics/no-clinicalization.md
   - Concepts:
     - Longitudinal Modeling: concepts/longitudinal-modeling.md
@@ -53,25 +55,46 @@ nav:
     - Relic and Gumi: concepts/relic-and-gumi.md
     - Provenance and Correction: concepts/provenance-and-correction.md
     - Researcher Boundary: concepts/researcher-boundary.md
+    - Safety Signals: concepts/safety-signals.md
+    - CAC Scoring: concepts/cac-scoring.md
   - Architecture:
     - Runtime Pipeline: architecture/pipeline.md
     - Data Model: architecture/data-model.md
     - Privacy Stages: architecture/privacy-stages.md
     - Artifact Lifecycle: architecture/artifact-lifecycle.md
+    - Chronicle (Audit Ledger): architecture/chronicle.md
+    - Security Model: architecture/security-model.md
     - Module Map: architecture/module-map.md
   - Guides:
+    - Getting Started: guides/getting-started.md
+    - Demo Quickstart: guides/demo-quickstart.md
     - Installation: guides/installation.md
     - First Subject: guides/first-subject.md
-    - Export and Deletion: guides/export-and-deletion.md
-    - Running Evaluations: guides/running-evaluations.md
-    - Researcher Workbench: guides/researcher-workbench.md
+    - API Keys and Tokens: guides/api-keys-and-tokens.md
+    - Delivery Channels: guides/delivery-channels.md
     - Hermes Integration: guides/hermes-integration.md
+    - Researcher Workbench: guides/researcher-workbench.md
+    - Multi-Researcher Setup: guides/multi-researcher.md
+    - Daily Operations: guides/daily-operations.md
+    - Model Management: guides/model-management.md
+    - Schema Migrations: guides/schema-migrations.md
     - Corrections and Replay: guides/corrections-and-replay.md
+    - Running Evaluations: guides/running-evaluations.md
+    - Export and Deletion: guides/export-and-deletion.md
+    - Troubleshooting: guides/troubleshooting.md
   - Reference:
-    - CLI: reference/cli.md
+    - CLI (relic): reference/cli.md
+    - CLI (relic-profile): reference/relic-profile-cli.md
+    - CLI (chronicle): reference/chronicle-cli.md
+    - Hermes Session Tools: reference/hermes-session-tools.md
+    - Memory Providers: reference/memory-providers.md
     - Configuration: reference/configuration.md
+    - Logging: reference/logging.md
+    - Performance: reference/performance.md
+    - Languages: reference/languages.md
     - Fixtures: reference/fixtures.md
     - Glossary: reference/glossary.md
+    - FAQ: reference/faq.md
   - Contributing:
     - Overview: contributing/index.md
     - Development Setup: contributing/development-setup.md

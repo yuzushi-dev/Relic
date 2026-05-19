@@ -30,6 +30,15 @@ The tradeoff is that subjects do not know when their interaction is being modifi
 
 Safety signals are strictly researcher-facing. They cannot reach Gumi's recall, subject exports, or shared continuity memory. See `relic/safety/` and `tests/safety/`.
 
+Safety warnings are tiered governance signals, not clinical risk levels. Crisis
+and self-harm language may trigger immediate escalation. Non-crisis relational,
+food/body, sleep, substance, habit, and interaction-boundary patterns require
+context and recurrence before they become reviewable warnings. Neutral habits
+remain low-tier context and can only become Shared Continuity if the subject
+confirms them and they are not sensitive. Food/body and other behavioral
+patterns must not be labeled as disorders or communicated to Gumi as hidden
+traits.
+
 ## Healthy relational distance
 
 The bootstrap process is designed to produce a Gumi profile with a calibrated relational distance from the subject: enough similarity to make interaction feel legible, enough difference to preserve Gumi's own perspective and boundaries.

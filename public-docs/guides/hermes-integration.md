@@ -1,6 +1,53 @@
 # Hermes Integration
 
-Gumi runs inside Hermes as a plugin. This page covers how to install and configure the integration.
+Gumi runs inside Hermes as a plugin. This page covers how to install, configure, **start**, and verify the integration.
+
+## Quickstart: from bootstrap to first message
+
+After `relic subject create` finishes, do this to actually deliver a message:
+
+```bash
+# 1. Provision a private Hermes profile for the subject (idempotent).
+relic-profile hermes provision <subject_id>
+
+# 2. Configure Telegram delivery (only if you skipped this during bootstrap).
+relic-profile hermes configure-telegram <subject_id> \
+  --bot-token-env GUMI_SUBJ01_BOT_TOKEN \
+  --telegram-user-id 123456789
+
+# 3. Add the subject to the delivery allowlist.
+relic runtime allowlist add <subject_id> \
+  --platform telegram \
+  --target telegram:123456789
+
+# 4. Export the bot token in the shell that will run Hermes.
+export GUMI_SUBJ01_BOT_TOKEN="123456789:ABCdef..."
+
+# 5. Start the Hermes gateway for this subject's profile.
+#    The profile name was printed at the end of `relic subject create`.
+#    By convention it is `gumi-<subject_id>`.
+hermes gateway run --profile gumi-<subject_id>
+
+# 6. Verify it is up.
+hermes gateway list                # should show ✓ next to the profile
+relic runtime status               # should report the plugin registered
+
+# 7. From the subject's Telegram, send /start to the bot.
+#    Then send Gumi's first contact:
+relic-profile gumi intro send <subject_id> --deliver
+```
+
+If `/start` was never sent from the subject's Telegram, the bot cannot deliver anything. Telegram refuses to message a user who has not initiated.
+
+To stop the gateway, hit `Ctrl-C` in the terminal running `hermes gateway run`. Run it again to resume.
+
+To run it in the background and detach (Linux/macOS):
+
+```bash
+nohup hermes gateway run --profile gumi-<subject_id> > ~/.relic/gateway.log 2>&1 &
+```
+
+## Prerequisites
 
 ## Prerequisites
 
@@ -28,6 +75,11 @@ The plugin is registered with Hermes when you run `relic subject create` or `rel
 ```bash
 hermes plugin list | grep gumi-relational
 ```
+
+If you run Relic as a project-local Hermes plugin during development, Hermes
+requires explicit trust for local plugins. Set
+`HERMES_ENABLE_PROJECT_PLUGINS=true` only for repositories you control and
+review. Production deployments should prefer the installed plugin path above.
 
 ## Plugin configuration
 
@@ -103,6 +155,42 @@ relic runtime allowlist remove <subject_id> --platform telegram --target telegra
 Gumi's stable identity lives in `$HERMES_HOME/SOUL.md`. It is generated during bootstrap and reviewed in the bootstrap TUI. After it is generated, treat it as a configuration file: edit it by going back through `relic subject create` rather than editing it manually, so changes are tracked.
 
 SOUL.md is never modified by the plugin at runtime. The plugin adds ephemeral per-turn context on top of it.
+
+## Quiet hours and frequency cap semantics
+
+Set per-subject during `relic-profile hermes configure-telegram`. Defaults:
+
+| Setting | Default | Format |
+|---|---|---|
+| `--quiet-hours` | `22:00-08:00` | `HH:MM-HH:MM`, **subject's local timezone** |
+| `--maximum-contact-frequency` | `2/day` | `<N>/<window>` where window ∈ {`hour`, `day`, `week`} |
+| `--delivery-windows` (API only) | `09:00-11:00`, `19:00-21:00` | List of `HH:MM-HH:MM`, subject's local timezone |
+| `timezone` (API only) | `Europe/Rome` | IANA timezone, e.g. `America/New_York` |
+
+### Rules
+
+- **Quiet hours** are inclusive of the start, exclusive of the end. `22:00-08:00` covers `22:00:00` through `07:59:59` local time. Overnight windows are detected by `end < start`.
+- **Timezone** is the **subject's** local timezone, set at bootstrap. Quiet hours are evaluated against the subject's wall clock, not the server's.
+- **Frequency cap** counts every **outbound delivery attempt** that passed the gate, including dry-runs marked as sent. Failed/blocked attempts do not count.
+- **Window reset:**
+  - `N/hour`: rolling 60-minute window from the most recent send. Not a calendar hour.
+  - `N/day`: calendar day in the subject's timezone, midnight-to-midnight.
+  - `N/week`: ISO week (Mon–Sun) in the subject's timezone.
+- **Delivery windows** intersect with allowed time. A send must satisfy *all* of: outside quiet hours, inside at least one delivery window, under frequency cap, on allowlist, subject not paused, consent valid.
+
+### Edge cases
+
+- **DST transitions:** the runtime uses zoneinfo arithmetic. The "lost hour" in spring is skipped; the "repeated hour" in autumn allows a single rolling-hour window across the boundary.
+- **Boundary tick:** a cron tick that lands exactly at `08:00:00` is outside quiet hours and is evaluated normally.
+- **Subject changes timezone:** update via re-running `configure-telegram`. Existing scheduled tasks are re-evaluated against the new timezone at the next tick.
+
+### Inspect what the gate decided
+
+```bash
+chronicle decision --subject <subject_id> --kind delivery_gate --limit 5
+```
+
+Payload includes: `quiet_hours_active`, `frequency_cap_exhausted`, `pause_state`, `allowlist_match`, and the boolean `permit_send`.
 
 ## Cron-scheduled outreach
 

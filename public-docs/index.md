@@ -12,9 +12,12 @@ Relic is paired with [Gumi](concepts/relic-and-gumi.md), a diegetic relational a
 
 | If you are... | Start here |
 |---|---|
+| New here and want a 5-minute orientation | [Getting Started](guides/getting-started.md) |
 | A researcher evaluating the system | [Theoretical Grounding](research/theoretical-grounding.md), [Limitations](research/limitations.md) |
 | Setting up a new deployment | [Installation](guides/installation.md), [First Subject](guides/first-subject.md) |
+| Looking for how to get a Telegram bot / API key | [API Keys and Tokens](guides/api-keys-and-tokens.md) |
 | Reviewing data or correcting outputs | [Researcher Workbench](guides/researcher-workbench.md), [Corrections](guides/corrections-and-replay.md) |
+| Stuck on an error | [Troubleshooting](guides/troubleshooting.md), [FAQ](reference/faq.md) |
 | Contributing code | [Contributing](contributing/index.md), [Release Status](contributing/release-status.md) |
 | Assessing the ethics of the system | [Ethics](ethics/index.md) |
 
