@@ -29,6 +29,13 @@ jobs:
         run: python scripts/ci/check_json_jsonl.py
       - name: Check no raw private data markers
         run: python scripts/ci/check_no_raw_private_data.py
+      - name: Checkin naturalness metrics
+        run: |
+          python -m pytest \
+            tests/checkin/test_metrics.py \
+            tests/checkin/test_policy_scenarios.py \
+            tests/gumi_plugin/test_decision_log_canonical.py \
+            -q
 
 env:
   RELIC_ENV: ci
