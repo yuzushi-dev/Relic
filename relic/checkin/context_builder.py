@@ -455,9 +455,10 @@ def build_deliver_context(
             parts.append(build_topic_hint_section(subject_id, db_path, bl_path))
         if flags.get("style_hints"):
             parts.append(build_style_hints_section(bl_path))
-
-    if flags.get("last_exchange"):
-        parts.append(build_last_exchange_section(db_path))
+        if flags.get("last_exchange"):
+            # last_exchange echoes raw reply text; same consent gate as
+            # observations / topic_hint / style_hints.
+            parts.append(build_last_exchange_section(db_path))
 
     if flags.get("avatar"):
         parts.append(build_avatar_section(hermes_home))

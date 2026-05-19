@@ -63,7 +63,18 @@ function relicHome() {
 function relicHomeStrict() {
   const env = (process.env.RELIC_HOME || "").trim();
   if (env) return env;
-  return path.join(process.env.HOME || "", ".relic");
+  let home = process.env.HOME || "";
+  if (!home) {
+    try {
+      // Mirror Python's Path.home(): fall back to /etc/passwd lookup when
+      // HOME is unset (e.g. systemd-launched UI processes).
+      const os = require("node:os");
+      home = os.userInfo().homedir || "";
+    } catch {
+      home = "";
+    }
+  }
+  return path.join(home, ".relic");
 }
 
 function hermesProfilesHome() {

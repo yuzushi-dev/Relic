@@ -239,6 +239,10 @@ def select_decision(
         if features.non_response_streak >= NON_RESPONSE_BACKOFF:
             return Decision(EventType.SILENT, Posture.QUIET, "proactive_backoff")
         if features.salience_top > PROACTIVE_SALIENCE_THRESHOLD:
+            # Spike §9.5 forbidden transition: no brief_share when subject is laconic.
+            avg = features.subject_avg_tokens_14d
+            if avg is not None and avg < BRIEF_SHARE_MIN_AVG_TOKENS:
+                return Decision(EventType.SILENT, Posture.QUIET, "proactive_subject_laconic")
             return Decision(EventType.PROACTIVE, Posture.BRIEF_SHARE, "proactive_salient")
         return Decision(EventType.SILENT, Posture.QUIET, "proactive_below_salience")
 
@@ -254,11 +258,14 @@ def select_decision(
             return Decision(EventType.SILENT, Posture.QUIET, "reflection_disabled")
         return Decision(EventType.REFLECTION, Posture.REFLECTIVE_MIRROR, "reflect_threshold_met")
 
+    # Spike §9.5: forbid ask→ask only when the previous ask got no reply.
+    _last = _last_posture(features)
+    ask_blocked_by_streak = _last == Posture.ASK.value and features.non_response_streak >= 1
     if (
         features.topic_freshness > TOPIC_FRESHNESS_FOR_ASK
         and features.facet_status == "ask_now"
         and not features.asked_recently_12h
-        and _last_posture(features) != Posture.ASK.value
+        and not ask_blocked_by_streak
     ):
         return Decision(EventType.CHECKIN, Posture.ASK, "topic_fresh_and_ask_ready")
 

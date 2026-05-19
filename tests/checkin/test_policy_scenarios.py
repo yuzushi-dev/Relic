@@ -135,7 +135,8 @@ def test_silent_scenario_emits_no_header():
     assert "[EVENTO:" not in out
 
 
-def test_scenario_ask_blocked_when_last_posture_was_ask():
+def test_scenario_ask_blocked_when_last_ask_got_no_reply():
+    """Spike §9.5: forbid ask→ask only after a non-response."""
     f = CheckinFeatures(
         reach_score=1.0,
         topic_freshness=0.9,
@@ -143,6 +144,48 @@ def test_scenario_ask_blocked_when_last_posture_was_ask():
         asked_recently_12h=False,
         time_since_last_subject_msg_sec=3 * 3600,
         posture_history_last_5=[Posture.ASK.value],
+        non_response_streak=1,
     )
     d = select_decision(f, decision_type="checkin", **_enabled())
     assert d.posture is not Posture.ASK
+
+
+def test_scenario_ask_allowed_again_after_reply():
+    """A subject reply resets the streak; ASK→ASK becomes allowed."""
+    f = CheckinFeatures(
+        reach_score=1.0,
+        topic_freshness=0.9,
+        facet_status="ask_now",
+        asked_recently_12h=False,
+        time_since_last_subject_msg_sec=3 * 3600,
+        posture_history_last_5=[Posture.ASK.value],
+        non_response_streak=0,
+    )
+    d = select_decision(f, decision_type="checkin", **_enabled())
+    assert d.posture is Posture.ASK
+
+
+def test_proactive_brief_share_blocked_when_subject_laconic():
+    """Reviewer fix: §9.5 forbidden brief_share must apply to proactivity too."""
+    f = CheckinFeatures(
+        reach_score=1.0,
+        salience_top=0.8,
+        subject_avg_tokens_14d=4.0,
+        time_since_last_subject_msg_sec=7200,
+    )
+    d = select_decision(f, decision_type="proactivity", policy_enabled=True)
+    assert d.event_type is EventType.SILENT
+    assert d.reason == "proactive_subject_laconic"
+
+
+def test_frequency_cap_short_circuits_silent():
+    """Reviewer fix: cap is only meaningful if daily_initiatives_today is fed."""
+    f = CheckinFeatures(
+        reach_score=1.0,
+        frequency_cap_per_day=1,
+        daily_initiatives_today=1,
+        time_since_last_subject_msg_sec=3600,
+    )
+    d = select_decision(f, decision_type="checkin", policy_enabled=True)
+    assert d.event_type is EventType.SILENT
+    assert d.reason == "frequency_cap_reached"

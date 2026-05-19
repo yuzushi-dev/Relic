@@ -140,3 +140,29 @@ def test_emit_decision_event_uses_relic_home_path(tmp_path, monkeypatch):
     record = json.loads(line)
     assert record["decision"] == "NO_REPLY"
     assert record["decision_type"] == "checkin"
+
+
+def test_emit_decision_event_writes_outcome_status_and_event_kind(tmp_path, monkeypatch):
+    """Reviewer fix: outcome_status='delivered' + event_kind/posture must land
+    in the canonical event so the reconciler and metrics can find them."""
+    monkeypatch.setenv("RELIC_HOME", str(tmp_path))
+    emit_decision_event(
+        decision=RuntimeDecision.DELIVER,
+        reason_codes=[RuntimeDecisionReason.no_due_work],
+        subject_id="s1",
+        gumi_instance_id="g1",
+        hermes_profile_id="p1",
+        decision_type="checkin",
+        event_kind="checkin",
+        posture="observe",
+        outcome_status="delivered",
+        delivered=True,
+        wake_agent_emitted=True,
+    )
+    log_path = tmp_path / "decision_events.jsonl"
+    record = json.loads(log_path.read_text().splitlines()[-1])
+    assert record["outcome_status"] == "delivered"
+    assert record["event_kind"] == "checkin"
+    assert record["posture"] == "observe"
+    assert record["delivered"] is True
+    assert record["wake_agent_emitted"] is True

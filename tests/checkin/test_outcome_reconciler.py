@@ -179,3 +179,34 @@ def test_non_ask_delivery_with_reply_does_not_transition(tmp_path: Path):
     finally:
         conn.close()
     assert state.non_response_streak == 0
+
+
+def test_real_hermes_schema_with_reply_skips_transition(tmp_path):
+    """Production Hermes state.db uses ``timestamp REAL``; the reconciler
+    must read the right column or every reply is invisible to it."""
+    import sqlite3
+    from datetime import datetime, timedelta, timezone
+
+    relic_home = tmp_path
+    hermes_home = tmp_path / "hermes"
+    hermes_home.mkdir()
+    _seed_subject_db(relic_home, "s1")
+
+    state_db = hermes_home / "state.db"
+    conn = sqlite3.connect(str(state_db))
+    try:
+        conn.execute(
+            "CREATE TABLE messages (id INTEGER PRIMARY KEY, role TEXT, content TEXT, timestamp REAL)"
+        )
+        delivered_at = datetime.now(timezone.utc) - timedelta(hours=25)
+        conn.execute(
+            "INSERT INTO messages (role, content, timestamp) VALUES (?, ?, ?)",
+            ("user", "ciao", (delivered_at + timedelta(hours=2)).timestamp()),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    _append_event(relic_home, _delivered_event("s1", delivered_at=delivered_at))
+    emitted = reconcile_due_outcomes("s1", relic_home=relic_home, hermes_home=hermes_home)
+    assert emitted == 0

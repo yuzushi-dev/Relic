@@ -96,3 +96,16 @@ def test_compute_reach_score_matches_spec():
     assert compute_reach_score(1, 0) == pytest.approx(0.7)
     assert compute_reach_score(3, 0) == pytest.approx(0.7 ** 3)
     assert compute_reach_score(1, 1) == pytest.approx(0.7 ** 3)
+
+
+def test_unanswered_without_outcome_status_before_does_not_increment():
+    """Reviewer fix: sparse historical rows with outcome_status_before=None
+    must NOT bump the streak on replay."""
+    from relic.checkin.features import CadenceState, reconcile_cadence_outcome
+
+    state = CadenceState(subject_id="s1", non_response_streak=0)
+    new_state = reconcile_cadence_outcome(
+        state,
+        {"outcome_status": "unanswered_24h", "decision_type": "checkin"},
+    )
+    assert new_state.non_response_streak == 0

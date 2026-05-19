@@ -85,27 +85,46 @@ def _has_subject_reply(
     delivered_at: datetime,
     deadline_at: datetime,
 ) -> bool:
+    """Real Hermes state.db schema uses ``timestamp REAL`` (epoch seconds);
+    the legacy ISO column is only present in our tests' mock schema."""
     state_db = Path(hermes_home) / "state.db"
     if not state_db.exists():
         return False
     try:
         conn = sqlite3.connect(str(state_db), timeout=5.0)
+    except sqlite3.DatabaseError:
+        return False
+    try:
         try:
-            row = conn.execute(
-                """SELECT 1 FROM messages
-                   WHERE role = 'user'
-                     AND created_at >= ?
-                     AND created_at <= ?
-                   LIMIT 1""",
-                (delivered_at.isoformat(), deadline_at.isoformat()),
-            ).fetchone()
+            cols = {r[1] for r in conn.execute("PRAGMA table_info(messages)").fetchall()}
+        except sqlite3.DatabaseError:
+            return False
+        if "timestamp" in cols:
+            start = delivered_at.timestamp()
+            end = deadline_at.timestamp()
+            sql = (
+                "SELECT 1 FROM messages "
+                "WHERE role = 'user' AND timestamp >= ? AND timestamp <= ? LIMIT 1"
+            )
+            params: tuple = (start, end)
+        elif "created_at" in cols:
+            sql = (
+                "SELECT 1 FROM messages "
+                "WHERE role = 'user' AND created_at >= ? AND created_at <= ? LIMIT 1"
+            )
+            params = (delivered_at.isoformat(), deadline_at.isoformat())
+        else:
+            return False
+        try:
+            row = conn.execute(sql, params).fetchone()
             return row is not None
         except sqlite3.DatabaseError:
             return False
-        finally:
+    finally:
+        try:
             conn.close()
-    except sqlite3.DatabaseError:
-        return False
+        except Exception:
+            pass
 
 
 def _already_reconciled(

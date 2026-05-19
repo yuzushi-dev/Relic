@@ -136,3 +136,42 @@ def test_followup_warm_context_includes_subject_messages(tmp_path: Path):
         posture="follow_up_warm",
     )
     assert "ultimo scambio" in result
+
+
+def test_last_exchange_section_gated_by_consent(tmp_path):
+    """Reviewer fix: build_last_exchange_section echoes raw reply text and
+    must respect the same consent gate as observations/topic_hint."""
+    import sqlite3
+
+    relic_home = tmp_path / "relic"
+    db_path = _seed_subject(tmp_path, "s1")
+    hermes_home = tmp_path / "hermes"
+    hermes_home.mkdir()
+
+    # Flip consent off.
+    (relic_home / "subjects" / "s1" / "delivery_policy.json").write_text(
+        json.dumps({"consent_for_active_elicitation": False}),
+        encoding="utf-8",
+    )
+
+    conn = sqlite3.connect(str(db_path))
+    try:
+        conn.execute(
+            """INSERT INTO checkin_exchanges
+               (facet_id, question_text, reply_text, asked_at, reply_captured_at)
+               VALUES (?, ?, ?, datetime('now', '-1 hours'), datetime('now'))""",
+            ("cognitive.decision_speed", "ce l'hai fatta?", "sì tutto bene"),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    result = build_deliver_context(
+        "s1",
+        hermes_home=hermes_home,
+        relic_home=relic_home,
+        event_type="followup",
+        posture="follow_up_terse",
+    )
+    assert "sì tutto bene" not in result
+    assert "ultimo scambio" not in result

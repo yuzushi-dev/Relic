@@ -110,3 +110,62 @@ def test_persist_features_returns_features_id_and_posture_history(tmp_path: Path
     )
     assert features.posture_history_last_5[0] == "brief_share"
     assert "observe" in features.posture_history_last_5
+
+
+def test_subject_msg_state_handles_real_hermes_schema(tmp_path):
+    """Production Hermes state.db uses ``timestamp REAL``, not ``created_at TEXT``.
+    build_checkin_features must adapt to both."""
+    import sqlite3
+    from datetime import datetime, timezone
+
+    hermes_home = tmp_path / "hermes"
+    hermes_home.mkdir()
+    db = hermes_home / "state.db"
+    conn = sqlite3.connect(str(db))
+    try:
+        conn.execute(
+            "CREATE TABLE messages (id INTEGER PRIMARY KEY, role TEXT, content TEXT, timestamp REAL)"
+        )
+        now_ts = datetime.now(timezone.utc).timestamp()
+        conn.execute(
+            "INSERT INTO messages (role, content, timestamp) VALUES (?, ?, ?)",
+            ("user", "ciao tutto bene", now_ts - 60),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    f = build_checkin_features(
+        subject_id="s1",
+        decision_type="checkin",
+        relic_home=tmp_path / "relic",
+        hermes_home=hermes_home,
+    )
+    assert f.time_since_last_subject_msg_sec is not None
+    assert 0 <= f.time_since_last_subject_msg_sec <= 120
+    assert f.subject_avg_tokens_14d is not None
+
+
+def test_daily_initiatives_today_populated_from_decision_log(tmp_path):
+    import json
+    from datetime import datetime, timezone
+
+    relic_home = tmp_path / "relic"
+    relic_home.mkdir()
+    log = relic_home / "decision_events.jsonl"
+    now = datetime.now(timezone.utc).isoformat()
+    rows = [
+        {"subject_id": "s1", "decision": "DELIVER", "created_at": now},
+        {"subject_id": "s1", "decision": "DELIVER", "created_at": now},
+        {"subject_id": "s2", "decision": "DELIVER", "created_at": now},
+        {"subject_id": "s1", "decision": "NO_REPLY", "created_at": now},
+    ]
+    log.write_text("\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8")
+
+    f = build_checkin_features(
+        subject_id="s1",
+        decision_type="checkin",
+        relic_home=relic_home,
+        hermes_home=tmp_path / "hermes",
+    )
+    assert f.daily_initiatives_today == 2

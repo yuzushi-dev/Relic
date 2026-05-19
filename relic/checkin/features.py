@@ -252,7 +252,10 @@ def reconcile_cadence_outcome(state: CadenceState, event: Optional[dict]) -> Cad
         new.last_reply_at = now
         new.last_subject_msg_at = now
     elif status == "unanswered_24h":
-        if status_before == "delivered" or status_before is None:
+        # Only the explicit "delivered → unanswered_24h" transition penalises
+        # cadence (spike §9.3). Replay paths from sparse historical rows must
+        # not inflate the streak when outcome_status_before is missing.
+        if status_before == "delivered":
             new.non_response_streak = state.non_response_streak + 1
             if decision_type == "followup":
                 new.followup_non_response_streak = state.followup_non_response_streak + 1
@@ -320,6 +323,7 @@ def build_checkin_features(
     asked_recently_12h = False
     last_reflect_age_days: Optional[int] = None
 
+    daily_initiatives_today = 0
     if db_path.exists():
         conn = sqlite3.connect(str(db_path), timeout=5.0)
         try:
@@ -329,6 +333,8 @@ def build_checkin_features(
             facet_status, asked_recently_12h = _load_facet_state(conn, now)
         finally:
             conn.close()
+
+    daily_initiatives_today += _count_today_initiatives(subject_id, relic_home, now)
 
     salience_top = _safe_load_salience_top(subject_id, relic_home)
     topic_freshness = _safe_load_topic_freshness(subject_id, relic_home)
@@ -356,6 +362,7 @@ def build_checkin_features(
     features.boundary_strict = boundary_strict
     features.risk_flag_active = risk_flag
     features.quiet_hours_active = quiet_hours_active
+    features.daily_initiatives_today = daily_initiatives_today
 
     features.reach_score = compute_reach_score(
         features.non_response_streak,
@@ -467,6 +474,45 @@ def _load_facet_state(
     return facet_id, asked_recently
 
 
+def _count_today_initiatives(subject_id: str, relic_home: Path, now: datetime) -> int:
+    """Count DELIVER events for ``subject_id`` whose created_at is today (UTC).
+
+    Reads the canonical RELIC_HOME-wide ``decision_events.jsonl`` so the
+    frequency cap in select_decision actually fires. Returns 0 on missing
+    file / parse errors.
+    """
+    log_path = Path(relic_home) / "decision_events.jsonl"
+    if not log_path.exists():
+        return 0
+    day_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    count = 0
+    try:
+        with open(log_path, "r", encoding="utf-8") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    row = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if row.get("subject_id") != subject_id:
+                    continue
+                if row.get("decision") != "DELIVER":
+                    continue
+                created = _to_dt(row.get("created_at"))
+                if created is None:
+                    continue
+                try:
+                    if created.astimezone(timezone.utc) >= day_start:
+                        count += 1
+                except (TypeError, ValueError):
+                    continue
+    except OSError:
+        return 0
+    return count
+
+
 def _safe_load_salience_top(subject_id: str, relic_home: Path) -> float:
     try:
         from relic.memory_dynamics import decay as _decay  # noqa: F401
@@ -544,36 +590,82 @@ def _safe_load_subject_msg_state(
     hermes_home: Path,
     now: datetime,
 ) -> tuple[Optional[int], Optional[datetime], Optional[float]]:
+    """Read last-subject-msg state from Hermes ``state.db``.
+
+    Real Hermes schema uses ``timestamp REAL`` (epoch seconds). Test fixtures
+    in this repo use the legacy ``created_at TEXT`` column, so we detect which
+    column exists at runtime and adapt — otherwise the production reads
+    silently fall back to None for every tick.
+    """
     state_db = Path(hermes_home) / "state.db"
     if not state_db.exists():
         return None, None, None
     try:
         conn = sqlite3.connect(str(state_db), timeout=5.0)
+    except sqlite3.DatabaseError:
+        return None, None, None
+    try:
         try:
-            row = conn.execute(
-                """SELECT MAX(created_at) FROM messages
-                   WHERE role = 'user'""",
-            ).fetchone()
+            cols = {r[1] for r in conn.execute("PRAGMA table_info(messages)").fetchall()}
         except sqlite3.DatabaseError:
             return None, None, None
+
         last_dt: Optional[datetime] = None
-        if row and row[0]:
-            last_dt = _to_dt(row[0])
         time_since: Optional[int] = None
+        avg_tokens: Optional[float] = None
+
+        if "timestamp" in cols:
+            try:
+                row = conn.execute(
+                    "SELECT MAX(timestamp) FROM messages WHERE role = 'user'",
+                ).fetchone()
+            except sqlite3.DatabaseError:
+                row = None
+            if row and row[0] is not None:
+                try:
+                    last_dt = datetime.fromtimestamp(float(row[0]), tz=timezone.utc)
+                except (TypeError, ValueError, OSError):
+                    last_dt = None
+            try:
+                cutoff = (now - timedelta(days=14)).timestamp()
+                avg_row = conn.execute(
+                    "SELECT AVG(LENGTH(content) / 4.0) FROM messages "
+                    "WHERE role = 'user' AND timestamp >= ?",
+                    (cutoff,),
+                ).fetchone()
+                avg_tokens = (
+                    float(avg_row[0]) if avg_row and avg_row[0] is not None else None
+                )
+            except (sqlite3.DatabaseError, ValueError, TypeError):
+                avg_tokens = None
+        elif "created_at" in cols:
+            try:
+                row = conn.execute(
+                    "SELECT MAX(created_at) FROM messages WHERE role = 'user'",
+                ).fetchone()
+            except sqlite3.DatabaseError:
+                row = None
+            if row and row[0]:
+                last_dt = _to_dt(row[0])
+            try:
+                avg_row = conn.execute(
+                    "SELECT AVG(LENGTH(content) / 4.0) FROM messages "
+                    "WHERE role = 'user' AND created_at >= ?",
+                    ((now - timedelta(days=14)).isoformat(),),
+                ).fetchone()
+                avg_tokens = (
+                    float(avg_row[0]) if avg_row and avg_row[0] is not None else None
+                )
+            except (sqlite3.DatabaseError, ValueError, TypeError):
+                avg_tokens = None
+        else:
+            return None, None, None
+
         if last_dt is not None:
             try:
                 time_since = max(0, int((now - last_dt).total_seconds()))
             except (TypeError, ValueError):
                 time_since = None
-        try:
-            avg_row = conn.execute(
-                """SELECT AVG(LENGTH(content) / 4.0) FROM messages
-                   WHERE role = 'user' AND created_at >= ?""",
-                ((now - timedelta(days=14)).isoformat(),),
-            ).fetchone()
-            avg_tokens = float(avg_row[0]) if avg_row and avg_row[0] is not None else None
-        except (sqlite3.DatabaseError, ValueError, TypeError):
-            avg_tokens = None
         return time_since, last_dt, avg_tokens
     finally:
         try:

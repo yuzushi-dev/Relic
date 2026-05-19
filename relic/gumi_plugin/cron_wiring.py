@@ -925,7 +925,9 @@ def render_no_agent_script(script_path: Path) -> str:
     7. BLOCKED/ERROR: no stdout, exit 0 (audit event only)
     """
     import relic as _relic
-    relic_root = str(Path(_relic.__file__).parent.parent)
+    # Escape via json.dumps so a path containing single quotes (e.g. an
+    # apostrophe in $HOME) does not break the inner Python heredoc.
+    relic_root = json.dumps(str(Path(_relic.__file__).parent.parent))
 
     # Derive decision_type default from script filename (Plan §Task 1, Step 3).
     _name = script_path.name
@@ -978,7 +980,7 @@ from pathlib import Path
 
 # Add relic to path (hardcoded at script generation time — __file__ is '-' in heredoc)
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))  # fallback
-sys.path.insert(0, '{relic_root}')  # reliable absolute path
+sys.path.insert(0, {relic_root})  # reliable absolute path (json-escaped)
 
 from relic.gumi_plugin.cron_wiring import make_decision, emit_decision_event
 from relic.hermes_runtime import RuntimeDecision
@@ -1009,6 +1011,22 @@ try:
         decision_type=decision_type,
     )
 
+    # Surface naturalness metadata attached by _apply_naturalness_policy
+    # (or fall back to None when the policy is disabled).
+    _cd = candidate_data or {{}}
+    pol_event_kind = _cd.get("event_type")
+    pol_posture = _cd.get("posture")
+    pol_features_id = _cd.get("features_id")
+
+    if decision == RuntimeDecision.DELIVER:
+        pol_outcome_status = "delivered"
+    elif decision == RuntimeDecision.NO_REPLY and pol_event_kind == "silent":
+        pol_outcome_status = "silent"
+    elif decision == RuntimeDecision.BLOCKED:
+        pol_outcome_status = "blocked"
+    else:
+        pol_outcome_status = None
+
     wake_emitted = False
     if wake_agent_json_mode:
         if decision == RuntimeDecision.DELIVER:
@@ -1021,6 +1039,8 @@ try:
                     subject_id,
                     Path(_hermes_home),
                     Path(_relic_home_env),
+                    event_type=pol_event_kind,
+                    posture=pol_posture,
                 ) or ""
             payload = {{
                 "wakeAgent": True,
@@ -1028,6 +1048,8 @@ try:
                     "gate_output": (candidate_data or {{}}).get("message", ""),
                     "deliver_context": deliver_ctx,
                     "decision_type": decision_type,
+                    "event_kind": pol_event_kind,
+                    "posture": pol_posture,
                 }},
             }}
             wake_emitted = True
@@ -1036,6 +1058,8 @@ try:
                 "wakeAgent": False,
                 "reason": decision.value if hasattr(decision, "value") else str(decision),
                 "decision_type": decision_type,
+                "event_kind": pol_event_kind,
+                "posture": pol_posture,
             }}
             wake_emitted = False
         sys.stdout.write(json.dumps(payload) + "\\n")
@@ -1048,6 +1072,11 @@ try:
             hermes_profile_id=hermes_profile_id,
             decision_type=decision_type,
             wake_agent_emitted=wake_emitted,
+            event_kind=pol_event_kind,
+            posture=pol_posture,
+            features_id=pol_features_id,
+            outcome_status=pol_outcome_status,
+            delivered=(decision == RuntimeDecision.DELIVER),
         )
         sys.exit(0)
 
@@ -1059,6 +1088,11 @@ try:
         gumi_instance_id=gumi_instance_id,
         hermes_profile_id=hermes_profile_id,
         decision_type=decision_type,
+        event_kind=pol_event_kind,
+        posture=pol_posture,
+        features_id=pol_features_id,
+        outcome_status=pol_outcome_status,
+        delivered=(decision == RuntimeDecision.DELIVER),
     )
 
     if decision == RuntimeDecision.NO_REPLY:
@@ -1080,6 +1114,8 @@ try:
                 subject_id,
                 Path(_hermes_home),
                 Path(_relic_home_env),
+                event_type=pol_event_kind,
+                posture=pol_posture,
             )
             if _ctx:
                 print(_ctx)
