@@ -802,12 +802,114 @@ def make_decision(
         if ask and ask_topic:
             msg += f"\nask: true\nask_topic: {ask_topic}"
         return RuntimeDecision.DELIVER, reasons, {"message": msg}
-    return _evaluate_decision(
+
+    decision, reasons, candidate_data = _evaluate_decision(
         subject_id,
         gumi_instance_id,
         hermes_profile_id,
         decision_type=decision_type,
     )
+
+    if decision == RuntimeDecision.DELIVER and _policy_enabled():
+        try:
+            decision, reasons, candidate_data = _apply_naturalness_policy(
+                decision=decision,
+                reasons=reasons,
+                candidate_data=candidate_data,
+                subject_id=subject_id,
+                gumi_instance_id=gumi_instance_id,
+                hermes_profile_id=hermes_profile_id,
+                decision_type=decision_type,
+            )
+        except Exception:
+            # Fail-open: any policy error falls back to the legacy DELIVER path.
+            pass
+
+    return decision, reasons, candidate_data
+
+
+def _policy_enabled() -> bool:
+    return os.environ.get("RELIC_CHECKIN_POLICY_ENABLED", "").strip().lower() in ("1", "true", "yes")
+
+
+def _apply_naturalness_policy(
+    *,
+    decision: RuntimeDecision,
+    reasons: list[RuntimeDecisionReason],
+    candidate_data: Optional[dict],
+    subject_id: str,
+    gumi_instance_id: str,
+    hermes_profile_id: str,
+    decision_type: str,
+) -> tuple[RuntimeDecision, list[RuntimeDecisionReason], Optional[dict]]:
+    """Build features, run select_decision, merge result into candidate_data.
+
+    Behaviour:
+      - silent decision   → return (NO_REPLY, reasons, None);
+      - non-silent        → prepend the constraint header to candidate_data["message"]
+                            and append event_type/posture/features_id metadata so
+                            the cron heredoc + log writer can surface them.
+    """
+    import sqlite3
+    from relic.checkin.features import build_checkin_features, persist_features
+    from relic.checkin.policy import (
+        apply_constraint_header,
+        EventType,
+        Posture,
+        select_decision,
+    )
+    from relic.paths import get_relic_home
+
+    hermes_home_str = os.environ.get("HERMES_HOME", "")
+    hermes_home = Path(hermes_home_str) if hermes_home_str else Path.home() / ".hermes"
+    relic_home = get_relic_home()
+
+    features = build_checkin_features(
+        subject_id=subject_id,
+        decision_type=decision_type,
+        relic_home=relic_home,
+        hermes_home=hermes_home,
+    )
+
+    pol_decision = select_decision(
+        features,
+        decision_type=decision_type,
+        policy_enabled=True,
+    )
+
+    if pol_decision.event_type is EventType.SILENT:
+        return RuntimeDecision.NO_REPLY, reasons, None
+
+    features_id: Optional[int] = None
+    db_path = relic_home / "subjects" / subject_id / "relic.db"
+    if db_path.exists():
+        try:
+            conn = sqlite3.connect(str(db_path), timeout=5.0)
+            try:
+                tick_id = datetime.now(timezone.utc).isoformat()
+                features_id = persist_features(
+                    conn,
+                    subject_id,
+                    tick_id,
+                    features,
+                    pol_decision.posture.value,
+                )
+            finally:
+                conn.close()
+        except sqlite3.DatabaseError:
+            features_id = None
+
+    base_message = (candidate_data or {}).get("message", "") if candidate_data else ""
+    new_message = apply_constraint_header(base_message, pol_decision)
+
+    new_data: dict = dict(candidate_data or {})
+    new_data["message"] = new_message
+    new_data["event_type"] = pol_decision.event_type.value
+    new_data["posture"] = pol_decision.posture.value
+    new_data["features_id"] = features_id
+    new_data["policy_reason"] = pol_decision.reason
+
+    return decision, reasons, new_data
 
 
 def render_no_agent_script(script_path: Path) -> str:
