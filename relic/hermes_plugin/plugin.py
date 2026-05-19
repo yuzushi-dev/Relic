@@ -254,6 +254,12 @@ class RelicHermesPlugin:
                 pause_controller=self._pause_controller,
             )
 
+            # Suppress background_review_callback on messaging platforms.
+            # Hermes gateway wires this callback to forward internal "💾 Self-improvement
+            # review" messages to the subject's chat — unintended on Telegram/Signal.
+            from relic.hermes_plugin.review_suppressor import apply as _suppress_review
+            _suppress_review()
+
             # Mark as loaded
             self._state = PluginState.LOADED
             self._load_result = PluginLoadResult(
