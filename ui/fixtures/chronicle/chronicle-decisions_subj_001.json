@@ -1,0 +1,77 @@
+{
+  "subject_id": "subj_001",
+  "decisions": [
+    {
+      "decision_id": "chr_dec_001",
+      "subject_id": "subj_001",
+      "timestamp": "2026-05-02T09:00:00Z",
+      "title": "Schedule weekly synthesis",
+      "rationale": "Subject completed check-in pattern indicates consistent engagement; weekly synthesis is appropriate given active_condition=diegetic_full.",
+      "confidence": 0.92,
+      "validation_status": "validated",
+      "inputs": ["chronicle_evt_002"],
+      "outputs": ["chr_evt_002"],
+      "actor": "synthesis_scheduler"
+    },
+    {
+      "decision_id": "chr_dec_002",
+      "subject_id": "subj_001",
+      "timestamp": "2026-05-02T14:15:00Z",
+      "title": "Trigger proactive check-in initiative",
+      "rationale": "Time-based trigger; no active initiatives pending; rate limit allows proactive.",
+      "confidence": 0.88,
+      "validation_status": "validated",
+      "inputs": ["chronicle_evt_001"],
+      "outputs": ["chr_evt_003"],
+      "actor": "proactive_scheduler"
+    },
+    {
+      "decision_id": "chr_dec_003",
+      "subject_id": "subj_001",
+      "timestamp": "2026-05-03T08:45:00Z",
+      "title": "Adjust synthesis tone from correction feedback",
+      "rationale": "User explicitly requested 'gentler' tone via correction. Correlates with earlier distress signals. Adjusting narrative approach to match.",
+      "confidence": 0.79,
+      "validation_status": "validated",
+      "inputs": ["chr_evt_004"],
+      "outputs": [],
+      "actor": "synthesis_cron"
+    },
+    {
+      "decision_id": "chr_dec_004",
+      "subject_id": "subj_001",
+      "timestamp": "2026-05-03T11:00:30Z",
+      "title": "Flag elevated distress — suppress proactive",
+      "rationale": "Risk monitor detected distress indicator with confidence 0.87. Suppressing all proactive initiatives until risk clears.",
+      "confidence": 0.95,
+      "validation_status": "validated",
+      "inputs": ["chr_evt_005"],
+      "outputs": ["chr_evt_006"],
+      "actor": "risk_monitor"
+    },
+    {
+      "decision_id": "chr_dec_005",
+      "subject_id": "subj_001",
+      "timestamp": "2026-05-04T10:20:00Z",
+      "title": "Update relational.openness facet to 0.72",
+      "rationale": "Check-in response shows increased openness (7/10 mood, verbosity indicators). Updating baseline facet with low confidence prior to validation.",
+      "confidence": 0.65,
+      "validation_status": "pending",
+      "inputs": ["chr_evt_007"],
+      "outputs": [],
+      "actor": "baseline_extractor"
+    },
+    {
+      "decision_id": "chr_dec_006",
+      "subject_id": "subj_001",
+      "timestamp": "2026-05-05T07:00:00Z",
+      "title": "Deliver daily check-in via telegram",
+      "rationale": "Daily check-in window open; risk flag resolved; subject is within active engagement window. Using telegram with text format.",
+      "confidence": 0.91,
+      "validation_status": "validated",
+      "inputs": ["chr_dec_004"],
+      "outputs": ["chr_evt_008"],
+      "actor": "delivery_scheduler"
+    }
+  ]
+}

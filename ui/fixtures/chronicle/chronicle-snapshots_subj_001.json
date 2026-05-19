@@ -1,0 +1,95 @@
+{
+  "subject_id": "subj_001",
+  "snapshots": [
+    {
+      "snapshot_id": "chr_snap_001",
+      "subject_id": "subj_001",
+      "timestamp": "2026-04-28T20:00:00Z",
+      "label": "Initial baseline",
+      "state": {
+        "baseline_version": "v1.0",
+        "psychological": {
+          "openness": 0.6,
+          "conscientiousness": 0.7,
+          "extraversion": 0.55
+        },
+        "interaction": {
+          "preferred_channel": "telegram",
+          "response_style": "reflective"
+        },
+        "active_cron_modes": ["daily_checkin"],
+        "risk_flags": []
+      },
+      "parent_snapshot_id": null,
+      "diff_summary": null
+    },
+    {
+      "snapshot_id": "chr_snap_002",
+      "subject_id": "subj_001",
+      "timestamp": "2026-05-01T08:30:00Z",
+      "label": "Post-ingest update",
+      "state": {
+        "baseline_version": "v1.1",
+        "psychological": {
+          "openness": 0.62,
+          "conscientiousness": 0.7,
+          "extraversion": 0.55
+        },
+        "interaction": {
+          "preferred_channel": "telegram",
+          "response_style": "reflective"
+        },
+        "active_cron_modes": ["daily_checkin", "weekly_synthesis"],
+        "risk_flags": []
+      },
+      "parent_snapshot_id": "chr_snap_001",
+      "diff_summary": "+weekly_synthesis cron, openness: 0.60→0.62"
+    },
+    {
+      "snapshot_id": "chr_snap_003",
+      "subject_id": "subj_001",
+      "timestamp": "2026-05-03T11:00:30Z",
+      "label": "Risk flag activated",
+      "state": {
+        "baseline_version": "v1.2",
+        "psychological": {
+          "openness": 0.62,
+          "conscientiousness": 0.7,
+          "extraversion": 0.55
+        },
+        "interaction": {
+          "preferred_channel": "telegram",
+          "response_style": "reflective"
+        },
+        "active_cron_modes": ["daily_checkin", "weekly_synthesis"],
+        "risk_flags": ["risk_elevated_distress_indicator"],
+        "proactive_suppressed": true
+      },
+      "parent_snapshot_id": "chr_snap_002",
+      "diff_summary": "+risk_flags[elevated_distress], proactive_suppressed: true"
+    },
+    {
+      "snapshot_id": "chr_snap_004",
+      "subject_id": "subj_001",
+      "timestamp": "2026-05-05T07:15:00Z",
+      "label": "Post-delivery final",
+      "state": {
+        "baseline_version": "v1.3",
+        "psychological": {
+          "openness": 0.72,
+          "conscientiousness": 0.7,
+          "extraversion": 0.58
+        },
+        "interaction": {
+          "preferred_channel": "telegram",
+          "response_style": "reflective"
+        },
+        "active_cron_modes": ["daily_checkin", "weekly_synthesis"],
+        "risk_flags": [],
+        "proactive_suppressed": false
+      },
+      "parent_snapshot_id": "chr_snap_003",
+      "diff_summary": "risk_flags cleared, openness: 0.62→0.72, extraversion: 0.55→0.58, proactive_suppressed: false"
+    }
+  ]
+}

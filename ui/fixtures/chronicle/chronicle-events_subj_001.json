@@ -1,0 +1,137 @@
+{
+  "subject_id": "subj_001",
+  "events": [
+    {
+      "event_id": "chr_evt_001",
+      "subject_id": "subj_001",
+      "timestamp": "2026-05-01T08:30:00Z",
+      "category": "ingest",
+      "severity": "info",
+      "sensitivity": "internal",
+      "actor": "hermes_checkin",
+      "summary": "Check-in response recorded",
+      "payload": {
+        "channel": "telegram",
+        "mood_score": 7,
+        "response_tokens": 142
+      },
+      "tags": ["checkin", "telegram"]
+    },
+    {
+      "event_id": "chr_evt_002",
+      "subject_id": "subj_001",
+      "timestamp": "2026-05-01T09:00:00Z",
+      "category": "synthesis",
+      "severity": "info",
+      "sensitivity": "internal",
+      "actor": "synthesis_cron",
+      "summary": "Weekly synthesis scheduled",
+      "payload": {
+        "trigger": "cron",
+        "window": "weekly",
+        "prior_snapshots": 3
+      },
+      "tags": ["synthesis", "scheduled"]
+    },
+    {
+      "event_id": "chr_evt_003",
+      "subject_id": "subj_001",
+      "timestamp": "2026-05-02T14:15:00Z",
+      "category": "decision",
+      "severity": "info",
+      "sensitivity": "confidential",
+      "actor": "proactive_scheduler",
+      "summary": "Proactive initiative triggered",
+      "payload": {
+        "initiative_type": "checkin",
+        "reason": "time-based",
+        "delay_seconds": 0
+      },
+      "tags": ["proactive", "initiative"]
+    },
+    {
+      "event_id": "chr_evt_004",
+      "subject_id": "subj_001",
+      "timestamp": "2026-05-03T08:45:00Z",
+      "category": "correction",
+      "severity": "warning",
+      "sensitivity": "internal",
+      "actor": null,
+      "summary": "User correction applied to synthesis",
+      "payload": {
+        "correction_type": "tone_adjustment",
+        "original_tone": "neutral",
+        "requested_tone": "gentler",
+        "affected_segments": 2
+      },
+      "tags": ["correction", "synthesis"]
+    },
+    {
+      "event_id": "chr_evt_005",
+      "subject_id": "subj_001",
+      "timestamp": "2026-05-03T11:00:00Z",
+      "category": "risk",
+      "severity": "error",
+      "sensitivity": "confidential",
+      "actor": "risk_monitor",
+      "summary": "Elevated distress indicator detected",
+      "payload": {
+        "indicator": "risk_elevated_distress_indicator",
+        "channel": "telegram",
+        "message_preview": "feeling really overwhelmed today",
+        "confidence": 0.87
+      },
+      "tags": ["risk", "distress"]
+    },
+    {
+      "event_id": "chr_evt_006",
+      "subject_id": "subj_001",
+      "timestamp": "2026-05-03T11:01:00Z",
+      "category": "boundary",
+      "severity": "info",
+      "sensitivity": "restricted",
+      "actor": "boundary_enforcer",
+      "summary": "Daily proactive limit reached",
+      "payload": {
+        "limit": 3,
+        "count": 3,
+        "reset_at": "2026-05-04T00:00:00Z"
+      },
+      "tags": ["boundary", "rate-limit"]
+    },
+    {
+      "event_id": "chr_evt_007",
+      "subject_id": "subj_001",
+      "timestamp": "2026-05-04T10:20:00Z",
+      "category": "model_update",
+      "severity": "debug",
+      "sensitivity": "internal",
+      "actor": "baseline_extractor",
+      "summary": "Baseline facet updated from check-in",
+      "payload": {
+        "facet": "relational.openness",
+        "previous_value": 0.65,
+        "new_value": 0.72,
+        "observation_source": "checkin"
+      },
+      "tags": ["baseline", "facet", "update"]
+    },
+    {
+      "event_id": "chr_evt_008",
+      "subject_id": "subj_001",
+      "timestamp": "2026-05-05T07:15:00Z",
+      "category": "delivery",
+      "severity": "info",
+      "sensitivity": "internal",
+      "actor": "delivery_scheduler",
+      "summary": "Daily check-in delivered",
+      "payload": {
+        "channel": "telegram",
+        "format": "text",
+        "scheduled_at": "2026-05-05T07:00:00Z",
+        "delivered_at": "2026-05-05T07:15:00Z"
+      },
+      "tags": ["delivery", "checkin"]
+    }
+  ]
+}

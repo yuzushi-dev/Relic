@@ -1,0 +1,93 @@
+{
+  "subject_id": "subj_001",
+  "edges": [
+    {
+      "edge_id": "prov_001",
+      "from_id": "chr_evt_001",
+      "to_id": "chr_dec_002",
+      "relation": "triggers",
+      "timestamp": "2026-05-01T08:30:00Z",
+      "metadata": {}
+    },
+    {
+      "edge_id": "prov_002",
+      "from_id": "chr_evt_002",
+      "to_id": "chr_dec_001",
+      "relation": "triggers",
+      "timestamp": "2026-05-01T09:00:00Z",
+      "metadata": {}
+    },
+    {
+      "edge_id": "prov_003",
+      "from_id": "chr_evt_004",
+      "to_id": "chr_dec_003",
+      "relation": "influences",
+      "timestamp": "2026-05-03T08:45:00Z",
+      "metadata": { "weight": 0.85 }
+    },
+    {
+      "edge_id": "prov_004",
+      "from_id": "chr_evt_005",
+      "to_id": "chr_dec_004",
+      "relation": "triggers",
+      "timestamp": "2026-05-03T11:00:00Z",
+      "metadata": {}
+    },
+    {
+      "edge_id": "prov_005",
+      "from_id": "chr_evt_007",
+      "to_id": "chr_dec_005",
+      "relation": "derives",
+      "timestamp": "2026-05-04T10:20:00Z",
+      "metadata": { "confidence": 0.65 }
+    },
+    {
+      "edge_id": "prov_006",
+      "from_id": "chr_dec_001",
+      "to_id": "chr_evt_002",
+      "relation": "produces",
+      "timestamp": "2026-05-02T09:00:00Z",
+      "metadata": {}
+    },
+    {
+      "edge_id": "prov_007",
+      "from_id": "chr_dec_002",
+      "to_id": "chr_evt_003",
+      "relation": "produces",
+      "timestamp": "2026-05-02T14:15:00Z",
+      "metadata": {}
+    },
+    {
+      "edge_id": "prov_008",
+      "from_id": "chr_dec_004",
+      "to_id": "chr_evt_006",
+      "relation": "produces",
+      "timestamp": "2026-05-03T11:00:30Z",
+      "metadata": {}
+    },
+    {
+      "edge_id": "prov_009",
+      "from_id": "chr_snap_001",
+      "to_id": "chr_snap_002",
+      "relation": "parent",
+      "timestamp": "2026-05-01T08:30:00Z",
+      "metadata": {}
+    },
+    {
+      "edge_id": "prov_010",
+      "from_id": "chr_snap_002",
+      "to_id": "chr_snap_003",
+      "relation": "parent",
+      "timestamp": "2026-05-03T11:00:30Z",
+      "metadata": {}
+    },
+    {
+      "edge_id": "prov_011",
+      "from_id": "chr_snap_003",
+      "to_id": "chr_snap_004",
+      "relation": "parent",
+      "timestamp": "2026-05-05T07:15:00Z",
+      "metadata": {}
+    }
+  ]
+}

@@ -8,6 +8,24 @@ import subjectBaselineFixture from "../fixtures/researcher-workbench/subject_bas
 import eventStreamFixture from "../fixtures/researcher-workbench/event_stream_subj_001.json";
 import subjectIntelligenceFixture from "../fixtures/researcher-workbench/subject_intelligence_subj_001.json";
 import gumiProfileFixture from "../fixtures/researcher-workbench/gumi_profile_subj_001.json";
+import chronicleEventsFixture from "../fixtures/chronicle/chronicle-events_subj_001.json";
+import chronicleDecisionsFixture from "../fixtures/chronicle/chronicle-decisions_subj_001.json";
+import chronicleSnapshotsFixture from "../fixtures/chronicle/chronicle-snapshots_subj_001.json";
+import chronicleStatsFixture from "../fixtures/chronicle/chronicle-stats_subj_001.json";
+import chronicleProvenanceFixture from "../fixtures/chronicle/chronicle-provenance_subj_001.json";
+import {
+  ChronicleEventSchema,
+  ChronicleDecisionSchema,
+  ChronicleSnapshotSchema,
+  ChronicleProvenanceEdgeSchema,
+  ChronicleStatsSchema,
+  ChronicleEvent,
+  ChronicleDecision,
+  ChronicleSnapshot,
+  ChronicleProvenanceEdge,
+  ChronicleStats,
+} from "./chronicle-schemas";
+import type { ChronicleEventFilters, ChronicleDecisionFilters, ChronicleSnapshotFilters } from "./chronicle-types";
 
 export type StudyOverview = typeof studyOverviewFixture;
 export type SubjectOverview = typeof subjectOverviewFixture;
@@ -15,6 +33,8 @@ export type SubjectBaseline = typeof subjectBaselineFixture;
 export type EventStream = typeof eventStreamFixture;
 export type SubjectIntelligenceData = typeof subjectIntelligenceFixture;
 export type SubjectRow = StudyOverview["subject_registry"][number];
+
+
 
 type LiveSubjectProfile = {
   subject_id: string;
@@ -837,4 +857,219 @@ export function getSubjectIntelligence(subjectId: string): SubjectIntelligenceDa
     })),
     artifacts,
   };
+}
+
+// ── Chronicle data-layer functions ───────────────────────────────────────────
+
+export interface ChronicleEventsResult {
+  events: ChronicleEvent[];
+  total: number;
+}
+
+export interface ChronicleDecisionsResult {
+  decisions: ChronicleDecision[];
+  total: number;
+}
+
+export interface ChronicleSnapshotsResult {
+  snapshots: ChronicleSnapshot[];
+  total: number;
+}
+
+export interface ChronicleProvenanceResult {
+  edges: ChronicleProvenanceEdge[];
+}
+
+function chronicleLiveEvents(subjectId: string, filters?: ChronicleEventFilters) {
+  const python = process.env.RELIC_PYTHON || "python3";
+  const args = [
+    "-m", "relic.chronicle.cli.main", "events",
+    "--subject", subjectId,
+    "--format", "jsonl",
+    "--no-audit",
+  ];
+  if (filters?.limit) { args.push("--limit", String(filters.limit)); }
+
+  try {
+    const out = execFileSync(python, args, {
+      encoding: "utf8",
+      env: { ...process.env },
+      timeout: 8000,
+      maxBuffer: 16 * 1024 * 1024,
+    });
+    return out.split("\n")
+      .filter(Boolean)
+      .flatMap((l: string) => { try { return [JSON.parse(l)]; } catch { return []; } })
+      .map((r: unknown) => ChronicleEventSchema.parse(r));
+  } catch (err) {
+    console.error("[chronicle] events query failed:", (err as Error).message?.slice(0, 200));
+    return [];
+  }
+}
+
+function chronicleLiveDecisions(subjectId: string, filters?: ChronicleDecisionFilters) {
+  const python = process.env.RELIC_PYTHON || "python3";
+  const args = [
+    "-m", "relic.chronicle.cli.main", "decisions",
+    "--subject", subjectId,
+    "--format", "jsonl",
+    "--no-audit",
+  ];
+  if (filters?.limit) { args.push("--limit", String(filters.limit)); }
+
+  try {
+    const out = execFileSync(python, args, {
+      encoding: "utf8",
+      env: { ...process.env },
+      timeout: 8000,
+      maxBuffer: 16 * 1024 * 1024,
+    });
+    return out.split("\n")
+      .filter(Boolean)
+      .flatMap((l: string) => { try { return [JSON.parse(l)]; } catch { return []; } })
+      .map((r: unknown) => ChronicleDecisionSchema.parse(r));
+  } catch (err) {
+    console.error("[chronicle] decisions query failed:", (err as Error).message?.slice(0, 200));
+    return [];
+  }
+}
+
+function chronicleLiveSnapshots(subjectId: string, filters?: ChronicleSnapshotFilters) {
+  const python = process.env.RELIC_PYTHON || "python3";
+  const args = [
+    "-m", "relic.chronicle.cli.main", "snapshots",
+    "--subject", subjectId,
+    "--format", "jsonl",
+    "--no-audit",
+  ];
+  if (filters?.limit) { args.push("--limit", String(filters.limit)); }
+
+  try {
+    const out = execFileSync(python, args, {
+      encoding: "utf8",
+      env: { ...process.env },
+      timeout: 8000,
+      maxBuffer: 16 * 1024 * 1024,
+    });
+    return out.split("\n")
+      .filter(Boolean)
+      .flatMap((l: string) => { try { return [JSON.parse(l)]; } catch { return []; } })
+      .map((r: unknown) => ChronicleSnapshotSchema.parse(r));
+  } catch (err) {
+    console.error("[chronicle] snapshots query failed:", (err as Error).message?.slice(0, 200));
+    return [];
+  }
+}
+
+function chronicleLiveStats(subjectId: string) {
+  const python = process.env.RELIC_PYTHON || "python3";
+  try {
+    const out = execFileSync(
+      python,
+      ["-m", "relic.chronicle.cli.main", "stats",
+       "--subject", subjectId,
+       "--format", "json",
+       "--no-audit"],
+      { encoding: "utf8", env: { ...process.env }, timeout: 8000 }
+    );
+    return ChronicleStatsSchema.parse(JSON.parse(out));
+  } catch (err) {
+    console.error("[chronicle] stats query failed:", (err as Error).message?.slice(0, 200));
+    return null;
+  }
+}
+
+function chronicleLiveProvenance(subjectId: string) {
+  const python = process.env.RELIC_PYTHON || "python3";
+  try {
+    const out = execFileSync(
+      python,
+      ["-m", "relic.chronicle.cli.main", "provenance",
+       "--subject", subjectId,
+       "--format", "json",
+       "--no-audit"],
+      { encoding: "utf8", env: { ...process.env }, timeout: 8000 }
+    );
+    const parsed = JSON.parse(out);
+    const edges = Array.isArray(parsed) ? parsed : (parsed.edges ?? []);
+    return { edges: edges.map((e: unknown) => ChronicleProvenanceEdgeSchema.parse(e)) };
+  } catch (err) {
+    console.error("[chronicle] provenance query failed:", (err as Error).message?.slice(0, 200));
+    return { edges: [] };
+  }
+}
+
+function applyEventFilters(events: ChronicleEvent[], filters?: ChronicleEventFilters) {
+  let result = events;
+  if (filters?.severity) result = result.filter((e) => e.severity === filters.severity);
+  if (filters?.category) result = result.filter((e) => e.category === filters.category);
+  if (filters?.sensitivity) result = result.filter((e) => e.sensitivity === filters.sensitivity);
+  if (filters?.from) result = result.filter((e) => e.timestamp >= filters.from!);
+  if (filters?.to) result = result.filter((e) => e.timestamp <= filters.to!);
+  if (filters?.limit) result = result.slice(0, filters.limit);
+  return result;
+}
+
+function applyDecisionFilters(decisions: ChronicleDecision[], filters?: ChronicleDecisionFilters) {
+  let result = decisions;
+  if (filters?.validation_status) result = result.filter((d) => d.validation_status === filters.validation_status);
+  if (filters?.min_confidence !== undefined) result = result.filter((d) => d.confidence >= filters.min_confidence!);
+  if (filters?.limit) result = result.slice(0, filters.limit);
+  return result;
+}
+
+function applySnapshotFilters(snapshots: ChronicleSnapshot[], filters?: ChronicleSnapshotFilters) {
+  let result = snapshots;
+  if (filters?.label) result = result.filter((s) => s.label?.toLowerCase().includes(filters.label!.toLowerCase()));
+  if (filters?.from) result = result.filter((s) => s.timestamp >= filters.from!);
+  if (filters?.to) result = result.filter((s) => s.timestamp <= filters.to!);
+  if (filters?.limit) result = result.slice(0, filters.limit);
+  return result;
+}
+
+export function chronicleEvents(subjectId: string, filters?: ChronicleEventFilters): ChronicleEventsResult {
+  if (getDataSource() === "live") {
+    const liveEvents = chronicleLiveEvents(subjectId, filters);
+    // Apply only non-limit client filters (limit already consumed by CLI)
+    const { limit: _limit, ...clientFilters } = filters ?? {};
+    const events = applyEventFilters(liveEvents, clientFilters);
+    return { events, total: events.length };
+  }
+  const events = (chronicleEventsFixture.events ?? []) as ChronicleEvent[];
+  const filtered = applyEventFilters(events, filters);
+  return { events: filtered, total: events.length };
+}
+
+export function chronicleDecisions(subjectId: string, filters?: ChronicleDecisionFilters): ChronicleDecisionsResult {
+  if (getDataSource() === "live") {
+    const liveDecisions = chronicleLiveDecisions(subjectId, filters);
+    const { limit: _limit, ...clientFilters } = filters ?? {};
+    const decisions = applyDecisionFilters(liveDecisions, clientFilters);
+    return { decisions, total: decisions.length };
+  }
+  const decisions = (chronicleDecisionsFixture.decisions ?? []) as ChronicleDecision[];
+  const filtered = applyDecisionFilters(decisions, filters);
+  return { decisions: filtered, total: decisions.length };
+}
+
+export function chronicleSnapshots(subjectId: string, filters?: ChronicleSnapshotFilters): ChronicleSnapshotsResult {
+  if (getDataSource() === "live") {
+    const liveSnapshots = chronicleLiveSnapshots(subjectId, filters);
+    const { limit: _limit, ...clientFilters } = filters ?? {};
+    const snapshots = applySnapshotFilters(liveSnapshots, clientFilters);
+    return { snapshots, total: snapshots.length };
+  }
+  const snapshots = (chronicleSnapshotsFixture.snapshots ?? []) as ChronicleSnapshot[];
+  const filtered = applySnapshotFilters(snapshots, filters);
+  return { snapshots: filtered, total: snapshots.length };
+}
+
+export function chronicleStats(subjectId: string): ChronicleStats | null {
+  if (getDataSource() === "live") return chronicleLiveStats(subjectId);
+  return chronicleStatsFixture as ChronicleStats;
+}
+
+export function chronicleProvenance(subjectId: string): ChronicleProvenanceResult {
+  if (getDataSource() === "live") return chronicleLiveProvenance(subjectId);
+  return { edges: (chronicleProvenanceFixture.edges ?? []) as ChronicleProvenanceEdge[] };
 }
