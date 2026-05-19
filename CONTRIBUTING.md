@@ -1,6 +1,6 @@
 # Contributing
 
-See [docs/contributing/](docs/contributing/index.md) for the full contributing guide.
+See [public-docs/contributing/](public-docs/contributing/index.md) for the full contributing guide.
 
 ## Pre-PR checklist
 

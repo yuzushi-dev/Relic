@@ -91,13 +91,13 @@ Gumi can take initiative inside the relationship: proactive messages, expressive
 
 | Section | Description |
 |---|---|
-| [Ethics](docs/ethics/index.md) | Behavioral constraints, data separation, consent, no clinicalization |
-| [Concepts](docs/concepts/longitudinal-modeling.md) | Longitudinal modeling, facet model, Relic vs. Gumi, provenance |
-| [Architecture](docs/architecture/pipeline.md) | Runtime pipeline, data model, privacy stages, artifact lifecycle |
-| [Guides](docs/guides/installation.md) | Installation, first subject, Hermes integration, eval, corrections |
-| [Reference](docs/reference/cli.md) | CLI, configuration, glossary, fixtures |
-| [Research](docs/research/theoretical-grounding.md) | Theoretical grounding, limitations, citing |
-| [Contributing](docs/contributing/index.md) | Dev setup, testing, contract tests, release status |
+| [Ethics](public-docs/ethics/index.md) | Behavioral constraints, data separation, consent, no clinicalization |
+| [Concepts](public-docs/concepts/longitudinal-modeling.md) | Longitudinal modeling, facet model, Relic vs. Gumi, provenance |
+| [Architecture](public-docs/architecture/pipeline.md) | Runtime pipeline, data model, privacy stages, artifact lifecycle |
+| [Guides](public-docs/guides/installation.md) | Installation, first subject, Hermes integration, eval, corrections |
+| [Reference](public-docs/reference/cli.md) | CLI, configuration, glossary, fixtures |
+| [Research](public-docs/research/theoretical-grounding.md) | Theoretical grounding, limitations, citing |
+| [Contributing](public-docs/contributing/index.md) | Dev setup, testing, contract tests, release status |
 
 Hosted at [yuzushi-dev.github.io/Relic](https://yuzushi-dev.github.io/Relic/).
 

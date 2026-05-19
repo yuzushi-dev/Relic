@@ -63,3 +63,9 @@ ui/out/
 
 # E2E test subjects (local data)
 subjects/*
+
+# Ephemeral agent outputs
+.agent-outs/
+
+# One-off agent prompts at repo root
+/cron-checkin-naturalness-spike-claude_prompt.md
