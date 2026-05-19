@@ -569,6 +569,7 @@ def _evaluate_decision(
     subject_id: str,
     gumi_instance_id: str,
     hermes_profile_id: str,
+    decision_type: str = "checkin",
 ) -> tuple[RuntimeDecision, list[RuntimeDecisionReason], Optional[dict]]:
     """Evaluate the runtime decision for a subject.
 
@@ -644,6 +645,21 @@ def emit_decision_event(
     gumi_instance_id: str,
     hermes_profile_id: str,
     target_id: Optional[str] = None,
+    *,
+    decision_type: Optional[str] = None,
+    event_kind: Optional[str] = None,
+    posture: Optional[str] = None,
+    features_id: Optional[int] = None,
+    non_response_streak: Optional[int] = None,
+    followup_non_response_streak: Optional[int] = None,
+    reach_score: Optional[float] = None,
+    response_deadline_at: Optional[str] = None,
+    cadence_decay_applied: Optional[bool] = None,
+    outcome_status: Optional[str] = None,
+    outcome_status_before: Optional[str] = None,
+    wake_agent_emitted: Optional[bool] = None,
+    message_hash: Optional[str] = None,
+    delivered: Optional[bool] = None,
 ) -> None:
     """Emit a DecisionEvent for audit purposes."""
     event = DecisionEvent(
@@ -654,10 +670,26 @@ def emit_decision_event(
         hermes_profile_id=hermes_profile_id,
         target_id=target_id,
         metadata={"source": "no_agent_cron"},
+        decision_type=decision_type,
+        event_kind=event_kind,
+        posture=posture,
+        features_id=features_id,
+        non_response_streak=non_response_streak,
+        followup_non_response_streak=followup_non_response_streak,
+        reach_score=reach_score,
+        response_deadline_at=response_deadline_at,
+        cadence_decay_applied=cadence_decay_applied,
+        outcome_status=outcome_status,
+        outcome_status_before=outcome_status_before,
+        wake_agent_emitted=wake_agent_emitted,
+        message_hash=message_hash,
+        delivered=delivered,
     )
 
-    # Write event to a log file for audit
-    event_log_path = Path("~/.relic/decision_events.jsonl").expanduser()
+    # Write event to RELIC_HOME-aware decision_events.jsonl (Plan §Task 1, Step 4).
+    from relic.paths import get_relic_home
+
+    event_log_path = get_relic_home() / "decision_events.jsonl"
     event_log_path.parent.mkdir(parents=True, exist_ok=True)
 
     with open(event_log_path, "a") as f:
@@ -666,6 +698,23 @@ def emit_decision_event(
     if _CHRONICLE:
         try:
             metadata = {"source": "no_agent_cron"}
+            payload = {
+                "decision": decision.value if hasattr(decision, "value") else str(decision),
+                "reason_codes": [r.value if hasattr(r, "value") else str(r) for r in reason_codes] if reason_codes else [],
+                "source": metadata.get("source", "no_agent_cron"),
+                "decision_type": decision_type,
+                "event_kind": event_kind,
+                "posture": posture,
+                "features_id": features_id,
+                "non_response_streak": non_response_streak,
+                "followup_non_response_streak": followup_non_response_streak,
+                "reach_score": reach_score,
+                "outcome_status": outcome_status,
+                "outcome_status_before": outcome_status_before,
+                "wake_agent_emitted": wake_agent_emitted,
+                "delivered": delivered,
+            }
+            payload = {k: v for k, v in payload.items() if v is not None}
             emit_event(
                 event_type="cron_decision",
                 event_category=EventCategory.DECISION,
@@ -673,11 +722,7 @@ def emit_decision_event(
                 subject_id=subject_id,
                 profile_id=hermes_profile_id,
                 hermes_profile_id=hermes_profile_id,
-                payload={
-                    "decision": decision.value if hasattr(decision, "value") else str(decision),
-                    "reason_codes": [r.value if hasattr(r, "value") else str(r) for r in reason_codes] if reason_codes else [],
-                    "source": metadata.get("source", "no_agent_cron"),
-                },
+                payload=payload,
             )
             emit_decision(
                 decision_kind="cron_evaluator",
@@ -696,6 +741,7 @@ def make_decision(
     gumi_instance_id: str,
     hermes_profile_id: str,
     force: bool = False,
+    decision_type: str = "checkin",
 ) -> tuple[RuntimeDecision, list[RuntimeDecisionReason], Optional[dict]]:
     """Make a runtime decision for the given subject.
 
@@ -737,7 +783,12 @@ def make_decision(
         if ask and ask_topic:
             msg += f"\nask: true\nask_topic: {ask_topic}"
         return RuntimeDecision.DELIVER, reasons, {"message": msg}
-    return _evaluate_decision(subject_id, gumi_instance_id, hermes_profile_id)
+    return _evaluate_decision(
+        subject_id,
+        gumi_instance_id,
+        hermes_profile_id,
+        decision_type=decision_type,
+    )
 
 
 def render_no_agent_script(script_path: Path) -> str:
@@ -754,11 +805,21 @@ def render_no_agent_script(script_path: Path) -> str:
     """
     import relic as _relic
     relic_root = str(Path(_relic.__file__).parent.parent)
+
+    # Derive decision_type default from script filename (Plan §Task 1, Step 3).
+    _name = script_path.name
+    if "_followup_" in _name:
+        default_decision_type = "followup"
+    elif "_proactivity_" in _name:
+        default_decision_type = "proactivity"
+    else:
+        default_decision_type = "checkin"
     return f'''#!/usr/bin/env bash
 # Hermes no-agent cron decision script for Relic
 # Generated by cron_wiring.py - do not edit manually
 #
 # Usage: {script_path.name} <subject_id> <gumi_instance_id> <hermes_profile_id>
+# Decision type default: {default_decision_type}
 #
 # Exit codes:
 #   0 - decision emitted successfully (NO_REPLY, CANDIDATE, or DELIVER)
@@ -785,8 +846,9 @@ fi
 # Call the Python decision logic via this inline script. Default to the
 # interpreter that generated the script so test/venv dependencies are preserved.
 FORCE_DELIVER="${{4:-}}"
+DECISION_TYPE="${{RELIC_DECISION_TYPE:-{default_decision_type}}}"
 RELIC_PYTHON="${{RELIC_PYTHON:-{sys.executable}}}"
-"$RELIC_PYTHON" - "$SUBJECT_ID" "$GUMI_INSTANCE_ID" "$HERMES_PROFILE_ID" "$FORCE_DELIVER" <<'PYTHON_EOF'
+"$RELIC_PYTHON" - "$SUBJECT_ID" "$GUMI_INSTANCE_ID" "$HERMES_PROFILE_ID" "$FORCE_DELIVER" "$DECISION_TYPE" <<'PYTHON_EOF'
 import json
 import os
 import sys
@@ -806,6 +868,7 @@ force = (
     (sys.argv[4].strip().lower() in ("--force", "force", "1", "true") if len(sys.argv) > 4 else False)
     or os.environ.get("RELIC_FORCE_CHECKIN", "").lower() in ("1", "true", "yes")
 )
+decision_type = (sys.argv[5].strip() if len(sys.argv) > 5 and sys.argv[5].strip() else "checkin")
 
 if not subject_id:
     print("ERROR: subject_id required", file=sys.stderr)
@@ -817,6 +880,7 @@ try:
         gumi_instance_id=gumi_instance_id,
         hermes_profile_id=hermes_profile_id,
         force=force,
+        decision_type=decision_type,
     )
 
     # Emit decision event for audit
@@ -826,6 +890,7 @@ try:
         subject_id=subject_id,
         gumi_instance_id=gumi_instance_id,
         hermes_profile_id=hermes_profile_id,
+        decision_type=decision_type,
     )
 
     if decision == RuntimeDecision.NO_REPLY:

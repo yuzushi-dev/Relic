@@ -353,6 +353,21 @@ class DecisionEvent:
     target_id: Optional[str] = None
     metadata: dict = field(default_factory=dict)
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    # Canonical naturalness fields (Plan §Task 1, Step 4).
+    decision_type: Optional[str] = None
+    event_kind: Optional[str] = None
+    posture: Optional[str] = None
+    features_id: Optional[int] = None
+    non_response_streak: Optional[int] = None
+    followup_non_response_streak: Optional[int] = None
+    reach_score: Optional[float] = None
+    response_deadline_at: Optional[str] = None
+    cadence_decay_applied: Optional[bool] = None
+    outcome_status: Optional[str] = None
+    outcome_status_before: Optional[str] = None
+    wake_agent_emitted: Optional[bool] = None
+    message_hash: Optional[str] = None
+    delivered: Optional[bool] = None
 
     def to_dict(self) -> dict:
         return {
@@ -364,6 +379,20 @@ class DecisionEvent:
             "target_id": self.target_id,
             "metadata": self.metadata,
             "created_at": self.created_at.isoformat(),
+            "decision_type": self.decision_type,
+            "event_kind": self.event_kind,
+            "posture": self.posture,
+            "features_id": self.features_id,
+            "non_response_streak": self.non_response_streak,
+            "followup_non_response_streak": self.followup_non_response_streak,
+            "reach_score": self.reach_score,
+            "response_deadline_at": self.response_deadline_at,
+            "cadence_decay_applied": self.cadence_decay_applied,
+            "outcome_status": self.outcome_status,
+            "outcome_status_before": self.outcome_status_before,
+            "wake_agent_emitted": self.wake_agent_emitted,
+            "message_hash": self.message_hash,
+            "delivered": self.delivered,
         }
 
     @classmethod
@@ -377,6 +406,20 @@ class DecisionEvent:
             target_id=data.get("target_id"),
             metadata=data.get("metadata", {}),
             created_at=datetime.fromisoformat(data["created_at"]),
+            decision_type=data.get("decision_type"),
+            event_kind=data.get("event_kind"),
+            posture=data.get("posture"),
+            features_id=data.get("features_id"),
+            non_response_streak=data.get("non_response_streak"),
+            followup_non_response_streak=data.get("followup_non_response_streak"),
+            reach_score=data.get("reach_score"),
+            response_deadline_at=data.get("response_deadline_at"),
+            cadence_decay_applied=data.get("cadence_decay_applied"),
+            outcome_status=data.get("outcome_status"),
+            outcome_status_before=data.get("outcome_status_before"),
+            wake_agent_emitted=data.get("wake_agent_emitted"),
+            message_hash=data.get("message_hash"),
+            delivered=data.get("delivered"),
         )
 
 

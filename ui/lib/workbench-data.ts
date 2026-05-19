@@ -57,6 +57,15 @@ function relicHome() {
   return process.env.RELIC_HOME || path.join(process.cwd(), ".relic-live");
 }
 
+// Mirrors relic/paths.py:get_relic_home() exactly. Use ONLY for the canonical
+// decision_events.jsonl reader (Plan §Task 1, Step 5). Other readers must keep
+// relicHome() so the .relic-live dev fallback still works.
+function relicHomeStrict() {
+  const env = (process.env.RELIC_HOME || "").trim();
+  if (env) return env;
+  return path.join(process.env.HOME || "", ".relic");
+}
+
 function hermesProfilesHome() {
   return process.env.HERMES_PROFILES_HOME || path.join(process.env.HOME || "", ".hermes", "profiles");
 }
@@ -117,7 +126,6 @@ function liveProfiles() {
 
 function readCronData(profile: LiveSubjectProfile): LiveCronData {
   const subjectHome = profile.relic_subject_home ?? "";
-  const hermesHome = profile.hermes_home ?? "";
 
   // Active cron families from install manifest written during bootstrap
   const cronManifest = subjectHome
@@ -125,18 +133,29 @@ function readCronData(profile: LiveSubjectProfile): LiveCronData {
     : null;
   const active_families = cronManifest?.families ?? [];
 
-  // Pending proactive: entries in checkin_decision_log.jsonl where decision is not [SILENT]
+  // Pending proactive (Plan §Task 1, Step 5): read canonical decision_events.jsonl
+  // under RELIC_HOME. Interim Task 1 semantics — count entries where
+  // decision === "DELIVER" and outcome_status !== "silent"; decision-type
+  // agnostic until Task 9 makes the proactive queue path the sole producer.
   let pending_proactive_count = 0;
   let last_initiative_at: string | null = null;
-  if (hermesHome) {
-    const logPath = path.join(hermesHome, "workspace", "gumi", "cron", "checkin_decision_log.jsonl");
-    type CheckinEntry = { status?: string; decision?: string; timestamp?: string; created_at?: string };
+  {
+    const logPath = path.join(relicHomeStrict(), "decision_events.jsonl");
+    type CheckinEntry = {
+      status?: string;
+      decision?: string;
+      timestamp?: string;
+      created_at?: string;
+      event_kind?: string;
+      posture?: string;
+      outcome_status?: string;
+      wake_agent_emitted?: boolean;
+      decision_type?: string;
+    };
     const entries = readJsonLines<CheckinEntry>(logPath);
     for (const entry of entries) {
       const isPending =
-        entry.status === "pending_review" ||
-        entry.status === "warranted" ||
-        (entry.decision && entry.decision !== "[SILENT]" && entry.decision !== "silent");
+        entry.decision === "DELIVER" && entry.outcome_status !== "silent";
       if (isPending) pending_proactive_count++;
       const ts = entry.timestamp ?? entry.created_at ?? null;
       if (ts && (!last_initiative_at || ts > last_initiative_at)) last_initiative_at = ts;
