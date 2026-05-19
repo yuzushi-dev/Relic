@@ -66,7 +66,7 @@ def _offer_existing_key(
     items = list(candidates.items())
     print(f"\n  Chiavi {label} già configurate per altri soggetti:", file=io_out)
     for i, (k, v) in enumerate(items, 1):
-        masked = v[:8] + "..." if len(v) > 8 else v
+        masked = f"...{v[-4:]}" if len(v) > 8 else "***"
         print(f"    {i}. {k} = {masked}", file=io_out)
     print(f"    0. Inserisci nuova chiave", file=io_out)
     print(f"  Scelta (0-{len(items)}): ", end="", flush=True, file=io_out)
