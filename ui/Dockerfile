@@ -21,6 +21,9 @@ ENV NODE_ENV=production
 ENV PORT=4143
 ENV HOSTNAME=0.0.0.0
 
+RUN apk add --no-cache python3 py3-pip py3-yaml py3-pydantic py3-jsonschema && \
+    pip3 install --no-cache-dir --break-system-packages structlog
+
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 

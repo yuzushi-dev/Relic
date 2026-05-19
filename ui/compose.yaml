@@ -20,9 +20,12 @@ services:
       RELIC_UI_DATA_SOURCE: live
       RELIC_HOME: /data/relic
       HERMES_PROFILES_HOME: /data/hermes/profiles
+      RELIC_PYTHON: python3
+      PYTHONPATH: /app/relic_src
     ports:
       - "4144:4144"
     volumes:
       - ${RELIC_HOME:-$HOME/.relic}:/data/relic:ro
       - ${HERMES_PROFILES_HOME:-$HOME/.hermes/profiles}:/data/hermes/profiles:ro
+      - ..:/app/relic_src:ro
     restart: unless-stopped

@@ -72,6 +72,7 @@ export default async function SubjectPage({ params }: { params: Promise<{ subjec
             <Link href={`/workbench/subjects/${d.subject_id}/baseline`} className="filter-btn" style={{ textDecoration: "none" }}>Baseline Profile</Link>
             <Link href={`/workbench/subjects/${d.subject_id}/timeline`} className="filter-btn" style={{ textDecoration: "none" }}>Event Timeline</Link>
             <Link href={`/workbench/subjects/${d.subject_id}/gumi` as any} className="filter-btn" style={{ textDecoration: "none" }}>Gumi Profile</Link>
+            <Link href={`/workbench/subjects/${d.subject_id}/chronicle` as any} className="filter-btn" style={{ textDecoration: "none" }}>Chronicle</Link>
           </div>
         </div>
       </div>

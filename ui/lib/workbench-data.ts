@@ -880,10 +880,74 @@ export interface ChronicleProvenanceResult {
   edges: ChronicleProvenanceEdge[];
 }
 
+function tryJSON<T = unknown>(s: unknown, fallback: T): T {
+  if (typeof s !== "string") return (s as T) ?? fallback;
+  try { return JSON.parse(s) as T; } catch { return fallback; }
+}
+
+function normalizeLiveEvent(r: Record<string, unknown>): ChronicleEvent {
+  const payload = tryJSON<Record<string, unknown>>(r.payload, {});
+  const tagsRaw = tryJSON<unknown>(r.tags, []);
+  const tags = Array.isArray(tagsRaw) ? tagsRaw.map(String) : [];
+  const eventType = String(r.event_type ?? "");
+  const summaryBits: string[] = [];
+  if (eventType) summaryBits.push(eventType);
+  const payloadPreview = Object.entries(payload).slice(0, 2)
+    .map(([k, v]) => `${k}=${typeof v === "string" ? v : JSON.stringify(v)}`).join(", ");
+  if (payloadPreview) summaryBits.push(payloadPreview);
+  return {
+    event_id: String(r.event_id ?? ""),
+    subject_id: String(r.subject_id ?? ""),
+    timestamp: String(r.timestamp ?? ""),
+    category: String(r.event_category ?? r.category ?? "unknown"),
+    severity: ChronicleEventSchema.shape.severity.parse(r.severity ?? "info") as ChronicleEvent["severity"],
+    sensitivity: ChronicleEventSchema.shape.sensitivity.parse(r.sensitivity ?? "internal") as ChronicleEvent["sensitivity"],
+    actor: (r.actor_id as string) ?? (r.source_module as string) ?? null,
+    summary: summaryBits.join(" · ") || eventType || "event",
+    payload,
+    tags,
+  };
+}
+
+function normalizeLiveDecision(r: Record<string, unknown>): ChronicleDecision {
+  const inputs = tryJSON<unknown>(r.observable_inputs, {});
+  const outputs = tryJSON<unknown>(r.observable_outputs, {});
+  const inputArr = Array.isArray(inputs) ? inputs.map(String)
+    : (inputs && typeof inputs === "object") ? Object.keys(inputs as object) : [];
+  const outputArr = Array.isArray(outputs) ? outputs.map(String)
+    : (outputs && typeof outputs === "object") ? Object.keys(outputs as object) : [];
+  const conf = r.confidence;
+  return {
+    decision_id: String(r.decision_id ?? ""),
+    subject_id: String(r.subject_id ?? ""),
+    timestamp: String(r.timestamp ?? ""),
+    title: String(r.decision_kind ?? "decision"),
+    rationale: String(r.rationale_summary ?? ""),
+    confidence: typeof conf === "number" ? conf : 0,
+    validation_status: ChronicleDecisionSchema.shape.validation_status.parse(r.validation_status ?? "pending") as ChronicleDecision["validation_status"],
+    inputs: inputArr,
+    outputs: outputArr,
+    actor: (r.actor_id as string) ?? null,
+  };
+}
+
+function normalizeLiveSnapshot(r: Record<string, unknown>): ChronicleSnapshot {
+  const state = tryJSON<Record<string, unknown>>(r.state ?? r.payload, {});
+  return {
+    snapshot_id: String(r.snapshot_id ?? r.event_id ?? ""),
+    subject_id: String(r.subject_id ?? ""),
+    timestamp: String(r.timestamp ?? ""),
+    label: (r.snapshot_type as string) ?? (r.label as string) ?? null,
+    state,
+    parent_snapshot_id: (r.parent_snapshot_id as string) ?? null,
+    diff_summary: (r.diff_summary as string) ?? null,
+  };
+}
+
 function chronicleLiveEvents(subjectId: string, filters?: ChronicleEventFilters) {
   const python = process.env.RELIC_PYTHON || "python3";
   const args = [
-    "-m", "relic.chronicle.cli.main", "events",
+    "-m", "relic.chronicle.cli.main", "query",
     "--subject", subjectId,
     "--format", "jsonl",
     "--no-audit",
@@ -899,8 +963,8 @@ function chronicleLiveEvents(subjectId: string, filters?: ChronicleEventFilters)
     });
     return out.split("\n")
       .filter(Boolean)
-      .flatMap((l: string) => { try { return [JSON.parse(l)]; } catch { return []; } })
-      .map((r: unknown) => ChronicleEventSchema.parse(r));
+      .flatMap((l: string) => { try { return [JSON.parse(l) as Record<string, unknown>]; } catch { return []; } })
+      .map(normalizeLiveEvent);
   } catch (err) {
     console.error("[chronicle] events query failed:", (err as Error).message?.slice(0, 200));
     return [];
@@ -910,10 +974,9 @@ function chronicleLiveEvents(subjectId: string, filters?: ChronicleEventFilters)
 function chronicleLiveDecisions(subjectId: string, filters?: ChronicleDecisionFilters) {
   const python = process.env.RELIC_PYTHON || "python3";
   const args = [
-    "-m", "relic.chronicle.cli.main", "decisions",
+    "-m", "relic.chronicle.cli.main", "decision",
     "--subject", subjectId,
-    "--format", "jsonl",
-    "--no-audit",
+    "--format", "json",
   ];
   if (filters?.limit) { args.push("--limit", String(filters.limit)); }
 
@@ -924,10 +987,9 @@ function chronicleLiveDecisions(subjectId: string, filters?: ChronicleDecisionFi
       timeout: 8000,
       maxBuffer: 16 * 1024 * 1024,
     });
-    return out.split("\n")
-      .filter(Boolean)
-      .flatMap((l: string) => { try { return [JSON.parse(l)]; } catch { return []; } })
-      .map((r: unknown) => ChronicleDecisionSchema.parse(r));
+    const parsed = JSON.parse(out);
+    const arr: Record<string, unknown>[] = Array.isArray(parsed) ? parsed : [];
+    return arr.map(normalizeLiveDecision);
   } catch (err) {
     console.error("[chronicle] decisions query failed:", (err as Error).message?.slice(0, 200));
     return [];
@@ -937,10 +999,9 @@ function chronicleLiveDecisions(subjectId: string, filters?: ChronicleDecisionFi
 function chronicleLiveSnapshots(subjectId: string, filters?: ChronicleSnapshotFilters) {
   const python = process.env.RELIC_PYTHON || "python3";
   const args = [
-    "-m", "relic.chronicle.cli.main", "snapshots",
+    "-m", "relic.chronicle.cli.main", "snapshot",
     "--subject", subjectId,
-    "--format", "jsonl",
-    "--no-audit",
+    "--format", "json",
   ];
   if (filters?.limit) { args.push("--limit", String(filters.limit)); }
 
@@ -951,28 +1012,53 @@ function chronicleLiveSnapshots(subjectId: string, filters?: ChronicleSnapshotFi
       timeout: 8000,
       maxBuffer: 16 * 1024 * 1024,
     });
-    return out.split("\n")
-      .filter(Boolean)
-      .flatMap((l: string) => { try { return [JSON.parse(l)]; } catch { return []; } })
-      .map((r: unknown) => ChronicleSnapshotSchema.parse(r));
+    const parsed = JSON.parse(out);
+    const arr: Record<string, unknown>[] = Array.isArray(parsed) ? parsed : [];
+    return arr.map(normalizeLiveSnapshot);
   } catch (err) {
     console.error("[chronicle] snapshots query failed:", (err as Error).message?.slice(0, 200));
     return [];
   }
 }
 
-function chronicleLiveStats(subjectId: string) {
+function chronicleLiveStats(subjectId: string): ChronicleStats | null {
   const python = process.env.RELIC_PYTHON || "python3";
   try {
     const out = execFileSync(
       python,
       ["-m", "relic.chronicle.cli.main", "stats",
        "--subject", subjectId,
-       "--format", "json",
-       "--no-audit"],
+       "--format", "json"],
       { encoding: "utf8", env: { ...process.env }, timeout: 8000 }
     );
-    return ChronicleStatsSchema.parse(JSON.parse(out));
+    const raw = JSON.parse(out) as Record<string, unknown>;
+    const arrToRec = (key: string, valKey: string): Record<string, number> => {
+      const arr = raw[key];
+      if (!Array.isArray(arr)) return {};
+      const rec: Record<string, number> = {};
+      for (const item of arr as Array<Record<string, unknown>>) {
+        const k = String(item[valKey] ?? "");
+        const v = Number(item.count ?? 0);
+        if (k) rec[k] = v;
+      }
+      return rec;
+    };
+    const by_event_type = arrToRec("by_event_type", "type");
+    const by_severity = arrToRec("by_severity", "severity");
+    const by_sensitivity = arrToRec("by_sensitivity", "sensitivity");
+    const totalEvents = Object.values(by_event_type).reduce((a, b) => a + b, 0)
+      || Number(raw.total_events ?? 0);
+    return {
+      subject_id: subjectId,
+      total_events: totalEvents,
+      total_decisions: Number(raw.total_decisions ?? 0),
+      total_snapshots: Number(raw.total_snapshots ?? 0),
+      by_category: by_event_type,
+      by_severity,
+      by_sensitivity,
+      first_event_at: (raw.first_event_at as string) ?? null,
+      last_event_at: (raw.last_event_at as string) ?? null,
+    };
   } catch (err) {
     console.error("[chronicle] stats query failed:", (err as Error).message?.slice(0, 200));
     return null;

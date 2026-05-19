@@ -1,8 +1,8 @@
 import { z } from "zod";
 
-export const ChronicleSeverity = z.enum(["debug", "info", "warning", "error", "critical"]);
-export const ChronicleSensitivity = z.enum(["public", "internal", "confidential", "restricted"]);
-export const ChronicleValidationStatus = z.enum(["pending", "validated", "rejected", "superseded"]);
+export const ChronicleSeverity = z.enum(["debug", "info", "warning", "error", "critical"]).catch("info");
+export const ChronicleSensitivity = z.enum(["public", "internal", "confidential", "restricted", "safe", "researcher"]).catch("internal");
+export const ChronicleValidationStatus = z.enum(["pending", "validated", "rejected", "superseded"]).catch("pending");
 
 export const ChronicleEventSchema = z.object({
   event_id: z.string(),
@@ -69,7 +69,7 @@ export interface ChronicleEvent {
   timestamp: string;
   category: string;
   severity: "debug" | "info" | "warning" | "error" | "critical";
-  sensitivity: "public" | "internal" | "confidential" | "restricted";
+  sensitivity: "public" | "internal" | "confidential" | "restricted" | "safe" | "researcher";
   actor?: string | null;
   summary: string;
   payload: Record<string, unknown>;

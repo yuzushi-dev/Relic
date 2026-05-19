@@ -31,6 +31,7 @@ export function WorkbenchShell({
     { href: `/workbench/subjects/${firstSubjectId}` as Route, label: "Subject Overview" },
     { href: `/workbench/subjects/${firstSubjectId}/baseline` as Route, label: "Baseline Profile" },
     { href: `/workbench/subjects/${firstSubjectId}/timeline` as Route, label: "Event Timeline" },
+    { href: `/workbench/subjects/${firstSubjectId}/chronicle` as Route, label: "Chronicle" },
   ];
 
   const validationDate = useMemo(() => {

@@ -55,11 +55,16 @@ relic.db
 ui/.next/
 ui/node_modules/
 ui/out/
+ui/test-results/
+ui/tsconfig.tsbuildinfo
 
 # Orchestration / internal tooling (not for publication)
 /.agents/
 /.claude/
 /skills/
+
+# Internal docs (only public-docs/ is published)
+/docs/
 
 # E2E test subjects (local data)
 subjects/*
