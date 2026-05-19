@@ -61,7 +61,32 @@ CREATE TABLE IF NOT EXISTS checkin_exchanges (
     observations_extracted INTEGER DEFAULT 0,
     asked_at TEXT NOT NULL,
     message_id TEXT,
-    followup_sent_at TEXT
+    followup_sent_at TEXT,
+    posture TEXT,
+    response_latency_seconds INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS checkin_features (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    subject_id      TEXT NOT NULL,
+    tick_id         TEXT NOT NULL,
+    features_json   TEXT NOT NULL,
+    posture         TEXT NOT NULL,
+    created_at      TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS checkin_cadence_state (
+    subject_id                    TEXT PRIMARY KEY,
+    non_response_streak           INTEGER NOT NULL DEFAULT 0,
+    followup_non_response_streak  INTEGER NOT NULL DEFAULT 0,
+    last_delivered_initiative_at  TEXT,
+    last_unanswered_delivery_at   TEXT,
+    last_reply_at                 TEXT,
+    last_subject_msg_at           TEXT,
+    last_boundary_at              TEXT,
+    last_decay_at                 TEXT,
+    frequency_cap_per_day         INTEGER,
+    updated_at                    TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS hypotheses (
@@ -95,6 +120,7 @@ CREATE TABLE IF NOT EXISTS model_snapshots (
     snapshot_data TEXT
 );
 
+CREATE INDEX IF NOT EXISTS idx_cf_subject_tick ON checkin_features(subject_id, tick_id);
 CREATE INDEX IF NOT EXISTS idx_observations_facet ON observations(facet_id);
 CREATE INDEX IF NOT EXISTS idx_observations_source ON observations(source_type);
 CREATE INDEX IF NOT EXISTS idx_inbox_processed ON inbox(processed);

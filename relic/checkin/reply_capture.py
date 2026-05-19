@@ -81,7 +81,7 @@ def capture_reply_if_pending(
         conn = sqlite3.connect(str(db_path), timeout=5.0)
         try:
             row = conn.execute(
-                """SELECT id FROM checkin_exchanges
+                """SELECT id, asked_at FROM checkin_exchanges
                    WHERE reply_text IS NULL
                      AND facet_id IS NOT NULL
                      AND asked_at >= ?
@@ -92,17 +92,21 @@ def capture_reply_if_pending(
             if row is None:
                 return False
 
-            exchange_id = row[0]
+            exchange_id, asked_at_raw = row[0], row[1]
+            latency_seconds = _compute_latency_seconds(asked_at_raw, now)
             stored_text = (user_msg[:1999] + "…") if len(user_msg) > 2000 else user_msg
             cur = conn.execute(
                 """UPDATE checkin_exchanges
-                   SET reply_text = ?, reply_captured_at = ?
+                   SET reply_text = ?,
+                       reply_captured_at = ?,
+                       response_latency_seconds = ?
                    WHERE id = ? AND reply_text IS NULL""",
-                (stored_text, now.isoformat(), exchange_id),
+                (stored_text, now.isoformat(), latency_seconds, exchange_id),
             )
             conn.commit()
             if cur.rowcount == 0:
                 return False  # lost the race — another writer filled it first
+            _reset_cadence_after_reply(conn, subject_id, now)
             logger.info(
                 "capture_reply_if_pending: captured reply for exchange %d subject=%s",
                 exchange_id, subject_id,
@@ -113,3 +117,52 @@ def capture_reply_if_pending(
     except Exception:
         logger.warning("capture_reply_if_pending: DB error (non-fatal)", exc_info=True)
         return False
+
+
+def _compute_latency_seconds(asked_at_raw: str | None, reply_at: datetime) -> int | None:
+    """Return integer seconds between asked_at and reply_at, NULL on malformed input."""
+    if not asked_at_raw:
+        return None
+    try:
+        asked_at = datetime.fromisoformat(asked_at_raw)
+    except (TypeError, ValueError):
+        return None
+    if asked_at.tzinfo is None:
+        return None
+    try:
+        asked_at = asked_at.astimezone(timezone.utc)
+        reply_at_utc = reply_at.astimezone(timezone.utc)
+    except (TypeError, ValueError):
+        return None
+    delta = (reply_at_utc - asked_at).total_seconds()
+    if delta < 0:
+        return None
+    return int(delta)
+
+
+def _reset_cadence_after_reply(
+    conn: sqlite3.Connection,
+    subject_id: str,
+    reply_at: datetime,
+) -> None:
+    """Reset cadence streaks via the reconcile_cadence_outcome contract."""
+    try:
+        from relic.checkin.features import (
+            CadenceState,
+            load_cadence_state,
+            reconcile_cadence_outcome,
+            save_cadence_state,
+        )
+    except Exception:
+        return
+
+    try:
+        state: CadenceState = load_cadence_state(conn, subject_id)
+        new_state = reconcile_cadence_outcome(
+            state,
+            {"outcome_status": "answered", "now": reply_at},
+        )
+        save_cadence_state(conn, new_state)
+        conn.commit()
+    except Exception:
+        logger.debug("_reset_cadence_after_reply: non-fatal", exc_info=True)
