@@ -1230,7 +1230,16 @@ def provision_for_subject(
         scripts_base = Path("~/.hermes/scripts").expanduser() / subject_id
     scripts_base.mkdir(parents=True, exist_ok=True)
 
-    decision_types = ["checkin", "followup", "proactivity"]
+    # Plan §Task 9: when the proactive queue lane is enabled, the legacy
+    # relic_proactivity_decision.sh script is omitted so exactly one
+    # proactivity producer exists per subject.
+    proactive_queue_enabled = os.environ.get(
+        "RELIC_PROACTIVE_QUEUE_ENABLED", ""
+    ).strip().lower() in ("1", "true", "yes")
+    if proactive_queue_enabled:
+        decision_types = ["checkin", "followup"]
+    else:
+        decision_types = ["checkin", "followup", "proactivity"]
     scripts: dict[str, Path] = {}
     hermes_commands: list[str] = []
 

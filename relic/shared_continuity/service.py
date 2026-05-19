@@ -30,6 +30,22 @@ class FollowupStatus(str, Enum):
     EXPIRED = "expired"
 
 
+RUNTIME_RECALL_SOURCE_TYPES = {
+    "user_confirmed",
+    "subject_confirmed",
+    "subject_requested",
+    "subject_corrected",
+    "hindsight",
+    "diary_entry",
+}
+
+FORBIDDEN_RUNTIME_SOURCE_TYPES = {
+    "hindsight_safety_signal",
+    "researcher_only_note",
+    "sensitive_signal",
+}
+
+
 @dataclass
 class ContinuityMarker:
     marker_id: str
@@ -640,6 +656,12 @@ class ContinuityService:
             if not marker.subject_confirmation:
                 continue  # BLOCKED_UNCONFIRMED_MARKER_RECALLED
 
+            if marker.source_type in FORBIDDEN_RUNTIME_SOURCE_TYPES:
+                continue
+
+            if marker.source_type not in RUNTIME_RECALL_SOURCE_TYPES:
+                continue
+
             # Exclude candidates pending confirmation
             if marker.candidate_for_confirmation:
                 continue  # BLOCKED_BROAD_MEMORY_CANDIDATE_NOT_IN_GUMI_CONTEXT
@@ -778,3 +800,85 @@ _service = ContinuityService()
 def get_continuity_service() -> ContinuityService:
     """Get the global continuity service instance."""
     return _service
+
+
+# ---------------------------------------------------------------------------
+# Proactive queue producer (Plan §Task 9)
+# ---------------------------------------------------------------------------
+
+
+def _proactive_queue_path(subject_id: str, relic_home: Optional[str] = None):
+    """Return the per-subject proactive queue JSONL path.
+
+    Lazily imported so this module stays cheap to load.
+    """
+    import os
+    from pathlib import Path as _Path
+
+    home = _Path(relic_home or os.environ.get("RELIC_HOME") or _Path.home() / ".relic")
+    return home / "subjects" / subject_id / "proactive_queue.jsonl"
+
+
+def enqueue_proactive_candidate(
+    *,
+    subject_id: str,
+    signal_ref: str,
+    suggested_posture: str = "brief_share",
+    priority: float = 0.5,
+    expires_at: Optional[str] = None,
+    dedupe_key: Optional[str] = None,
+    relic_home: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Append a ProactiveCandidate record to the per-subject queue.
+
+    Spike §11.3 shape:
+        {"id": "...", "signal_ref": "...", "suggested_posture": "...",
+         "expires_at": "...", "priority": 0.6, "enqueued_at": "...",
+         "dedupe_key": "..."}
+
+    Dedupe: when ``dedupe_key`` is provided and matches an unconsumed entry,
+    the existing entry is returned and no new row is appended.
+    Returns the candidate dict that now lives at the head of the queue.
+    """
+    import json as _json
+    import uuid as _uuid
+    from datetime import datetime as _dt, timezone as _tz
+
+    path = _proactive_queue_path(subject_id, relic_home)
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    now = _dt.now(_tz.utc)
+    candidate: Dict[str, Any] = {
+        "id": f"pc-{_uuid.uuid4().hex[:12]}",
+        "subject_id": subject_id,
+        "signal_ref": signal_ref,
+        "suggested_posture": suggested_posture,
+        "priority": float(priority),
+        "expires_at": expires_at,
+        "enqueued_at": now.isoformat(),
+        "dedupe_key": dedupe_key,
+    }
+
+    existing: list[Dict[str, Any]] = []
+    if path.exists():
+        try:
+            with open(path, "r", encoding="utf-8") as fh:
+                for line in fh:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        existing.append(_json.loads(line))
+                    except _json.JSONDecodeError:
+                        continue
+        except OSError:
+            existing = []
+
+    if dedupe_key:
+        for row in existing:
+            if row.get("dedupe_key") == dedupe_key and not row.get("consumed_at"):
+                return row
+
+    with open(path, "a", encoding="utf-8") as fh:
+        fh.write(_json.dumps(candidate) + "\n")
+    return candidate
