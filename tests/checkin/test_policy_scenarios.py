@@ -116,6 +116,25 @@ def test_scenario_ask_when_topic_fresh_and_facet_ready():
     assert d.posture is Posture.ASK
 
 
+def test_observe_scenario_emits_constraint_header():
+    from relic.checkin.policy import apply_constraint_header
+
+    f = CheckinFeatures(reach_score=1.0, time_since_last_subject_msg_sec=3600)
+    decision = select_decision(f, decision_type="checkin", policy_enabled=True)
+    out = apply_constraint_header("DELIVER\ntipo: text", decision)
+    assert "[EVENTO: checkin]" in out
+    assert "[POSTURA: observe]" in out
+
+
+def test_silent_scenario_emits_no_header():
+    from relic.checkin.policy import apply_constraint_header
+
+    f = CheckinFeatures(risk_flag_active=True)
+    decision = select_decision(f, decision_type="checkin", policy_enabled=True)
+    out = apply_constraint_header("DELIVER\ntipo: text", decision)
+    assert "[EVENTO:" not in out
+
+
 def test_scenario_ask_blocked_when_last_posture_was_ask():
     f = CheckinFeatures(
         reach_score=1.0,

@@ -82,6 +82,95 @@ class Decision:
     constraints: dict = field(default_factory=dict)
 
 
+_POSTURE_MAX_SENTENCES: dict[Posture, int] = {
+    Posture.QUIET: 0,
+    Posture.OBSERVE: 1,
+    Posture.BRIEF_SHARE: 2,
+    Posture.ASK: 2,
+    Posture.FOLLOW_UP_WARM: 3,
+    Posture.FOLLOW_UP_TERSE: 2,
+    Posture.REFLECTIVE_MIRROR: 2,
+    Posture.SMALL_SHARE: 1,
+    Posture.REPAIR: 2,
+}
+
+_POSTURES_WITH_QUESTION = {Posture.ASK}
+
+
+def posture_max_sentences(posture: Posture) -> int:
+    return _POSTURE_MAX_SENTENCES.get(posture, 2)
+
+
+def posture_requires_question(posture: Posture) -> bool:
+    return posture in _POSTURES_WITH_QUESTION
+
+
+def render_constraint_header(
+    event_type: EventType | str,
+    posture: Posture | str,
+    *,
+    max_sentences: Optional[int] = None,
+    with_question: Optional[bool] = None,
+    grounding: Optional[str] = None,
+) -> str:
+    """Return the deterministic ``[EVENTO:][POSTURA:][VINCOLI:][GROUNDING:]`` header.
+
+    Spike §10.1. Single source of truth for what the composer LLM sees as
+    behavioural constraints — both posture and per-posture sentence cap.
+    Returns an empty string for silent events so the caller can no-op.
+    """
+    if isinstance(event_type, EventType):
+        ev = event_type.value
+    else:
+        ev = str(event_type or "")
+    if isinstance(posture, Posture):
+        ps = posture
+        ps_str = posture.value
+    else:
+        ps_str = str(posture or "")
+        try:
+            ps = Posture(ps_str)
+        except ValueError:
+            ps = Posture.QUIET
+
+    if ev == EventType.SILENT.value or ps_str == Posture.QUIET.value:
+        return ""
+
+    if max_sentences is None:
+        max_sentences = posture_max_sentences(ps)
+    if with_question is None:
+        with_question = posture_requires_question(ps)
+
+    domanda = "con domanda" if with_question else "senza domanda"
+    lines = [
+        f"[EVENTO: {ev}]",
+        f"[POSTURA: {ps_str}]",
+        f"[VINCOLI: max {max_sentences} frasi; {domanda}]",
+    ]
+    if grounding:
+        grounding = grounding.replace("\n", " ").strip()
+        if grounding:
+            lines.append(f"[GROUNDING: {grounding[:200]}]")
+    return "\n".join(lines) + "\n"
+
+
+def apply_constraint_header(
+    message: str,
+    decision: Decision,
+    *,
+    grounding: Optional[str] = None,
+) -> str:
+    """Prepend the constraint header to ``message`` for non-silent decisions."""
+    header = render_constraint_header(
+        decision.event_type,
+        decision.posture,
+        grounding=grounding,
+    )
+    if not header:
+        return message
+    return f"{header}{message}"
+
+
 REACH_THRESHOLD = 0.35
 PROACTIVE_SALIENCE_THRESHOLD = 0.6
 REFLECT_THRESHOLD = 0.8
