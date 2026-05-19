@@ -210,17 +210,15 @@ def _collect_escalation_contacts(io_in: TextIO, io_out: TextIO) -> list:
             io_out.flush()
             continue
 
-        io_out.write("Contact method (email | telegram | sms) [default: email]: ")
+        io_out.write("Email address for safety alerts: ")
         io_out.flush()
-        method = io_in.readline().strip().lower() or "email"
-        if method not in ("email", "telegram", "sms"):
-            method = "email"
+        email_value = io_in.readline().strip()
 
-        io_out.write(f"Contact value (e.g. researcher@uni.it or @username): ")
+        io_out.write("Telegram chat id or @username for safety alerts: ")
         io_out.flush()
-        value = io_in.readline().strip()
-        if not value:
-            io_out.write("Contact value required. Skipping.\n")
+        telegram_value = io_in.readline().strip()
+        if not email_value or not telegram_value:
+            io_out.write("Both email and Telegram are required. Skipping.\n")
             io_out.flush()
             continue
 
@@ -232,12 +230,20 @@ def _collect_escalation_contacts(io_in: TextIO, io_out: TextIO) -> list:
         if not notify_on:
             notify_on = ["all"]
 
-        contacts.append({
-            "name": name,
-            "method": method,
-            "value": value,
-            "notify_on": notify_on,
-        })
+        contacts.extend([
+            {
+                "name": name,
+                "method": "email",
+                "value": email_value,
+                "notify_on": notify_on,
+            },
+            {
+                "name": name,
+                "method": "telegram",
+                "value": telegram_value,
+                "notify_on": notify_on,
+            },
+        ])
         contact_num += 1
 
     return contacts

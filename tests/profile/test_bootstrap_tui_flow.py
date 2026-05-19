@@ -42,7 +42,7 @@ def _make_full_inputs(
       [subject_id]                — only if not pre-provided to run_init()
       [experiment_id]             — only if not pre-provided to run_init()
       item battery (69 items)     — all empty → neutral/default responses
-      boundaries (4 arrays + 1 risk_flags exit) — all empty
+      boundaries (4 arrays + risk_flags exit + escalation_contacts exit) — all empty
       consent: 5 booleans ("n")
       consent: researcher_id (required)
       consent: version (empty → "1.0.0")
@@ -59,7 +59,7 @@ def _make_full_inputs(
     if experiment_id is not None:
         lines.append(experiment_id)
     lines.extend([""] * 49)  # structured item battery: 49 prompted items (PRO/SAFE auto-default, IOS_001 removed, INT_011 added)
-    lines.extend([""] * 5)   # boundaries: 4 string arrays + risk_flags exit
+    lines.extend([""] * 6)   # boundaries: 4 string arrays + risk_flags exit + escalation_contacts exit
     lines.extend(["n"] * 5)  # consent: 5 booleans (all denied)
     lines.append(consent_researcher_id)  # consent: researcher_id (required)
     lines.append("")          # consent: version (empty → "1.0.0")

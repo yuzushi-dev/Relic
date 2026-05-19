@@ -232,9 +232,42 @@ class SafetySignalsPanel(WorkbenchPanel):
                 "signals_summary": "Safety signal overview",
                 "active_signals": REDACTED_PLACEHOLDER,
                 "signal_family": REDACTED_PLACEHOLDER,  # CLINICAL TERMS NEVER EXPOSED
+                "queue_filters": [
+                    "warning_tier",
+                    "signal_category",
+                    "disposition",
+                    "recency",
+                    "source",
+                ],
+                "review_modes": [
+                    "audit_only",
+                    "context_queue",
+                    "batchable",
+                    "interruptive",
+                    "crisis",
+                ],
+                "redacted_evidence_fields": [
+                    "turn_id_or_hash",
+                    "timestamp",
+                    "detector_family",
+                    "capped_confidence",
+                    "rationale_summary",
+                ],
+                "available_actions": [
+                    "mark_reviewed",
+                    "dismiss_as_noise",
+                    "create_label_stripped_behavior_patch",
+                    "escalate_researcher_notification",
+                    "suppress_repeated_duplicate",
+                ],
+                "review_audit_trail": REDACTED_PLACEHOLDER,
                 "triggered_count": REDACTED_PLACEHOLDER,
                 # HARD RULE ENFORCEMENT
-                "forbidden_actions_blocked": ["create_continuity_marker"],
+                "forbidden_actions_blocked": [
+                    "create_continuity_marker",
+                    "export_signal_label_to_subject",
+                    "send_signal_label_to_gumi",
+                ],
                 "continuity_creation_status": "BLOCKED",
             },
             "lineage_refs": [],

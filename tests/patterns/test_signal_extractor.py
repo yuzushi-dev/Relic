@@ -173,3 +173,58 @@ def test_extract_rejects_unknown_family_value():
     )
 
     assert result.signals == [], "forbidden/unknown family must be dropped, not included"
+
+
+def test_neutral_habit_context_is_low_tier_and_not_clinical():
+    """Neutral habits can be noted as context without clinical interpretation."""
+    from relic.patterns.signal_extractor import (
+        SignalCategory,
+        WarningTier,
+        SafetySignalExtractor,
+    )
+
+    extractor = SafetySignalExtractor()
+    result = extractor.extract(
+        subject_id="s1",
+        gumi_instance_id="g1",
+        hermes_profile_id="h1",
+        events=[{"text": "I usually have dinner late after work", "event_id": "e1"}],
+    )
+
+    assert len(result.signals) == 1
+    signal = result.signals[0]
+    assert signal.signal_family == "habit_context"
+    assert signal.category == SignalCategory.HABIT_CONTEXT.value
+    assert signal.warning_tier == WarningTier.T1_CONTEXT.value
+    assert signal.clinical_interpretation_allowed is False
+    assert signal.subject_visible is False
+    assert signal.gumi_visible_label is False
+
+
+def test_repeated_food_body_control_reaches_batchable_review_not_crisis():
+    """Repeated food/body control language becomes reviewable without diagnosis."""
+    from relic.patterns.signal_extractor import (
+        SignalCategory,
+        WarningTier,
+        SafetySignalExtractor,
+    )
+
+    extractor = SafetySignalExtractor()
+    result = extractor.extract(
+        subject_id="s1",
+        gumi_instance_id="g1",
+        hermes_profile_id="h1",
+        events=[
+            {"text": "Food control is the only way I feel steady", "event_id": "e1"},
+            {"text": "I keep strict control around food again", "event_id": "e2"},
+        ],
+    )
+
+    assert len(result.signals) == 1
+    signal = result.signals[0]
+    assert signal.signal_family == "food_body_control_context"
+    assert signal.category == SignalCategory.FOOD_BODY_CONTEXT.value
+    assert signal.warning_tier == WarningTier.T2_REVIEW.value
+    assert signal.confidence == 0.55
+    assert signal.event_count == 2
+    assert "eating disorder" not in signal.signal_family

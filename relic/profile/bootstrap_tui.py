@@ -428,6 +428,7 @@ class BootstrapTUI:
                             consent_for_generated_images=consent_record.get("generated_images", False),
                             consent_for_generated_audio=consent_record.get("generated_audio", False),
                             consent_for_generated_music=consent_record.get("generated_music", False),
+                            escalation_contacts=boundaries_data.get("escalation_contacts", []),
                         )
                         self._log_step("delivery_configured", "telegram")
 

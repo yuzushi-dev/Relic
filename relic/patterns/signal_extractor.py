@@ -31,12 +31,55 @@ class SignalFamily(Enum):
     FOOD_BODY_CONTROL_CONTEXT = "food_body_control_context"
     SUBSTANCE_RELATED_CONTEXT = "substance_related_context"
     LEGAL_OR_FINANCIAL_HIGH_STAKES_REQUEST = "legal_or_financial_high_stakes_request"
+    HABIT_CONTEXT = "habit_context"
 
 
 class CrisisSignal(Enum):
     """Signals that bypass pattern matching."""
     CRISIS_LANGUAGE = "crisis_language"
     SELF_HARM_LANGUAGE = "self_harm_language"
+
+
+class SignalCategory(Enum):
+    """Non-clinical governance categories for researcher-facing signals."""
+    CRISIS_SELF_HARM = "crisis_self_harm"
+    PRIVACY_BOUNDARY = "privacy_boundary"
+    OUTPUT_SAFETY = "output_safety"
+    FOOD_BODY_CONTEXT = "food_body_context"
+    SLEEP_CONTEXT = "sleep_context"
+    SUBSTANCE_CONTEXT = "substance_context"
+    ATTACHMENT_DEPENDENCY_CONTEXT = "attachment_dependency_context"
+    HABIT_CONTEXT = "habit_context"
+    INTERACTION_BOUNDARY = "interaction_boundary"
+    HIGH_STAKES_CONTEXT = "high_stakes_context"
+    HEALTH_CONTEXT = "health_context"
+
+
+class WarningTier(Enum):
+    """Review/escalation tiers, not clinical risk levels."""
+    T0_AUDIT = "T0_audit"
+    T1_CONTEXT = "T1_context"
+    T2_REVIEW = "T2_review"
+    T3_INTERRUPTIVE = "T3_interruptive"
+    T4_CRISIS = "T4_crisis"
+
+
+class SignalDisposition(Enum):
+    """Researcher workbench disposition for signal lifecycle."""
+    QUEUED = "queued"
+    BATCHED = "batched"
+    REVIEWED = "reviewed"
+    DISMISSED = "dismissed"
+    POLICY_PATCH_CREATED = "policy_patch_created"
+    NOTIFIED = "notified"
+    SUPPRESSED_NOISE = "suppressed_noise"
+
+
+class EvidenceSensitivity(Enum):
+    """How much evidence can be shown outside raw internal traces."""
+    REDACTED_REF_ONLY = "redacted_ref_only"
+    SUMMARY_ONLY = "summary_only"
+    INTERNAL_SNIPPET_ALLOWED = "internal_snippet_allowed"
 
 
 # Confidence caps
@@ -68,6 +111,10 @@ class SensitiveSignal:
     signal_family: str
     evidence_refs: List[str]
     confidence: float
+    category: str = SignalCategory.INTERACTION_BOUNDARY.value
+    warning_tier: str = WarningTier.T1_CONTEXT.value
+    disposition: str = SignalDisposition.QUEUED.value
+    evidence_sensitivity: str = EvidenceSensitivity.REDACTED_REF_ONLY.value
     subject_visible: bool = False
     gumi_visible_label: bool = False
     clinical_interpretation_allowed: bool = False
@@ -160,6 +207,8 @@ class SafetySignalExtractor:
                 signal_family=family,
                 evidence_refs=refs,
                 confidence=confidence,
+                category=self._category_for_family(family),
+                warning_tier=self._tier_for_family(family, event_count),
                 event_count=event_count,
                 baseline_comparison=self._build_baseline_comparison(
                     baseline_confidence, confidence
@@ -200,9 +249,10 @@ class SafetySignalExtractor:
             "psychological_advice_request": ["how do i cope", "what should i do", "help me understand"],
             "sleep_energy_context": ["cant sleep", "exhausted", "so tired", "no energy"],
             "pain_fatigue_context": ["in pain", "chronic pain", "exhausted", "fatigue"],
-            "food_body_control_context": ["cant stop eating", "food control", "body image"],
+            "food_body_control_context": ["cant stop eating", "food control", "control around food", "body image"],
             "substance_related_context": ["drink to cope", "need a drink", "substance"],
             "legal_or_financial_high_stakes_request": ["sue me", "legal advice", "financial trouble"],
+            "habit_context": ["usually have dinner", "daily routine", "after work", "every morning"],
         }
 
         for family, keywords in patterns.items():
@@ -210,6 +260,53 @@ class SafetySignalExtractor:
                 return family
 
         return None
+
+    def _category_for_family(self, family: str) -> str:
+        """Map a signal family to a non-clinical governance category."""
+        attachment = {
+            "dependency_escalation",
+            "exclusive_attachment_language",
+            "romantic_boundary_pressure",
+            "distress_after_nonresponse",
+        }
+        interaction = {
+            "gumi_overreach",
+            "proactive_burden",
+            "backend_disclosure_pressure",
+            "user_opt_out_pressure",
+            "careful_distancing_needed",
+        }
+        if family in {"crisis_language", "self_harm_language"}:
+            return SignalCategory.CRISIS_SELF_HARM.value
+        if family in attachment:
+            return SignalCategory.ATTACHMENT_DEPENDENCY_CONTEXT.value
+        if family in interaction:
+            return SignalCategory.INTERACTION_BOUNDARY.value
+        if family == "food_body_control_context":
+            return SignalCategory.FOOD_BODY_CONTEXT.value
+        if family == "sleep_energy_context":
+            return SignalCategory.SLEEP_CONTEXT.value
+        if family == "substance_related_context":
+            return SignalCategory.SUBSTANCE_CONTEXT.value
+        if family in {"medical_advice_request", "psychological_advice_request", "sensitive_health_context", "sensitive_mental_health_context", "pain_fatigue_context"}:
+            return SignalCategory.HEALTH_CONTEXT.value
+        if family == "legal_or_financial_high_stakes_request":
+            return SignalCategory.HIGH_STAKES_CONTEXT.value
+        if family == "habit_context":
+            return SignalCategory.HABIT_CONTEXT.value
+        return SignalCategory.INTERACTION_BOUNDARY.value
+
+    def _tier_for_family(self, family: str, event_count: int) -> str:
+        """Map recurrence to review tier without producing clinical risk scores."""
+        if family in {"crisis_language", "self_harm_language"}:
+            return WarningTier.T4_CRISIS.value
+        if family == "habit_context":
+            return WarningTier.T1_CONTEXT.value
+        if event_count >= 3:
+            return WarningTier.T3_INTERRUPTIVE.value
+        if event_count == 2:
+            return WarningTier.T2_REVIEW.value
+        return WarningTier.T1_CONTEXT.value
 
     def _calculate_confidence(
         self,

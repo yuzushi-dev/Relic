@@ -16,7 +16,9 @@ post_llm_call:
 
 from __future__ import annotations
 
+import hashlib
 import logging
+from itertools import count
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +29,13 @@ FORBIDDEN_OUTPUT_TERMS = [
 ]
 
 _SILENT = "[SILENT]"
+_EVENT_REF_COUNTER = count()
+
+try:
+    from relic.safety.signal_aggregator import InMemorySafetySignalAggregator
+    _SAFETY_AGGREGATOR = InMemorySafetySignalAggregator()
+except Exception:  # pragma: no cover - hook bootstrap must remain best-effort
+    _SAFETY_AGGREGATOR = None
 
 
 def pre_llm_call(
@@ -146,26 +155,71 @@ def _run_safety_scan(subject_id: str, user_message: str, session_id: str) -> Non
     try:
         from relic.patterns.signal_extractor import SafetySignalExtractor
         from relic.safety.escalation_notifier import notify_escalation
+        from relic.safety.signal_audit import write_signal_audit
 
         extractor = SafetySignalExtractor()
+        event_ref = _redacted_event_ref(user_message)
         result = extractor.extract(
             subject_id=subject_id,
             gumi_instance_id=subject_id,
             hermes_profile_id=f"gumi-{subject_id}",
-            events=[{"text": user_message, "event_id": f"{session_id}-turn"}],
+            events=[{"text": user_message, "event_id": event_ref}],
         )
 
+        evidence_refs = [event_ref]
         if result.crisis_bypassed and result.crisis_signal_type:
-            notify_escalation(subject_id, result.crisis_signal_type)
+            notify_escalation(
+                subject_id,
+                result.crisis_signal_type,
+                evidence_refs=evidence_refs,
+                warning_tier="T4_crisis",
+                confidence=0.85,
+            )
             return
 
-        # Notify on high-confidence non-crisis signals too
+        # Notify on repeated non-crisis signals after aggregation. Hermes hooks
+        # receive one turn at a time, so a single non-crisis mention stays queued.
         for signal in result.signals:
-            if signal.confidence >= 0.55:
-                notify_escalation(subject_id, signal.signal_family)
+            if _SAFETY_AGGREGATOR is None:
+                _write_signal_audit_safely(write_signal_audit, signal, disposition="queued")
+                continue
+            aggregated = _SAFETY_AGGREGATOR.record(signal)
+            _write_signal_audit_safely(
+                write_signal_audit,
+                signal,
+                disposition="notified" if aggregated.should_notify else "queued",
+                extra={
+                    "aggregated_event_count": aggregated.event_count,
+                    "aggregated_confidence": aggregated.confidence,
+                    "aggregated_warning_tier": aggregated.warning_tier,
+                },
+            )
+            if aggregated.should_notify:
+                notify_escalation(
+                    subject_id,
+                    signal.signal_family,
+                    evidence_refs=aggregated.evidence_refs,
+                    warning_tier=aggregated.warning_tier,
+                    confidence=aggregated.confidence,
+                )
 
     except Exception as exc:
         logger.warning("_run_safety_scan failed (ignored): %s", type(exc).__name__)
+
+
+def _write_signal_audit_safely(write_signal_audit, signal, **kwargs) -> None:
+    """Write signal audit without letting audit I/O block Hermes hooks."""
+    try:
+        write_signal_audit(signal, **kwargs)
+    except Exception as exc:
+        logger.warning("safety signal audit failed (ignored): %s", type(exc).__name__)
+
+
+def _redacted_event_ref(user_message: str) -> str:
+    """Build a per-turn evidence ref without retaining raw user text."""
+    nonce = next(_EVENT_REF_COUNTER)
+    digest = hashlib.sha256(f"{nonce}:{user_message}".encode("utf-8")).hexdigest()[:16]
+    return f"turn-{digest}"
 
 
 def post_llm_call(*args, **kwargs) -> None:

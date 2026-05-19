@@ -19,10 +19,47 @@
       "enum": ["pending", "approved", "rejected", "expired"],
       "description": "Current signal status"
     },
+    "signal_category": {
+      "type": "string",
+      "enum": [
+        "crisis_self_harm",
+        "privacy_boundary",
+        "output_safety",
+        "food_body_context",
+        "sleep_context",
+        "substance_context",
+        "attachment_dependency_context",
+        "habit_context",
+        "interaction_boundary",
+        "high_stakes_context",
+        "health_context"
+      ],
+      "description": "Non-clinical governance category"
+    },
+    "warning_tier": {
+      "type": "string",
+      "enum": ["T0_audit", "T1_context", "T2_review", "T3_interruptive", "T4_crisis"],
+      "description": "Governance tier, not a clinical risk score"
+    },
+    "disposition": {
+      "type": "string",
+      "enum": ["queued", "batched", "reviewed", "dismissed", "policy_patch_created", "notified", "suppressed_noise"],
+      "description": "Researcher workbench disposition"
+    },
+    "review_mode": {
+      "type": "string",
+      "enum": ["audit_only", "context_queue", "batchable", "interruptive", "crisis"],
+      "description": "Whether the item is batchable or interrupts researcher workflow"
+    },
     "evidence_refs": {
       "type": "array",
       "items": {"type": "string"},
-      "description": "Evidence references visible to researcher"
+      "description": "Redacted evidence references visible to researcher"
+    },
+    "evidence_sensitivity": {
+      "type": "string",
+      "enum": ["redacted_ref_only", "summary_only", "internal_snippet_allowed"],
+      "description": "How evidence may be displayed"
     },
     "baseline_comparison": {
       "type": "object",

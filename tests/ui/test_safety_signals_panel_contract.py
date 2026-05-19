@@ -157,3 +157,29 @@ def test_signal_label_never_in_subject_output():
     output_str = str(subject_output)
     for label in signal_labels:
         assert label not in output_str
+
+
+def test_panel_exposes_governance_queue_controls_without_runtime_labels():
+    """Panel exposes tiered review workflow, not subject/Gumi signal labels."""
+    from relic.ui.workbench_panels import SafetySignalsPanel
+
+    rendered = SafetySignalsPanel().render()
+    content = rendered["content"]
+
+    assert content["queue_filters"] == [
+        "warning_tier",
+        "signal_category",
+        "disposition",
+        "recency",
+        "source",
+    ]
+    assert content["review_modes"] == [
+        "audit_only",
+        "context_queue",
+        "batchable",
+        "interruptive",
+        "crisis",
+    ]
+    assert "create_label_stripped_behavior_patch" in content["available_actions"]
+    assert "create_continuity_marker" in content["forbidden_actions_blocked"]
+    assert content["signal_family"] == "[REDACTED]"
