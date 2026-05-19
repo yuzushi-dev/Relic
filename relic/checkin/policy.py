@@ -82,6 +82,24 @@ class Decision:
     constraints: dict = field(default_factory=dict)
 
 
+REACH_THRESHOLD = 0.35
+PROACTIVE_SALIENCE_THRESHOLD = 0.6
+REFLECT_THRESHOLD = 0.8
+BRIEF_SHARE_THRESHOLD = 0.4
+TOPIC_FRESHNESS_FOR_ASK = 0.6
+MID_CONVERSATION_SECONDS = 120
+NON_RESPONSE_BACKOFF = 3
+ASK_COOLDOWN_HOURS = 12
+REFLECT_COOLDOWN_DAYS = 7
+BRIEF_SHARE_MIN_AVG_TOKENS = 10.0
+
+
+def _last_posture(features: CheckinFeatures) -> Optional[str]:
+    if not features.posture_history_last_5:
+        return None
+    return features.posture_history_last_5[0]
+
+
 def select_decision(
     features: CheckinFeatures,
     *,
@@ -89,10 +107,11 @@ def select_decision(
     policy_enabled: bool = False,
     reflection_enabled: bool = False,
 ) -> Decision:
-    """Select an (event_type, posture) for the current tick.
+    """Spike §9.2 decision tree (deterministic, replayable).
 
-    Conservative defaults: risk flag or policy disabled → silent. Real thresholds
-    land in Task 5; this stub keeps everything downstream observable and safe.
+    Returns silent until ``policy_enabled`` flips true so this can land behind
+    a flag without behavior change. Reflection requires explicit opt-in via
+    ``reflection_enabled`` (spike §15 conservative default).
     """
 
     if features.risk_flag_active:
@@ -104,5 +123,60 @@ def select_decision(
     if not policy_enabled:
         return Decision(EventType.SILENT, Posture.QUIET, "policy_disabled")
 
-    # Task 5 fills in the thresholded decision tree; until then, default silent.
-    return Decision(EventType.SILENT, Posture.QUIET, "policy_stub_default")
+    if features.quiet_hours_active:
+        return Decision(EventType.SILENT, Posture.QUIET, "quiet_hours")
+
+    if (
+        features.frequency_cap_per_day is not None
+        and features.daily_initiatives_today >= features.frequency_cap_per_day
+    ):
+        return Decision(EventType.SILENT, Posture.QUIET, "frequency_cap_reached")
+
+    if features.reach_score < REACH_THRESHOLD:
+        return Decision(EventType.SILENT, Posture.QUIET, "reach_below_threshold")
+
+    if (
+        features.time_since_last_subject_msg_sec is not None
+        and features.time_since_last_subject_msg_sec < MID_CONVERSATION_SECONDS
+    ):
+        return Decision(EventType.SILENT, Posture.QUIET, "mid_conversation")
+
+    if decision_type == "followup":
+        if features.non_response_streak == 0:
+            return Decision(EventType.FOLLOWUP, Posture.FOLLOW_UP_WARM, "followup_first_attempt")
+        return Decision(EventType.FOLLOWUP, Posture.FOLLOW_UP_TERSE, "followup_after_silence")
+
+    if decision_type == "proactivity":
+        if features.non_response_streak >= NON_RESPONSE_BACKOFF:
+            return Decision(EventType.SILENT, Posture.QUIET, "proactive_backoff")
+        if features.salience_top > PROACTIVE_SALIENCE_THRESHOLD:
+            return Decision(EventType.PROACTIVE, Posture.BRIEF_SHARE, "proactive_salient")
+        return Decision(EventType.SILENT, Posture.QUIET, "proactive_below_salience")
+
+    # decision_type == "checkin"
+    if features.non_response_streak >= NON_RESPONSE_BACKOFF:
+        return Decision(EventType.SILENT, Posture.QUIET, "non_response_backoff")
+
+    if (
+        features.importance_accumulator > REFLECT_THRESHOLD
+        and (features.last_reflect_age_days is None or features.last_reflect_age_days >= REFLECT_COOLDOWN_DAYS)
+    ):
+        if not reflection_enabled:
+            return Decision(EventType.SILENT, Posture.QUIET, "reflection_disabled")
+        return Decision(EventType.REFLECTION, Posture.REFLECTIVE_MIRROR, "reflect_threshold_met")
+
+    if (
+        features.topic_freshness > TOPIC_FRESHNESS_FOR_ASK
+        and features.facet_status == "ask_now"
+        and not features.asked_recently_12h
+        and _last_posture(features) != Posture.ASK.value
+    ):
+        return Decision(EventType.CHECKIN, Posture.ASK, "topic_fresh_and_ask_ready")
+
+    if features.salience_top > BRIEF_SHARE_THRESHOLD:
+        avg = features.subject_avg_tokens_14d
+        if avg is None or avg >= BRIEF_SHARE_MIN_AVG_TOKENS:
+            return Decision(EventType.CHECKIN, Posture.BRIEF_SHARE, "salient_brief_share")
+        # subject is laconic → forbidden brief_share, fall through to observe.
+
+    return Decision(EventType.CHECKIN, Posture.OBSERVE, "default_observe")
