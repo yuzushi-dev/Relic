@@ -91,7 +91,7 @@ chronicle stats [--subject ID] [--since TS] [--format json|table]
 
 ## `chronicle export`
 
-Export subject data as `tar.gz`. Writes nothing to the database.
+Export subject data as `tar.gz`. The exported subject payload is written to the requested file, and the export access itself is recorded in `chronicle_access_log`.
 
 ```bash
 chronicle export --subject <id> --output PATH [--accessor STR]
@@ -110,7 +110,7 @@ chronicle delete --subject <id> [--dry-run] [--cascade]
 | Flag | Description |
 |---|---|
 | `--dry-run` | Show what would be deleted. |
-| `--cascade` | Delete derived artifacts as well. |
+| `--cascade` | Also delete Chronicle provenance edges connected to the subject's events, decisions, or snapshots. |
 
 Always run with `--dry-run` first.
 
@@ -124,10 +124,8 @@ chronicle reaper [--dry-run] [--policy NAME] [--format json|table]
 
 ## `chronicle verify`
 
-Verify or repair gaps between the JSONL append log and the SQLite event store.
+Verify JSONL append-log visibility. The current command scans journal files and reports entry counts; SQLite repair is not implemented in this artifact.
 
 ```bash
-chronicle verify [--repair]
+chronicle verify
 ```
-
-Run `--repair` only after backing up `relic.db`.

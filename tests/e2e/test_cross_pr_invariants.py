@@ -58,6 +58,7 @@ class TestNoSafetySignalInContinuityMarker:
             hermes_profile_id="hermes_001",
             subject_words=["I feel good today"],
             normalized_tags=["positive_mood"],
+            subject_confirmation=True,
         )
 
         # Verify the marker doesn't contain any safety signal family names
@@ -82,6 +83,7 @@ class TestNoSafetySignalInContinuityMarker:
             hermes_profile_id="hermes_001",
             subject_words=["I mentioned some concerns"],
             normalized_tags=["concern"],
+            subject_confirmation=True,
         )
 
         # Get recent markers
@@ -197,6 +199,7 @@ class TestNoContinuityMarkerInSafetySignal:
             hermes_profile_id="hermes_001",
             subject_words=["I can't cope without you"],
             normalized_tags=["dependency"],
+            subject_confirmation=True,
         )
 
         # The marker content should not be treated as a safety signal
@@ -257,7 +260,8 @@ class TestAllGumiRuntimeContextLabelStripped:
                 gumi_instance_id="gumi_001",
                 hermes_profile_id="hermes_001",
                 subject_words=["some text"],
-                normalized_tags=["depression"],  # Forbidden - blocked
+                normalized_tags=["depression"],  # Forbidden - blocked,
+                subject_confirmation=True,
             )
 
     def test_gumi_words_clinical_terms_stripped(self):
@@ -274,7 +278,8 @@ class TestAllGumiRuntimeContextLabelStripped:
                 gumi_instance_id="gumi_001",
                 hermes_profile_id="hermes_001",
                 subject_words=["some text"],
-                gumi_words=["seems like hypomania"],  # Forbidden - blocked
+                gumi_words=["seems like hypomania"],  # Forbidden - blocked,
+                subject_confirmation=True,
             )
 
     def test_runtime_pack_sanitizer_blocks_all_forbidden_terms(self):
@@ -350,6 +355,7 @@ class TestAllGumiRuntimeContextSubjectScoped:
                 gumi_instance_id="gumi_001",
                 hermes_profile_id="hermes_001",
                 subject_words=["some text"],
+                subject_confirmation=True,
             )
 
     def test_delivery_gate_requires_subject_scope(self):
@@ -402,6 +408,7 @@ class TestAllGumiRuntimeContextSubjectScoped:
             gumi_instance_id="gumi_A",
             hermes_profile_id="hermes_A",
             subject_words=["Subject A's private data"],
+            subject_confirmation=True,
         )
 
         # Create marker for subject B
@@ -410,6 +417,7 @@ class TestAllGumiRuntimeContextSubjectScoped:
             gumi_instance_id="gumi_B",
             hermes_profile_id="hermes_B",
             subject_words=["Subject B's private data"],
+            subject_confirmation=True,
         )
 
         # Query for subject A's markers

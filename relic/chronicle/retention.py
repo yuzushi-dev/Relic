@@ -330,6 +330,7 @@ def purge_subject_records(
     subject_id: str,
     *,
     relic_home: Path | None = None,
+    cascade: bool = False,
 ) -> dict[str, Any]:
     """GDPR Art. 17 hard delete — remove ALL chronicle records for subject_id.
 
@@ -351,6 +352,7 @@ def purge_subject_records(
         "chronicle_decisions_deleted": 0,
         "chronicle_state_snapshots_deleted": 0,
         "chronicle_access_log_deleted": 0,
+        "chronicle_provenance_edges_deleted": 0,
         "journal_files_rewritten": 0,
         "journal_lines_removed": 0,
         "legacy_jsonl_lines_removed": 0,
@@ -359,11 +361,31 @@ def purge_subject_records(
     # 1. Delete SQLite chronicle rows
     try:
         conn = _get_db_connection()
+        if cascade:
+            try:
+                cur = conn.execute(
+                    """
+                    DELETE FROM chronicle_provenance_edges
+                    WHERE from_node_id IN (
+                        SELECT event_id FROM chronicle_events WHERE subject_id = ?
+                    )
+                    OR trace_id IN (
+                        SELECT trace_id FROM chronicle_events WHERE subject_id = ?
+                        UNION
+                        SELECT trace_id FROM chronicle_decisions WHERE subject_id = ?
+                        UNION
+                        SELECT trace_id FROM chronicle_state_snapshots WHERE subject_id = ?
+                    )
+                    """,
+                    (subject_id, subject_id, subject_id, subject_id),
+                )
+                results["chronicle_provenance_edges_deleted"] = cur.rowcount
+            except Exception as exc:
+                logger.warning(f"[chronicle.purge] provenance cascade failed: {exc}")
         for table, key in [
             ("chronicle_events", "chronicle_events_deleted"),
             ("chronicle_decisions", "chronicle_decisions_deleted"),
             ("chronicle_state_snapshots", "chronicle_state_snapshots_deleted"),
-            ("chronicle_access_log", "chronicle_access_log_deleted"),
         ]:
             try:
                 cur = conn.execute(
@@ -372,6 +394,14 @@ def purge_subject_records(
                 results[key] = cur.rowcount
             except Exception as exc:
                 logger.warning(f"[chronicle.purge] {table} delete failed: {exc}")
+        try:
+            cur = conn.execute(
+                "DELETE FROM chronicle_access_log WHERE target_filter LIKE ?",
+                (f'%"{subject_id}"%',),
+            )
+            results["chronicle_access_log_deleted"] = cur.rowcount
+        except Exception as exc:
+            logger.warning(f"[chronicle.purge] chronicle_access_log delete failed: {exc}")
         conn.commit()
     except Exception as exc:
         logger.error(f"[chronicle.purge] DB connection failed: {exc}")

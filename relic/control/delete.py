@@ -149,24 +149,18 @@ class DeleteManager:
 
             if scope == DeleteScope.PROMPT and target_id:
                 cur.execute(
-                    "DELETE FROM prompt_records WHERE id = ?",
-                    (str(target_id),),
-                )
-                result.deleted_prompts = cur.rowcount
-
-                cur.execute(
                     "DELETE FROM correction_records WHERE prompt_id = ?",
                     (str(target_id),),
                 )
                 result.deleted_corrections = cur.rowcount
 
-            elif scope == DeleteScope.SESSION and target_id:
                 cur.execute(
-                    "DELETE FROM prompt_records WHERE session_id = ?",
+                    "DELETE FROM prompt_records WHERE id = ?",
                     (str(target_id),),
                 )
                 result.deleted_prompts = cur.rowcount
 
+            elif scope == DeleteScope.SESSION and target_id:
                 cur.execute(
                     """
                     DELETE FROM correction_records
@@ -176,12 +170,18 @@ class DeleteManager:
                 )
                 result.deleted_corrections = cur.rowcount
 
-            elif scope == DeleteScope.ALL:
-                cur.execute("DELETE FROM prompt_records")
+                cur.execute(
+                    "DELETE FROM prompt_records WHERE session_id = ?",
+                    (str(target_id),),
+                )
                 result.deleted_prompts = cur.rowcount
 
+            elif scope == DeleteScope.ALL:
                 cur.execute("DELETE FROM correction_records")
                 result.deleted_corrections = cur.rowcount
+
+                cur.execute("DELETE FROM prompt_records")
+                result.deleted_prompts = cur.rowcount
 
             result.invalidated_replication_bundles = self._invalidate_replication_bundles(conn)
             result.invalidated_eval_cases = self._invalidate_eval_cases(conn)
@@ -217,7 +217,7 @@ class DeleteManager:
             metadata = {}
             try:
                 if row["metadata_json"]:
-                    metadata = eval(row["metadata_json"])
+                    metadata = json.loads(row["metadata_json"]) if row["metadata_json"] else {}
             except Exception:
                 pass
 
@@ -296,7 +296,7 @@ class DeleteManager:
         metadata = {}
         try:
             if metadata_json:
-                metadata = json.loads(metadata_json) if metadata_json.startswith("{") else eval(metadata_json)
+                metadata = json.loads(metadata_json) if metadata_json else {}
         except Exception:
             pass
         metadata[key] = value

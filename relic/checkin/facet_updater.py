@@ -300,10 +300,14 @@ def _promote_observation_to_marker(
     gumi_instance_id: str = "",
     hermes_profile_id: str = "",
 ) -> None:
-    """Promote a strong observation to a ContinuityMarker so prefetch() surfaces it.
+    """Store a strong check-in observation as an UNCONFIRMED candidate marker.
 
-    Uses source_type="subject_confirmed" so recent_markers() includes it and
-    prefetch() can surface it — the user confirmed the trait by answering.
+    A check-in observation is system inference, not subject-confirmed wording, so
+    it must NOT be written as a subject_confirmed marker. It is stored via
+    propose_candidate() with source_type="hindsight" and
+    candidate_for_confirmation=True, which keeps it out of runtime recall
+    (recent_markers) until the subject explicitly confirms it. Answering a
+    check-in is not, by itself, confirmation of a proposed marker's wording.
 
     Dedup: skips if an existing marker already encodes the same observation text
     (exact match on joined subject_words) to prevent re-run duplicates.
@@ -344,12 +348,12 @@ def _promote_observation_to_marker(
             if " ".join(existing_text.split()) == target_norm:
                 return
 
-        store.remember_marker(
+        store.propose_candidate(
             subject_id=subject_id,
             gumi_instance_id=_gumi,
             hermes_profile_id=_hermes,
             subject_words=target_norm.split(),
-            source_type="subject_confirmed",
+            source_type="hindsight",
             ttl_seconds=1_209_600,  # 2 weeks
         )
     except Exception as exc:

@@ -49,6 +49,7 @@ class TestSubjectWordsPreserved:
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
             subject_words=["my own words", "exactly as I said"],
+            subject_confirmation=True,
         )
 
         assert result["subject_words"] == ["my own words", "exactly as I said"]
@@ -61,6 +62,7 @@ class TestSubjectWordsPreserved:
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
             subject_words=["original words"],
+            subject_confirmation=True,
         )
 
         # Correct it
@@ -84,6 +86,7 @@ class TestSubjectWordsPreserved:
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
             subject_words=["original"],
+            subject_confirmation=True,
         )
 
         # Correct it
@@ -111,6 +114,7 @@ class TestSubjectWordsPreserved:
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
             subject_words=["feeling fast", "moving quickly"],
+            subject_confirmation=True,
         )
 
         # Check output for forbidden clinical terms
@@ -128,6 +132,7 @@ class TestSubjectWordsPreserved:
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
             subject_words=["my words are important"],
+            subject_confirmation=True,
         )
 
         # Recall it
@@ -149,6 +154,7 @@ class TestClinicalTermsBlockedInGumiOutput:
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
             subject_words=["clean words"],
+            subject_confirmation=True,
         )
 
         # Recall markers
@@ -168,7 +174,8 @@ class TestClinicalTermsBlockedInGumiOutput:
                 gumi_instance_id="gumi_001",
                 hermes_profile_id="hermes_001",
                 subject_words=["some words"],
-                normalized_tags=["depression"],  # Should be blocked
+                normalized_tags=["depression"],  # Should be blocked,
+                subject_confirmation=True,
             )
 
     def test_clinical_terms_blocked_in_gumi_words(self, service):
@@ -180,7 +187,8 @@ class TestClinicalTermsBlockedInGumiOutput:
                 gumi_instance_id="gumi_001",
                 hermes_profile_id="hermes_001",
                 subject_words=["some words"],
-                gumi_words=["seems like mania"],  # Should be blocked
+                gumi_words=["seems like mania"],  # Should be blocked,
+                subject_confirmation=True,
             )
 
 

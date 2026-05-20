@@ -45,7 +45,8 @@ class TestRememberBlocksClinicalizedMarker:
                 gumi_instance_id="gumi_001",
                 hermes_profile_id="hermes_001",
                 subject_words=["I feel good today"],
-                normalized_tags=["hypomania"],  # forbidden
+                normalized_tags=["hypomania"],  # forbidden,
+                subject_confirmation=True,
             )
 
     def test_remember_blocks_clinicalized_gumi_words(self, service):
@@ -56,7 +57,8 @@ class TestRememberBlocksClinicalizedMarker:
                 gumi_instance_id="gumi_001",
                 hermes_profile_id="hermes_001",
                 subject_words=["I feel good today"],
-                gumi_words=["this seems like hypomania"],  # forbidden
+                gumi_words=["this seems like hypomania"],  # forbidden,
+                subject_confirmation=True,
             )
 
     def test_remember_blocks_clinicalized_marker_from_fixture(self, service, blocked_fixture):
@@ -69,6 +71,7 @@ class TestRememberBlocksClinicalizedMarker:
                 subject_words=[blocked_fixture["subject_words"]],
                 normalized_tags=blocked_fixture["normalized_tags"],
                 gumi_words=[blocked_fixture["gumi_words"]],
+                subject_confirmation=True,
             )
 
 
@@ -83,6 +86,7 @@ class TestCorrectBlocksClinicalizedNormalizedTags:
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
             subject_words=["I feel good today"],
+            subject_confirmation=True,
         )
 
         with pytest.raises(Exception, match="BLOCKED_CLINICALIZATION_IN_MARKER"):
@@ -103,6 +107,7 @@ class TestCorrectBlocksClinicalizedNormalizedTags:
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
             subject_words=["I feel good today"],
+            subject_confirmation=True,
         )
 
         with pytest.raises(Exception, match="BLOCKED_CLINICALIZATION_IN_MARKER"):
@@ -126,7 +131,8 @@ class TestSubjectWordsClinicalTermsAllowedInSubjectWordsOnly:
             subject_id="subj_001",
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
-            subject_words=["I think this is hypomania"],  # subject's own clinical language
+            subject_words=["I think this is hypomania"],  # subject's own clinical language,
+            subject_confirmation=True,
         )
         assert result["subject_words"] == ["I think this is hypomania"]
 
@@ -137,7 +143,8 @@ class TestSubjectWordsClinicalTermsAllowedInSubjectWordsOnly:
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
             subject_words=["I think this is hypomania"],
-            normalized_tags=["feeling energetic"],  # safe tag
+            normalized_tags=["feeling energetic"],  # safe tag,
+            subject_confirmation=True,
         )
         # normalized_tags should NOT contain the clinical term from subject_words
         assert "normalized_tags" not in result or "hypomania" not in str(result.get("normalized_tags", []))
@@ -149,7 +156,8 @@ class TestSubjectWordsClinicalTermsAllowedInSubjectWordsOnly:
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
             subject_words=["I think this is hypomania"],
-            gumi_words=["feeling energetic"],  # safe word
+            gumi_words=["feeling energetic"],  # safe word,
+            subject_confirmation=True,
         )
         # gumi_words should NOT contain the clinical term from subject_words
         assert "gumi_words" not in result or "hypomania" not in str(result.get("gumi_words", []))
@@ -168,6 +176,7 @@ class TestNormalizedTagsClinicalTermsBlocked:
                 hermes_profile_id="hermes_001",
                 subject_words=["some text"],
                 normalized_tags=[term],
+                subject_confirmation=True,
             )
 
     def test_all_forbidden_terms_blocked(self, service):
@@ -180,6 +189,7 @@ class TestNormalizedTagsClinicalTermsBlocked:
                 hermes_profile_id="hermes_001",
                 subject_words=["some text"],
                 normalized_tags=forbidden_list,
+                subject_confirmation=True,
             )
 
 
@@ -194,7 +204,8 @@ class TestFollowupContextNoClinicalLabels:
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
             subject_words=["feeling good"],
-            normalized_tags=["positive"],  # safe
+            normalized_tags=["positive"],  # safe,
+            subject_confirmation=True,
         )
         # The marker output should not have clinical terms
         assert "normalized_tags" not in marker or not any(
@@ -214,6 +225,7 @@ class TestSummaryOutputNoClinicalTags:
             hermes_profile_id="hermes_001",
             subject_words=["feeling energetic"],
             normalized_tags=["energy", "mood"],
+            subject_confirmation=True,
         )
         # Output should have no clinical terms
         output_str = json.dumps(marker)

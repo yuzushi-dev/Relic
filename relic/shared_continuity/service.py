@@ -132,6 +132,7 @@ class ContinuityServiceError(Exception):
     """Continuity service error with code and message."""
     BLOCKED_CLINICALIZATION_IN_MARKER = "BLOCKED_CLINICALIZATION_IN_MARKER: Forbidden clinical terms in normalized tags or gumi words"
     BLOCKED_MARKER_WITHOUT_SUBJECT_SCOPE = "BLOCKED_MARKER_WITHOUT_SUBJECT_SCOPE: All scope fields required"
+    BLOCKED_MARKER_WITHOUT_SUBJECT_CONFIRMATION = "BLOCKED_MARKER_WITHOUT_SUBJECT_CONFIRMATION: Subject confirmation required"
     BLOCKED_CORRECTION_NOT_AUTHORITATIVE = "BLOCKED_CORRECTION_NOT_AUTHORITATIVE: Scope mismatch"
     MARKER_NOT_FOUND = "MARKER_NOT_FOUND"
 
@@ -289,16 +290,26 @@ class ContinuityService:
         gumi_words: Optional[List[str]] = None,
         max_recall_count: int = 3,
         ttl_seconds: int = 604800,
+        *,
+        subject_confirmation: bool,
     ) -> Dict[str, Any]:
         """
-        Store a continuity marker.
+        Store a subject-confirmed continuity marker.
 
-        Requires subject_confirmation before storing.
+        subject_confirmation is required (keyword-only, no default): the caller
+        must explicitly assert that the subject confirmed this wording. A False
+        value is rejected. Inferred observations that the subject has NOT
+        confirmed must go through propose_candidate(), not remember().
         Returns the created marker.
         """
         # Verify subject scope
         if not all([subject_id, gumi_instance_id, hermes_profile_id]):
             raise ValueError("BLOCKED_MARKER_WITHOUT_SUBJECT_SCOPE: All scope fields required")
+
+        if not subject_confirmation:
+            raise ValueError(
+                "BLOCKED_MARKER_WITHOUT_SUBJECT_CONFIRMATION: Subject confirmation required"
+            )
 
         # Clinicalization guard: block forbidden clinical terms in normalized_tags and gumi_words
         if normalized_tags or gumi_words:
@@ -314,13 +325,13 @@ class ContinuityService:
         created_at = datetime.now().isoformat() + "Z"
         expires_at = (datetime.now() + timedelta(seconds=ttl_seconds)).isoformat() + "Z"
 
-        # Create marker with implicit subject confirmation (user confirmed by calling remember)
+        # Create marker only after the caller has supplied explicit confirmation.
         marker = ContinuityMarker(
             marker_id=marker_id,
             subject_id=subject_id,
             gumi_instance_id=gumi_instance_id,
             hermes_profile_id=hermes_profile_id,
-            subject_confirmation=True,  # User called remember, so confirmed
+            subject_confirmation=True,
             source_type=source_type,
             created_at=created_at,
             subject_words=subject_words,
@@ -335,6 +346,67 @@ class ContinuityService:
             updated_at=created_at,
             normalized_tags=list(normalized_tags) if normalized_tags else None,
             gumi_words=list(gumi_words) if gumi_words else None,
+        )
+
+        self._markers[marker_id] = marker
+
+        return self._sanitize_output(marker, normalized_tags, gumi_words)
+
+    def propose_candidate(
+        self,
+        subject_id: str,
+        gumi_instance_id: str,
+        hermes_profile_id: str,
+        subject_words: List[str],
+        source_type: str = "hindsight",
+        normalized_tags: Optional[List[str]] = None,
+        gumi_words: Optional[List[str]] = None,
+        max_recall_count: int = 3,
+        ttl_seconds: int = 604800,
+    ) -> Dict[str, Any]:
+        """
+        Store an UNCONFIRMED candidate marker derived from system inference.
+
+        Unlike remember(), this does not claim subject confirmation. The marker
+        is created with subject_confirmation=False and candidate_for_confirmation=True,
+        so it is excluded from runtime recall (recent_markers) until the subject
+        explicitly confirms it. This is the honest path for check-in / hindsight
+        inferences that the subject has not yet confirmed in their own words.
+        """
+        if not all([subject_id, gumi_instance_id, hermes_profile_id]):
+            raise ValueError("BLOCKED_MARKER_WITHOUT_SUBJECT_SCOPE: All scope fields required")
+
+        if normalized_tags or gumi_words:
+            self._check_no_clinical_terms_in_normalized_tags(
+                normalized_tags or [],
+                gumi_words or [],
+            )
+
+        marker_id = f"candidate_{subject_id}_{datetime.now().timestamp()}"
+        created_at = datetime.now().isoformat() + "Z"
+        expires_at = (datetime.now() + timedelta(seconds=ttl_seconds)).isoformat() + "Z"
+
+        marker = ContinuityMarker(
+            marker_id=marker_id,
+            subject_id=subject_id,
+            gumi_instance_id=gumi_instance_id,
+            hermes_profile_id=hermes_profile_id,
+            subject_confirmation=False,
+            source_type=source_type,
+            created_at=created_at,
+            subject_words=subject_words,
+            gumi_agreed_words=[],
+            raw_source_text=None,
+            status=MarkerStatus.ACTIVE,
+            gumi_recall_allowed=True,
+            recall_count=0,
+            max_recall_count=max_recall_count,
+            ttl_seconds=ttl_seconds,
+            expires_at=expires_at,
+            updated_at=created_at,
+            normalized_tags=list(normalized_tags) if normalized_tags else None,
+            gumi_words=list(gumi_words) if gumi_words else None,
+            candidate_for_confirmation=True,
         )
 
         self._markers[marker_id] = marker

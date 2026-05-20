@@ -339,9 +339,9 @@ def main() -> None:
         hermes_arg = hermes_home
 
     result = sync(Path(hermes_home))
-    print(json.dumps(result, ensure_ascii=False))
+    # Status to stderr only — no-agent cron delivers stdout, must stay silent on success.
+    print(json.dumps(result, ensure_ascii=False), file=sys.stderr)
 
-    # Exit 0 always unless hard IO error (exit 2). Result is consumed by cron.
     if not result.get("done"):
         sys.exit(1)
 

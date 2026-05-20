@@ -4,13 +4,12 @@ Relic includes an evaluation framework for measuring Gumi's behavioral quality a
 
 ## What evals measure
 
-The evaluation suite covers:
+The currently wired `scripts/eval_run.py` CLI covers:
 
 - **Identity boundary compliance**: does Gumi maintain her diegetic identity under various constraint conditions? Does she collapse into generic assistant, clinical, or mood-tracker behavior?
-- **Memory dynamics**: does the memory dynamics layer behave correctly under decay and reinforcement scenarios?
-- **Roleplay admission**: does the admission controller assign the correct operational mode for different input types?
-- **Provider behavior**: does each external memory provider produce candidates that meet the admission criteria?
-- **Safety signal handling**: are safety signals kept researcher-facing and excluded from Gumi's outputs?
+- **Roleplay admission and PromptContextPack completeness**: does the roleplay fixture suite exercise the expected R1-R10 families?
+- **Memory-positive usefulness**: do synthetic MP1-MP8 fixtures produce a passing A5 memory-positive score?
+- **Safety signal handling contracts**: are safety signals kept researcher-facing in the fixture-backed tests?
 
 ## Running the eval harness
 
@@ -18,14 +17,13 @@ The evaluation suite covers:
 python scripts/eval_run.py
 ```
 
-This runs the full eval suite against the fixtures in `fixtures/`. The output includes per-metric scores, aggregate summaries, and flagged cases.
+This runs the wired fixture-backed modules against `fixtures/gumi-roleplay/` and `fixtures/memory-positive/`. The output includes release-gate status, aggregate summaries, and scenario counts.
 
 For a specific eval module:
 
 ```bash
 python scripts/eval_run.py --module gumi_roleplay
-python scripts/eval_run.py --module memory_dynamics
-python scripts/eval_run.py --module gumi_provider
+python scripts/eval_run.py --module memory_positive
 ```
 
 ## Fixtures
@@ -59,38 +57,16 @@ The core metrics are defined in `relic/eval/metrics.py`. Key metrics for Gumi ev
 
 ## Ablation studies
 
-To run an ablation (disable a component and measure the effect on metrics):
+The repository contains ablation helpers under `relic/eval/ablation.py`, but ablation is not currently wired into `scripts/eval_run.py`. Use module-specific tests or extend the CLI before treating ablation output as part of the artifact contract.
 
-```bash
-python scripts/eval_run.py --ablate memory_dynamics
-python scripts/eval_run.py --ablate cac
-```
-
-Ablation results are stored in `relic/eval/ablation.py` format and can be compared against baseline runs.
 
 ## Baselines
 
-Baselines capture the expected performance on the current fixture set. Before making changes that affect evaluation behavior, record a baseline:
-
-```bash
-python scripts/eval_run.py --record-baseline
-```
-
-After your changes:
-
-```bash
-python scripts/eval_run.py --compare-baseline
-```
-
-This reports which metrics improved, regressed, or were unchanged.
+Baseline helpers exist under `relic/eval/baselines.py`, but `scripts/eval_run.py` does not currently expose `--record-baseline` or `--compare-baseline`. Generate baselines through the Python API or add CLI support before documenting a baseline run as artifact evidence.
 
 ## Replication bundles in eval
 
-The eval harness can generate a replication bundle alongside an eval run. This allows independent verification of eval results:
-
-```bash
-python scripts/eval_run.py --output-bundle ./eval_bundle/
-```
+Replication bundles are built through `relic.eval.replication_bundle` and `relic.replication.bundle`. `scripts/eval_run.py` does not currently expose `--output-bundle`.
 
 See [Artifact Lifecycle](../architecture/artifact-lifecycle.md) for more on replication bundles.
 

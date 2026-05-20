@@ -26,6 +26,27 @@ def _format_json(data: list[dict] | dict) -> str:
     return json.dumps(data, indent=2, sort_keys=True, default=str)
 
 
+def _audit_read(
+    args: argparse.Namespace,
+    kind: str,
+    filters: dict[str, object],
+    rows_returned: int,
+    result_data: object,
+) -> None:
+    """Log researcher-mode read access unless the command opted out."""
+    if getattr(args, "no_audit", False):
+        return
+    from relic.chronicle.access_audit import log_access
+
+    log_access(
+        accessor_id=getattr(args, "accessor", None) or "researcher:cli",
+        access_kind=kind,
+        target_filter={key: value for key, value in filters.items() if value is not None},
+        rows_returned=rows_returned,
+        result_data=result_data,
+    )
+
+
 def _format_table(data: list[dict], columns: list[str] | None = None) -> str:
     if not data:
         return "(no results)"
@@ -66,7 +87,7 @@ def cmd_query(args: argparse.Namespace) -> int:
         limit=args.limit,
     )
 
-    if not args.no_audit and args.subject:
+    if not args.no_audit:
         access_audit.log_query(
             accessor_id=args.accessor or "researcher:cli",
             filters={
@@ -74,6 +95,8 @@ def cmd_query(args: argparse.Namespace) -> int:
                 "session_id": str(args.session) if args.session else None,
                 "subject_id": args.subject,
                 "event_type": args.type,
+                "event_category": args.category,
+                "source_module": args.module,
             },
             rows_returned=len(results),
             trace_id=trace_id if not args.no_audit else None,
@@ -104,6 +127,20 @@ def cmd_timeline(args: argparse.Namespace) -> int:
         since=args.since or None,
         until=args.until or None,
         limit=args.limit,
+    )
+
+    _audit_read(
+        args,
+        "timeline",
+        {
+            "trace_id": args.trace,
+            "session_id": args.session,
+            "subject_id": args.subject,
+            "since": args.since,
+            "until": args.until,
+        },
+        len(results),
+        results,
     )
 
     if not results:
@@ -153,6 +190,19 @@ def cmd_decision(args: argparse.Namespace) -> int:
         limit=args.limit,
     )
 
+    _audit_read(
+        args,
+        "decision",
+        {
+            "trace_id": args.trace,
+            "session_id": args.session,
+            "subject_id": args.subject,
+            "decision_kind": args.kind,
+        },
+        len(results),
+        results,
+    )
+
     if args.format == "json":
         print(_format_json(results))
     else:
@@ -185,6 +235,14 @@ def cmd_snapshot(args: argparse.Namespace) -> int:
         limit=args.limit,
     )
 
+    _audit_read(
+        args,
+        "snapshot",
+        {"subject_id": args.subject, "snapshot_type": args.type, "scope_ref": args.scope},
+        len(results),
+        results,
+    )
+
     if args.format == "json":
         print(_format_json(results))
     else:
@@ -213,6 +271,7 @@ def cmd_provenance(args: argparse.Namespace) -> int:
 
     if direction == "ancestors":
         nodes = get_ancestors(aid, depth=depth)
+        _audit_read(args, "provenance", {"artifact_id": str(aid), "direction": direction}, len(nodes), nodes)
         print(f"Ancestors of {aid} (depth={depth}):")
         for n in nodes:
             rel = n.get("relation", "?")
@@ -222,6 +281,7 @@ def cmd_provenance(args: argparse.Namespace) -> int:
             print(f"  [{dep}] {rel:25}  {ntype:10}  {nid}...")
     elif direction == "descendants":
         nodes = get_descendants(aid, depth=depth)
+        _audit_read(args, "provenance", {"artifact_id": str(aid), "direction": direction}, len(nodes), nodes)
         print(f"Descendants of {aid} (depth={depth}):")
         for n in nodes:
             rel = n.get("relation", "?")
@@ -230,6 +290,13 @@ def cmd_provenance(args: argparse.Namespace) -> int:
             print(f"  [{dep}] {rel:25}  → artifact {atype}...")
     elif direction == "verify":
         valid, missing = verify_artifact_provenance(aid)
+        _audit_read(
+            args,
+            "provenance",
+            {"artifact_id": str(aid), "direction": direction},
+            1,
+            {"valid": valid, "missing": missing},
+        )
         if valid:
             print(f"✓ Provenance for {aid} is valid (all upstream nodes exist)")
         else:
@@ -249,6 +316,14 @@ def cmd_stats(args: argparse.Namespace) -> int:
     from relic.chronicle.reader import stats
 
     result = stats(subject_id=args.subject or None, since=args.since or None)
+
+    _audit_read(
+        args,
+        "query",
+        {"command": "stats", "subject_id": args.subject, "since": args.since},
+        int(result.get("total_events", 0) or 0),
+        result,
+    )
 
     if args.format == "json":
         print(_format_json(result))
@@ -351,22 +426,60 @@ def cmd_export(args: argparse.Namespace) -> int:
 # ---------------------------------------------------------------------------
 
 def cmd_delete(args: argparse.Namespace) -> int:
-    from relic.chronicle.retention import delete_expired
+    from relic.chronicle.reader import _get_db_connection
+    from relic.chronicle.retention import purge_subject_records
     from relic.chronicle.access_audit import log_delete
 
     subject_id = args.subject
     dry_run = args.dry_run
 
-    results = delete_expired(
-        dry_run=dry_run,
-        subject_id=subject_id,
-    )
+    if dry_run:
+        conn = _get_db_connection()
+        results = {
+            "dry_run": True,
+            "subject_id": subject_id,
+            "chronicle_events_deleted": conn.execute(
+                "SELECT COUNT(*) FROM chronicle_events WHERE subject_id = ?", (subject_id,)
+            ).fetchone()[0],
+            "chronicle_decisions_deleted": conn.execute(
+                "SELECT COUNT(*) FROM chronicle_decisions WHERE subject_id = ?", (subject_id,)
+            ).fetchone()[0],
+            "chronicle_state_snapshots_deleted": conn.execute(
+                "SELECT COUNT(*) FROM chronicle_state_snapshots WHERE subject_id = ?", (subject_id,)
+            ).fetchone()[0],
+            "chronicle_provenance_edges_deleted": 0,
+        }
+        if args.cascade:
+            results["chronicle_provenance_edges_deleted"] = conn.execute(
+                """
+                SELECT COUNT(*) FROM chronicle_provenance_edges
+                WHERE from_node_id IN (
+                    SELECT event_id FROM chronicle_events WHERE subject_id = ?
+                )
+                OR trace_id IN (
+                    SELECT trace_id FROM chronicle_events WHERE subject_id = ?
+                    UNION
+                    SELECT trace_id FROM chronicle_decisions WHERE subject_id = ?
+                    UNION
+                    SELECT trace_id FROM chronicle_state_snapshots WHERE subject_id = ?
+                )
+                """,
+                (subject_id, subject_id, subject_id, subject_id),
+            ).fetchone()[0]
+        conn.close()
+    else:
+        results = purge_subject_records(subject_id, cascade=args.cascade)
 
     if args.format == "json":
         print(_format_json(results))
     else:
-        total = results.get("chronicle_events_deleted", 0)
-        print(f"{'DRY-RUN: ' if dry_run else ''}Deleted: events={total}")
+        total = (
+            results.get("chronicle_events_deleted", 0)
+            + results.get("chronicle_decisions_deleted", 0)
+            + results.get("chronicle_state_snapshots_deleted", 0)
+            + results.get("chronicle_provenance_edges_deleted", 0)
+        )
+        print(f"{'DRY-RUN: ' if dry_run else ''}Deleted: records={total}")
 
     if not dry_run:
         log_delete(
@@ -398,13 +511,42 @@ def cmd_reaper(args: argparse.Namespace) -> int:
 
 
 # ---------------------------------------------------------------------------
-# Subcommand: verify (repair JSONL → SQLite gaps)
+# Subcommand: verify (JSONL visibility check)
 # ---------------------------------------------------------------------------
 
+# Maps the discriminating primary-key column found in a journal row to its
+# SQLite table. The emitter writes the identical `to_db_row()` dict to both the
+# JSONL journal (first) and SQLite (second), so a journal row is directly
+# re-insertable into its table when SQLite is missing it.
+_JOURNAL_PK_TABLE = {
+    "event_id": "chronicle_events",
+    "decision_id": "chronicle_decisions",
+    "snapshot_id": "chronicle_state_snapshots",
+    "edge_id": "chronicle_provenance_edges",
+}
+
+
+def _classify_journal_row(row: dict) -> tuple[str, str, str] | None:
+    """Return (table, pk_column, pk_value) for a journal row, or None if unknown."""
+    for pk_col, table in _JOURNAL_PK_TABLE.items():
+        if row.get(pk_col):
+            return table, pk_col, str(row[pk_col])
+    return None
+
+
 def cmd_verify(args: argparse.Namespace) -> int:
+    """Reconcile the JSONL journal against SQLite.
+
+    The emitter appends to JSONL first and inserts into SQLite second, tolerating
+    a SQLite failure after the journal append (see emitter dual-write strategy).
+    That can leave events present in the journal but invisible to every read path,
+    which only queries SQLite. This command finds those gaps; with --repair it
+    replays the missing rows back into SQLite.
+    """
     import logging as _logging
     _logging.basicConfig(level=_logging.INFO)
     from pathlib import Path
+    from relic.db import get_connection
 
     journal_dir = Path.home() / ".relic" / "chronicle" / "journal"
     if not journal_dir.exists():
@@ -412,15 +554,77 @@ def cmd_verify(args: argparse.Namespace) -> int:
         return 0
 
     print(f"Scanning {journal_dir}...")
-    repaired = 0
-    for jf in sorted(journal_dir.glob("*.jsonl")):
-        lines = 0
-        skipped = 0
-        with open(jf) as f:
-            for line in f:
-                lines += 1
-        print(f"  {jf.name}: {lines} entries")
-    print(f"Total: {repaired} repaired")
+    total_entries = 0
+    total_missing = 0
+    total_repaired = 0
+    total_malformed = 0
+    total_unclassified = 0
+
+    conn = get_connection()
+    try:
+        for jf in sorted(journal_dir.glob("*.jsonl")):
+            entries = missing = repaired = 0
+            with open(jf, encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    entries += 1
+                    try:
+                        row = json.loads(line)
+                    except json.JSONDecodeError:
+                        total_malformed += 1
+                        continue
+                    classified = _classify_journal_row(row)
+                    if classified is None:
+                        total_unclassified += 1
+                        continue
+                    table, pk_col, pk_val = classified
+                    cur = conn.execute(
+                        f"SELECT 1 FROM {table} WHERE {pk_col} = ?", (pk_val,)
+                    )
+                    if cur.fetchone() is not None:
+                        continue
+                    missing += 1
+                    if args.repair:
+                        cols = list(row.keys())
+                        placeholders = ", ".join(["?"] * len(cols))
+                        try:
+                            conn.execute(
+                                f"INSERT OR IGNORE INTO {table} ({', '.join(cols)}) "
+                                f"VALUES ({placeholders})",
+                                [row[c] for c in cols],
+                            )
+                            repaired += 1
+                        except Exception as exc:  # noqa: BLE001 - report and continue
+                            logger.error(
+                                f"[chronicle.verify] replay failed for {table} {pk_val}: {exc}"
+                            )
+            if args.repair:
+                conn.commit()
+            total_entries += entries
+            total_missing += missing
+            total_repaired += repaired
+            status = f"{entries} entries"
+            if missing:
+                status += f", {missing} missing from SQLite"
+            if repaired:
+                status += f", {repaired} repaired"
+            print(f"  {jf.name}: {status}")
+    finally:
+        conn.close()
+
+    print(
+        f"Total: {total_entries} entries, {total_missing} missing, "
+        f"{total_repaired} repaired"
+    )
+    if total_malformed:
+        print(f"  ({total_malformed} malformed journal lines skipped)")
+    if total_unclassified:
+        print(f"  ({total_unclassified} unclassified rows skipped)")
+    if total_missing and not args.repair:
+        print("Run with --repair to replay missing rows into SQLite.")
+        return 1
     return 0
 
 
@@ -462,6 +666,8 @@ def main(argv: list[str] | None = None) -> int:
     t.add_argument("--until")
     t.add_argument("--limit", type=int, default=200)
     t.add_argument("--group-by", choices=["trace", "time"], default="time")
+    t.add_argument("--accessor", default="researcher:cli")
+    t.add_argument("--no-audit", action="store_true")
     t.set_defaults(func=cmd_timeline)
 
     # decision
@@ -472,6 +678,8 @@ def main(argv: list[str] | None = None) -> int:
     d.add_argument("--kind", help="decision_kind")
     d.add_argument("--limit", type=int, default=100)
     d.add_argument("--format", choices=["json", "table"], default="table")
+    d.add_argument("--accessor", default="researcher:cli")
+    d.add_argument("--no-audit", action="store_true")
     d.set_defaults(func=cmd_decision)
 
     # snapshot
@@ -481,6 +689,8 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--scope")
     s.add_argument("--limit", type=int, default=50)
     s.add_argument("--format", choices=["json", "table"], default="table")
+    s.add_argument("--accessor", default="researcher:cli")
+    s.add_argument("--no-audit", action="store_true")
     s.set_defaults(func=cmd_snapshot)
 
     # provenance
@@ -488,6 +698,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--artifact", required=True)
     p.add_argument("--direction", choices=["ancestors", "descendants", "verify"], default="ancestors")
     p.add_argument("--depth", type=int, default=3)
+    p.add_argument("--accessor", default="researcher:cli")
+    p.add_argument("--no-audit", action="store_true")
     p.set_defaults(func=cmd_provenance)
 
     # stats
@@ -495,6 +707,8 @@ def main(argv: list[str] | None = None) -> int:
     st.add_argument("--subject")
     st.add_argument("--since")
     st.add_argument("--format", choices=["json", "table"], default="table")
+    st.add_argument("--accessor", default="researcher:cli")
+    st.add_argument("--no-audit", action="store_true")
     st.set_defaults(func=cmd_stats)
 
     # export
@@ -521,8 +735,7 @@ def main(argv: list[str] | None = None) -> int:
     rp.set_defaults(func=cmd_reaper)
 
     # verify
-    v = sub.add_parser("verify", help="Verify/repair JSONL → SQLite gaps")
-    v.add_argument("--repair", action="store_true")
+    v = sub.add_parser("verify", help="Verify JSONL journal visibility")
     v.set_defaults(func=cmd_verify)
 
     args = parser.parse_args(argv)

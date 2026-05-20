@@ -234,3 +234,40 @@ class TestDeleteApply:
         result = manager.delete(scope=DeleteScope.SESSION, target_id=session_id)
 
         assert result.deleted_prompts == 2
+
+    def test_delete_session_scope_deletes_prompt_corrections(self, temp_db):
+        """Session delete removes corrections before deleting their prompts."""
+        session_id = uuid4()
+        prompt_id = uuid4()
+        correction_id = uuid4()
+
+        with get_cursor(str(temp_db)) as cur:
+            cur.execute(
+                """
+                INSERT INTO prompt_records
+                (id, session_id, role, content_hash, content_length, is_redacted)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (str(prompt_id), str(session_id), "user", "hash1", 100, False),
+            )
+            cur.execute(
+                """
+                INSERT INTO correction_records
+                (id, prompt_id, correction_type, delta_content, applied, source)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (str(correction_id), str(prompt_id), "redaction", "{}", False, "manual"),
+            )
+
+        manager = DeleteManager(db_path=str(temp_db))
+        result = manager.delete(scope=DeleteScope.SESSION, target_id=session_id)
+
+        assert result.deleted_prompts == 1
+        assert result.deleted_corrections == 1
+
+        with get_cursor(str(temp_db)) as cur:
+            row = cur.execute(
+                "SELECT * FROM correction_records WHERE id = ?",
+                (str(correction_id),),
+            ).fetchone()
+            assert row is None

@@ -58,8 +58,17 @@ class ExportManager:
         output_path: Path,
         format: ExportFormat = ExportFormat.JSON,
         options: ExportOptions | None = None,
+        *,
+        accessor_id: str = "researcher:control",
+        subject_id: str | None = None,
     ) -> ExportResult:
-        """Export user data to the specified format."""
+        """Export user data to the specified format.
+
+        Every export is recorded as a Chronicle `export` access event so the
+        governance docs' "every export is audited" claim holds for this surface
+        too (not only the Chronicle CLI). Audit logging is fail-open: an audit
+        failure must never block or corrupt the export itself.
+        """
         opts = options or ExportOptions()
 
         data: dict[str, Any] = {
@@ -99,6 +108,23 @@ class ExportManager:
 
         record_count = total_records
         artifact_count = len(data.get("artifacts", []))
+
+        # Audit the export (fail-open).
+        try:
+            from relic.chronicle.access_audit import log_export
+
+            bytes_written = output_path.stat().st_size if output_path.exists() else 0
+            log_export(
+                accessor_id=accessor_id,
+                subject_id=subject_id or (str(opts.session_id) if opts.session_id else "unknown"),
+                format=format.value,
+                bytes_written=bytes_written,
+            )
+        except Exception:  # noqa: BLE001 - audit must never block export
+            import logging
+            logging.getLogger(__name__).warning(
+                "[control.export] access audit logging failed", exc_info=True
+            )
 
         return ExportResult(
             format=format,

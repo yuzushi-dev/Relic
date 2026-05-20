@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Optional
 
 MEDIA_STATE_PATH = "state/media_delivery_state.json"
+OUTBOUND_STATE_PATH = "state/last_outbound.json"
 
 # Default cooldown days per media type
 DEFAULT_COOLDOWN_DAYS = {"image": 2.0, "voice": 1.0, "music": 7.0}
@@ -62,6 +63,40 @@ def record_media_delivery(hermes_home: Path, media_type: str) -> None:
     state = load_media_state(hermes_home)
     state[f"last_{media_type}_ts"] = datetime.now(timezone.utc).isoformat()
     save_media_state(hermes_home, state)
+
+
+def record_outbound_delivery(hermes_home: Path, channel: str, media_type: str) -> None:
+    """Record outbound delivery timestamp/channel/media_type to state/last_outbound.json."""
+    path = hermes_home / OUTBOUND_STATE_PATH
+    path.parent.mkdir(parents=True, exist_ok=True)
+    data = {
+        "last_outbound_ts": datetime.now(timezone.utc).isoformat(),
+        "channel": channel,
+        "media_type": media_type,
+    }
+    tmp = path.with_suffix(".tmp")
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+    os.replace(tmp, path)
+
+
+def last_outbound_ts(hermes_home: Path) -> Optional[datetime]:
+    """Return last outbound delivery timestamp as tz-aware UTC datetime, or None."""
+    path = hermes_home / OUTBOUND_STATE_PATH
+    if not path.exists():
+        return None
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        ts_str = data.get("last_outbound_ts")
+        if not ts_str:
+            return None
+        dt = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
+    except (json.JSONDecodeError, OSError, ValueError, TypeError):
+        return None
 
 
 def is_media_eligible(

@@ -49,6 +49,7 @@ class TestCompleteIntegration:
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
             subject_words=["end to end test"],
+            subject_confirmation=True,
         )
 
         assert marker["subject_confirmation"] is True
@@ -77,6 +78,7 @@ class TestCompleteIntegration:
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
             subject_words=["clean words"],
+            subject_confirmation=True,
         )
 
         # Get recent markers
@@ -102,6 +104,7 @@ class TestCompleteIntegration:
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
             subject_words=["subj_001 marker"],
+            subject_confirmation=True,
         )
 
         service.remember(
@@ -109,6 +112,7 @@ class TestCompleteIntegration:
             gumi_instance_id="gumi_002",
             hermes_profile_id="hermes_002",
             subject_words=["subj_002 marker"],
+            subject_confirmation=True,
         )
 
         # Get markers for subj_001

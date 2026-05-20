@@ -46,6 +46,7 @@ class TestAcceptanceGates:
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
             subject_words=["test marker"],
+            subject_confirmation=True,
         )
 
         assert result["subject_confirmation"] is True
@@ -65,7 +66,8 @@ class TestAcceptanceGates:
             subject_id="subj_001",
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
-            subject_words=["feeling low"],  # Non-clinical
+            subject_words=["feeling low"],  # Non-clinical,
+            subject_confirmation=True,
         )
 
         # Verify no clinical terms in output
@@ -81,6 +83,7 @@ class TestAcceptanceGates:
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
             subject_words=["test"],
+            subject_confirmation=True,
         )
 
         assert result["subject_confirmation"] is True
@@ -97,6 +100,7 @@ class TestAcceptanceGates:
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
             subject_words=["confirmed marker"],
+            subject_confirmation=True,
         )
 
         assert "subject_confirmation" in result
@@ -109,6 +113,7 @@ class TestAcceptanceGates:
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
             subject_words=["non-clinical words"],
+            subject_confirmation=True,
         )
 
         markers = service.recent_markers(subject_id="subj_001")
@@ -125,6 +130,7 @@ class TestAcceptanceGates:
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
             subject_words=["subj_001 marker"],
+            subject_confirmation=True,
         )
 
         # Try to get markers for subj_002 - should get empty
@@ -145,6 +151,7 @@ class TestRequiredTests:
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
             subject_words=["test"],
+            subject_confirmation=True,
         )
         assert result["subject_confirmation"] is True
 
@@ -156,6 +163,7 @@ class TestRequiredTests:
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
             subject_words=["my words"],
+            subject_confirmation=True,
         )
         assert "my words" in result["subject_words"]
 
@@ -167,6 +175,7 @@ class TestRequiredTests:
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
             subject_words=["not clinical"],
+            subject_confirmation=True,
         )
         result_str = str(result).lower()
         for term in FORBIDDEN_CLINICAL_TERMS:
@@ -180,6 +189,7 @@ class TestRequiredTests:
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
             subject_words=["clean words"],
+            subject_confirmation=True,
         )
         markers = service.recent_markers(subject_id="subj_001")
         for marker in markers:
@@ -206,6 +216,7 @@ class TestRequiredTests:
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
             subject_words=["original"],
+            subject_confirmation=True,
         )
         correction = service.correct(
             marker_id=marker["marker_id"],
@@ -233,6 +244,7 @@ class TestRequiredTests:
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
             subject_words=["test"],
+            subject_confirmation=True,
         )
         assert all(k in result for k in ["subject_id", "gumi_instance_id", "hermes_profile_id"])
 

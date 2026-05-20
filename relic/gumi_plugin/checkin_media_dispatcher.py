@@ -19,7 +19,7 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-from relic.gumi_plugin.media_state import record_media_delivery
+from relic.gumi_plugin.media_state import record_media_delivery, record_outbound_delivery
 from relic.gumi_plugin.image_gen import generate_checkin_image
 from relic.gumi_plugin.tts import synthesize_checkin_audio
 from relic.gumi_plugin.lyria import LyriaGenerator
@@ -188,6 +188,44 @@ def _send_telegram_media(
         return False
 
 
+def _send_telegram_text(hermes_home: Path, text: str) -> bool:
+    """Send a plain text message to Telegram via Bot API sendMessage.
+
+    Returns True on success. Silently returns False if token/chat_id missing
+    or on any network error.
+    """
+    import urllib.parse
+    import urllib.request
+
+    env = _load_env(hermes_home)
+    bot_token = env.get("TELEGRAM_BOT_TOKEN") or os.environ.get("TELEGRAM_BOT_TOKEN")
+    chat_id = env.get("TELEGRAM_HOME_CHANNEL") or env.get("TELEGRAM_ALLOWED_USERS")
+
+    if not bot_token or not chat_id:
+        return False
+    if not text:
+        return False
+
+    url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+    data = urllib.parse.urlencode({"chat_id": str(chat_id), "text": text[:4096]}).encode()
+    try:
+        req = urllib.request.Request(
+            url,
+            data=data,
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            result = json.loads(resp.read().decode())
+            if result.get("ok"):
+                return True
+            print(f"[WARN] Telegram sendMessage error: {result.get('description')}", file=sys.stderr)
+            return False
+    except Exception as exc:
+        print(f"[WARN] Telegram text delivery failed: {exc}", file=sys.stderr)
+        return False
+
+
 def _get_gumi_name(relic_subject_home: Path) -> str:
     """Read Gumi's display name from background profile."""
     bg_path = relic_subject_home / "gumi_background_profile.json"
@@ -210,6 +248,23 @@ def _music_title_from_lyrics(caption: str) -> str:
     # Capitalise, max 40 chars, no trailing punctuation
     title = re.sub(r"[.!?;:]+$", "", first).strip()
     return title[:40] if title else "Canzone di Gumi"
+
+
+def _critic_block_reason(text: str) -> Optional[str]:
+    """Run the delivery-time OutputCritic on subject-facing text.
+
+    Returns a block reason when the manuscript's final language guardrail must
+    suppress delivery (dependency/need claims, false physical experience,
+    non-consensual disclosure pressure), else None. Fail-open: any critic error
+    allows delivery so the runtime never blocks on the guardrail itself.
+    """
+    try:
+        from relic.gumi_plugin.critic import OutputCritic
+
+        verdict = OutputCritic().review(text or "")
+        return None if verdict.allow else verdict.reason
+    except Exception:
+        return None
 
 
 def dispatch(
@@ -239,6 +294,17 @@ def dispatch(
     tipo = parsed["tipo"]
     testo = parsed["testo"]
 
+    # Delivery-time language guardrail: applies to every subject-facing branch
+    # (text body, and the source text synthesized into voice/image/music) before
+    # anything is sent or printed.
+    block_reason = _critic_block_reason(testo)
+    if block_reason:
+        print(
+            f"[dispatch] blocked by output critic: {block_reason} — silent drop",
+            file=sys.stderr,
+        )
+        return {"tipo": tipo, "success": False, "reason": f"critic_blocked:{block_reason}"}
+
     api_key = _get_api_key()
 
     if tipo == "text":
@@ -247,7 +313,10 @@ def dispatch(
             print("[dispatch] text blocked by sanitizer — silent drop", file=sys.stderr)
             return {"tipo": "text", "success": False, "reason": "sanitized_empty"}
         print(safe)  # stdout: subject-facing text message
-        return {"tipo": "text", "success": True, "output": safe}
+        delivered = _send_telegram_text(hermes_home, safe)
+        if delivered:
+            record_outbound_delivery(hermes_home, "telegram", "text")
+        return {"tipo": "text", "success": True, "output": safe, "telegram_delivered": delivered}
 
     elif tipo == "voice":
         if dry_run:
@@ -266,6 +335,8 @@ def dispatch(
         )
         record_media_delivery(hermes_home, "voice")
         delivered = _send_telegram_media(hermes_home, audio_path, "voice")
+        if delivered:
+            record_outbound_delivery(hermes_home, "telegram", "voice")
         status = "DELIVERED" if delivered else "LOCAL_ONLY"
         print(f"MEDIA:{audio_path} [{status}]", file=sys.stderr)
         # No stdout: voice delivered directly via Telegram Bot API
@@ -310,6 +381,8 @@ def dispatch(
 
         record_media_delivery(hermes_home, "image")
         delivered = _send_telegram_media(hermes_home, image_path, "image", caption=caption[:1024])
+        if delivered:
+            record_outbound_delivery(hermes_home, "telegram", "image")
         status = "DELIVERED" if delivered else "LOCAL_ONLY"
         print(f"MEDIA:{image_path} [{status}]", file=sys.stderr)
         # No stdout: image + caption delivered directly via Telegram Bot API
@@ -353,6 +426,8 @@ def dispatch(
             hermes_home, Path(media_file), "music",
             title=music_title, performer=performer,
         ) if media_file else False
+        if delivered:
+            record_outbound_delivery(hermes_home, "telegram", "music")
         status = "DELIVERED" if delivered else "LOCAL_ONLY"
         print(f"MEDIA:{media_file} [{status}] title={music_title!r}", file=sys.stderr)
         # No stdout: music delivered directly via Telegram Bot API
@@ -364,7 +439,10 @@ def dispatch(
             print("[dispatch] fallback text blocked by sanitizer — silent drop", file=sys.stderr)
             return {"tipo": "text", "success": False, "reason": "sanitized_empty"}
         print(safe)  # stdout: subject-facing text message
-        return {"tipo": "text", "success": True, "output": safe}
+        delivered = _send_telegram_text(hermes_home, safe)
+        if delivered:
+            record_outbound_delivery(hermes_home, "telegram", "text")
+        return {"tipo": "text", "success": True, "output": safe, "telegram_delivered": delivered}
 
 
 def main():

@@ -45,6 +45,7 @@ def base_marker(service, subject_scope):
         source_type="user_confirmed",
         max_recall_count=3,
         ttl_seconds=604800,
+        subject_confirmation=True,
     )
     return marker
 
@@ -281,6 +282,7 @@ class TestOldMarkerStatusIsCorrected:
             source_type="user_confirmed",
             max_recall_count=3,
             ttl_seconds=604800,
+            subject_confirmation=True,
         )
 
         # Correct it

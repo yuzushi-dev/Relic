@@ -28,15 +28,31 @@ class TestContinuityServiceRemember:
         """remember() requires subject_confirmation before storing marker."""
         service = ContinuityService()
 
-        # This should succeed because user calling remember implies confirmation
         result = service.remember(
             subject_id="subj_001",
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
             subject_words=["feels fast"],
+            subject_confirmation=True,
         )
 
         assert result["subject_confirmation"] is True
+
+    def test_remember_rejects_unconfirmed_marker(self):
+        """remember() rejects writes without explicit subject confirmation."""
+        service = ContinuityService()
+
+        with pytest.raises(ValueError) as exc_info:
+            service.remember(
+                subject_id="subj_001",
+                gumi_instance_id="gumi_001",
+                hermes_profile_id="hermes_001",
+                subject_words=["inferred preference"],
+                source_type="internal_inference",
+                subject_confirmation=False,
+            )
+
+        assert "BLOCKED_MARKER_WITHOUT_SUBJECT_CONFIRMATION" in str(exc_info.value)
 
     def test_remember_stores_subject_words(self):
         """remember() stores subject's own words."""
@@ -47,6 +63,7 @@ class TestContinuityServiceRemember:
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
             subject_words=["too fast for me"],
+            subject_confirmation=True,
         )
 
         assert "too fast for me" in result["subject_words"]
@@ -60,7 +77,8 @@ class TestContinuityServiceRemember:
             subject_id="subj_001",
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
-            subject_words=["feeling depressed"],  # depressed is a clinical term
+            subject_words=["feeling depressed"],  # depressed is a clinical term,
+            subject_confirmation=True,
         )
 
         # The marker is stored, but should not contain clinical labels
@@ -77,6 +95,7 @@ class TestContinuityServiceRemember:
                 gumi_instance_id=None,  # Missing
                 hermes_profile_id="hermes_001",
                 subject_words=["test"],
+                subject_confirmation=True,
             )
         assert "BLOCKED_MARKER_WITHOUT_SUBJECT_SCOPE" in str(exc_info.value)
 
@@ -89,6 +108,7 @@ class TestContinuityServiceRemember:
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
             subject_words=["feeling low"],
+            subject_confirmation=True,
         )
 
         # Check output for forbidden terms
@@ -110,6 +130,7 @@ class TestContinuityServiceCorrect:
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
             subject_words=["old words"],
+            subject_confirmation=True,
         )
 
         # Correct it
@@ -132,6 +153,7 @@ class TestContinuityServiceCorrect:
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
             subject_words=["was wrong"],
+            subject_confirmation=True,
         )
 
         correction_result = service.correct(
@@ -160,6 +182,7 @@ class TestContinuityServiceDueFollowups:
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
             subject_words=["test"],
+            subject_confirmation=True,
         )
 
         # Verify service has due_followups method
@@ -199,6 +222,7 @@ class TestContinuityServiceRecentMarkers:
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
             subject_words=["marker 1"],
+            subject_confirmation=True,
         )
 
         results = service.recent_markers(subject_id="subj_001")
@@ -219,6 +243,7 @@ class TestContinuityServiceForget:
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
             subject_words=["to forget"],
+            subject_confirmation=True,
         )
 
         forget_result = service.forget(
@@ -270,6 +295,7 @@ class TestSharedContinuityIsSubjectScoped:
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
             subject_words=["test"],
+            subject_confirmation=True,
         )
 
         assert "subject_id" in result

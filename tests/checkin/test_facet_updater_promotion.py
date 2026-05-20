@@ -3,11 +3,11 @@
 Contract:
 - _promote_observation_to_marker skips when signal_strength < MARKER_PROMOTION_THRESHOLD
 - _promote_observation_to_marker skips when observation_summary is empty
-- _promote_observation_to_marker calls GumiContinuityStore.remember_marker when signal strong
-- remember_marker called with correct subject_id, gumi_instance_id, hermes_profile_id
+- _promote_observation_to_marker calls GumiContinuityStore.propose_candidate when signal strong
+- propose_candidate called with correct subject_id, gumi_instance_id, hermes_profile_id
 - subject_words derived from observation_summary.split()
-- source_type == "subject_confirmed" (required for recent_markers() + prefetch() visibility)
-- dedup: skips remember_marker when existing marker has same text
+- source_type == "hindsight" (unconfirmed candidate; excluded from recall until confirmed)
+- dedup: skips propose_candidate when existing marker has same text
 - fail-open: GumiContinuityStore exception does not propagate
 - ttl_seconds == 1_209_600 (2 weeks)
 """
@@ -61,21 +61,21 @@ class TestPromoteObservationToMarker:
         with patch("relic.gumi_continuity.store.GumiContinuityStore") as mock_cls:
             mock_cls.return_value = _mock_store()
             _promote_observation_to_marker(extraction, "subj1")
-        mock_cls.return_value.remember_marker.assert_called_once()
+        mock_cls.return_value.propose_candidate.assert_called_once()
 
     def test_above_threshold_calls_remember(self):
         extraction = _make_extraction(signal_strength=0.9)
         with patch("relic.gumi_continuity.store.GumiContinuityStore") as mock_cls:
             mock_cls.return_value = _mock_store()
             _promote_observation_to_marker(extraction, "subj1")
-        mock_cls.return_value.remember_marker.assert_called_once()
+        mock_cls.return_value.propose_candidate.assert_called_once()
 
     def test_passes_subject_id(self):
         extraction = _make_extraction(signal_strength=0.8, observation_summary="ama leggere")
         with patch("relic.gumi_continuity.store.GumiContinuityStore") as mock_cls:
             mock_cls.return_value = _mock_store()
             _promote_observation_to_marker(extraction, "my_subject")
-        call_kwargs = mock_cls.return_value.remember_marker.call_args.kwargs
+        call_kwargs = mock_cls.return_value.propose_candidate.call_args.kwargs
         assert call_kwargs["subject_id"] == "my_subject"
 
     def test_passes_gumi_and_hermes_ids(self):
@@ -85,7 +85,7 @@ class TestPromoteObservationToMarker:
             _promote_observation_to_marker(
                 extraction, "subj", gumi_instance_id="gumi-01", hermes_profile_id="hp-01"
             )
-        call_kwargs = mock_cls.return_value.remember_marker.call_args.kwargs
+        call_kwargs = mock_cls.return_value.propose_candidate.call_args.kwargs
         assert call_kwargs["gumi_instance_id"] == "gumi-01"
         assert call_kwargs["hermes_profile_id"] == "hp-01"
 
@@ -96,31 +96,31 @@ class TestPromoteObservationToMarker:
         with patch("relic.gumi_continuity.store.GumiContinuityStore") as mock_cls:
             mock_cls.return_value = _mock_store()
             _promote_observation_to_marker(extraction, "subj")
-        call_kwargs = mock_cls.return_value.remember_marker.call_args.kwargs
+        call_kwargs = mock_cls.return_value.propose_candidate.call_args.kwargs
         assert call_kwargs["subject_words"] == ["preferisce", "messaggi", "brevi"]
 
-    def test_source_type_is_subject_confirmed(self):
-        """subject_confirmed required so recent_markers() + prefetch() can surface it."""
+    def test_source_type_is_hindsight_not_confirmed(self):
+        """Inferred check-in observations are unconfirmed candidates, NOT subject_confirmed."""
         extraction = _make_extraction(signal_strength=0.8)
         with patch("relic.gumi_continuity.store.GumiContinuityStore") as mock_cls:
             mock_cls.return_value = _mock_store()
             _promote_observation_to_marker(extraction, "subj")
-        call_kwargs = mock_cls.return_value.remember_marker.call_args.kwargs
-        assert call_kwargs["source_type"] == "subject_confirmed"
+        call_kwargs = mock_cls.return_value.propose_candidate.call_args.kwargs
+        assert call_kwargs["source_type"] == "hindsight"
 
     def test_ttl_is_two_weeks(self):
         extraction = _make_extraction(signal_strength=0.8)
         with patch("relic.gumi_continuity.store.GumiContinuityStore") as mock_cls:
             mock_cls.return_value = _mock_store()
             _promote_observation_to_marker(extraction, "subj")
-        call_kwargs = mock_cls.return_value.remember_marker.call_args.kwargs
+        call_kwargs = mock_cls.return_value.propose_candidate.call_args.kwargs
         assert call_kwargs["ttl_seconds"] == 1_209_600
 
     def test_fail_open_on_store_exception(self):
         extraction = _make_extraction(signal_strength=0.8)
         with patch("relic.gumi_continuity.store.GumiContinuityStore") as mock_cls:
             store = _mock_store()
-            store.remember_marker.side_effect = RuntimeError("db unavailable")
+            store.propose_candidate.side_effect = RuntimeError("db unavailable")
             mock_cls.return_value = store
             _promote_observation_to_marker(extraction, "subj")  # must not raise
 
@@ -135,7 +135,7 @@ class TestPromoteObservationToMarker:
 
 class TestDedup:
     def test_skip_when_exact_duplicate_exists(self):
-        """If existing marker has same text, remember_marker not called."""
+        """If existing marker has same text, propose_candidate not called."""
         extraction = _make_extraction(
             signal_strength=0.8, observation_summary="preferisce messaggi brevi"
         )
@@ -143,10 +143,10 @@ class TestDedup:
         with patch("relic.gumi_continuity.store.GumiContinuityStore") as mock_cls:
             mock_cls.return_value = _mock_store(existing_markers=existing)
             _promote_observation_to_marker(extraction, "subj")
-        mock_cls.return_value.remember_marker.assert_not_called()
+        mock_cls.return_value.propose_candidate.assert_not_called()
 
     def test_call_when_no_matching_marker(self):
-        """Different text → remember_marker IS called."""
+        """Different text → propose_candidate IS called."""
         extraction = _make_extraction(
             signal_strength=0.8, observation_summary="ama leggere di notte"
         )
@@ -154,7 +154,7 @@ class TestDedup:
         with patch("relic.gumi_continuity.store.GumiContinuityStore") as mock_cls:
             mock_cls.return_value = _mock_store(existing_markers=existing)
             _promote_observation_to_marker(extraction, "subj")
-        mock_cls.return_value.remember_marker.assert_called_once()
+        mock_cls.return_value.propose_candidate.assert_called_once()
 
     def test_skip_handles_words_key_alias(self):
         """Dedup also checks 'words' key (alias used by some marker serializations)."""
@@ -165,15 +165,15 @@ class TestDedup:
         with patch("relic.gumi_continuity.store.GumiContinuityStore") as mock_cls:
             mock_cls.return_value = _mock_store(existing_markers=existing)
             _promote_observation_to_marker(extraction, "subj")
-        mock_cls.return_value.remember_marker.assert_not_called()
+        mock_cls.return_value.propose_candidate.assert_not_called()
 
     def test_no_existing_markers_calls_remember(self):
-        """Empty marker list → no dedup → remember_marker called."""
+        """Empty marker list → no dedup → propose_candidate called."""
         extraction = _make_extraction(signal_strength=0.8, observation_summary="osservazione nuova")
         with patch("relic.gumi_continuity.store.GumiContinuityStore") as mock_cls:
             mock_cls.return_value = _mock_store(existing_markers=[])
             _promote_observation_to_marker(extraction, "subj")
-        mock_cls.return_value.remember_marker.assert_called_once()
+        mock_cls.return_value.propose_candidate.assert_called_once()
 
 
 class TestFallbackIds:
@@ -191,7 +191,7 @@ class TestFallbackIds:
             _promote_observation_to_marker(
                 extraction, "my_subject", gumi_instance_id="", hermes_profile_id="hp-01"
             )
-        call_kwargs = mock_cls.return_value.remember_marker.call_args.kwargs
+        call_kwargs = mock_cls.return_value.propose_candidate.call_args.kwargs
         assert call_kwargs["gumi_instance_id"] == "my_subject"
         assert call_kwargs["hermes_profile_id"] == "hp-01"
 
@@ -202,7 +202,7 @@ class TestFallbackIds:
             _promote_observation_to_marker(
                 extraction, "my_subject", gumi_instance_id="gumi-01", hermes_profile_id=""
             )
-        call_kwargs = mock_cls.return_value.remember_marker.call_args.kwargs
+        call_kwargs = mock_cls.return_value.propose_candidate.call_args.kwargs
         assert call_kwargs["gumi_instance_id"] == "gumi-01"
         assert call_kwargs["hermes_profile_id"] == "my_subject"
 
@@ -214,7 +214,7 @@ class TestFallbackIds:
             _promote_observation_to_marker(
                 extraction, "cli_subject", gumi_instance_id="", hermes_profile_id=""
             )
-        call_kwargs = mock_cls.return_value.remember_marker.call_args.kwargs
+        call_kwargs = mock_cls.return_value.propose_candidate.call_args.kwargs
         assert call_kwargs["gumi_instance_id"] == "cli_subject"
         assert call_kwargs["hermes_profile_id"] == "cli_subject"
 
@@ -226,6 +226,6 @@ class TestFallbackIds:
             _promote_observation_to_marker(
                 extraction, "subj", gumi_instance_id="gumi-99", hermes_profile_id="hp-99"
             )
-        call_kwargs = mock_cls.return_value.remember_marker.call_args.kwargs
+        call_kwargs = mock_cls.return_value.propose_candidate.call_args.kwargs
         assert call_kwargs["gumi_instance_id"] == "gumi-99"
         assert call_kwargs["hermes_profile_id"] == "hp-99"

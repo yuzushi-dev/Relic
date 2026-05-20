@@ -155,3 +155,52 @@ class TestReaperRun:
         assert "dry_run" in result
         assert "total_deleted" in result
         assert "summary" in result
+
+
+class TestSubjectPurge:
+    def test_purge_subject_records_cascades_provenance_edges(
+        self, monkeypatch, tmp_relic_db, tmp_chronicle_dir
+    ):
+        _patch(monkeypatch, tmp_relic_db, tmp_chronicle_dir)
+        from relic.chronicle.retention import purge_subject_records
+
+        conn = sqlite3.connect(tmp_relic_db)
+        conn.execute(
+            """
+            INSERT INTO chronicle_events
+            (event_id, event_type, event_category, trace_id, source_module, timestamp, subject_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "event_subject",
+                "message",
+                "message",
+                "trace_subject",
+                "test",
+                "2026-05-20T00:00:00Z",
+                "subj_a",
+            ),
+        )
+        conn.execute(
+            """
+            INSERT INTO chronicle_provenance_edges
+            (edge_id, trace_id, artifact_id, from_node_type, from_node_id, relation, timestamp)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "edge_subject",
+                "trace_subject",
+                "artifact_a",
+                "event",
+                "event_subject",
+                "wasGeneratedBy",
+                "2026-05-20T00:00:00Z",
+            ),
+        )
+        conn.commit()
+        conn.close()
+
+        result = purge_subject_records("subj_a", cascade=True)
+
+        assert result["chronicle_events_deleted"] == 1
+        assert result["chronicle_provenance_edges_deleted"] == 1

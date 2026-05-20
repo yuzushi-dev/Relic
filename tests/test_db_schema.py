@@ -98,3 +98,16 @@ def test_artifact_registry_exists():
             assert "metadata_json" in columns
         finally:
             conn.close()
+
+
+def test_get_connection_enables_foreign_keys():
+    """Ordinary DB connections enforce declared foreign keys."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        db_path = Path(tmpdir) / "test.db"
+        init_db(db_path)
+        conn = get_connection(db_path)
+        try:
+            enabled = conn.execute("PRAGMA foreign_keys").fetchone()[0]
+            assert enabled == 1
+        finally:
+            conn.close()

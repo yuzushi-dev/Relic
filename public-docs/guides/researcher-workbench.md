@@ -1,6 +1,6 @@
 # Researcher Workbench
 
-The researcher workbench is the primary interface for inspecting and correcting subject profiles. It provides read access to all model state and a constrained write surface for corrections.
+The researcher workbench is the oversight interface design for inspecting and correcting subject profiles. The current Python backend is a fixture-backed, read-only dashboard contract for study overview and subject registry data; full live backend wiring for every panel is not implemented in this artifact.
 
 ## Starting the workbench
 
@@ -8,7 +8,7 @@ The researcher workbench is the primary interface for inspecting and correcting 
 relic ui
 ```
 
-The workbench runs as a local process. Access it in a browser at `http://localhost:8080` (port configurable via `--port`).
+The current fixture-backed API can be exercised through the local UI/server code paths. Treat `relic ui` and browser hosting as deployment-specific until a live workbench backend is wired for your environment.
 
 ## What you can see
 
@@ -106,4 +106,4 @@ The `safety_signals` panel shows **redacted** evidence refs by default; raw evid
 
 ## Workbench separation from runtime
 
-The workbench is not in the Hermes runtime path. It reads from `relic.db` and writes only feedback events and replay requests. It does not have a connection to the live Hermes session. Changes you make in the workbench take effect at the next turn after the recompile completes, not immediately.
+The workbench is not in the Hermes runtime path. The current Python study API reads fixture data from `fixtures/researcher-workbench/study_overview.json` and exposes read-only routes for study overview and subjects. Panel/view-model modules define the intended separation, redaction, and permission contracts; live feedback/replay/write behavior must be wired and tested separately before use as an operational backend.

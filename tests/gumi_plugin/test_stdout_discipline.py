@@ -22,13 +22,11 @@ import pytest
 
 # Modules where bare print() to stdout is explicitly allowed.
 # checkin_media_dispatcher: sanitized subject-facing text messages.
-# memory_sync: JSON result consumed by cron runner (not subject chat).
 # db_init: CLI tool JSON output (operator, not subject chat).
 # The following are CLI __main__ tools whose stdout is operator/cron JSON,
 # never forwarded to the subject chat.
 _STDOUT_ALLOWED = {
     "checkin_media_dispatcher.py",  # sanitized subject-facing text (verified separately)
-    "memory_sync.py",               # JSON result consumed by cron runner
     "db_init.py",                   # CLI init output
     "facet_updater.py",             # CLI processing result
     "question_engine.py",           # CLI facet selection result

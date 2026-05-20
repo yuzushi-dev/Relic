@@ -144,16 +144,34 @@ def _select_media_type(subject_id: str, hermes_home: Path, now: datetime) -> str
     """Return 'text'|'voice'|'image'|'music'. Deterministic per subject+day."""
     policy_path = hermes_home / "workspace" / "gumi" / "media_policy.json"
     if not policy_path.exists():
-        return "text"
+        # Fallback: mirror subject-side policy into the workspace if available.
+        # Avoids silent media-disable when the workspace copy was never provisioned.
+        try:
+            subject_policy = Path.home() / ".relic" / "subjects" / subject_id / "gumi_media_policy.json"
+            if subject_policy.exists():
+                policy_path.parent.mkdir(parents=True, exist_ok=True)
+                tmp_path = policy_path.with_suffix(policy_path.suffix + ".tmp")
+                tmp_path.write_text(subject_policy.read_text(encoding="utf-8"), encoding="utf-8")
+                os.replace(tmp_path, policy_path)
+            else:
+                return "text"
+        except Exception:
+            return "text"
     try:
-        policy = json.loads(policy_path.read_text())
+        policy = json.loads(policy_path.read_text(encoding="utf-8"))
     except Exception:
         return "text"
 
+    # `voice` reads either `voice_generation_enabled` or legacy `audio_generation_enabled`.
+    _POLICY_KEYS = {
+        "image": ("image_generation_enabled",),
+        "voice": ("voice_generation_enabled", "audio_generation_enabled"),
+        "music": ("music_generation_enabled",),
+    }
     eligible: dict[str, bool] = {}
     for mtype in ("image", "voice", "music"):
-        key = f"{mtype}_generation_enabled"
-        if policy.get(key) and _pro_media_allowed(subject_id, mtype):
+        enabled = any(policy.get(k) for k in _POLICY_KEYS[mtype])
+        if enabled and _pro_media_allowed(subject_id, mtype):
             eligible[mtype] = is_media_eligible(hermes_home, mtype, now, MEDIA_COOLDOWN_DAYS)
 
     if not any(eligible.values()):
@@ -406,6 +424,14 @@ def _last_outbound_datetime(hermes_home: Path, subject_id: str = "") -> "datetim
     tz = _subject_timezone(subject_id) if subject_id else None
     if tz is None:
         tz = datetime.now().astimezone().tzinfo
+    # Preferred source: explicit outbound state recorded by checkin_media_dispatcher
+    try:
+        from relic.gumi_plugin.media_state import last_outbound_ts as _last_outbound_ts
+        ob = _last_outbound_ts(hermes_home)
+        if ob is not None:
+            return ob.astimezone(tz)
+    except Exception:
+        pass
     watermark_path = hermes_home / "state" / "memory_sync_watermark.json"
     try:
         if watermark_path.exists():
@@ -1416,21 +1442,29 @@ set -euo pipefail
 SUBJECT_ID="${{RELIC_SUBJECT_ID:-{subject_id}}}"
 HERMES_HOME="${{HERMES_HOME:-$HOME/.hermes}}"
 RELIC_PYTHON="${{RELIC_PYTHON:-{sys.executable}}}"
-OUTPUT_DIR="$HERMES_HOME/cron/output/${{SUBJECT_ID}}_checkin_message"
+OUTPUT_BASE="$HERMES_HOME/cron/output"
 
-if [ ! -d "$OUTPUT_DIR" ]; then
+if [ ! -d "$OUTPUT_BASE" ]; then
     exit 0
 fi
 
-# Find most recent .md file, modified within last 8 minutes
-LATEST=$(find "$OUTPUT_DIR" -name "*.md" -mmin -8 2>/dev/null | sort -rV | head -1)
+# Find most recent .md file whose Hermes header names the checkin_message job for this subject.
+# Iterates newest-first; picks the first match within the 8-minute slack window.
+LATEST=""
+while IFS= read -r CAND; do
+    HEADER=$(head -n1 "$CAND" 2>/dev/null | tr -d '\\r')
+    if [ "$HEADER" = "# Cron Job: ${{SUBJECT_ID}}_checkin_message" ]; then
+        LATEST="$CAND"
+        break
+    fi
+done < <(find "$OUTPUT_BASE" -mindepth 2 -maxdepth 2 -name "*.md" -size +0c -mmin -8 2>/dev/null | xargs -r ls -1t)
 
 if [ -z "$LATEST" ]; then
     exit 0
 fi
 
-# Skip [SILENT] responses
-if grep -q '^\\[SILENT\\]' "$LATEST" 2>/dev/null; then
+# Skip [SILENT] responses (case where the LLM short-circuited).
+if grep -q '\\[SILENT\\]' "$LATEST" 2>/dev/null; then
     exit 0
 fi
 
@@ -1454,7 +1488,14 @@ relic_subject_home = Path(sys.argv[3])
 subject_id = sys.argv[4]
 force = "--force" in sys.argv[5:]
 
-llm_output = Path(llm_output_file).read_text(encoding="utf-8").strip()
+raw = Path(llm_output_file).read_text(encoding="utf-8")
+# Hermes wraps the LLM output in a markdown report with a "## Response" header.
+# Extract only the response body; fall back to whole file for back-compat.
+marker = "\\n## Response\\n"
+if marker in raw:
+    llm_output = raw.split(marker, 1)[1].strip()
+else:
+    llm_output = raw.strip()
 if not llm_output or llm_output == "[SILENT]":
     sys.exit(0)
 

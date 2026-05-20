@@ -9,10 +9,13 @@ Public API:
 from __future__ import annotations
 
 import json
+import logging
 import re
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 
 def _load_consent(subject_id: str, relic_home: Path) -> bool:
@@ -228,16 +231,25 @@ def build_style_hints_section(bl_path: Path) -> str:
 
 
 def build_recent_subject_messages_section(
-    hermes_home: Path, hours: int = 24, limit: int = 5
+    hermes_home: Path,
+    hours: int = 24,
+    limit: int = 5,
+    subject_id: str | None = None,
 ) -> str:
     """Read role='user' messages from Hermes state.db; return formatted block or ''.
 
     Filters out cron task prompts (content starting with '[IMPORTANT:'),
     which are system-injected, not subject-authored.
+    Fail-open: any exception -> ''. Logs WARNING with subject_id, db_path,
+    exception type/message so silent failures are observable.
     """
+    db_path = hermes_home / "state.db"
     try:
-        db_path = hermes_home / "state.db"
         if not db_path.exists():
+            logger.warning(
+                "[checkin] subject_messages: state.db missing subject_id=%s db_path=%s",
+                subject_id, db_path,
+            )
             return ""
         import sqlite3
         cutoff_ts = (datetime.now(timezone.utc) - timedelta(hours=hours)).timestamp()
@@ -260,6 +272,10 @@ def build_recent_subject_messages_section(
             conn.close()
 
         if not rows:
+            logger.warning(
+                "[checkin] subject_messages: 0 rows subject_id=%s db_path=%s hours=%s",
+                subject_id, db_path, hours,
+            )
             return ""
 
         out = [
@@ -281,6 +297,10 @@ def build_recent_subject_messages_section(
             out.append(f"• [{ts_str}] {text[:280]}")
         return "\n".join(out)
     except Exception as e:
+        logger.warning(
+            "[checkin] subject_messages: %s: %s subject_id=%s db_path=%s",
+            type(e).__name__, e, subject_id, db_path,
+        )
         print(f"[checkin] subject messages: {e}", file=sys.stderr)
         return ""
 
@@ -443,25 +463,64 @@ def build_deliver_context(
 
     parts: list[str] = []
 
+    # Track the "concrete-anchor" sections separately so we can detect a
+    # context that is empty of conversational hooks (Fix #1).
+    anchor_sections: dict[str, str] = {
+        "recent_subject_messages": "",
+        "last_exchange": "",
+        "topic_hint": "",
+        "recent_observations": "",
+    }
+
     if flags.get("recent_checkins"):
         parts.append(build_recent_checkins_section(hermes_home))
     if flags.get("recent_subject_messages"):
-        parts.append(build_recent_subject_messages_section(hermes_home))
+        sec = build_recent_subject_messages_section(
+            hermes_home, subject_id=subject_id
+        )
+        anchor_sections["recent_subject_messages"] = sec
+        parts.append(sec)
 
     if consent:
         if flags.get("observations"):
-            parts.append(build_observations_section(db_path))
+            sec = build_observations_section(db_path)
+            anchor_sections["recent_observations"] = sec
+            parts.append(sec)
         if flags.get("topic_hint"):
-            parts.append(build_topic_hint_section(subject_id, db_path, bl_path))
+            sec = build_topic_hint_section(subject_id, db_path, bl_path)
+            anchor_sections["topic_hint"] = sec
+            parts.append(sec)
         if flags.get("style_hints"):
             parts.append(build_style_hints_section(bl_path))
         if flags.get("last_exchange"):
             # last_exchange echoes raw reply text; same consent gate as
             # observations / topic_hint / style_hints.
-            parts.append(build_last_exchange_section(db_path))
+            sec = build_last_exchange_section(db_path)
+            anchor_sections["last_exchange"] = sec
+            parts.append(sec)
 
     if flags.get("avatar"):
         parts.append(build_avatar_section(hermes_home))
+
+    # Fix #1: if ALL conversational anchors are empty, append a mode
+    # instruction guiding the LLM toward either a tiny factual share or
+    # [SILENT]. We never force [SILENT] here — only nudge.
+    if all(not v for v in anchor_sections.values()):
+        logger.warning(
+            "[checkin] empty-anchor context subject_id=%s event=%s posture=%s",
+            subject_id, event_type, posture,
+        )
+        parts.append(
+            "\n--- ISTRUZIONE MODALITÀ ---\n"
+            "Nessun aggancio concreto disponibile (nessun messaggio recente del soggetto, "
+            "nessuna observation, nessun topic hint).\n"
+            "Hai due opzioni:\n"
+            "(a) Scrivi UNA frase fattuale brevissima su cosa stai facendo TU adesso "
+            "(es: \"Sto sistemando i miei appunti del weekend\"). Niente domande, niente auguri, "
+            "niente riflessioni astratte. Max 12 parole.\n"
+            "(b) Rispondi esattamente [SILENT] se non hai nulla di concreto da dire.\n"
+            "Preferisci [SILENT] se sei incerta — il silenzio vale più di un messaggio generico."
+        )
 
     return "".join(part for part in parts if part)
 

@@ -8,12 +8,32 @@ This module creates replication bundles that include:
 """
 
 import json
+import re
 import zipfile
 from dataclasses import dataclass, field
 from datetime import datetime
 from hashlib import sha256
 from pathlib import Path
 from typing import Any
+
+
+_RAW_PRIVATE_PATTERNS = [
+    re.compile(r"RAW_PRIVATE", re.IGNORECASE),
+    re.compile(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"),
+    re.compile(r"\b\d{3}-\d{2}-\d{4}\b"),
+    re.compile(r"\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b"),
+]
+
+
+def _validate_public_trace_text(traces: list["TraceEntry"]) -> None:
+    """Refuse to export obvious raw private content in public bundles."""
+    for trace in traces:
+        for field_name, value in (("prompt", trace.prompt), ("response", trace.response)):
+            for pattern in _RAW_PRIVATE_PATTERNS:
+                if pattern.search(value):
+                    raise ValueError(
+                        f"Raw private content in {field_name} for scenario {trace.scenario_id}"
+                    )
 
 
 @dataclass
@@ -108,6 +128,7 @@ class ReplicationBundle:
 
         Creates a reproducible ZIP with manifest, traces, policy, and report.
         """
+        _validate_public_trace_text(self.traces)
         output_path = Path(output_path)
 
         with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED) as zf:

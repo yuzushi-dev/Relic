@@ -65,6 +65,7 @@ class SharedContinuityTools:
         source_type: str = "user_confirmed",
         max_recall_count: int = 3,
         ttl_seconds: int = 604800,
+        subject_confirmation: bool = True,
     ) -> Dict[str, Any]:
         """Remember a continuity marker. Requires subject confirmation before storing."""
         self._validate_subject_scope_write(subject_id, gumi_instance_id, hermes_profile_id)
@@ -76,6 +77,7 @@ class SharedContinuityTools:
             source_type=source_type,
             max_recall_count=max_recall_count,
             ttl_seconds=ttl_seconds,
+            subject_confirmation=subject_confirmation,
         )
         self._check_no_clinical_terms(result)
         return result

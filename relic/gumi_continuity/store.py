@@ -57,9 +57,38 @@ class GumiContinuityStore:
         source_type: str = "user_confirmed",
         max_recall_count: int = 3,
         ttl_seconds: int = 604800,
+        *,
+        subject_confirmation: bool,
     ) -> Dict[str, Any]:
-        """Create a new continuity marker."""
+        """Create a new subject-confirmed continuity marker.
+
+        subject_confirmation is required (keyword-only): callers must explicitly
+        assert the subject confirmed this wording. Inferred/unconfirmed content
+        must use propose_candidate() instead.
+        """
         return self._service.remember(
+            subject_id=subject_id,
+            gumi_instance_id=gumi_instance_id,
+            hermes_profile_id=hermes_profile_id,
+            subject_words=subject_words,
+            source_type=source_type,
+            max_recall_count=max_recall_count,
+            ttl_seconds=ttl_seconds,
+            subject_confirmation=subject_confirmation,
+        )
+
+    def propose_candidate(
+        self,
+        subject_id: str,
+        gumi_instance_id: str,
+        hermes_profile_id: str,
+        subject_words: List[str],
+        source_type: str = "hindsight",
+        max_recall_count: int = 3,
+        ttl_seconds: int = 604800,
+    ) -> Dict[str, Any]:
+        """Store an unconfirmed candidate marker (not recalled until confirmed)."""
+        return self._service.propose_candidate(
             subject_id=subject_id,
             gumi_instance_id=gumi_instance_id,
             hermes_profile_id=hermes_profile_id,

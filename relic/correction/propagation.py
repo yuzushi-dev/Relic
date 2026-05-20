@@ -275,7 +275,7 @@ class CorrectionPropagator:
             metadata = {}
             try:
                 if artifact_row["metadata_json"]:
-                    metadata = eval(artifact_row["metadata_json"])
+                    metadata = json.loads(artifact_row["metadata_json"]) if artifact_row["metadata_json"] else {}
             except Exception:
                 pass
 

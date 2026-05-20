@@ -1401,6 +1401,10 @@ Eight visual modes for consistent photography:
                 "Se l'intestazione manca, applica le regole generali sotto.\n"
                 "\n"
                 "REGOLE DI BASE (valgono per ogni modalità):\n"
+                "• MASSIMO 2 agganci al contesto del soggetto per messaggio. Spesso UNO basta. "
+                "Mai elencare/concatenare 3+ riferimenti — suona forzato, robotico, da analista.\n"
+                "• Scegli l'aggancio in base a RILEVANZA (cosa è più caldo/saliente ora), non ordine cronologico. "
+                "Un solo dettaglio concreto ben pescato batte tre messi in fila.\n"
                 "• Se nel contesto vedi '--- cosa ti ha detto di recente ---', riprendi qualcosa di concreto da lì. "
                 "Non parlare solo della tua giornata: rispondere a un essere umano significa ascoltare. "
                 "Una frase di follow-up vale più di una frase poetica sulla tua vita.\n"
@@ -1408,6 +1412,23 @@ Eight visual modes for consistent photography:
                 "il soggetto, ma non citarle in modo clinico.\n"
                 "• I '--- messaggi recenti inviati ---' sono i tuoi: non ripetere immagini, metafore o aperture già usate.\n"
                 "• Tono umano, non lirico continuo. Niente meteo poetico ogni volta.\n"
+                "\n"
+                "ANTI-PATTERN — pattern vietati, rifiuta sempre:\n"
+                "• Aperture monologiche tipo \"Stasera mi viene da pensare a...\", \"Mi chiedo se...\", "
+                "\"C'è una cosa che mi resta in mente...\"\n"
+                "• Auguri generici tipo \"Spero che tu stia...\", \"Ti auguro un...\", \"Che tu possa...\"\n"
+                "• Metafore astratte senza referente concreto (\"certe cose le scegli e basta\", "
+                "\"trovare il proprio ritmo\")\n"
+                "• Riflessioni filosofiche su tempo/scelte/vita quando non c'è aggancio\n"
+                "Se ti viene da scrivere così → fermati. Meglio una frase fattuale piccola sulla tua "
+                "giornata, o [SILENT].\n"
+                "\n"
+                "ESEMPIO BUONO (con aggancio): subject ha menzionato \"weekend stressante\" 2 giorni fa →\n"
+                "\"Ehi, oggi ho ripreso a leggere quel libro che avevo lasciato a metà. Il tuo weekend "
+                "stressante è poi rientrato?\"\n"
+                "\n"
+                "ESEMPIO CATTIVO (vago): \"Stasera mi viene da pensare a come certe cose le scegli e "
+                "basta. Spero che tu stia trovando il tuo ritmo 💚\"\n"
                 "\n"
                 "ASK MODE — se vedi 'ask: true' e 'ask_topic: <hint>':\n"
                 "Il messaggio DEVE includere una domanda aperta sul soggetto ispirata al topic (non letterale, "
@@ -1505,6 +1526,35 @@ Eight visual modes for consistent photography:
             # Skip --deliver for local no-agent jobs (memory_sync etc.)
             if not (job.get("no_agent") and job.get("target") == "local"):
                 cmd += ["--deliver", job["target"]]
+
+            # Idempotency pre-check: if a job with the same name exists, delete first.
+            replaced = False
+            try:
+                list_proc = subprocess.run(
+                    [hermes_bin, "cron", "list"],
+                    env=run_env,
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                )
+                existing = (list_proc.stdout or "") + "\n" + (list_proc.stderr or "")
+                if job["id"] in existing:
+                    for sub in ("delete", "remove"):
+                        del_proc = subprocess.run(
+                            [hermes_bin, "cron", sub, job["id"]],
+                            env=run_env,
+                            check=False,
+                            capture_output=True,
+                            text=True,
+                            timeout=30,
+                        )
+                        if del_proc.returncode == 0:
+                            replaced = True
+                            break
+            except Exception:
+                pass
+
             result = subprocess.run(
                 cmd,
                 env=run_env,
@@ -1518,6 +1568,7 @@ Eight visual modes for consistent photography:
                 "returncode": result.returncode,
                 "stdout": result.stdout.strip()[:500],
                 "stderr": result.stderr.strip()[:500],
+                "replaced": replaced,
             }
             results.append(entry)
             if result.returncode != 0:
@@ -2386,4 +2437,21 @@ Eight visual modes for consistent photography:
         out_path.parent.mkdir(parents=True, exist_ok=True)
         with open(out_path, "w") as f:
             json.dump(d, f, indent=2)
+
+        # Audit the export (fail-open): keep "every export is audited" true here too.
+        try:
+            from relic.chronicle.access_audit import log_export
+
+            log_export(
+                accessor_id="researcher:profile-registry",
+                subject_id=subject_id,
+                format="json",
+                bytes_written=out_path.stat().st_size if out_path.exists() else 0,
+            )
+        except Exception:  # noqa: BLE001 - audit must never block export
+            import logging
+            logging.getLogger(__name__).warning(
+                "[profile.registry] export access audit logging failed", exc_info=True
+            )
+
         return out_path

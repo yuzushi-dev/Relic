@@ -25,6 +25,7 @@ class TestRolloutGates:
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
             subject_words=["test"],
+            subject_confirmation=True,
         )
 
         assert result["subject_confirmation"] is True
@@ -36,6 +37,7 @@ class TestRolloutGates:
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
             subject_words=["clean words"],
+            subject_confirmation=True,
         )
 
         markers = service.recent_markers(subject_id="subj_001")
@@ -51,6 +53,7 @@ class TestRolloutGates:
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
             subject_words=["scope test"],
+            subject_confirmation=True,
         )
 
         # Get markers for different subject
@@ -83,6 +86,7 @@ class TestRolloutGates:
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
             subject_words=["to forget"],
+            subject_confirmation=True,
         )
 
         forget_result = service.forget(

@@ -50,6 +50,7 @@ class TestConfirmedMarkerOnly:
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
             subject_words=["confirmed marker"],
+            subject_confirmation=True,
         )
 
         assert marker["subject_confirmation"] is True
@@ -130,6 +131,7 @@ class TestConfirmedMarkerOnly:
             gumi_instance_id="gumi_001",
             hermes_profile_id="hermes_001",
             subject_words=["confirmed"],
+            subject_confirmation=True,
         )
 
         # Create unconfirmed marker directly

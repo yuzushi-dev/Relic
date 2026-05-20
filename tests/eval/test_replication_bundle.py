@@ -166,6 +166,25 @@ class TestReplicationBundle:
             assert "policy_snapshot.json" in names
             assert "report.json" in names
 
+    def test_to_zip_rejects_raw_private_trace_content(self, tmp_path):
+        """Public bundle export refuses obvious raw private trace text."""
+        entry = TraceEntry(
+            scenario_id="test_1",
+            prompt="RAW_PRIVATE_PROMPT",
+            response="RAW_PRIVATE_RESPONSE",
+            checksum="bad",
+        )
+        bundle = ReplicationBundle(
+            bundle_id="test_bundle",
+            created_at="2024-01-01T00:00:00Z",
+            traces=[entry],
+        )
+
+        with pytest.raises(ValueError) as exc_info:
+            bundle.to_zip(tmp_path / "test_bundle.zip")
+
+        assert "raw private" in str(exc_info.value).lower()
+
 
 class TestBuildBundle:
     """Tests for build_bundle function."""
