@@ -1,0 +1,5 @@
+name: relic
+kind: standalone
+version: 0.1.0
+description: "Relic bridge for Hermes live gateway hooks: context injection, per-turn memory sync, and output sanitizing."
+author: Cristina
