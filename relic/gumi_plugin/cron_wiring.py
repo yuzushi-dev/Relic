@@ -836,7 +836,10 @@ def make_decision(
         decision_type=decision_type,
     )
 
-    if decision == RuntimeDecision.DELIVER and _policy_enabled():
+    if _policy_enabled() and (
+        decision == RuntimeDecision.DELIVER
+        or (decision_type == "diegetic" and decision == RuntimeDecision.CANDIDATE)
+    ):
         try:
             decision, reasons, candidate_data = _apply_naturalness_policy(
                 decision=decision,
@@ -961,6 +964,8 @@ def render_no_agent_script(script_path: Path) -> str:
         default_decision_type = "followup"
     elif "_proactivity_" in _name:
         default_decision_type = "proactivity"
+    elif "_diegetic_" in _name:
+        default_decision_type = "diegetic"
     else:
         default_decision_type = "checkin"
     return f'''#!/usr/bin/env bash

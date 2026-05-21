@@ -152,6 +152,37 @@ def test_build_features_reports_boundary_risk_flag(tmp_path: Path):
     assert features.frequency_cap_per_day == 2
 
 
+@pytest.mark.parametrize(
+    ("boundary_policy", "expected"),
+    [
+        ({}, False),
+        ({"diegetic_enabled": False}, False),
+        ({"diegetic_enabled": True}, True),
+    ],
+)
+def test_build_features_loads_diegetic_enabled_from_boundary_policy(
+    tmp_path: Path,
+    boundary_policy: dict,
+    expected: bool,
+):
+    relic_home = tmp_path / "relic"
+    subject_dir = relic_home / "subjects" / "s1"
+    subject_dir.mkdir(parents=True)
+    (subject_dir / "boundary_policy.json").write_text(
+        json.dumps(boundary_policy),
+        encoding="utf-8",
+    )
+
+    features = build_checkin_features(
+        subject_id="s1",
+        decision_type="diegetic",
+        relic_home=relic_home,
+        hermes_home=tmp_path / "hermes",
+    )
+
+    assert features.diegetic_enabled is expected
+
+
 def test_persist_features_returns_features_id_and_posture_history(tmp_path: Path):
     db_path = _make_db(tmp_path, "s1")
     conn = sqlite3.connect(str(db_path))

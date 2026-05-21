@@ -45,17 +45,28 @@ def test_rendered_script_embeds_distinct_defaults_per_dtype(tmp_path: Path):
     checkin = render_no_agent_script(tmp_path / "relic_checkin_decision.sh")
     followup = render_no_agent_script(tmp_path / "relic_followup_decision.sh")
     proactivity = render_no_agent_script(tmp_path / "relic_proactivity_decision.sh")
+    diegetic = render_no_agent_script(tmp_path / "relic_diegetic_decision.sh")
 
     # Each script must embed its own dtype default (either via interpolated literal
-    # or basename($0) derivation). All three rendered contents must differ.
+    # or basename($0) derivation). All rendered contents must differ.
     assert checkin != followup
     assert followup != proactivity
     assert checkin != proactivity
+    assert diegetic != checkin
+    assert diegetic != followup
+    assert diegetic != proactivity
 
     # Spot-check that the expected default token appears somewhere.
     assert "checkin" in checkin
     assert "followup" in followup
     assert "proactivity" in proactivity
+    assert "diegetic" in diegetic
+
+
+def test_rendered_script_defaults_to_diegetic_for_diegetic_job_name(tmp_path: Path):
+    script = render_no_agent_script(tmp_path / "relic_diegetic_decision.sh")
+    assert "# Decision type default: diegetic" in script
+    assert 'DECISION_TYPE="${RELIC_DECISION_TYPE:-diegetic}"' in script
 
 
 def test_decision_event_round_trip_preserves_optional_fields():

@@ -523,7 +523,12 @@ def build_checkin_features(
     comfort_with_initiative = _safe_load_comfort_with_initiative(subject_id, relic_home)
     diegetic_tolerance = _safe_load_diegetic_tolerance(subject_id, relic_home)
     consent_active = _safe_load_consent(subject_id, relic_home)
-    boundary_strict, risk_flag, freq_cap_from_boundary = _safe_load_boundary(subject_id, relic_home)
+    (
+        boundary_strict,
+        risk_flag,
+        freq_cap_from_boundary,
+        diegetic_enabled,
+    ) = _safe_load_boundary(subject_id, relic_home)
     quiet_hours_active = _safe_load_quiet_hours_active(subject_id, relic_home, now)
     time_since_last_msg, last_subject_msg_at, subject_avg_tokens_14d = _safe_load_subject_msg_state(
         hermes_home, now
@@ -558,6 +563,7 @@ def build_checkin_features(
     features.topic_freshness = topic_freshness
     features.continuity_preference = continuity_preference
     features.comfort_with_initiative = comfort_with_initiative
+    features.diegetic_enabled = diegetic_enabled
     features.diegetic_tolerance = diegetic_tolerance
     features.posture_history_last_5 = posture_history
     features.subject_avg_tokens_14d = subject_avg_tokens_14d
@@ -829,17 +835,18 @@ def _safe_load_consent(subject_id: str, relic_home: Path) -> bool:
 def _safe_load_boundary(
     subject_id: str,
     relic_home: Path,
-) -> tuple[bool, bool, Optional[int]]:
+) -> tuple[bool, bool, Optional[int], bool]:
     boundary_path = relic_home / "subjects" / subject_id / "boundary_policy.json"
     strict = False
     risk_flag = False
     cap = None
+    diegetic_enabled = False
     if not boundary_path.exists():
-        return strict, risk_flag, cap
+        return strict, risk_flag, cap, diegetic_enabled
     try:
         data = json.loads(boundary_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
-        return strict, risk_flag, cap
+        return strict, risk_flag, cap, diegetic_enabled
     if data.get("careful_distancing_enabled"):
         strict = True
     if data.get("risk_flags"):
@@ -847,7 +854,8 @@ def _safe_load_boundary(
     cap_value = data.get("maximum_daily_initiatives")
     if isinstance(cap_value, (int, float)):
         cap = int(cap_value)
-    return strict, risk_flag, cap
+    diegetic_enabled = bool(data.get("diegetic_enabled", False))
+    return strict, risk_flag, cap, diegetic_enabled
 
 
 def _safe_load_quiet_hours_active(subject_id: str, relic_home: Path, now: datetime) -> bool:

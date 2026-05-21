@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
+from relic.checkin.policy import CheckinFeatures
 from relic.gumi_plugin.cron_wiring import make_decision
 from relic.hermes_runtime import RuntimeDecision
 
@@ -68,3 +69,76 @@ def test_policy_enabled_non_silent_prepends_constraint_header(monkeypatch):
     assert data["posture"] == "observe"
     assert "[EVENTO: checkin]" in data["message"]
     assert data["message"].rstrip().endswith("DELIVER\ntipo: text")
+
+
+def test_policy_enabled_diegetic_candidate_returns_no_reply_when_silent(monkeypatch):
+    monkeypatch.setenv("RELIC_CHECKIN_POLICY_ENABLED", "1")
+
+    with patch("relic.gumi_plugin.cron_wiring._evaluate_decision") as eval_mock, \
+         patch("relic.gumi_plugin.cron_wiring._run_outcome_reconciler"):
+        eval_mock.return_value = (
+            RuntimeDecision.CANDIDATE,
+            [],
+            {"message": "CANDIDATE\ntipo: text"},
+        )
+        with patch(
+            "relic.checkin.features.build_checkin_features",
+            return_value=CheckinFeatures(
+                subject_id="s1",
+                diegetic_enabled=False,
+                diegetic_tolerance=0.9,
+            ),
+        ) as features_mock:
+            decision, _, data = make_decision("s1", "g1", "p1", decision_type="diegetic")
+
+    assert features_mock.call_args.kwargs["decision_type"] == "diegetic"
+    assert decision == RuntimeDecision.NO_REPLY
+    assert data is None
+
+
+def test_policy_enabled_diegetic_candidate_honors_non_silent_decision(monkeypatch):
+    monkeypatch.setenv("RELIC_CHECKIN_POLICY_ENABLED", "1")
+
+    with patch("relic.gumi_plugin.cron_wiring._evaluate_decision") as eval_mock, \
+         patch("relic.gumi_plugin.cron_wiring._run_outcome_reconciler"):
+        eval_mock.return_value = (
+            RuntimeDecision.CANDIDATE,
+            [],
+            {"message": "CANDIDATE\ntipo: text"},
+        )
+        with patch(
+            "relic.checkin.features.build_checkin_features",
+            return_value=CheckinFeatures(
+                subject_id="s1",
+                diegetic_enabled=True,
+                diegetic_tolerance=0.7,
+            ),
+        ) as features_mock:
+            decision, _, data = make_decision("s1", "g1", "p1", decision_type="diegetic")
+
+    assert features_mock.call_args.kwargs["decision_type"] == "diegetic"
+    assert decision == RuntimeDecision.CANDIDATE
+    assert data is not None
+    assert data["event_type"] == "diegetic"
+    assert data["posture"] == "small_share"
+    assert "[EVENTO: diegetic]" in data["message"]
+    assert data["message"].rstrip().endswith("CANDIDATE\ntipo: text")
+
+
+@pytest.mark.parametrize("decision_type", ["checkin", "proactivity"])
+def test_candidate_path_for_other_decision_types_is_unchanged(monkeypatch, decision_type: str):
+    monkeypatch.setenv("RELIC_CHECKIN_POLICY_ENABLED", "1")
+
+    with patch("relic.gumi_plugin.cron_wiring._evaluate_decision") as eval_mock, \
+         patch("relic.gumi_plugin.cron_wiring._apply_naturalness_policy") as naturalness_mock, \
+         patch("relic.gumi_plugin.cron_wiring._run_outcome_reconciler"):
+        eval_mock.return_value = (
+            RuntimeDecision.CANDIDATE,
+            [],
+            {"message": "CANDIDATE\ntipo: text"},
+        )
+        decision, _, data = make_decision("s1", "g1", "p1", decision_type=decision_type)
+
+    naturalness_mock.assert_not_called()
+    assert decision == RuntimeDecision.CANDIDATE
+    assert data == {"message": "CANDIDATE\ntipo: text"}
