@@ -520,6 +520,15 @@ class BootstrapTUI:
         self._print(f"Status: {profile.status}")
         self._print(f"Version: {profile.profile_version}")
         self._print("\nBootstrap complete.")
+        self._print("\n--- Final Summary ---")
+        self._print(f"Subject artifacts directory: {profile.relic_subject_home}")
+        self._print("Researcher-editable files:")
+        self._print("  - subject_baseline.json")
+        self._print("  - boundary_policy.json")
+        self._print("  - item_battery_response.json")
+        self._print(
+            f"Manual edits require re-provision: relic subject reprovision {profile.subject_id}"
+        )
 
         return profile
 
