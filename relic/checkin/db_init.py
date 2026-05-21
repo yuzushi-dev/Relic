@@ -57,6 +57,7 @@ CREATE TABLE IF NOT EXISTS checkin_exchanges (
     facet_id TEXT REFERENCES facets(id),
     question_text TEXT NOT NULL,
     reply_text TEXT,
+    reply_valence REAL,
     reply_captured_at TEXT,
     observations_extracted INTEGER DEFAULT 0,
     asked_at TEXT NOT NULL,

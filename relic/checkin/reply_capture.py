@@ -21,6 +21,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
+from relic.checkin.valence import score_valence
+
 logger = logging.getLogger(__name__)
 
 REPLY_WINDOW_HOURS = 12
@@ -161,13 +163,15 @@ def capture_reply_if_pending(
             exchange_id, asked_at_raw = row[0], row[1]
             latency_seconds = _compute_latency_seconds(asked_at_raw, now)
             stored_text = (user_msg[:1999] + "…") if len(user_msg) > 2000 else user_msg
+            reply_valence = score_valence(stored_text)
             cur = conn.execute(
                 """UPDATE checkin_exchanges
                    SET reply_text = ?,
+                       reply_valence = ?,
                        reply_captured_at = ?,
                        response_latency_seconds = ?
                    WHERE id = ? AND reply_text IS NULL""",
-                (stored_text, now.isoformat(), latency_seconds, exchange_id),
+                (stored_text, reply_valence, now.isoformat(), latency_seconds, exchange_id),
             )
             conn.commit()
             if cur.rowcount == 0:
