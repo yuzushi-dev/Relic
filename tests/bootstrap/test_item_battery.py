@@ -120,6 +120,31 @@ def test_required_addendum_sections_are_present() -> None:
     } <= screens
 
 
+def test_continuity_axis_is_defined_only_by_int_007() -> None:
+    continuity_items = [
+        item for item in BOOTSTRAP_ITEM_REGISTRY
+        if item["item_id"] == "INT_007"
+    ]
+    relational_comfort_ids = [
+        item["item_id"]
+        for item in BOOTSTRAP_ITEM_REGISTRY
+        if item["screen"] == "relational_comfort"
+    ]
+
+    assert relational_comfort_ids == [
+        "REL_001",
+        "REL_003",
+        "REL_004",
+        "REL_005",
+        "REL_006",
+        "REL_007",
+        "REL_008",
+        "REL_010",
+    ]
+    assert [item["item_id"] for item in continuity_items] == ["INT_007"]
+    assert continuity_items[0]["construct"] == "continuity_preference"
+
+
 def test_safety_gate_defaults_match_contract() -> None:
     defaults = {
         item["item_id"]: item["default_response"]
