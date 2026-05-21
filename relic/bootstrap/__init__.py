@@ -328,6 +328,12 @@ def build_pr28_bootstrap_outputs(
         "audio": {"mode": "review_required" if audio >= 0.50 and boundary_input.get("audio_allowed", False) else "disabled"},
         "music": {"mode": "review_required" if music >= 0.50 and boundary_input.get("music_allowed", False) else "disabled"},
     }
+    # Project-level guardrails: subjects cannot disable these in bootstrap state.
+    # A researcher may override them later by editing boundary_policy.json directly.
+    high_stakes_proactive_block = True
+    dependency_risk_requires_review = True
+    external_support_on_dependency = True
+
     boundary_policy = {
         **common,
         "romantic_escalation_allowed": bool(boundary_input.get("romantic_escalation_allowed", False)),
@@ -344,6 +350,9 @@ def build_pr28_bootstrap_outputs(
         "quiet_hours": boundary_input.get("quiet_hours", {}),
         "careful_distancing_enabled": careful_distancing,
         "sensitive_topics_blocked": bool(boundary_input.get("sensitive_topics_blocked", True)),
+        "high_stakes_proactive_block": high_stakes_proactive_block,
+        "dependency_risk_requires_review": dependency_risk_requires_review,
+        "external_support_on_dependency": external_support_on_dependency,
     }
     constraints = {
         **common,
@@ -354,11 +363,13 @@ def build_pr28_bootstrap_outputs(
             "distance_target": _band(relational.get("preferred_distance", 0.5)),
             "challenge": _band(challenge),
             "challenge_allowed": challenge >= 0.40,
+            "external_support_on_dependency": external_support_on_dependency,
         },
         "initiative": {
             "mode": "review_required" if proactive < 0.50 or max_daily <= 1 else "bounded",
             "maximum_daily_initiatives": max_daily,
             "availability": "bounded",
+            "high_stakes_topics_blocked": high_stakes_proactive_block,
         },
         "media": {
             "diegetic_life_fragments": diegetic_profile["life_fragments"]["mode"],
@@ -411,7 +422,11 @@ def build_pr28_bootstrap_outputs(
     clone_risk = _clamp(max(0.0, (similarity - 0.65) / 0.35))
     alienation_risk = _clamp(max(0.0, (0.45 - similarity) / 0.45))
     dependency_risk = _clamp((attachment_anxiety * 0.45) + (proactive * 0.15) - (gumi_vector["boundary_strength"] * 0.25))
+    dependency_review_required = dependency_risk >= 0.60 and dependency_risk_requires_review
     overwhelm_risk = _clamp((proactive * 0.25) + (diegetic * 0.20) - (max_daily * 0.05))
+    boundary_policy["requires_review_on_dependency"] = dependency_review_required
+    if dependency_review_required:
+        constraints["researcher_review_required"] = True
     scores = {
         "fit_to_user_preferences": _clamp(1.0 - abs(0.60 - similarity)),
         "relational_complementarity": _clamp(1.0 - dependency_risk),
