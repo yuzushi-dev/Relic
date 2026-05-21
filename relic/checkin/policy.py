@@ -22,6 +22,7 @@ class EventType(str, Enum):
     CHECKIN = "checkin"
     FOLLOWUP = "followup"
     PROACTIVE = "proactive"
+    DIEGETIC = "diegetic"
     REMINDER = "reminder"
     REFLECTION = "reflection"
 
@@ -63,6 +64,8 @@ class CheckinFeatures:
     importance_accumulator: float = 0.0
     continuity_preference: float = 0.5
     comfort_with_initiative: float = 0.5
+    diegetic_enabled: bool = False
+    diegetic_tolerance: float = 0.45
 
     subject_avg_tokens_14d: Optional[float] = None
     facet_status: Optional[str] = None
@@ -265,6 +268,13 @@ def select_decision(
         and features.daily_initiatives_today >= features.frequency_cap_per_day
     ):
         return Decision(EventType.SILENT, Posture.QUIET, "frequency_cap_reached")
+
+    if decision_type == "diegetic":
+        if not features.diegetic_enabled:
+            return Decision(EventType.SILENT, Posture.QUIET, "diegetic_disabled")
+        if features.diegetic_tolerance >= 0.5:
+            return Decision(EventType.DIEGETIC, Posture.SMALL_SHARE, "diegetic_share")
+        return Decision(EventType.SILENT, Posture.QUIET, "diegetic_below_tolerance")
 
     if features.reach_score < REACH_THRESHOLD:
         return Decision(EventType.SILENT, Posture.QUIET, "reach_below_threshold")

@@ -340,6 +340,7 @@ def build_checkin_features(
     topic_freshness = _safe_load_topic_freshness(subject_id, relic_home)
     continuity_preference = _safe_load_continuity_preference(subject_id, relic_home)
     comfort_with_initiative = _safe_load_comfort_with_initiative(subject_id, relic_home)
+    diegetic_tolerance = _safe_load_diegetic_tolerance(subject_id, relic_home)
     consent_active = _safe_load_consent(subject_id, relic_home)
     boundary_strict, risk_flag, freq_cap_from_boundary = _safe_load_boundary(subject_id, relic_home)
     quiet_hours_active = _safe_load_quiet_hours_active(subject_id, relic_home, now)
@@ -374,6 +375,7 @@ def build_checkin_features(
     features.topic_freshness = topic_freshness
     features.continuity_preference = continuity_preference
     features.comfort_with_initiative = comfort_with_initiative
+    features.diegetic_tolerance = diegetic_tolerance
     features.posture_history_last_5 = posture_history
     features.subject_avg_tokens_14d = subject_avg_tokens_14d
     features.time_since_last_subject_msg_sec = time_since_last_msg
@@ -549,8 +551,8 @@ def _safe_load_project_calibration_float(
     relic_home: Path,
     key: str,
     *,
-    default: float = 0.5,
-) -> float:
+    default: Optional[float] = 0.5,
+) -> Optional[float]:
     response_path = relic_home / "subjects" / subject_id / "item_battery_response.json"
     baseline_path = relic_home / "subjects" / subject_id / "subject_baseline.json"
 
@@ -591,6 +593,38 @@ def _safe_load_continuity_preference(subject_id: str, relic_home: Path) -> float
 
 def _safe_load_comfort_with_initiative(subject_id: str, relic_home: Path) -> float:
     return _safe_load_project_calibration_float(subject_id, relic_home, "comfort_with_initiative")
+
+
+def _safe_load_diegetic_tolerance(subject_id: str, relic_home: Path) -> float:
+    preferred = _safe_load_project_calibration_float(
+        subject_id,
+        relic_home,
+        "fictional_diegesis_tolerance",
+        default=None,
+    )
+    if preferred is not None:
+        return preferred
+
+    fallback_values: list[float] = []
+    for key in (
+        "embodiment_world_tolerance",
+        "routine_fragment_tolerance",
+        "first_person_life_fragment_tolerance",
+        "world_evolution_tolerance",
+    ):
+        value = _safe_load_project_calibration_float(
+            subject_id,
+            relic_home,
+            key,
+            default=None,
+        )
+        if value is not None:
+            fallback_values.append(value)
+
+    if fallback_values:
+        return sum(fallback_values) / len(fallback_values)
+
+    return 0.45
 
 
 def _safe_load_consent(subject_id: str, relic_home: Path) -> bool:
