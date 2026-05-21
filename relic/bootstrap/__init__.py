@@ -125,6 +125,11 @@ def subject_data_from_bootstrap_state(
         except (TypeError, ValueError):
             return default
 
+    low_freq = score(project, "low_frequency_preference", 0.5)
+    damp = max(0.0, (low_freq - 0.5) * 2.0)
+    scaled_checkin_permission = score(project, "checkin_permission", 0.0) * (1.0 - damp)
+    scaled_proactive_permission = score(project, "proactive_permission", 0.20) * (1.0 - damp)
+
     return {
         "subject_id": subject_id,
         "experiment_id": experiment_id,
@@ -143,7 +148,7 @@ def subject_data_from_bootstrap_state(
             # Proactivity/check-in cadence is driven by the subject's PRO_* item
             # battery answers (scored into project_calibration as *_permission,
             # range 0..1). Still gated by delivery consent: no channel, no contact.
-            "proactive_contact_tolerance": score(project, "proactive_permission", 0.20) if delivery_allowed else 0.20,
+            "proactive_contact_tolerance": scaled_proactive_permission if delivery_allowed else 0.20,
             "checkin_tolerance": score(project, "checkin_permission", 0.20) if delivery_allowed else 0.20,
             "humor_tolerance": score(project, "humor_tolerance", 0.50),
             "ambiguity_tolerance": score(project, "ambiguity_tolerance", 0.45),
@@ -180,7 +185,7 @@ def subject_data_from_bootstrap_state(
             # Derived from the check-in permission answer (PRO_001): 1/day at the
             # low end, up to 2/day when the subject asked for frequent contact.
             # build_pr28_bootstrap_outputs further caps this by proactive tolerance.
-            "maximum_daily_initiatives": 1 + round(score(project, "checkin_permission", 0.0)),
+            "maximum_daily_initiatives": 1 + round(scaled_checkin_permission),
             "opt_out_categories": list(opt_out_values),
             "quiet_hours": boundaries.get("quiet_hours", {"start": "22:00", "end": "08:00", "timezone": "Europe/Rome"}),
             "careful_distancing_enabled": True,

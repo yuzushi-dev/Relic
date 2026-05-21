@@ -13,6 +13,7 @@ from relic.bootstrap import (
     BootstrapCheckpointStore,
     build_pr28_bootstrap_outputs,
     resume_bootstrap_session,
+    subject_data_from_bootstrap_state,
 )
 
 
@@ -197,3 +198,63 @@ def test_bootstrap_resume_from_checkpoint(tmp_path: Path) -> None:
     assert resumed["bootstrap_session_id"] == session_id
     assert resumed["latest_checkpoint"]["screen_number"] == 2
     assert len(resumed["checkpoints"]) == 2
+
+
+def test_low_frequency_preference_damps_contact_cadence_only_above_neutral() -> None:
+    state = {
+        "item_battery": {
+            "scores": {
+                "project_calibration": {
+                    "proactive_permission": 0.8,
+                    "checkin_permission": 1.0,
+                }
+            }
+        }
+    }
+    consent_record = {"delivery": True}
+
+    default_subject = subject_data_from_bootstrap_state(
+        subject_id="subj_001",
+        experiment_id="exp_001",
+        state=state,
+        consent_record=consent_record,
+    )
+    neutral_subject = subject_data_from_bootstrap_state(
+        subject_id="subj_001",
+        experiment_id="exp_001",
+        state={
+            "item_battery": {
+                "scores": {
+                    "project_calibration": {
+                        "proactive_permission": 0.8,
+                        "checkin_permission": 1.0,
+                        "low_frequency_preference": 0.5,
+                    }
+                }
+            }
+        },
+        consent_record=consent_record,
+    )
+    damped_subject = subject_data_from_bootstrap_state(
+        subject_id="subj_001",
+        experiment_id="exp_001",
+        state={
+            "item_battery": {
+                "scores": {
+                    "project_calibration": {
+                        "proactive_permission": 0.8,
+                        "checkin_permission": 1.0,
+                        "low_frequency_preference": 1.0,
+                    }
+                }
+            }
+        },
+        consent_record=consent_record,
+    )
+
+    assert default_subject["boundary"]["maximum_daily_initiatives"] == 2
+    assert default_subject["interaction"]["proactive_contact_tolerance"] == 0.8
+    assert neutral_subject["boundary"]["maximum_daily_initiatives"] == 2
+    assert neutral_subject["interaction"]["proactive_contact_tolerance"] == 0.8
+    assert damped_subject["boundary"]["maximum_daily_initiatives"] == 1
+    assert damped_subject["interaction"]["proactive_contact_tolerance"] == 0.0
