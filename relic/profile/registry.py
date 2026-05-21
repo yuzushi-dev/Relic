@@ -1224,6 +1224,8 @@ Eight visual modes for consistent photography:
         subject_id: str,
         families: list[str],
         dry_run: bool = True,
+        *,
+        diegetic_deliver_target: str = "local",
     ) -> tuple[SubjectProfile, dict[str, Path]]:
         profile = self._load_required_subject(subject_id)
         cron_dir = profile.hermes_home / "cron"
@@ -1346,6 +1348,59 @@ Eight visual modes for consistent photography:
             dispatch_script_path.parent.mkdir(parents=True, exist_ok=True)
             dispatch_script_path.write_text(render_checkin_dispatch_script(subject_id), encoding="utf-8")
             dispatch_script_path.chmod(0o755)
+        if "diegetic" in families:
+            diegetic_target = (diegetic_deliver_target or "local").strip() or "local"
+            diegetic_script = f"{subject_id}/relic_diegetic_decision.sh"
+            diegetic_dispatch_script = f"{subject_id}/relic_diegetic_dispatch.sh"
+            data = {
+                "version": "1.0",
+                "family": "diegetic",
+                "target": "local",
+                "deliver_target": diegetic_target,
+                "deliver_target_env": "RELIC_DIEGETIC_DELIVER_TARGET",
+                "success_contract": "Diegetic fragment generated locally; dispatch sends only when RELIC_DIEGETIC_DELIVER_TARGET is flipped off local.",
+                "jobs": [
+                    {
+                        "id": f"{subject_id}_diegetic_gate",
+                        "task": "gumi_diegetic_gate",
+                        "schedule": "15 * * * *",
+                        "target": "local",
+                        "no_agent": True,
+                        "script": diegetic_script,
+                        "dry_run_default": True,
+                    },
+                    {
+                        "id": f"{subject_id}_diegetic_message",
+                        "task": "gumi_diegetic_message",
+                        "schedule": "15 * * * *",
+                        "target": "local",
+                        "script": diegetic_script,
+                        "dry_run_default": True,
+                    },
+                    {
+                        "id": f"{subject_id}_diegetic_dispatch",
+                        "task": "gumi_diegetic_dispatch",
+                        "schedule": "17 * * * *",
+                        "target": "local",
+                        "no_agent": True,
+                        "script": diegetic_dispatch_script,
+                        "dry_run_default": True,
+                    },
+                ],
+            }
+            path = cron_dir / "diegetic.yaml"
+            path.write_text(_render_simple_yaml(data), encoding="utf-8")
+            paths["diegetic"] = path
+            jobs_to_apply.extend(data["jobs"])
+            from relic.gumi_plugin.cron_wiring import render_diegetic_dispatch_script
+
+            diegetic_dispatch_script_path = profile.hermes_home / "scripts" / subject_id / "relic_diegetic_dispatch.sh"
+            diegetic_dispatch_script_path.parent.mkdir(parents=True, exist_ok=True)
+            diegetic_dispatch_script_path.write_text(
+                render_diegetic_dispatch_script(subject_id),
+                encoding="utf-8",
+            )
+            diegetic_dispatch_script_path.chmod(0o755)
         # T5: gumi_memory_sync — no-agent script that syncs cron sessions → MEMORY.md
         memory_sync_script = f"{subject_id}/relic_memory_sync.sh"
         memory_sync_job = {
@@ -1389,7 +1444,13 @@ Eight visual modes for consistent photography:
     def _cron_prompt_for_job(self, job: dict[str, Any]) -> str:
         task = job["task"]
         output = job.get("output", "")
-        if task in ("gumi_checkin_gate", "gumi_memory_sync", "gumi_checkin_dispatch"):
+        if task in (
+            "gumi_checkin_gate",
+            "gumi_memory_sync",
+            "gumi_checkin_dispatch",
+            "gumi_diegetic_gate",
+            "gumi_diegetic_dispatch",
+        ):
             return ""
         if task == "gumi_checkin_message":
             return (
@@ -1466,6 +1527,10 @@ Eight visual modes for consistent photography:
                 "Il testo deve suonare come qualcosa che potresti cantare tu, non generico. "
                 "Nota: ask: true viene ignorato in modalità music.\n"
             )
+        if task == "gumi_diegetic_message":
+            from relic.gumi_plugin.cron_wiring import render_diegetic_message_prompt
+
+            return render_diegetic_message_prompt()
         if task in {"world_state_compaction", "continuity_candidate_review"}:
             return (
                 f"Run {task} for this subject's private Gumi workspace. Mutate only bounded local state. "

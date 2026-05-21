@@ -147,3 +147,19 @@ def test_provision_for_subject_keeps_proactivity_by_default(
         hermes_home=str(tmp_path / "hermes"),
     )
     assert "proactivity" in result["scripts"]
+
+
+def test_provision_for_subject_does_not_add_diegetic_legacy_script(
+    tmp_path: Path, monkeypatch
+):
+    from relic.gumi_plugin.cron_wiring import provision_for_subject
+
+    monkeypatch.delenv("RELIC_PROACTIVE_QUEUE_ENABLED", raising=False)
+    result = provision_for_subject(
+        subject_id="s3",
+        gumi_instance_id="g1",
+        hermes_profile_id="p1",
+        dry_run=True,
+        hermes_home=str(tmp_path / "hermes"),
+    )
+    assert "diegetic" not in result["scripts"]

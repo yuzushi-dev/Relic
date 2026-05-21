@@ -347,3 +347,58 @@ def test_memory_sync_cron_job_no_deliver_for_local_target(
     assert len(mem_cmds) == 1, f"Expected 1 memory_sync command: {mem_cmds}"
     assert "--no-agent" in mem_cmds[0]
     assert "--deliver" not in mem_cmds[0]
+
+
+def test_provision_subject_cron_specs_adds_diegetic_family_with_local_delivery_by_default(
+    registry: ProfileRegistry,
+) -> None:
+    _bootstrap_subject(registry)
+
+    profile, paths = registry.provision_subject_cron_specs(
+        "subj_001",
+        families=["diegetic"],
+        dry_run=True,
+    )
+
+    assert "diegetic" in paths
+    diegetic_text = paths["diegetic"].read_text(encoding="utf-8")
+    assert "family: diegetic" in diegetic_text
+    assert "id: subj_001_diegetic_gate" in diegetic_text
+    assert "id: subj_001_diegetic_message" in diegetic_text
+    assert "id: subj_001_diegetic_dispatch" in diegetic_text
+    assert "target: local" in diegetic_text
+
+    manifest = json.loads((profile.relic_subject_home / "gumi_cron_manifest.json").read_text(encoding="utf-8"))
+    commands = manifest["install_commands"]
+    gate_cmd = next(c for c in commands if "--name \"subj_001_diegetic_gate\"" in c)
+    message_cmd = next(c for c in commands if "--name \"subj_001_diegetic_message\"" in c)
+    dispatch_cmd = next(c for c in commands if "--name \"subj_001_diegetic_dispatch\"" in c)
+
+    assert "--no-agent" in gate_cmd and "--deliver" not in gate_cmd
+    assert "--deliver \"local\"" in message_cmd
+    assert "--no-agent" in dispatch_cmd and "--deliver" not in dispatch_cmd
+    assert (profile.hermes_home / "scripts" / "subj_001" / "relic_diegetic_dispatch.sh").is_file()
+
+
+def test_provision_subject_cron_specs_keeps_initiative_jobs_unchanged(
+    registry: ProfileRegistry,
+) -> None:
+    _bootstrap_subject(registry)
+    registry.configure_telegram_delivery(
+        "subj_001",
+        telegram_bot_token_env="GUMI_SUBJ_001_TELEGRAM_BOT_TOKEN",
+        telegram_user_id="123456789",
+    )
+
+    profile, _ = registry.provision_subject_cron_specs(
+        "subj_001",
+        families=["initiative"],
+        dry_run=True,
+    )
+
+    manifest = json.loads((profile.relic_subject_home / "gumi_cron_manifest.json").read_text(encoding="utf-8"))
+    commands = manifest["install_commands"]
+    assert any("--name \"subj_001_checkin_gate\"" in c for c in commands)
+    assert any("--name \"subj_001_checkin_message\"" in c for c in commands)
+    assert any("--name \"subj_001_checkin_dispatch\"" in c for c in commands)
+    assert not any("diegetic" in c for c in commands)
