@@ -90,6 +90,71 @@ def test_diegetic_frequency_relaxes_up_after_time_window():
     assert new_state.last_decay_at == now
 
 
+def test_first_positive_diegetic_reply_initializes_and_raises_knobs():
+    now = datetime.now(timezone.utc)
+    state = CadenceState(subject_id="s1")
+
+    new_state = reconcile_cadence_outcome(
+        state,
+        {
+            "outcome_status": "answered",
+            "decision_type": "diegetic",
+            "reply_valence": 0.4,
+            "now": now,
+        },
+    )
+
+    assert new_state.diegetic_intensity == pytest.approx(0.35)
+    assert new_state.diegetic_frequency == pytest.approx(0.6)
+    assert new_state.last_decay_at == now
+
+
+def test_negative_diegetic_reply_lowers_intensity_and_frequency():
+    now = datetime.now(timezone.utc)
+    state = CadenceState(
+        subject_id="s1",
+        diegetic_intensity=0.6,
+        diegetic_frequency=0.8,
+    )
+
+    new_state = reconcile_cadence_outcome(
+        state,
+        {
+            "outcome_status": "answered",
+            "decision_type": "diegetic",
+            "reply_valence": -0.3,
+            "now": now,
+        },
+    )
+
+    assert new_state.diegetic_intensity == pytest.approx(0.4)
+    assert new_state.diegetic_frequency == pytest.approx(0.48)
+    assert new_state.last_decay_at == now
+
+
+def test_two_consecutive_ignored_diegetic_deliveries_halve_frequency():
+    now = datetime.now(timezone.utc)
+    state = CadenceState(
+        subject_id="s1",
+        diegetic_non_response_streak=1,
+        diegetic_frequency=0.8,
+    )
+
+    new_state = reconcile_cadence_outcome(
+        state,
+        {
+            "outcome_status_before": "delivered",
+            "outcome_status": "unanswered_24h",
+            "decision_type": "diegetic",
+            "now": now,
+        },
+    )
+
+    assert new_state.diegetic_non_response_streak == 2
+    assert new_state.diegetic_frequency == pytest.approx(0.4)
+    assert new_state.last_decay_at == now
+
+
 def test_diegetic_unanswered_increments_diegetic_streak_only_for_diegetic():
     state = CadenceState(subject_id="s1")
 
@@ -139,6 +204,29 @@ def test_answered_resets_diegetic_streak_only_for_diegetic():
     assert diegetic_state.diegetic_non_response_streak == 0
 
 
+def test_non_diegetic_events_do_not_touch_diegetic_knobs():
+    now = datetime.now(timezone.utc)
+    state = CadenceState(
+        subject_id="s1",
+        diegetic_intensity=0.55,
+        diegetic_frequency=0.45,
+        last_decay_at=now,
+    )
+
+    new_state = reconcile_cadence_outcome(
+        state,
+        {
+            "outcome_status": "answered",
+            "decision_type": "checkin",
+            "reply_valence": -0.6,
+            "now": now,
+        },
+    )
+
+    assert new_state.diegetic_intensity == pytest.approx(0.55)
+    assert new_state.diegetic_frequency == pytest.approx(0.45)
+
+
 def test_followup_unanswered_increments_followup_streak():
     state = CadenceState(subject_id="s1")
     event = {
@@ -174,3 +262,20 @@ def test_unanswered_without_outcome_status_before_does_not_increment():
         {"outcome_status": "unanswered_24h", "decision_type": "checkin"},
     )
     assert new_state.non_response_streak == 0
+
+
+def test_sparse_replay_without_reply_valence_uses_safe_default_for_diegetic_answer():
+    now = datetime.now(timezone.utc)
+    state = CadenceState(subject_id="s1")
+
+    new_state = reconcile_cadence_outcome(
+        state,
+        {
+            "outcome_status": "answered",
+            "decision_type": "diegetic",
+            "now": now,
+        },
+    )
+
+    assert new_state.diegetic_intensity == pytest.approx(0.35)
+    assert new_state.diegetic_frequency == pytest.approx(0.6)

@@ -194,3 +194,41 @@ def test_reply_capture_resets_diegetic_streak_when_latest_delivery_is_diegetic(t
     assert state.followup_non_response_streak == 0
     assert state.diegetic_non_response_streak == 0
     assert state.last_reply_at is not None
+
+
+def test_reply_capture_passes_diegetic_reply_valence_into_cadence_update(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    relic_home = tmp_path
+    db_path = _seed_subject(relic_home, "s1")
+    delivered_at = datetime.now(timezone.utc) - timedelta(minutes=10)
+    _insert_pending_exchange(db_path, delivered_at)
+    _append_decision_event(
+        relic_home,
+        {
+            "decision": "DELIVER",
+            "subject_id": "s1",
+            "decision_type": "diegetic",
+            "outcome_status": "delivered",
+            "created_at": delivered_at.isoformat(),
+            "delivered_at": delivered_at.isoformat(),
+            "response_deadline_at": (delivered_at + timedelta(hours=24)).isoformat(),
+            "event_id": "evt-diegetic-valence",
+        },
+    )
+    monkeypatch.setattr("relic.checkin.reply_capture.score_valence", lambda text: 0.4)
+
+    capture_reply_if_pending(
+        "mi fa piacere parlarne",
+        subject_id="s1",
+        relic_home=str(relic_home),
+    )
+
+    conn = sqlite3.connect(str(db_path))
+    try:
+        state = load_cadence_state(conn, "s1")
+    finally:
+        conn.close()
+    assert state.diegetic_intensity == pytest.approx(0.35)
+    assert state.diegetic_frequency == pytest.approx(0.6)

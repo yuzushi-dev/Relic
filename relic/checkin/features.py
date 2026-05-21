@@ -14,6 +14,7 @@ Important contracts:
           "outcome_status": str | None,
           "outcome_status_before": str | None,
           "decision_type": str | None,
+          "reply_valence": float | None,
           "now": datetime | None,
           "boundary_frequency_cap_per_day": int | None,
       }
@@ -77,6 +78,7 @@ _REQUIRED_EVENT_KEYS = (
     "outcome_status",
     "outcome_status_before",
     "decision_type",
+    "reply_valence",
     "now",
     "boundary_frequency_cap_per_day",
 )
@@ -259,12 +261,121 @@ _FOLLOWUP_DECAY_MIN_DAYS = 7
 _FOLLOWUP_DECAY_REQUIRES_RECENT_MSG_DAYS = 7
 _DIEGETIC_FREQUENCY_RELAX_WINDOW = timedelta(days=1)
 _DIEGETIC_FREQUENCY_RELAX_STEP = 0.1
+# RQ2: first diegetic reciprocity should start low and factual.
+_DIEGETIC_BASELINE_INTENSITY = 0.2
+# RQ2: first diegetic reciprocity should start at a moderate, not eager, cadence.
+_DIEGETIC_BASELINE_FREQUENCY = 0.5
+# RQ2: only positive reciprocity should raise the self-disclosure ceiling.
+_DIEGETIC_POSITIVE_INTENSITY_STEP = 0.15
+# RQ2: positive reciprocity can slightly increase cadence, but not abruptly.
+_DIEGETIC_POSITIVE_FREQUENCY_STEP = 0.10
+# RQ2: negative reaction should quickly reduce self-disclosure.
+_DIEGETIC_NEGATIVE_INTENSITY_STEP = 0.20
+# RQ2: negative reaction should sharply down-regulate future diegetic attempts.
+_DIEGETIC_NEGATIVE_FREQUENCY_FACTOR = 0.6
+# RQ2: silence becomes meaningful only after repeated ignored diegetic bids.
+_DIEGETIC_DISENGAGEMENT_STREAK_THRESHOLD = 2
+# RQ2: repeated silence should halve diegetic cadence to back off clearly.
+_DIEGETIC_DISENGAGEMENT_FREQUENCY_FACTOR = 0.5
+# RQ2: keep an explicit restraint ceiling below 1.0 even after positive reciprocity.
+_DIEGETIC_MAX_INTENSITY = 0.9
 
 
 def compute_reach_score(non_response_streak: int, followup_non_response_streak: int) -> float:
     """Spike §9 damping: 0.7 ^ (streak + 2*followup_streak)."""
     effective = max(0, int(non_response_streak)) + 2 * max(0, int(followup_non_response_streak))
     return _REACH_BASE ** effective
+
+
+def _clamp(value: float, lower: float, upper: float) -> float:
+    return max(lower, min(upper, value))
+
+
+def _with_diegetic_baseline(state: CadenceState) -> CadenceState:
+    intensity = state.diegetic_intensity
+    frequency = state.diegetic_frequency
+    if intensity is None:
+        intensity = _DIEGETIC_BASELINE_INTENSITY
+    if frequency is None:
+        frequency = _DIEGETIC_BASELINE_FREQUENCY
+    if intensity == state.diegetic_intensity and frequency == state.diegetic_frequency:
+        return state
+    return replace(
+        state,
+        diegetic_intensity=intensity,
+        diegetic_frequency=frequency,
+    )
+
+
+def _normalized_reply_valence(raw: Any) -> float:
+    try:
+        if raw is None:
+            return 0.0
+        return float(raw)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _apply_diegetic_answered_reaction(
+    state: CadenceState,
+    reply_valence: Any,
+    now: datetime,
+) -> CadenceState:
+    state = _with_diegetic_baseline(state)
+    intensity = state.diegetic_intensity
+    frequency = state.diegetic_frequency
+    if intensity is None or frequency is None:
+        return state
+
+    if _normalized_reply_valence(reply_valence) >= 0.0:
+        intensity = _clamp(
+            intensity + _DIEGETIC_POSITIVE_INTENSITY_STEP,
+            0.0,
+            _DIEGETIC_MAX_INTENSITY,
+        )
+        frequency = _clamp(
+            frequency + _DIEGETIC_POSITIVE_FREQUENCY_STEP,
+            0.0,
+            1.0,
+        )
+    else:
+        intensity = _clamp(
+            intensity - _DIEGETIC_NEGATIVE_INTENSITY_STEP,
+            0.0,
+            _DIEGETIC_MAX_INTENSITY,
+        )
+        frequency = _clamp(
+            frequency * _DIEGETIC_NEGATIVE_FREQUENCY_FACTOR,
+            0.0,
+            1.0,
+        )
+
+    return replace(
+        state,
+        diegetic_intensity=intensity,
+        diegetic_frequency=frequency,
+        # Reuse the cadence timestamp so the C2 relaxation hook does not
+        # immediately counteract an explicit reaction-model update.
+        last_decay_at=now,
+    )
+
+
+def _apply_diegetic_disengagement(state: CadenceState, now: datetime) -> CadenceState:
+    state = _with_diegetic_baseline(state)
+    frequency = state.diegetic_frequency
+    if frequency is None:
+        return state
+    return replace(
+        state,
+        diegetic_frequency=_clamp(
+            frequency * _DIEGETIC_DISENGAGEMENT_FREQUENCY_FACTOR,
+            0.0,
+            1.0,
+        ),
+        # Reuse the cadence timestamp so the C2 relaxation hook does not
+        # immediately counteract an explicit reaction-model update.
+        last_decay_at=now,
+    )
 
 
 def reconcile_cadence_outcome(state: CadenceState, event: Optional[dict]) -> CadenceState:
@@ -291,6 +402,8 @@ def reconcile_cadence_outcome(state: CadenceState, event: Optional[dict]) -> Cad
             new.diegetic_non_response_streak = 0
         new.last_reply_at = now
         new.last_subject_msg_at = now
+        if decision_type == "diegetic":
+            new = _apply_diegetic_answered_reaction(new, event.get("reply_valence"), now)
     elif status == "unanswered_24h":
         # Only the explicit "delivered → unanswered_24h" transition penalises
         # cadence (spike §9.3). Replay paths from sparse historical rows must
@@ -301,6 +414,11 @@ def reconcile_cadence_outcome(state: CadenceState, event: Optional[dict]) -> Cad
                 new.followup_non_response_streak = state.followup_non_response_streak + 1
             if decision_type == "diegetic":
                 new.diegetic_non_response_streak = state.diegetic_non_response_streak + 1
+                if (
+                    new.diegetic_non_response_streak
+                    >= _DIEGETIC_DISENGAGEMENT_STREAK_THRESHOLD
+                ):
+                    new = _apply_diegetic_disengagement(new, now)
         new.last_unanswered_delivery_at = now
     elif status == "delivered":
         new.last_delivered_initiative_at = now

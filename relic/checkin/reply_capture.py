@@ -176,7 +176,13 @@ def capture_reply_if_pending(
             conn.commit()
             if cur.rowcount == 0:
                 return False  # lost the race — another writer filled it first
-            _reset_cadence_after_reply(conn, subject_id, now, relic_home=relic_home_path)
+            _reset_cadence_after_reply(
+                conn,
+                subject_id,
+                now,
+                relic_home=relic_home_path,
+                reply_valence=reply_valence,
+            )
             logger.info(
                 "capture_reply_if_pending: captured reply for exchange %d subject=%s",
                 exchange_id, subject_id,
@@ -216,6 +222,7 @@ def _reset_cadence_after_reply(
     reply_at: datetime,
     *,
     relic_home: Path | None = None,
+    reply_valence: float | None = None,
 ) -> None:
     """Reset cadence streaks via the reconcile_cadence_outcome contract."""
     try:
@@ -235,6 +242,8 @@ def _reset_cadence_after_reply(
             decision_type = _latest_delivered_decision_type(relic_home, subject_id, reply_at)
             if decision_type is not None:
                 event["decision_type"] = decision_type
+                if decision_type == "diegetic":
+                    event["reply_valence"] = reply_valence
         new_state = reconcile_cadence_outcome(state, event)
         save_cadence_state(conn, new_state)
         conn.commit()
