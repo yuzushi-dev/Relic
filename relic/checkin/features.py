@@ -338,6 +338,7 @@ def build_checkin_features(
 
     salience_top = _safe_load_salience_top(subject_id, relic_home)
     topic_freshness = _safe_load_topic_freshness(subject_id, relic_home)
+    continuity_preference = _safe_load_continuity_preference(subject_id, relic_home)
     consent_active = _safe_load_consent(subject_id, relic_home)
     boundary_strict, risk_flag, freq_cap_from_boundary = _safe_load_boundary(subject_id, relic_home)
     quiet_hours_active = _safe_load_quiet_hours_active(subject_id, relic_home, now)
@@ -370,6 +371,7 @@ def build_checkin_features(
     )
     features.salience_top = salience_top
     features.topic_freshness = topic_freshness
+    features.continuity_preference = continuity_preference
     features.posture_history_last_5 = posture_history
     features.subject_avg_tokens_14d = subject_avg_tokens_14d
     features.time_since_last_subject_msg_sec = time_since_last_msg
@@ -538,6 +540,41 @@ def _safe_load_topic_freshness(subject_id: str, relic_home: Path) -> float:
     # AntiRepeatGate is consulted by the topic selector — the policy treats a
     # neutral 1.0 as "topic not yet known"; refinements land alongside Task 5.
     return 1.0
+
+
+def _safe_load_continuity_preference(subject_id: str, relic_home: Path) -> float:
+    response_path = relic_home / "subjects" / subject_id / "item_battery_response.json"
+    baseline_path = relic_home / "subjects" / subject_id / "subject_baseline.json"
+
+    for path, key_path in (
+        (
+            response_path,
+            ("scores", "project_calibration", "continuity_preference"),
+        ),
+        (
+            baseline_path,
+            ("item_battery", "scores", "project_calibration", "continuity_preference"),
+        ),
+    ):
+        if not path.exists():
+            continue
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        raw = data
+        for key in key_path:
+            if not isinstance(raw, dict):
+                raw = None
+                break
+            raw = raw.get(key)
+        try:
+            if raw is not None:
+                return float(raw)
+        except (TypeError, ValueError):
+            continue
+
+    return 0.5
 
 
 def _safe_load_consent(subject_id: str, relic_home: Path) -> bool:

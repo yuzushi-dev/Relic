@@ -61,6 +61,7 @@ class CheckinFeatures:
     salience_top: float = 0.0
     topic_freshness: float = 1.0
     importance_accumulator: float = 0.0
+    continuity_preference: float = 0.5
 
     subject_avg_tokens_14d: Optional[float] = None
     facet_status: Optional[str] = None
@@ -183,6 +184,35 @@ REFLECT_COOLDOWN_DAYS = 7
 BRIEF_SHARE_MIN_AVG_TOKENS = 10.0
 
 
+def _clamp(value: float, lower: float, upper: float) -> float:
+    return max(lower, min(upper, value))
+
+
+def _effective_checkin_thresholds(cp: float) -> tuple[float, float, int]:
+    topic_freshness_for_ask = _clamp(
+        TOPIC_FRESHNESS_FOR_ASK - 0.3 * (cp - 0.5),
+        0.2,
+        0.9,
+    )
+    reflect_threshold = _clamp(
+        REFLECT_THRESHOLD - 0.3 * (cp - 0.5),
+        0.4,
+        0.95,
+    )
+    reflect_cooldown_days = max(
+        1,
+        round(REFLECT_COOLDOWN_DAYS - 6.0 * (cp - 0.5)),
+    )
+    return topic_freshness_for_ask, reflect_threshold, reflect_cooldown_days
+
+
+assert _effective_checkin_thresholds(0.5) == (
+    TOPIC_FRESHNESS_FOR_ASK,
+    REFLECT_THRESHOLD,
+    REFLECT_COOLDOWN_DAYS,
+)
+
+
 def _last_posture(features: CheckinFeatures) -> Optional[str]:
     if not features.posture_history_last_5:
         return None
@@ -202,6 +232,9 @@ def select_decision(
     a flag without behavior change. Reflection requires explicit opt-in via
     ``reflection_enabled`` (spike §15 conservative default).
     """
+    eff_topic_freshness_for_ask, eff_reflect_threshold, eff_reflect_cooldown_days = (
+        _effective_checkin_thresholds(features.continuity_preference)
+    )
 
     if features.risk_flag_active:
         return Decision(EventType.SILENT, Posture.QUIET, "risk_flag_active")
@@ -251,8 +284,11 @@ def select_decision(
         return Decision(EventType.SILENT, Posture.QUIET, "non_response_backoff")
 
     if (
-        features.importance_accumulator > REFLECT_THRESHOLD
-        and (features.last_reflect_age_days is None or features.last_reflect_age_days >= REFLECT_COOLDOWN_DAYS)
+        features.importance_accumulator > eff_reflect_threshold
+        and (
+            features.last_reflect_age_days is None
+            or features.last_reflect_age_days >= eff_reflect_cooldown_days
+        )
     ):
         if not reflection_enabled:
             return Decision(EventType.SILENT, Posture.QUIET, "reflection_disabled")
@@ -262,7 +298,7 @@ def select_decision(
     _last = _last_posture(features)
     ask_blocked_by_streak = _last == Posture.ASK.value and features.non_response_streak >= 1
     if (
-        features.topic_freshness > TOPIC_FRESHNESS_FOR_ASK
+        features.topic_freshness > eff_topic_freshness_for_ask
         and features.facet_status == "ask_now"
         and not features.asked_recently_12h
         and not ask_blocked_by_streak
