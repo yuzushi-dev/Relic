@@ -635,6 +635,10 @@ def _evaluate_decision(
         reasons.append(RuntimeDecisionReason.continuity_scope_paused)
         return RuntimeDecision.BLOCKED, reasons, None
 
+    if decision_type in ("diegetic", "proactivity"):
+        reasons.append(RuntimeDecisionReason.no_due_work)
+        return RuntimeDecision.CANDIDATE, reasons, {"message": ""}
+
     # Check for due followups — used to determine CANDIDATE vs DELIVER vs NO_REPLY
     _svc = get_continuity_service()
     _due = _svc.due_followups(subject_id, gumi_instance_id, hermes_profile_id)
@@ -838,7 +842,7 @@ def make_decision(
 
     if _policy_enabled() and (
         decision == RuntimeDecision.DELIVER
-        or (decision_type == "diegetic" and decision == RuntimeDecision.CANDIDATE)
+        or (decision_type in ("diegetic", "proactivity") and decision == RuntimeDecision.CANDIDATE)
     ):
         try:
             decision, reasons, candidate_data = _apply_naturalness_policy(
