@@ -1995,12 +1995,25 @@ Eight visual modes for consistent photography:
             _delivery_tz = _dp.get("timezone") or _dp.get("quiet_hours_timezone") or _delivery_tz
             if not _delivery_tz and isinstance(_dp.get("quiet_hours"), dict):
                 _delivery_tz = _dp["quiet_hours"].get("timezone", "Europe/Rome")
+        _absence_tolerance = 0.5
+        baseline_path = profile.relic_subject_home / "baseline_user_profile.json"
+        if baseline_path.exists():
+            baseline = _read_json(baseline_path)
+            raw_absence_tolerance = (
+                baseline.get("item_battery", {})
+                .get("scores", {})
+                .get("project_calibration", {})
+                .get("gumi_absence_tolerance")
+            )
+            if isinstance(raw_absence_tolerance, (int, float)):
+                _absence_tolerance = float(raw_absence_tolerance)
         config_path.write_text(
             render_subject_hermes_config(
                 profile_name=profile.hermes_profile_name,
                 subject_id=profile.subject_id,
                 model=HERMES_PROFILE_DEFAULT_MODEL,
                 timezone=_delivery_tz,
+                absence_tolerance=_absence_tolerance,
             ),
             encoding="utf-8",
         )

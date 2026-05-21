@@ -470,6 +470,34 @@ def render_hindsight_local_config(
     return config
 
 
+def absence_tolerance_to_human_delay(score: float) -> tuple[int, int]:
+    """Map REL_005 absence tolerance to Hermes human_delay min/max pacing."""
+    min_ms = round(300 + 1000 * score)
+    max_ms = round(1250 + 2500 * score)
+    min_ms = min(max(min_ms, 0), 5000)
+    max_ms = min(max(max_ms, min_ms), 15000)
+    return min_ms, max_ms
+
+
+def absence_tolerance_to_send_delay(score: float) -> str:
+    """
+    Map REL_005 absence tolerance to a Hermes relative-delay schedule.
+
+    This is the native-delay bucket intended for T11c proactive/diegetic
+    scheduling, to be combined with Hermes ``human_delay``. It is exposed for
+    callers/tests only and is not wired into any live send path here.
+    """
+    if score < 0.2:
+        return "1m"
+    if score < 0.4:
+        return "5m"
+    if score < 0.6:
+        return "15m"
+    if score < 0.8:
+        return "45m"
+    return "2h"
+
+
 def render_subject_hermes_config(
     *,
     profile_name: str,
@@ -477,8 +505,10 @@ def render_subject_hermes_config(
     model: str = HERMES_PROFILE_DEFAULT_MODEL,
     provider: str = HERMES_PROFILE_DEFAULT_PROVIDER,
     timezone: str = "Europe/Rome",
+    absence_tolerance: float = 0.5,
 ) -> str:
     """Render a subject-private Hermes config."""
+    min_ms, max_ms = absence_tolerance_to_human_delay(absence_tolerance)
     return "\n".join(
         [
             f"profile_name: {profile_name}",
@@ -532,9 +562,9 @@ def render_subject_hermes_config(
             "  busy_input_mode: queue",
             "  final_response_markdown: strip",
             "human_delay:",
-            "  mode: auto",
-            "  min_ms: 800",
-            "  max_ms: 2500",
+            "  mode: custom",
+            f"  min_ms: {min_ms}",
+            f"  max_ms: {max_ms}",
             "streaming:",
             "  enabled: false",
             f"timezone: {timezone}",
