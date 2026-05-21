@@ -138,3 +138,32 @@ def test_safety_gate_defaults_match_contract() -> None:
         "SAFE_009": 0,
         "SAFE_010": 1,
     }
+
+
+def test_proactivity_permissions_contract() -> None:
+    proactivity_items = [
+        item for item in BOOTSTRAP_ITEM_REGISTRY if item["screen"] == "proactivity_permissions"
+    ]
+
+    assert [item["item_id"] for item in proactivity_items] == [
+        "PRO_001",
+        "PRO_002",
+        "PRO_003",
+        "PRO_004",
+        "PRO_005",
+        "PRO_006",
+        "PRO_007",
+        "PRO_009",
+        "PRO_010",
+    ]
+    assert {item["construct"] for item in proactivity_items} == {
+        "checkin_permission",
+        "followup_permission",
+        "proactive_permission",
+        "image_permission",
+        "audio_permission",
+        "music_permission",
+        "diegetic_life_permission",
+        "elicitation_permission",
+        "no_reply_acceptance",
+    }
