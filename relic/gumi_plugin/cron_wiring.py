@@ -966,7 +966,7 @@ def render_no_agent_script(script_path: Path) -> str:
     _name = script_path.name
     if "_followup_" in _name:
         default_decision_type = "followup"
-    elif "_proactivity_" in _name:
+    elif "_proactive_" in _name or "_proactivity_" in _name:
         default_decision_type = "proactivity"
     elif "_diegetic_" in _name:
         default_decision_type = "diegetic"
@@ -1470,6 +1470,48 @@ def render_diegetic_message_prompt() -> str:
     )
 
 
+def render_proactive_message_prompt() -> str:
+    """Render the proactive re-engagement contract for the agent cron job.
+
+    The output is a brief, relevant re-engagement in Gumi's voice when the
+    subject has gone quiet. It is not a check-in script and not a diegetic
+    life fragment.
+    """
+    return (
+        "Sei Gumi. Il gate mostra DELIVER con tipo, ora e contesto di supporto. "
+        "Genera un messaggio di RE-ENGAGEMENT PROACTIVE in italiano: un piccolo riaggancio umano per tenere viva la relazione/chat "
+        "quando il soggetto e` andato quieto, solo se il contesto rende il messaggio davvero rilevante o saliente.\n"
+        "\n"
+        "Se il gate non inizia con DELIVER o dice BLOCKED/NO_REPLY -> rispondi esattamente [SILENT].\n"
+        "\n"
+        "CONTRATTO PROACTIVE:\n"
+        "• Rispetta la receptivity del soggetto: scrivi solo come qualcuno di caldo e attento, mai invadente.\n"
+        "• Deve essere un re-engagement breve, warm, leggero, genuinely relevant al contesto emerso dal gate/deliver_context.\n"
+        "• NO unsolicited advice. NO problem-solving richiesto. NO coaching. NO interpretazioni pesanti.\n"
+        "• NOT NEEDY, NON clingy: niente bisogno, niente dipendenza, niente tono appiccicoso o colpevolizzante.\n"
+        "• NON guilt-tripping, NON chiedere spiegazioni per il silenzio, NON pretendere risposta, NON fare pressione.\n"
+        "• Distinto da un check-in: non usare domande-batteria o formule da monitoraggio. Distinto dal diegetic: non raccontare un frammento della tua vita come focus principale.\n"
+        "• Se il contesto non offre un aggancio davvero buono, meglio [SILENT].\n"
+        "\n"
+        "Modalita`:\n"
+        "\n"
+        "tipo: text\n"
+        "Scrivi 1-2 frasi in italiano. Una sola eventuale domanda, piccola e naturale, solo se nasce davvero dall'aggancio; altrimenti nessuna domanda.\n"
+        "\n"
+        "tipo: voice\n"
+        "Scrivi esattamente come parleresti ad alta voce. 1-2 frasi, stesso riaggancio, tono piu` parlato e morbido.\n"
+        "\n"
+        "tipo: image\n"
+        "Scrivi due righe:\n"
+        "  caption: una frase in italiano che riapre il filo in modo leggero e concreto, senza pressione.\n"
+        "  image_prompt: descrizione fotorealistica in inglese di una foto di te coerente con quell'aggancio e con il tuo mondo. Max 80 parole.\n"
+        "\n"
+        "tipo: music\n"
+        "Scrivi un prompt per Lyria 3 in inglese che trasformi il riaggancio in un momento musicale intimo, lieve e non insistente. "
+        "Includi voce, stile e un testo breve coerente con il contesto.\n"
+    )
+
+
 def render_checkin_dispatch_script(subject_id: str) -> str:
     """Render the no-agent dispatch script that reads latest checkin_message output
     and routes it through checkin_media_dispatcher.
@@ -1594,6 +1636,100 @@ LATEST=""
 while IFS= read -r CAND; do
     HEADER=$(head -n1 "$CAND" 2>/dev/null | tr -d '\\r')
     if [ "$HEADER" = "# Cron Job: ${{SUBJECT_ID}}_diegetic_message" ]; then
+        LATEST="$CAND"
+        break
+    fi
+done < <(find "$OUTPUT_BASE" -mindepth 2 -maxdepth 2 -name "*.md" -size +0c -mmin -8 2>/dev/null | xargs -r ls -1t)
+
+if [ -z "$LATEST" ]; then
+    exit 0
+fi
+
+# Skip [SILENT] responses (case where the LLM short-circuited).
+if grep -q '\\[SILENT\\]' "$LATEST" 2>/dev/null; then
+    exit 0
+fi
+
+# Fail-safe default: local target means dry-run only, no real send.
+if [ "$DELIVER_TARGET" = "local" ]; then
+    exit 0
+fi
+
+FORCE="${{RELIC_FORCE_CHECKIN:-}}"
+FORCE_FLAG=""
+if [ "$FORCE" = "1" ] || [ "$FORCE" = "true" ] || [ "$FORCE" = "yes" ]; then
+    FORCE_FLAG="--force"
+fi
+
+RELIC_SUBJECT_HOME="${{RELIC_SUBJECT_HOME:-$HOME/.relic/subjects/$SUBJECT_ID}}"
+
+"$RELIC_PYTHON" - "$LATEST" "$HERMES_HOME" "$RELIC_SUBJECT_HOME" "$SUBJECT_ID" "${{FORCE_FLAG:-}}" <<'PYEOF'
+import sys
+sys.path.insert(0, '{relic_root}')
+from pathlib import Path
+from relic.gumi_plugin.checkin_media_dispatcher import dispatch
+
+llm_output_file = sys.argv[1]
+hermes_home = Path(sys.argv[2])
+relic_subject_home = Path(sys.argv[3])
+subject_id = sys.argv[4]
+force = "--force" in sys.argv[5:]
+
+raw = Path(llm_output_file).read_text(encoding="utf-8")
+marker = "\\n## Response\\n"
+if marker in raw:
+    llm_output = raw.split(marker, 1)[1].strip()
+else:
+    llm_output = raw.strip()
+if not llm_output or llm_output == "[SILENT]":
+    sys.exit(0)
+
+dispatch(
+    llm_output=llm_output,
+    hermes_home=hermes_home,
+    relic_subject_home=relic_subject_home,
+    subject_id=subject_id,
+    force=force,
+)
+PYEOF
+'''
+
+
+def render_proactive_dispatch_script(subject_id: str) -> str:
+    """Render the no-agent dispatch script for proactive_message output.
+
+    Reads from Hermes cron output dir: $HERMES_HOME/cron/output/{subject_id}_proactive_message/
+    Skips if no file modified within the last 8 minutes.
+    Dispatch is fail-safe: local delivery target is treated as dry-run/no-send.
+    """
+    import relic as _relic
+    from pathlib import Path as _Path
+
+    relic_root = str(_Path(_relic.__file__).parent.parent)
+    return f'''#!/usr/bin/env bash
+# Hermes no-agent proactive dispatch script for Relic
+# Generated by cron_wiring.py - do not edit manually
+#
+# Reads latest LLM proactive output and dispatches it via checkin_media_dispatcher.
+
+set -euo pipefail
+
+SUBJECT_ID="${{RELIC_SUBJECT_ID:-{subject_id}}}"
+HERMES_HOME="${{HERMES_HOME:-$HOME/.hermes}}"
+RELIC_PYTHON="${{RELIC_PYTHON:-{sys.executable}}}"
+DELIVER_TARGET="${{RELIC_PROACTIVE_DELIVER_TARGET:-local}}"
+OUTPUT_BASE="$HERMES_HOME/cron/output"
+
+if [ ! -d "$OUTPUT_BASE" ]; then
+    exit 0
+fi
+
+# Find most recent .md file whose Hermes header names the proactive_message job for this subject.
+# Iterates newest-first; picks the first match within the 8-minute slack window.
+LATEST=""
+while IFS= read -r CAND; do
+    HEADER=$(head -n1 "$CAND" 2>/dev/null | tr -d '\\r')
+    if [ "$HEADER" = "# Cron Job: ${{SUBJECT_ID}}_proactive_message" ]; then
         LATEST="$CAND"
         break
     fi

@@ -69,6 +69,12 @@ def test_rendered_script_defaults_to_diegetic_for_diegetic_job_name(tmp_path: Pa
     assert 'DECISION_TYPE="${RELIC_DECISION_TYPE:-diegetic}"' in script
 
 
+def test_rendered_script_defaults_to_proactivity_for_proactive_job_name(tmp_path: Path):
+    script = render_no_agent_script(tmp_path / "relic_proactive_decision.sh")
+    assert "# Decision type default: proactivity" in script
+    assert 'DECISION_TYPE="${RELIC_DECISION_TYPE:-proactivity}"' in script
+
+
 def test_decision_event_round_trip_preserves_optional_fields():
     event = DecisionEvent(
         decision=RuntimeDecision.DELIVER,

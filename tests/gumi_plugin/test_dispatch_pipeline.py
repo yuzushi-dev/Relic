@@ -43,6 +43,14 @@ def _make_diegetic_script(tmp_path: Path) -> Path:
     return p
 
 
+def _make_proactive_script(tmp_path: Path) -> Path:
+    script = cron_wiring.render_proactive_dispatch_script(SUBJECT_ID)
+    p = tmp_path / "proactive_dispatch.sh"
+    p.write_text(script, encoding="utf-8")
+    p.chmod(0o755)
+    return p
+
+
 def _stub_pythonpath_env(tmp_path: Path, marker: Path) -> tuple[Path, dict]:
     """Create a fake `relic.gumi_plugin.checkin_media_dispatcher` module that
     writes to `marker` when `dispatch` is invoked. Returns (stub_root, env)."""
@@ -185,6 +193,48 @@ def test_render_diegetic_dispatch_script_skips_silent(tmp_path: Path) -> None:
     proc = subprocess.run(["bash", str(script)], env=env, cwd=str(tmp_path), capture_output=True, text=True, timeout=30)
     assert proc.returncode == 0, proc.stderr
     assert not marker.exists(), "[SILENT] output must not invoke dispatcher"
+
+
+def test_render_proactive_dispatch_script_reads_proactive_message_output(tmp_path: Path) -> None:
+    hermes_home = tmp_path / "hermes"
+    hermes_home.mkdir()
+    _write_output(hermes_home, f"{SUBJECT_ID}_proactive_message", "tipo: text\npiccolo riaggancio")
+
+    marker = tmp_path / "marker.txt"
+    _, env = _stub_pythonpath_env(tmp_path, marker)
+    env["HERMES_HOME"] = str(hermes_home)
+    env["RELIC_SUBJECT_HOME"] = str(tmp_path / "subj_home")
+    env["RELIC_PROACTIVE_DELIVER_TARGET"] = "telegram:123456789"
+
+    script = _make_proactive_script(tmp_path)
+    text = re.sub(r"sys\.path\.insert\(0, '[^']+'\)", "", script.read_text(encoding="utf-8"))
+    script.write_text(text, encoding="utf-8")
+
+    proc = subprocess.run(["bash", str(script)], env=env, cwd=str(tmp_path), capture_output=True, text=True, timeout=30)
+    assert proc.returncode == 0, proc.stderr
+    assert marker.exists(), f"dispatcher stub not invoked.\nSTDOUT={proc.stdout}\nSTDERR={proc.stderr}"
+    assert "piccolo riaggancio" in marker.read_text(encoding="utf-8")
+    script_text = script.read_text(encoding="utf-8")
+    assert "# Cron Job: ${SUBJECT_ID}_proactive_message" in script_text
+
+
+def test_render_proactive_dispatch_script_defaults_to_local_no_send(tmp_path: Path) -> None:
+    hermes_home = tmp_path / "hermes"
+    hermes_home.mkdir()
+    _write_output(hermes_home, f"{SUBJECT_ID}_proactive_message", "tipo: text\npiccolo riaggancio")
+
+    marker = tmp_path / "marker.txt"
+    _, env = _stub_pythonpath_env(tmp_path, marker)
+    env["HERMES_HOME"] = str(hermes_home)
+    env["RELIC_SUBJECT_HOME"] = str(tmp_path / "subj_home")
+
+    script = _make_proactive_script(tmp_path)
+    text = re.sub(r"sys\.path\.insert\(0, '[^']+'\)", "", script.read_text(encoding="utf-8"))
+    script.write_text(text, encoding="utf-8")
+
+    proc = subprocess.run(["bash", str(script)], env=env, cwd=str(tmp_path), capture_output=True, text=True, timeout=30)
+    assert proc.returncode == 0, proc.stderr
+    assert not marker.exists(), "local proactive delivery target must stay dry-run"
 
 
 def test_last_outbound_datetime_prefers_outbound_state(tmp_path: Path) -> None:

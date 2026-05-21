@@ -1226,6 +1226,7 @@ Eight visual modes for consistent photography:
         dry_run: bool = True,
         *,
         diegetic_deliver_target: str = "local",
+        proactive_deliver_target: str = "local",
     ) -> tuple[SubjectProfile, dict[str, Path]]:
         profile = self._load_required_subject(subject_id)
         cron_dir = profile.hermes_home / "cron"
@@ -1401,6 +1402,59 @@ Eight visual modes for consistent photography:
                 encoding="utf-8",
             )
             diegetic_dispatch_script_path.chmod(0o755)
+        if "proactive" in families:
+            proactive_target = (proactive_deliver_target or "local").strip() or "local"
+            proactive_script = f"{subject_id}/relic_proactive_decision.sh"
+            proactive_dispatch_script = f"{subject_id}/relic_proactive_dispatch.sh"
+            data = {
+                "version": "1.0",
+                "family": "proactive",
+                "target": "local",
+                "deliver_target": proactive_target,
+                "deliver_target_env": "RELIC_PROACTIVE_DELIVER_TARGET",
+                "success_contract": "Proactive re-engagement generated locally; dispatch sends only when RELIC_PROACTIVE_DELIVER_TARGET is flipped off local.",
+                "jobs": [
+                    {
+                        "id": f"{subject_id}_proactive_gate",
+                        "task": "gumi_proactive_gate",
+                        "schedule": "45 * * * *",
+                        "target": "local",
+                        "no_agent": True,
+                        "script": proactive_script,
+                        "dry_run_default": True,
+                    },
+                    {
+                        "id": f"{subject_id}_proactive_message",
+                        "task": "gumi_proactive_message",
+                        "schedule": "45 * * * *",
+                        "target": "local",
+                        "script": proactive_script,
+                        "dry_run_default": True,
+                    },
+                    {
+                        "id": f"{subject_id}_proactive_dispatch",
+                        "task": "gumi_proactive_dispatch",
+                        "schedule": "47 * * * *",
+                        "target": "local",
+                        "no_agent": True,
+                        "script": proactive_dispatch_script,
+                        "dry_run_default": True,
+                    },
+                ],
+            }
+            path = cron_dir / "proactive.yaml"
+            path.write_text(_render_simple_yaml(data), encoding="utf-8")
+            paths["proactive"] = path
+            jobs_to_apply.extend(data["jobs"])
+            from relic.gumi_plugin.cron_wiring import render_proactive_dispatch_script
+
+            proactive_dispatch_script_path = profile.hermes_home / "scripts" / subject_id / "relic_proactive_dispatch.sh"
+            proactive_dispatch_script_path.parent.mkdir(parents=True, exist_ok=True)
+            proactive_dispatch_script_path.write_text(
+                render_proactive_dispatch_script(subject_id),
+                encoding="utf-8",
+            )
+            proactive_dispatch_script_path.chmod(0o755)
         # T5: gumi_memory_sync — no-agent script that syncs cron sessions → MEMORY.md
         memory_sync_script = f"{subject_id}/relic_memory_sync.sh"
         memory_sync_job = {
@@ -1450,6 +1504,8 @@ Eight visual modes for consistent photography:
             "gumi_checkin_dispatch",
             "gumi_diegetic_gate",
             "gumi_diegetic_dispatch",
+            "gumi_proactive_gate",
+            "gumi_proactive_dispatch",
         ):
             return ""
         if task == "gumi_checkin_message":
@@ -1531,6 +1587,10 @@ Eight visual modes for consistent photography:
             from relic.gumi_plugin.cron_wiring import render_diegetic_message_prompt
 
             return render_diegetic_message_prompt()
+        if task == "gumi_proactive_message":
+            from relic.gumi_plugin.cron_wiring import render_proactive_message_prompt
+
+            return render_proactive_message_prompt()
         if task in {"world_state_compaction", "continuity_candidate_review"}:
             return (
                 f"Run {task} for this subject's private Gumi workspace. Mutate only bounded local state. "

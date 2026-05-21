@@ -380,6 +380,37 @@ def test_provision_subject_cron_specs_adds_diegetic_family_with_local_delivery_b
     assert (profile.hermes_home / "scripts" / "subj_001" / "relic_diegetic_dispatch.sh").is_file()
 
 
+def test_provision_subject_cron_specs_adds_proactive_family_with_local_delivery_by_default(
+    registry: ProfileRegistry,
+) -> None:
+    _bootstrap_subject(registry)
+
+    profile, paths = registry.provision_subject_cron_specs(
+        "subj_001",
+        families=["proactive"],
+        dry_run=True,
+    )
+
+    assert "proactive" in paths
+    proactive_text = paths["proactive"].read_text(encoding="utf-8")
+    assert "family: proactive" in proactive_text
+    assert "id: subj_001_proactive_gate" in proactive_text
+    assert "id: subj_001_proactive_message" in proactive_text
+    assert "id: subj_001_proactive_dispatch" in proactive_text
+    assert "target: local" in proactive_text
+
+    manifest = json.loads((profile.relic_subject_home / "gumi_cron_manifest.json").read_text(encoding="utf-8"))
+    commands = manifest["install_commands"]
+    gate_cmd = next(c for c in commands if "--name \"subj_001_proactive_gate\"" in c)
+    message_cmd = next(c for c in commands if "--name \"subj_001_proactive_message\"" in c)
+    dispatch_cmd = next(c for c in commands if "--name \"subj_001_proactive_dispatch\"" in c)
+
+    assert "--no-agent" in gate_cmd and "--deliver" not in gate_cmd
+    assert "--deliver \"local\"" in message_cmd
+    assert "--no-agent" in dispatch_cmd and "--deliver" not in dispatch_cmd
+    assert (profile.hermes_home / "scripts" / "subj_001" / "relic_proactive_dispatch.sh").is_file()
+
+
 def test_provision_subject_cron_specs_keeps_initiative_jobs_unchanged(
     registry: ProfileRegistry,
 ) -> None:
@@ -402,3 +433,4 @@ def test_provision_subject_cron_specs_keeps_initiative_jobs_unchanged(
     assert any("--name \"subj_001_checkin_message\"" in c for c in commands)
     assert any("--name \"subj_001_checkin_dispatch\"" in c for c in commands)
     assert not any("diegetic" in c for c in commands)
+    assert not any("proactive" in c for c in commands)
