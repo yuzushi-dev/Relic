@@ -75,6 +75,21 @@ def test_answered_resets_both_streaks():
     assert new_state.last_reply_at is not None
 
 
+def test_diegetic_frequency_relaxes_up_after_time_window():
+    now = datetime.now(timezone.utc)
+    state = CadenceState(
+        subject_id="s1",
+        diegetic_frequency=0.2,
+        last_decay_at=now - timedelta(days=2),
+    )
+
+    new_state = reconcile_cadence_outcome(state, {"now": now})
+
+    assert new_state.diegetic_frequency is not None
+    assert new_state.diegetic_frequency > 0.2
+    assert new_state.last_decay_at == now
+
+
 def test_diegetic_unanswered_increments_diegetic_streak_only_for_diegetic():
     state = CadenceState(subject_id="s1")
 

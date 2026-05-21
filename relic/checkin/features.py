@@ -68,6 +68,8 @@ class CadenceState:
     last_boundary_at: Optional[datetime] = None
     last_decay_at: Optional[datetime] = None
     frequency_cap_per_day: Optional[int] = None
+    diegetic_intensity: Optional[float] = None
+    diegetic_frequency: Optional[float] = None
     updated_at: Optional[datetime] = None
 
 
@@ -125,6 +127,8 @@ _CADENCE_COLUMNS = (
     "last_boundary_at",
     "last_decay_at",
     "frequency_cap_per_day",
+    "diegetic_intensity",
+    "diegetic_frequency",
     "updated_at",
 )
 
@@ -141,7 +145,11 @@ def _cadence_select_expr(column: str, available: set[str]) -> str:
         return column
     if column == "diegetic_non_response_streak":
         return f"0 AS {column}"
-    if column == "last_diegetic_delivered_at":
+    if column in {
+        "last_diegetic_delivered_at",
+        "diegetic_intensity",
+        "diegetic_frequency",
+    }:
         return f"NULL AS {column}"
     return column
 
@@ -160,6 +168,8 @@ def _cadence_values(state: CadenceState, now: datetime) -> dict[str, Any]:
         "last_boundary_at": _to_iso(state.last_boundary_at),
         "last_decay_at": _to_iso(state.last_decay_at),
         "frequency_cap_per_day": state.frequency_cap_per_day,
+        "diegetic_intensity": state.diegetic_intensity,
+        "diegetic_frequency": state.diegetic_frequency,
         "updated_at": _to_iso(now),
     }
 
@@ -186,7 +196,9 @@ def load_cadence_state(conn: sqlite3.Connection, subject_id: str) -> CadenceStat
         last_boundary_at=_to_dt(row[9]),
         last_decay_at=_to_dt(row[10]),
         frequency_cap_per_day=row[11],
-        updated_at=_to_dt(row[12]),
+        diegetic_intensity=row[12],
+        diegetic_frequency=row[13],
+        updated_at=_to_dt(row[14]),
     )
 
 
@@ -245,6 +257,8 @@ def _features_to_dict(features: CheckinFeatures) -> dict:
 _REACH_BASE = 0.7
 _FOLLOWUP_DECAY_MIN_DAYS = 7
 _FOLLOWUP_DECAY_REQUIRES_RECENT_MSG_DAYS = 7
+_DIEGETIC_FREQUENCY_RELAX_WINDOW = timedelta(days=1)
+_DIEGETIC_FREQUENCY_RELAX_STEP = 0.1
 
 
 def compute_reach_score(non_response_streak: int, followup_non_response_streak: int) -> float:
@@ -297,6 +311,7 @@ def reconcile_cadence_outcome(state: CadenceState, event: Optional[dict]) -> Cad
         pass
 
     new = _maybe_apply_decay(new, now)
+    new = _maybe_relax_diegetic_frequency(new, now)
     return new
 
 
@@ -318,6 +333,23 @@ def _maybe_apply_decay(state: CadenceState, now: datetime) -> CadenceState:
         last_decay_at=now,
     )
     return decayed
+
+
+def _maybe_relax_diegetic_frequency(state: CadenceState, now: datetime) -> CadenceState:
+    """Nudge diegetic frequency back toward baseline on a small time window."""
+    if state.diegetic_frequency is None:
+        return state
+    if state.diegetic_frequency >= 1.0:
+        return state
+    if state.last_decay_at is not None and (
+        now - state.last_decay_at
+    ) < _DIEGETIC_FREQUENCY_RELAX_WINDOW:
+        return state
+    return replace(
+        state,
+        diegetic_frequency=min(1.0, state.diegetic_frequency + _DIEGETIC_FREQUENCY_RELAX_STEP),
+        last_decay_at=now,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -385,6 +417,8 @@ def build_checkin_features(
         features.last_subject_msg_at = state.last_subject_msg_at or last_subject_msg_at
         if state.frequency_cap_per_day is not None:
             features.frequency_cap_per_day = state.frequency_cap_per_day
+        features.diegetic_intensity = state.diegetic_intensity
+        features.diegetic_frequency = state.diegetic_frequency
     else:
         features.last_subject_msg_at = last_subject_msg_at
 

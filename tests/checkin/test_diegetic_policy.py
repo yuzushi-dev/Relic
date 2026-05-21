@@ -89,6 +89,70 @@ def test_diegetic_decision_path_is_explicit_and_existing_paths_stay_unchanged():
     assert unchanged_proactivity.posture is Posture.BRIEF_SHARE
 
 
+def test_diegetic_none_runtime_knobs_keep_scaffold_behavior():
+    features = CheckinFeatures(
+        diegetic_enabled=True,
+        diegetic_tolerance=0.5,
+        diegetic_intensity=None,
+        diegetic_frequency=None,
+    )
+
+    decision = select_decision(
+        features,
+        decision_type="diegetic",
+        **_enabled(),
+    )
+
+    assert decision == Decision(
+        EventType.DIEGETIC,
+        Posture.SMALL_SHARE,
+        "diegetic_share",
+    )
+
+
+def test_diegetic_frequency_backoff_preempts_tolerance_share():
+    decision = select_decision(
+        CheckinFeatures(
+            diegetic_enabled=True,
+            diegetic_tolerance=0.9,
+            diegetic_frequency=0.24,
+        ),
+        decision_type="diegetic",
+        **_enabled(),
+    )
+
+    assert decision == Decision(
+        EventType.SILENT,
+        Posture.QUIET,
+        "diegetic_frequency_backoff",
+    )
+
+
+@pytest.mark.parametrize(
+    ("intensity", "posture", "reason"),
+    [
+        (0.49, Posture.SMALL_SHARE, "diegetic_share_factual"),
+        (0.5, Posture.BRIEF_SHARE, "diegetic_share_warm"),
+    ],
+)
+def test_diegetic_intensity_grades_share_posture(intensity, posture, reason):
+    decision = select_decision(
+        CheckinFeatures(
+            diegetic_enabled=True,
+            diegetic_tolerance=0.9,
+            diegetic_intensity=intensity,
+        ),
+        decision_type="diegetic",
+        **_enabled(),
+    )
+
+    assert decision == Decision(
+        EventType.DIEGETIC,
+        posture,
+        reason,
+    )
+
+
 def test_build_checkin_features_loads_diegetic_tolerance_from_calibration_fallbacks(
     tmp_path: Path,
 ):

@@ -66,6 +66,8 @@ class CheckinFeatures:
     comfort_with_initiative: float = 0.5
     diegetic_enabled: bool = False
     diegetic_tolerance: float = 0.45
+    diegetic_intensity: Optional[float] = None
+    diegetic_frequency: Optional[float] = None
 
     subject_avg_tokens_14d: Optional[float] = None
     facet_status: Optional[str] = None
@@ -272,8 +274,25 @@ def select_decision(
     if decision_type == "diegetic":
         if not features.diegetic_enabled:
             return Decision(EventType.SILENT, Posture.QUIET, "diegetic_disabled")
+        if (
+            features.diegetic_frequency is not None
+            and features.diegetic_frequency < 0.25
+        ):
+            return Decision(EventType.SILENT, Posture.QUIET, "diegetic_frequency_backoff")
         if features.diegetic_tolerance >= 0.5:
-            return Decision(EventType.DIEGETIC, Posture.SMALL_SHARE, "diegetic_share")
+            if features.diegetic_intensity is None:
+                return Decision(EventType.DIEGETIC, Posture.SMALL_SHARE, "diegetic_share")
+            if features.diegetic_intensity < 0.5:
+                return Decision(
+                    EventType.DIEGETIC,
+                    Posture.SMALL_SHARE,
+                    "diegetic_share_factual",
+                )
+            return Decision(
+                EventType.DIEGETIC,
+                Posture.BRIEF_SHARE,
+                "diegetic_share_warm",
+            )
         return Decision(EventType.SILENT, Posture.QUIET, "diegetic_below_tolerance")
 
     if features.reach_score < REACH_THRESHOLD:

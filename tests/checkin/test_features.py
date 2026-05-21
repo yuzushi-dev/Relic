@@ -80,6 +80,8 @@ def test_cadence_state_round_trips_diegetic_columns(tmp_path: Path):
                 subject_id="s1",
                 diegetic_non_response_streak=2,
                 last_diegetic_delivered_at=now - timedelta(hours=3),
+                diegetic_intensity=0.7,
+                diegetic_frequency=0.4,
                 updated_at=now,
             ),
         )
@@ -91,6 +93,38 @@ def test_cadence_state_round_trips_diegetic_columns(tmp_path: Path):
 
     assert state.diegetic_non_response_streak == 2
     assert state.last_diegetic_delivered_at == now - timedelta(hours=3)
+    assert state.diegetic_intensity == pytest.approx(0.7)
+    assert state.diegetic_frequency == pytest.approx(0.4)
+
+
+def test_build_features_loads_diegetic_runtime_knobs_from_cadence_state(tmp_path: Path):
+    relic_home = tmp_path / "relic"
+    hermes_home = tmp_path / "hermes"
+    db_path = _make_db(tmp_path, "s1")
+    conn = sqlite3.connect(str(db_path))
+    try:
+        save_cadence_state(
+            conn,
+            CadenceState(
+                subject_id="s1",
+                diegetic_intensity=0.2,
+                diegetic_frequency=0.8,
+                updated_at=datetime.now(timezone.utc),
+            ),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    features = build_checkin_features(
+        subject_id="s1",
+        decision_type="diegetic",
+        relic_home=relic_home,
+        hermes_home=hermes_home,
+    )
+
+    assert features.diegetic_intensity == pytest.approx(0.2)
+    assert features.diegetic_frequency == pytest.approx(0.8)
 
 
 def test_build_features_reports_boundary_risk_flag(tmp_path: Path):
@@ -232,3 +266,5 @@ def test_load_cadence_state_defaults_missing_diegetic_columns_on_legacy_schema(t
     assert state.followup_non_response_streak == 1
     assert state.diegetic_non_response_streak == 0
     assert state.last_diegetic_delivered_at is None
+    assert state.diegetic_intensity is None
+    assert state.diegetic_frequency is None
