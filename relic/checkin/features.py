@@ -45,6 +45,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable, Optional
 
+from relic.checkin.hermes_state_reader import last_subject_msg_at, subject_avg_tokens
 from relic.checkin.policy import CheckinFeatures
 
 logger = logging.getLogger(__name__)
@@ -859,85 +860,12 @@ def _safe_load_subject_msg_state(
     hermes_home: Path,
     now: datetime,
 ) -> tuple[Optional[int], Optional[datetime], Optional[float]]:
-    """Read last-subject-msg state from Hermes ``state.db``.
-
-    Real Hermes schema uses ``timestamp REAL`` (epoch seconds). Test fixtures
-    in this repo use the legacy ``created_at TEXT`` column, so we detect which
-    column exists at runtime and adapt — otherwise the production reads
-    silently fall back to None for every tick.
-    """
-    state_db = Path(hermes_home) / "state.db"
-    if not state_db.exists():
-        return None, None, None
-    try:
-        conn = sqlite3.connect(str(state_db), timeout=5.0)
-    except sqlite3.DatabaseError:
-        return None, None, None
-    try:
+    last_dt = last_subject_msg_at(hermes_home)
+    avg_tokens = subject_avg_tokens(hermes_home, now - timedelta(days=14))
+    time_since: Optional[int] = None
+    if last_dt is not None:
         try:
-            cols = {r[1] for r in conn.execute("PRAGMA table_info(messages)").fetchall()}
-        except sqlite3.DatabaseError:
-            return None, None, None
-
-        last_dt: Optional[datetime] = None
-        time_since: Optional[int] = None
-        avg_tokens: Optional[float] = None
-
-        if "timestamp" in cols:
-            try:
-                row = conn.execute(
-                    "SELECT MAX(timestamp) FROM messages WHERE role = 'user'",
-                ).fetchone()
-            except sqlite3.DatabaseError:
-                row = None
-            if row and row[0] is not None:
-                try:
-                    last_dt = datetime.fromtimestamp(float(row[0]), tz=timezone.utc)
-                except (TypeError, ValueError, OSError):
-                    last_dt = None
-            try:
-                cutoff = (now - timedelta(days=14)).timestamp()
-                avg_row = conn.execute(
-                    "SELECT AVG(LENGTH(content) / 4.0) FROM messages "
-                    "WHERE role = 'user' AND timestamp >= ?",
-                    (cutoff,),
-                ).fetchone()
-                avg_tokens = (
-                    float(avg_row[0]) if avg_row and avg_row[0] is not None else None
-                )
-            except (sqlite3.DatabaseError, ValueError, TypeError):
-                avg_tokens = None
-        elif "created_at" in cols:
-            try:
-                row = conn.execute(
-                    "SELECT MAX(created_at) FROM messages WHERE role = 'user'",
-                ).fetchone()
-            except sqlite3.DatabaseError:
-                row = None
-            if row and row[0]:
-                last_dt = _to_dt(row[0])
-            try:
-                avg_row = conn.execute(
-                    "SELECT AVG(LENGTH(content) / 4.0) FROM messages "
-                    "WHERE role = 'user' AND created_at >= ?",
-                    ((now - timedelta(days=14)).isoformat(),),
-                ).fetchone()
-                avg_tokens = (
-                    float(avg_row[0]) if avg_row and avg_row[0] is not None else None
-                )
-            except (sqlite3.DatabaseError, ValueError, TypeError):
-                avg_tokens = None
-        else:
-            return None, None, None
-
-        if last_dt is not None:
-            try:
-                time_since = max(0, int((now - last_dt).total_seconds()))
-            except (TypeError, ValueError):
-                time_since = None
-        return time_since, last_dt, avg_tokens
-    finally:
-        try:
-            conn.close()
-        except Exception:
-            pass
+            time_since = max(0, int((now - last_dt).total_seconds()))
+        except (TypeError, ValueError):
+            time_since = None
+    return time_since, last_dt, avg_tokens
