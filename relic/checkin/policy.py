@@ -62,6 +62,7 @@ class CheckinFeatures:
     topic_freshness: float = 1.0
     importance_accumulator: float = 0.0
     continuity_preference: float = 0.5
+    comfort_with_initiative: float = 0.5
 
     subject_avg_tokens_14d: Optional[float] = None
     facet_status: Optional[str] = None
@@ -213,6 +214,17 @@ assert _effective_checkin_thresholds(0.5) == (
 )
 
 
+def _effective_proactive_threshold(comfort_with_initiative: float) -> float:
+    return _clamp(
+        PROACTIVE_SALIENCE_THRESHOLD + 0.3 * (0.5 - comfort_with_initiative),
+        PROACTIVE_SALIENCE_THRESHOLD,
+        0.95,
+    )
+
+
+assert _effective_proactive_threshold(0.5) == PROACTIVE_SALIENCE_THRESHOLD
+
+
 def _last_posture(features: CheckinFeatures) -> Optional[str]:
     if not features.posture_history_last_5:
         return None
@@ -271,7 +283,10 @@ def select_decision(
     if decision_type == "proactivity":
         if features.non_response_streak >= NON_RESPONSE_BACKOFF:
             return Decision(EventType.SILENT, Posture.QUIET, "proactive_backoff")
-        if features.salience_top > PROACTIVE_SALIENCE_THRESHOLD:
+        if features.comfort_with_initiative < 0.2:
+            return Decision(EventType.SILENT, Posture.QUIET, "proactive_low_receptivity")
+        eff_proactive_threshold = _effective_proactive_threshold(features.comfort_with_initiative)
+        if features.salience_top > eff_proactive_threshold:
             # Spike §9.5 forbidden transition: no brief_share when subject is laconic.
             avg = features.subject_avg_tokens_14d
             if avg is not None and avg < BRIEF_SHARE_MIN_AVG_TOKENS:

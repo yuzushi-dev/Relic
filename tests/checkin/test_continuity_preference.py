@@ -131,6 +131,7 @@ def test_build_checkin_features_loads_continuity_preference_with_fallbacks(tmp_p
                 "scores": {
                     "project_calibration": {
                         "continuity_preference": 0.8,
+                        "comfort_with_initiative": 0.7,
                     }
                 }
             }
@@ -145,6 +146,7 @@ def test_build_checkin_features_loads_continuity_preference_with_fallbacks(tmp_p
         hermes_home=hermes_home,
     )
     assert features.continuity_preference == 0.8
+    assert features.comfort_with_initiative == 0.7
 
     (subject_dir / "item_battery_response.json").unlink()
     (subject_dir / "subject_baseline.json").write_text(
@@ -154,6 +156,7 @@ def test_build_checkin_features_loads_continuity_preference_with_fallbacks(tmp_p
                     "scores": {
                         "project_calibration": {
                             "continuity_preference": 0.3,
+                            "comfort_with_initiative": 0.2,
                         }
                     }
                 }
@@ -169,6 +172,7 @@ def test_build_checkin_features_loads_continuity_preference_with_fallbacks(tmp_p
         hermes_home=hermes_home,
     )
     assert features.continuity_preference == 0.3
+    assert features.comfort_with_initiative == 0.2
 
     (subject_dir / "subject_baseline.json").unlink()
     features = build_checkin_features(
@@ -178,3 +182,4 @@ def test_build_checkin_features_loads_continuity_preference_with_fallbacks(tmp_p
         hermes_home=hermes_home,
     )
     assert features.continuity_preference == 0.5
+    assert features.comfort_with_initiative == 0.5

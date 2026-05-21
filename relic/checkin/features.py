@@ -339,6 +339,7 @@ def build_checkin_features(
     salience_top = _safe_load_salience_top(subject_id, relic_home)
     topic_freshness = _safe_load_topic_freshness(subject_id, relic_home)
     continuity_preference = _safe_load_continuity_preference(subject_id, relic_home)
+    comfort_with_initiative = _safe_load_comfort_with_initiative(subject_id, relic_home)
     consent_active = _safe_load_consent(subject_id, relic_home)
     boundary_strict, risk_flag, freq_cap_from_boundary = _safe_load_boundary(subject_id, relic_home)
     quiet_hours_active = _safe_load_quiet_hours_active(subject_id, relic_home, now)
@@ -372,6 +373,7 @@ def build_checkin_features(
     features.salience_top = salience_top
     features.topic_freshness = topic_freshness
     features.continuity_preference = continuity_preference
+    features.comfort_with_initiative = comfort_with_initiative
     features.posture_history_last_5 = posture_history
     features.subject_avg_tokens_14d = subject_avg_tokens_14d
     features.time_since_last_subject_msg_sec = time_since_last_msg
@@ -542,18 +544,24 @@ def _safe_load_topic_freshness(subject_id: str, relic_home: Path) -> float:
     return 1.0
 
 
-def _safe_load_continuity_preference(subject_id: str, relic_home: Path) -> float:
+def _safe_load_project_calibration_float(
+    subject_id: str,
+    relic_home: Path,
+    key: str,
+    *,
+    default: float = 0.5,
+) -> float:
     response_path = relic_home / "subjects" / subject_id / "item_battery_response.json"
     baseline_path = relic_home / "subjects" / subject_id / "subject_baseline.json"
 
     for path, key_path in (
         (
             response_path,
-            ("scores", "project_calibration", "continuity_preference"),
+            ("scores", "project_calibration", key),
         ),
         (
             baseline_path,
-            ("item_battery", "scores", "project_calibration", "continuity_preference"),
+            ("item_battery", "scores", "project_calibration", key),
         ),
     ):
         if not path.exists():
@@ -574,7 +582,15 @@ def _safe_load_continuity_preference(subject_id: str, relic_home: Path) -> float
         except (TypeError, ValueError):
             continue
 
-    return 0.5
+    return default
+
+
+def _safe_load_continuity_preference(subject_id: str, relic_home: Path) -> float:
+    return _safe_load_project_calibration_float(subject_id, relic_home, "continuity_preference")
+
+
+def _safe_load_comfort_with_initiative(subject_id: str, relic_home: Path) -> float:
+    return _safe_load_project_calibration_float(subject_id, relic_home, "comfort_with_initiative")
 
 
 def _safe_load_consent(subject_id: str, relic_home: Path) -> bool:
