@@ -59,7 +59,9 @@ class CadenceState:
     subject_id: str
     non_response_streak: int = 0
     followup_non_response_streak: int = 0
+    diegetic_non_response_streak: int = 0
     last_delivered_initiative_at: Optional[datetime] = None
+    last_diegetic_delivered_at: Optional[datetime] = None
     last_unanswered_delivery_at: Optional[datetime] = None
     last_reply_at: Optional[datetime] = None
     last_subject_msg_at: Optional[datetime] = None
@@ -114,7 +116,9 @@ _CADENCE_COLUMNS = (
     "subject_id",
     "non_response_streak",
     "followup_non_response_streak",
+    "diegetic_non_response_streak",
     "last_delivered_initiative_at",
+    "last_diegetic_delivered_at",
     "last_unanswered_delivery_at",
     "last_reply_at",
     "last_subject_msg_at",
@@ -125,9 +129,46 @@ _CADENCE_COLUMNS = (
 )
 
 
+def _cadence_table_columns(conn: sqlite3.Connection) -> set[str]:
+    try:
+        return {row[1] for row in conn.execute("PRAGMA table_info(checkin_cadence_state)").fetchall()}
+    except sqlite3.OperationalError:
+        return set()
+
+
+def _cadence_select_expr(column: str, available: set[str]) -> str:
+    if column in available:
+        return column
+    if column == "diegetic_non_response_streak":
+        return f"0 AS {column}"
+    if column == "last_diegetic_delivered_at":
+        return f"NULL AS {column}"
+    return column
+
+
+def _cadence_values(state: CadenceState, now: datetime) -> dict[str, Any]:
+    return {
+        "subject_id": state.subject_id,
+        "non_response_streak": int(state.non_response_streak),
+        "followup_non_response_streak": int(state.followup_non_response_streak),
+        "diegetic_non_response_streak": int(state.diegetic_non_response_streak),
+        "last_delivered_initiative_at": _to_iso(state.last_delivered_initiative_at),
+        "last_diegetic_delivered_at": _to_iso(state.last_diegetic_delivered_at),
+        "last_unanswered_delivery_at": _to_iso(state.last_unanswered_delivery_at),
+        "last_reply_at": _to_iso(state.last_reply_at),
+        "last_subject_msg_at": _to_iso(state.last_subject_msg_at),
+        "last_boundary_at": _to_iso(state.last_boundary_at),
+        "last_decay_at": _to_iso(state.last_decay_at),
+        "frequency_cap_per_day": state.frequency_cap_per_day,
+        "updated_at": _to_iso(now),
+    }
+
+
 def load_cadence_state(conn: sqlite3.Connection, subject_id: str) -> CadenceState:
+    available = _cadence_table_columns(conn)
+    select_columns = [_cadence_select_expr(column, available) for column in _CADENCE_COLUMNS]
     row = conn.execute(
-        f"SELECT {', '.join(_CADENCE_COLUMNS)} FROM checkin_cadence_state WHERE subject_id = ?",
+        f"SELECT {', '.join(select_columns)} FROM checkin_cadence_state WHERE subject_id = ?",
         (subject_id,),
     ).fetchone()
     if row is None:
@@ -136,51 +177,34 @@ def load_cadence_state(conn: sqlite3.Connection, subject_id: str) -> CadenceStat
         subject_id=row[0],
         non_response_streak=row[1] or 0,
         followup_non_response_streak=row[2] or 0,
-        last_delivered_initiative_at=_to_dt(row[3]),
-        last_unanswered_delivery_at=_to_dt(row[4]),
-        last_reply_at=_to_dt(row[5]),
-        last_subject_msg_at=_to_dt(row[6]),
-        last_boundary_at=_to_dt(row[7]),
-        last_decay_at=_to_dt(row[8]),
-        frequency_cap_per_day=row[9],
-        updated_at=_to_dt(row[10]),
+        diegetic_non_response_streak=row[3] or 0,
+        last_delivered_initiative_at=_to_dt(row[4]),
+        last_diegetic_delivered_at=_to_dt(row[5]),
+        last_unanswered_delivery_at=_to_dt(row[6]),
+        last_reply_at=_to_dt(row[7]),
+        last_subject_msg_at=_to_dt(row[8]),
+        last_boundary_at=_to_dt(row[9]),
+        last_decay_at=_to_dt(row[10]),
+        frequency_cap_per_day=row[11],
+        updated_at=_to_dt(row[12]),
     )
 
 
 def save_cadence_state(conn: sqlite3.Connection, state: CadenceState) -> None:
     now = state.updated_at or datetime.now(timezone.utc)
+    values = _cadence_values(state, now)
+    available = _cadence_table_columns(conn)
+    columns = [column for column in _CADENCE_COLUMNS if column in available]
+    if not columns:
+        return
+    update_columns = [column for column in columns if column != "subject_id"]
     conn.execute(
-        """INSERT INTO checkin_cadence_state (
-                subject_id, non_response_streak, followup_non_response_streak,
-                last_delivered_initiative_at, last_unanswered_delivery_at,
-                last_reply_at, last_subject_msg_at, last_boundary_at,
-                last_decay_at, frequency_cap_per_day, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        f"""INSERT INTO checkin_cadence_state ({', '.join(columns)})
+            VALUES ({', '.join('?' for _ in columns)})
             ON CONFLICT(subject_id) DO UPDATE SET
-                non_response_streak = excluded.non_response_streak,
-                followup_non_response_streak = excluded.followup_non_response_streak,
-                last_delivered_initiative_at = excluded.last_delivered_initiative_at,
-                last_unanswered_delivery_at = excluded.last_unanswered_delivery_at,
-                last_reply_at = excluded.last_reply_at,
-                last_subject_msg_at = excluded.last_subject_msg_at,
-                last_boundary_at = excluded.last_boundary_at,
-                last_decay_at = excluded.last_decay_at,
-                frequency_cap_per_day = excluded.frequency_cap_per_day,
-                updated_at = excluded.updated_at
+            {', '.join(f'{column} = excluded.{column}' for column in update_columns)}
             """,
-        (
-            state.subject_id,
-            int(state.non_response_streak),
-            int(state.followup_non_response_streak),
-            _to_iso(state.last_delivered_initiative_at),
-            _to_iso(state.last_unanswered_delivery_at),
-            _to_iso(state.last_reply_at),
-            _to_iso(state.last_subject_msg_at),
-            _to_iso(state.last_boundary_at),
-            _to_iso(state.last_decay_at),
-            state.frequency_cap_per_day,
-            _to_iso(now),
-        ),
+        tuple(values[column] for column in columns),
     )
 
 
@@ -249,6 +273,8 @@ def reconcile_cadence_outcome(state: CadenceState, event: Optional[dict]) -> Cad
     if status == "answered":
         new.non_response_streak = 0
         new.followup_non_response_streak = 0
+        if decision_type == "diegetic":
+            new.diegetic_non_response_streak = 0
         new.last_reply_at = now
         new.last_subject_msg_at = now
     elif status == "unanswered_24h":
@@ -259,9 +285,13 @@ def reconcile_cadence_outcome(state: CadenceState, event: Optional[dict]) -> Cad
             new.non_response_streak = state.non_response_streak + 1
             if decision_type == "followup":
                 new.followup_non_response_streak = state.followup_non_response_streak + 1
+            if decision_type == "diegetic":
+                new.diegetic_non_response_streak = state.diegetic_non_response_streak + 1
         new.last_unanswered_delivery_at = now
     elif status == "delivered":
         new.last_delivered_initiative_at = now
+        if decision_type == "diegetic":
+            new.last_diegetic_delivered_at = now
     elif status in (None, "silent", "blocked"):
         # Silence / blocked do not penalise cadence.
         pass

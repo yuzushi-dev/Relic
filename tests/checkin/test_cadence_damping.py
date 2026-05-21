@@ -75,6 +75,55 @@ def test_answered_resets_both_streaks():
     assert new_state.last_reply_at is not None
 
 
+def test_diegetic_unanswered_increments_diegetic_streak_only_for_diegetic():
+    state = CadenceState(subject_id="s1")
+
+    checkin_state = reconcile_cadence_outcome(
+        state,
+        {
+            "outcome_status_before": "delivered",
+            "outcome_status": "unanswered_24h",
+            "decision_type": "checkin",
+        },
+    )
+    diegetic_state = reconcile_cadence_outcome(
+        state,
+        {
+            "outcome_status_before": "delivered",
+            "outcome_status": "unanswered_24h",
+            "decision_type": "diegetic",
+        },
+    )
+
+    assert checkin_state.diegetic_non_response_streak == 0
+    assert diegetic_state.diegetic_non_response_streak == 1
+
+
+def test_answered_resets_diegetic_streak_only_for_diegetic():
+    state = CadenceState(
+        subject_id="s1",
+        non_response_streak=2,
+        followup_non_response_streak=1,
+        diegetic_non_response_streak=3,
+    )
+
+    checkin_state = reconcile_cadence_outcome(
+        state,
+        {"outcome_status": "answered", "decision_type": "checkin"},
+    )
+    diegetic_state = reconcile_cadence_outcome(
+        state,
+        {"outcome_status": "answered", "decision_type": "diegetic"},
+    )
+
+    assert checkin_state.non_response_streak == 0
+    assert checkin_state.followup_non_response_streak == 0
+    assert checkin_state.diegetic_non_response_streak == 3
+    assert diegetic_state.non_response_streak == 0
+    assert diegetic_state.followup_non_response_streak == 0
+    assert diegetic_state.diegetic_non_response_streak == 0
+
+
 def test_followup_unanswered_increments_followup_streak():
     state = CadenceState(subject_id="s1")
     event = {
@@ -85,6 +134,7 @@ def test_followup_unanswered_increments_followup_streak():
     new_state = reconcile_cadence_outcome(state, event)
     assert new_state.non_response_streak == 1
     assert new_state.followup_non_response_streak == 1
+    assert new_state.diegetic_non_response_streak == 0
 
 
 def test_followup_multiplier_reduces_reach_score_more_aggressively():

@@ -41,6 +41,14 @@ def _insert_pending_exchange(db_path: Path, asked_at: datetime) -> int:
         conn.close()
 
 
+def _append_decision_event(relic_home: Path, event: dict) -> None:
+    path = relic_home / "decision_events.jsonl"
+    path.write_text(
+        path.read_text(encoding="utf-8") + json.dumps(event) + "\n" if path.exists() else json.dumps(event) + "\n",
+        encoding="utf-8",
+    )
+
+
 def test_capture_reply_sets_response_latency_seconds(tmp_path: Path):
     relic_home = tmp_path
     db_path = _seed_subject(relic_home, "s1")
@@ -98,7 +106,7 @@ def test_capture_reply_leaves_latency_null_for_malformed_asked_at(tmp_path: Path
     assert row[0] is None
 
 
-def test_reply_capture_resets_cadence_streak(tmp_path: Path):
+def test_reply_capture_resets_existing_cadence_streaks_without_diegetic_match(tmp_path: Path):
     relic_home = tmp_path
     db_path = _seed_subject(relic_home, "s1")
     _insert_pending_exchange(db_path, datetime.now(timezone.utc) - timedelta(minutes=5))
@@ -111,6 +119,7 @@ def test_reply_capture_resets_cadence_streak(tmp_path: Path):
                 subject_id="s1",
                 non_response_streak=3,
                 followup_non_response_streak=2,
+                diegetic_non_response_streak=4,
                 updated_at=datetime.now(timezone.utc),
             ),
         )
@@ -131,4 +140,57 @@ def test_reply_capture_resets_cadence_streak(tmp_path: Path):
         conn.close()
     assert state.non_response_streak == 0
     assert state.followup_non_response_streak == 0
+    assert state.diegetic_non_response_streak == 4
+    assert state.last_reply_at is not None
+
+
+def test_reply_capture_resets_diegetic_streak_when_latest_delivery_is_diegetic(tmp_path: Path):
+    relic_home = tmp_path
+    db_path = _seed_subject(relic_home, "s1")
+    delivered_at = datetime.now(timezone.utc) - timedelta(minutes=10)
+    _insert_pending_exchange(db_path, delivered_at)
+    _append_decision_event(
+        relic_home,
+        {
+            "decision": "DELIVER",
+            "subject_id": "s1",
+            "decision_type": "diegetic",
+            "outcome_status": "delivered",
+            "created_at": delivered_at.isoformat(),
+            "delivered_at": delivered_at.isoformat(),
+            "response_deadline_at": (delivered_at + timedelta(hours=24)).isoformat(),
+            "event_id": "evt-diegetic",
+        },
+    )
+
+    conn = sqlite3.connect(str(db_path))
+    try:
+        save_cadence_state(
+            conn,
+            CadenceState(
+                subject_id="s1",
+                non_response_streak=3,
+                followup_non_response_streak=2,
+                diegetic_non_response_streak=4,
+                updated_at=datetime.now(timezone.utc),
+            ),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    capture_reply_if_pending(
+        "ehi tutto bene",
+        subject_id="s1",
+        relic_home=str(relic_home),
+    )
+
+    conn = sqlite3.connect(str(db_path))
+    try:
+        state = load_cadence_state(conn, "s1")
+    finally:
+        conn.close()
+    assert state.non_response_streak == 0
+    assert state.followup_non_response_streak == 0
+    assert state.diegetic_non_response_streak == 0
     assert state.last_reply_at is not None

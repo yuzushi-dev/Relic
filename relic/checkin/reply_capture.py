@@ -19,6 +19,7 @@ import logging
 import sqlite3
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +29,7 @@ _DISMISSAL_TOKENS = frozenset({
     "[silent]", "ok", "k", "sì", "si", "no", "ciao", "ok.",
     "boh", "mah", "meh", "lol", "nada", "non so",
 })
+_DELIVERED_LOOKBACK = timedelta(hours=REPLY_WINDOW_HOURS)
 
 
 def _is_substantive(text: str) -> bool:
@@ -37,6 +39,70 @@ def _is_substantive(text: str) -> bool:
     if stripped.lower().rstrip(".!? ") in _DISMISSAL_TOKENS:
         return False
     return True
+
+
+def _iter_decision_log(relic_home: Path) -> list[dict]:
+    path = Path(relic_home) / "decision_events.jsonl"
+    if not path.exists():
+        return []
+    events: list[dict] = []
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    events.append(json.loads(line))
+                except json.JSONDecodeError:
+                    continue
+    except OSError:
+        logger.debug("reply_capture: decision log read failed", exc_info=True)
+    return events
+
+
+def _to_dt(value: str | None) -> Optional[datetime]:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _latest_delivered_decision_type(
+    relic_home: Path,
+    subject_id: str,
+    reply_at: datetime,
+    *,
+    default_window_hours: int = 24,
+) -> Optional[str]:
+    latest_type: Optional[str] = None
+    latest_delivered_at: Optional[datetime] = None
+    earliest = reply_at - _DELIVERED_LOOKBACK
+
+    for event in _iter_decision_log(relic_home):
+        if event.get("subject_id") != subject_id:
+            continue
+        if event.get("outcome_status") != "delivered":
+            continue
+
+        delivered_at = _to_dt(event.get("delivered_at")) or _to_dt(event.get("created_at"))
+        if delivered_at is None or delivered_at < earliest or delivered_at > reply_at:
+            continue
+
+        deadline_at = (
+            _to_dt(event.get("response_deadline_at"))
+            or delivered_at + timedelta(hours=default_window_hours)
+        )
+        if reply_at > deadline_at:
+            continue
+
+        if latest_delivered_at is None or delivered_at > latest_delivered_at:
+            latest_delivered_at = delivered_at
+            latest_type = event.get("decision_type")
+
+    return latest_type
 
 
 def capture_reply_if_pending(
@@ -106,7 +172,7 @@ def capture_reply_if_pending(
             conn.commit()
             if cur.rowcount == 0:
                 return False  # lost the race — another writer filled it first
-            _reset_cadence_after_reply(conn, subject_id, now)
+            _reset_cadence_after_reply(conn, subject_id, now, relic_home=relic_home_path)
             logger.info(
                 "capture_reply_if_pending: captured reply for exchange %d subject=%s",
                 exchange_id, subject_id,
@@ -144,6 +210,8 @@ def _reset_cadence_after_reply(
     conn: sqlite3.Connection,
     subject_id: str,
     reply_at: datetime,
+    *,
+    relic_home: Path | None = None,
 ) -> None:
     """Reset cadence streaks via the reconcile_cadence_outcome contract."""
     try:
@@ -158,10 +226,12 @@ def _reset_cadence_after_reply(
 
     try:
         state: CadenceState = load_cadence_state(conn, subject_id)
-        new_state = reconcile_cadence_outcome(
-            state,
-            {"outcome_status": "answered", "now": reply_at},
-        )
+        event = {"outcome_status": "answered", "now": reply_at}
+        if relic_home is not None:
+            decision_type = _latest_delivered_decision_type(relic_home, subject_id, reply_at)
+            if decision_type is not None:
+                event["decision_type"] = decision_type
+        new_state = reconcile_cadence_outcome(state, event)
         save_cadence_state(conn, new_state)
         conn.commit()
     except Exception:

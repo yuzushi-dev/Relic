@@ -13,6 +13,7 @@ from relic.checkin.db_init import init_db
 from relic.checkin.features import (
     CadenceState,
     build_checkin_features,
+    load_cadence_state,
     persist_features,
     save_cadence_state,
 )
@@ -65,6 +66,31 @@ def test_build_features_loads_cadence_streak(tmp_path: Path):
     assert features.non_response_streak == 2
     assert features.followup_non_response_streak == 1
     assert features.reach_score == pytest.approx(0.7 ** 4)
+
+
+def test_cadence_state_round_trips_diegetic_columns(tmp_path: Path):
+    db_path = _make_db(tmp_path, "s1")
+    now = datetime.now(timezone.utc)
+
+    conn = sqlite3.connect(str(db_path))
+    try:
+        save_cadence_state(
+            conn,
+            CadenceState(
+                subject_id="s1",
+                diegetic_non_response_streak=2,
+                last_diegetic_delivered_at=now - timedelta(hours=3),
+                updated_at=now,
+            ),
+        )
+        conn.commit()
+
+        state = load_cadence_state(conn, "s1")
+    finally:
+        conn.close()
+
+    assert state.diegetic_non_response_streak == 2
+    assert state.last_diegetic_delivered_at == now - timedelta(hours=3)
 
 
 def test_build_features_reports_boundary_risk_flag(tmp_path: Path):
@@ -169,3 +195,40 @@ def test_daily_initiatives_today_populated_from_decision_log(tmp_path):
         hermes_home=tmp_path / "hermes",
     )
     assert f.daily_initiatives_today == 2
+
+
+def test_load_cadence_state_defaults_missing_diegetic_columns_on_legacy_schema(tmp_path: Path):
+    db_path = tmp_path / "legacy.db"
+    conn = sqlite3.connect(str(db_path))
+    try:
+        conn.execute(
+            """CREATE TABLE checkin_cadence_state (
+                subject_id TEXT PRIMARY KEY,
+                non_response_streak INTEGER NOT NULL DEFAULT 0,
+                followup_non_response_streak INTEGER NOT NULL DEFAULT 0,
+                last_delivered_initiative_at TEXT,
+                last_unanswered_delivery_at TEXT,
+                last_reply_at TEXT,
+                last_subject_msg_at TEXT,
+                last_boundary_at TEXT,
+                last_decay_at TEXT,
+                frequency_cap_per_day INTEGER,
+                updated_at TEXT NOT NULL
+            )"""
+        )
+        conn.execute(
+            """INSERT INTO checkin_cadence_state (
+                subject_id, non_response_streak, followup_non_response_streak, updated_at
+            ) VALUES (?, ?, ?, ?)""",
+            ("s1", 4, 1, datetime.now(timezone.utc).isoformat()),
+        )
+        conn.commit()
+
+        state = load_cadence_state(conn, "s1")
+    finally:
+        conn.close()
+
+    assert state.non_response_streak == 4
+    assert state.followup_non_response_streak == 1
+    assert state.diegetic_non_response_streak == 0
+    assert state.last_diegetic_delivered_at is None
