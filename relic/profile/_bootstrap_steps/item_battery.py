@@ -53,12 +53,12 @@ DISTANCE_7 = {
     7: "Maximum distance — strictly impersonal",
 }
 EMOJI_5 = {
-    0: "No emoji — plain text only",
-    1: "Minimal — one emoji rarely, only if clearly fitting",
-    2: "Sparing — a few emoji across a conversation",
-    3: "Moderate — emoji when they feel natural",
-    4: "Frequent — emoji as a regular expressive tool",
-    5: "Maximum — emoji freely and abundantly",
+    0: "No emoji at all — plain text only",
+    1: "At most 1 emoji per message",
+    2: "At most 2 emoji per message",
+    3: "At most 3 emoji per message",
+    4: "At most 4 emoji per message",
+    5: "No hard cap — emoji may be used freely and abundantly",
 }
 
 TIPI_CITATION = "Gosling, Rentfrow, & Swann, 2003"

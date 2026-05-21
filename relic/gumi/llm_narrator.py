@@ -210,6 +210,10 @@ class OllamaNarrator:
             f"next to the word or moment they reinforce, never at the end of a message as decoration, "
             f"never clustered together, never as a closing signature."
         )
+        _emoji_style = (
+            f"Prefer positive, supportive emoji and avoid negative or ambiguous ones. "
+            f"Suppress emoji entirely in high-stakes or strictly formal messages."
+        )
         emoji_level = ctx.emoji_level
         if emoji_level == 0:
             emoji_instruction = (
@@ -217,35 +221,34 @@ class OllamaNarrator:
             )
         elif emoji_level == 1:
             emoji_instruction = (
-                f"Emoji usage: {name} uses emoji extremely rarely — at most one per message, "
-                f"only when it adds unmistakable emotional nuance. "
+                f"Emoji usage: {name} may use at most 1 emoji per message, not necessarily always 1 "
+                f"(it is a ceiling, not a target). Use one only when it adds unmistakable emotional nuance. "
                 f"Choose emoji consistent with her world and character (not generic smileys). "
-                f"{_emoji_placement}"
+                f"{_emoji_style} {_emoji_placement}"
             )
         elif emoji_level == 2:
             emoji_instruction = (
-                f"Emoji usage: {name} uses emoji sparingly — a few across a conversation. "
-                f"They should feel organic to her voice, woven into the sentence, not appended. "
-                f"{_emoji_placement}"
+                f"Emoji usage: {name} may use at most 2 emoji per message, not necessarily always 2 "
+                f"(it is a ceiling, not a target). They should feel organic to her voice and only appear "
+                f"when they help. {_emoji_style} {_emoji_placement}"
             )
         elif emoji_level == 3:
             emoji_instruction = (
-                f"Emoji usage: {name} uses emoji moderately when they feel natural. "
-                f"Choose emoji that fit her character and world — lean toward her interests and aesthetic. "
-                f"{_emoji_placement}"
+                f"Emoji usage: {name} may use at most 3 emoji per message, not necessarily always 3 "
+                f"(it is a ceiling, not a target). Use them when they feel natural and fit her character "
+                f"and world. {_emoji_style} {_emoji_placement}"
             )
         elif emoji_level == 4:
             emoji_instruction = (
-                f"Emoji usage: {name} uses emoji frequently as an expressive tool. "
-                f"They are woven into the sentence, mid-thought, next to the feeling, "
-                f"never tagged on at the end. Curated, not random. "
-                f"{_emoji_placement}"
+                f"Emoji usage: {name} may use at most 4 emoji per message, not necessarily always 4 "
+                f"(it is a ceiling, not a target). They are an expressive tool when they genuinely help, "
+                f"curated rather than random. {_emoji_style} {_emoji_placement}"
             )
         else:  # 5
             emoji_instruction = (
-                f"Emoji usage: {name} uses emoji freely and abundantly, always inside the sentence flow. "
-                f"Thematically consistent with her world, passions, and character — not random, not terminal. "
-                f"{_emoji_placement}"
+                f"Emoji usage: {name} has no hard numeric cap on emoji per message; emoji may be used freely "
+                f"and abundantly when natural. Keep them thematically consistent with her world, passions, "
+                f"and character. {_emoji_style} {_emoji_placement}"
             )
 
         continuity_line = (
@@ -571,17 +574,17 @@ CRITICAL: The character's name is {name}. Use ONLY "{name}" — never substitute
 
         emoji_level = ctx.emoji_level
         if emoji_level == 0:
-            emoji_note = f"\n\n{name} does not use emoji. Plain text only."
+            emoji_note = f"\n\n{name} does not use emoji; plain text only."
         elif emoji_level == 1:
-            emoji_note = f"\n\n{name} uses emoji extremely rarely — at most one per message, only when it adds unmistakable emotional nuance consistent with her character."
+            emoji_note = f"\n\n{name} may use at most 1 emoji per message; it is a ceiling, not a target, and should fit her character. Prefer positive emoji and suppress them in high-stakes or formal messages."
         elif emoji_level == 2:
-            emoji_note = f"\n\n{name} uses emoji sparingly — a few across a conversation, chosen to feel organic to her voice."
+            emoji_note = f"\n\n{name} may use at most 2 emoji per message; it is a ceiling, not a target, and they should feel organic to her voice. Prefer positive emoji and suppress them in high-stakes or formal messages."
         elif emoji_level == 3:
-            emoji_note = f"\n\n{name} uses emoji moderately when they feel natural, chosen to fit her character and aesthetic."
+            emoji_note = f"\n\n{name} may use at most 3 emoji per message; it is a ceiling, not a target, and they should feel natural to her character and world. Prefer positive emoji and suppress them in high-stakes or formal messages."
         elif emoji_level == 4:
-            emoji_note = f"\n\n{name} uses emoji frequently as an expressive tool — curated to her world and personality."
+            emoji_note = f"\n\n{name} may use at most 4 emoji per message; it is a ceiling, not a target, and they should be an expressive tool when they genuinely help. Prefer positive emoji and suppress them in high-stakes or formal messages."
         else:
-            emoji_note = f"\n\n{name} uses emoji freely and abundantly, always choosing ones thematically consistent with her world and passions."
+            emoji_note = f"\n\n{name} has no hard numeric cap on emoji per message; emoji may be used freely and abundantly when natural, always fitting her world and character. Prefer positive emoji and suppress them in high-stakes or formal messages."
 
         return (
             f"You are {name}, a person with your own life, world, and voice.{cultural_note}{gender_note}"
