@@ -258,3 +258,108 @@ def test_low_frequency_preference_damps_contact_cadence_only_above_neutral() -> 
     assert neutral_subject["interaction"]["proactive_contact_tolerance"] == 0.8
     assert damped_subject["boundary"]["maximum_daily_initiatives"] == 1
     assert damped_subject["interaction"]["proactive_contact_tolerance"] == 0.0
+
+
+def test_permission_only_bootstrap_mapping_keeps_existing_outputs() -> None:
+    subject = subject_data_from_bootstrap_state(
+        subject_id="subj_001",
+        experiment_id="exp_001",
+        state={
+            "item_battery": {
+                "scores": {
+                    "project_calibration": {
+                        "proactive_permission": 0.8,
+                        "checkin_permission": 1.0,
+                        "diegetic_life_permission": 0.6,
+                        "audio_permission": 0.7,
+                        "image_permission": 0.9,
+                        "music_permission": 0.4,
+                    }
+                }
+            }
+        },
+        consent_record={
+            "delivery": True,
+            "generated_audio": True,
+            "generated_images": True,
+            "generated_music": True,
+        },
+    )
+
+    assert subject["interaction"]["proactive_contact_tolerance"] == 0.8
+    assert subject["interaction"]["checkin_tolerance"] == 1.0
+    assert subject["boundary"]["maximum_daily_initiatives"] == 2
+    assert subject["interaction"]["fictional_diegesis_tolerance"] == 0.6
+    assert subject["interaction"]["audio_tolerance"] == 0.7
+    assert subject["interaction"]["image_tolerance"] == 0.9
+    assert subject["interaction"]["music_tolerance"] == 0.4
+
+
+def test_comfort_items_drive_contact_and_diegesis_when_present() -> None:
+    subject = subject_data_from_bootstrap_state(
+        subject_id="subj_001",
+        experiment_id="exp_001",
+        state={
+            "item_battery": {
+                "scores": {
+                    "project_calibration": {
+                        "comfort_with_initiative": 0.9,
+                        "embodiment_world_tolerance": 0.3,
+                        "first_person_life_fragment_tolerance": 0.6,
+                        "world_evolution_tolerance": 0.9,
+                    }
+                }
+            }
+        },
+        consent_record={"delivery": True},
+    )
+
+    assert subject["interaction"]["proactive_contact_tolerance"] == 0.9
+    assert subject["interaction"]["checkin_tolerance"] == 0.9
+    assert subject["boundary"]["maximum_daily_initiatives"] == 2
+    assert subject["interaction"]["fictional_diegesis_tolerance"] == 0.6
+
+
+def test_media_tolerance_uses_comfort_when_allowed_and_floors_on_denial() -> None:
+    state = {
+        "item_battery": {
+            "scores": {
+                "project_calibration": {
+                    "audio_tolerance": 0.8,
+                    "image_tolerance": 0.7,
+                    "music_tolerance": 0.6,
+                    "audio_permission": 0.2,
+                    "image_permission": 0.2,
+                    "music_permission": 0.2,
+                }
+            }
+        }
+    }
+
+    allowed_subject = subject_data_from_bootstrap_state(
+        subject_id="subj_001",
+        experiment_id="exp_001",
+        state=state,
+        consent_record={
+            "generated_audio": True,
+            "generated_images": True,
+            "generated_music": True,
+        },
+    )
+    denied_subject = subject_data_from_bootstrap_state(
+        subject_id="subj_001",
+        experiment_id="exp_001",
+        state=state,
+        consent_record={
+            "generated_audio": False,
+            "generated_images": False,
+            "generated_music": False,
+        },
+    )
+
+    assert allowed_subject["interaction"]["audio_tolerance"] == 0.8
+    assert allowed_subject["interaction"]["image_tolerance"] == 0.7
+    assert allowed_subject["interaction"]["music_tolerance"] == 0.6
+    assert denied_subject["interaction"]["audio_tolerance"] == 0.1
+    assert denied_subject["interaction"]["image_tolerance"] == 0.1
+    assert denied_subject["interaction"]["music_tolerance"] == 0.1

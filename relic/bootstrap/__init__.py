@@ -125,13 +125,32 @@ def subject_data_from_bootstrap_state(
         except (TypeError, ValueError):
             return default
 
+    def comfort_or(comfort_key: str, perm_key: str, default: float) -> float:
+        if comfort_key in project:
+            return score(project, comfort_key, default)
+        if perm_key in project:
+            return score(project, perm_key, default)
+        return default
+
     low_freq = score(project, "low_frequency_preference", 0.5)
     damp = max(0.0, (low_freq - 0.5) * 2.0)
-    scaled_checkin_permission = score(project, "checkin_permission", 0.0) * (1.0 - damp)
-    scaled_proactive_permission = score(project, "proactive_permission", 0.20) * (1.0 - damp)
+    scaled_checkin_tolerance = comfort_or("comfort_with_initiative", "checkin_permission", 0.0) * (1.0 - damp)
+    scaled_proactive_tolerance = comfort_or("comfort_with_initiative", "proactive_permission", 0.20) * (1.0 - damp)
     careful_distancing_acceptance = score(project, "careful_distancing_acceptance", 1.0)
     attachment_anxiety = score(ecrrs, "attachment_anxiety", 0.55)
     careful_distancing_enabled = careful_distancing_acceptance >= 0.40 or attachment_anxiety >= 0.70
+    diegetic_comfort_keys = (
+        "embodiment_world_tolerance",
+        "routine_fragment_tolerance",
+        "first_person_life_fragment_tolerance",
+        "world_evolution_tolerance",
+    )
+    diegetic_comfort_scores = [score(project, key, 0.45) for key in diegetic_comfort_keys if key in project]
+    fictional_diegesis_tolerance = (
+        sum(diegetic_comfort_scores) / len(diegetic_comfort_scores)
+        if diegetic_comfort_scores
+        else score(project, "diegetic_life_permission", 0.45)
+    )
 
     return {
         "subject_id": subject_id,
@@ -148,21 +167,22 @@ def subject_data_from_bootstrap_state(
         "interaction": {
             "directness_preference": score(project, "directness_preference", 0.55),
             "critique_tolerance": score(project, "critique_tolerance", 0.45),
-            # Proactivity/check-in cadence is driven by the subject's PRO_* item
-            # battery answers (scored into project_calibration as *_permission,
-            # range 0..1). Still gated by delivery consent: no channel, no contact.
-            "proactive_contact_tolerance": scaled_proactive_permission if delivery_allowed else 0.20,
-            "checkin_tolerance": score(project, "checkin_permission", 0.20) if delivery_allowed else 0.20,
+            # Comfort answers lead when present; permission remains the fallback.
+            # Delivery consent still hard-gates any contact channel.
+            "proactive_contact_tolerance": scaled_proactive_tolerance if delivery_allowed else 0.20,
+            "checkin_tolerance": comfort_or("comfort_with_initiative", "checkin_permission", 0.20)
+            if delivery_allowed
+            else 0.20,
             "humor_tolerance": score(project, "humor_tolerance", 0.50),
             "ambiguity_tolerance": score(project, "ambiguity_tolerance", 0.45),
             "challenge_tolerance": score(project, "challenge_tolerance", 0.50),
             "emotional_intensity_tolerance": score(project, "emotional_intensity_tolerance", 0.40),
-            "fictional_diegesis_tolerance": score(project, "diegetic_life_permission", 0.45),
-            # Media follow the same rule as text messages: gated by the matching
-            # generation consent, but when allowed the PRO_* score sets intensity.
-            "audio_tolerance": score(project, "audio_permission", 0.10) if audio_allowed else 0.10,
-            "image_tolerance": score(project, "image_permission", 0.10) if images_allowed else 0.10,
-            "music_tolerance": score(project, "music_permission", 0.10) if music_allowed else 0.10,
+            "fictional_diegesis_tolerance": fictional_diegesis_tolerance,
+            # Media stay hard-gated by explicit consent; tolerance only matters
+            # after the consent boolean allows that modality.
+            "audio_tolerance": comfort_or("audio_tolerance", "audio_permission", 0.10) if audio_allowed else 0.10,
+            "image_tolerance": comfort_or("image_tolerance", "image_permission", 0.10) if images_allowed else 0.10,
+            "music_tolerance": comfort_or("music_tolerance", "music_permission", 0.10) if music_allowed else 0.10,
         },
         "relational": {
             "desired_closeness": score(project, "desired_initial_closeness", 0.50),
@@ -186,10 +206,9 @@ def subject_data_from_bootstrap_state(
             "image_allowed": images_allowed,
             "music_allowed": music_allowed,
             "diegetic_life_fragments_allowed": False,
-            # Derived from the check-in permission answer (PRO_001): 1/day at the
-            # low end, up to 2/day when the subject asked for frequent contact.
-            # build_pr28_bootstrap_outputs further caps this by proactive tolerance.
-            "maximum_daily_initiatives": 1 + round(scaled_checkin_permission),
+            # Derived from initiative comfort when present, otherwise the legacy
+            # permission answer. build_pr28_bootstrap_outputs further caps this.
+            "maximum_daily_initiatives": 1 + round(scaled_checkin_tolerance),
             "opt_out_categories": list(opt_out_values),
             "quiet_hours": boundaries.get("quiet_hours", {"start": "22:00", "end": "08:00", "timezone": "Europe/Rome"}),
             "careful_distancing_enabled": careful_distancing_enabled,
