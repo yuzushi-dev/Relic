@@ -170,10 +170,19 @@ class BootstrapTUI:
         sr_extra = collect_self_report_fields(self.io_in, self.io_out)
         self_report_fields.update(sr_extra)
 
-        # Step 3b-rc: Researcher-coded clinical/observational fields
-        self._print("\n--- Researcher-Coded Fields ---")
-        rc_extra = collect_researcher_coded_fields(self.io_in, self.io_out)
-        researcher_coded_fields.update(rc_extra)
+        # Step 3b-rc: Optional researcher-coded overrides for battery-derived values.
+        apply_researcher_coded_overrides = self._confirm(
+            "Set researcher-coded overrides? (otherwise battery-derived values are kept)"
+        )
+        if apply_researcher_coded_overrides:
+            self._print("\n--- Researcher-Coded Fields ---")
+            rc_extra = collect_researcher_coded_fields(self.io_in, self.io_out)
+            researcher_coded_fields.update(rc_extra)
+            researcher_coded_overrides_origin = "applied_researcher_coded_overrides"
+        else:
+            rc_extra = {}
+            researcher_coded_overrides_origin = "skipped_keep_battery_derived"
+            self._print("Keeping battery-derived researcher-coded values.")
 
         # Step 3b-ip: Interaction preferences (message length, emoji, timing, topics)
         self._print("\n--- Interaction Preferences ---")
@@ -236,6 +245,7 @@ class BootstrapTUI:
         self._log_step("item_battery_collected", str(len(item_battery["responses"])))
         self._log_step("self_report_fields_collected", str(len(self_report_fields)))
         self._log_step("self_report_extra_collected", str(len(sr_extra)))
+        self._log_step("researcher_coded_overrides", researcher_coded_overrides_origin)
         self._log_step("researcher_coded_fields_collected", str(len(researcher_coded_fields)))
         self._log_step("researcher_coded_extra_collected", str(len(rc_extra)))
         self._log_step("interaction_preferences_collected", str(len(interaction_preferences)))
