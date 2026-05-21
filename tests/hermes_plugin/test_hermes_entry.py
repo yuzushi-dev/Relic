@@ -168,10 +168,11 @@ def test_post_llm_adapter_syncs_turn(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_install_helper_creates_symlink_and_is_idempotent(tmp_path: Path) -> None:
     from relic.hermes_plugin.install import install_relic_hermes_plugin
 
-    plugins_home = tmp_path / "plugins"
+    hermes_home = tmp_path / "profile"
+    plugins_home = hermes_home / "plugins"
 
-    first = install_relic_hermes_plugin(plugins_home=plugins_home)
-    second = install_relic_hermes_plugin(plugins_home=plugins_home)
+    first = install_relic_hermes_plugin(hermes_home)
+    second = install_relic_hermes_plugin(hermes_home)
 
     assert first["status"] == "created"
     assert second["status"] == "already_installed"
@@ -185,12 +186,45 @@ def test_install_helper_creates_symlink_and_is_idempotent(tmp_path: Path) -> Non
 def test_install_helper_leaves_non_symlink_in_place(tmp_path: Path) -> None:
     from relic.hermes_plugin.install import install_relic_hermes_plugin
 
-    plugins_home = tmp_path / "plugins"
+    hermes_home = tmp_path / "profile"
+    plugins_home = hermes_home / "plugins"
     target = plugins_home / "relic"
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text("occupied", encoding="utf-8")
 
-    result = install_relic_hermes_plugin(plugins_home=plugins_home)
+    result = install_relic_hermes_plugin(hermes_home)
 
     assert result["status"] == "blocked"
     assert target.read_text(encoding="utf-8") == "occupied"
+
+
+def test_enable_helper_updates_plugins_allow_and_deny_lists(tmp_path: Path) -> None:
+    import yaml
+
+    from relic.hermes_plugin.install import enable_relic_hermes_plugin
+
+    hermes_home = tmp_path / "profile"
+    config_path = hermes_home / "config.yaml"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.write_text(
+        yaml.safe_dump(
+            {
+                "model": {"default": "gpt-5"},
+                "plugins": {
+                    "enabled": ["other"],
+                    "disabled": ["relic", "legacy"],
+                },
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+
+    first = enable_relic_hermes_plugin(hermes_home)
+    second = enable_relic_hermes_plugin(hermes_home)
+    config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+
+    assert first["status"] == "enabled"
+    assert second["status"] == "already_enabled"
+    assert config["plugins"]["enabled"] == ["other", "relic"]
+    assert config["plugins"]["disabled"] == ["legacy"]

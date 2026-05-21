@@ -6,14 +6,18 @@ import json
 import os
 import re
 import hashlib
+import logging
 import shutil
 import subprocess
 from dataclasses import dataclass, field, asdict
-import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
+from relic.hermes_plugin.install import (
+    enable_relic_hermes_plugin,
+    install_relic_hermes_plugin,
+)
 from relic.paths import get_relic_home
 from relic.hermes_runtime import (
     HERMES_DEFAULT_MODEL,
@@ -25,6 +29,8 @@ from relic.hermes_runtime import (
 )
 from relic.gumi_plugin.cron_wiring import provision_no_agent_cron
 from relic.shared_continuity.service import get_continuity_service
+
+logger = logging.getLogger(__name__)
 
 VALID_STATES = [
     "draft",
@@ -2063,6 +2069,35 @@ Eight visual modes for consistent photography:
                 "created_at": _now_iso(),
             },
         )
+
+        try:
+            install_result = install_relic_hermes_plugin(profile.hermes_home)
+            logger.info(
+                "[profile.registry] relic Hermes plugin install step for %s: %s",
+                profile.subject_id,
+                install_result,
+            )
+        except Exception:
+            logger.warning(
+                "[profile.registry] relic Hermes plugin install step failed for %s",
+                profile.subject_id,
+                exc_info=True,
+            )
+
+        try:
+            enable_result = enable_relic_hermes_plugin(profile.hermes_home)
+            logger.info(
+                "[profile.registry] relic Hermes plugin enable step for %s: %s",
+                profile.subject_id,
+                enable_result,
+            )
+        except Exception:
+            logger.warning(
+                "[profile.registry] relic Hermes plugin enable step failed for %s",
+                profile.subject_id,
+                exc_info=True,
+            )
+
         updated = self.update_status(subject_id, "hermes_profile_provisioned")
         return updated, {
             "config": config_path,
