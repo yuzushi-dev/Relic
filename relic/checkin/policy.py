@@ -56,6 +56,7 @@ class CheckinFeatures:
     non_response_streak: int = 0
     followup_non_response_streak: int = 0
     time_since_last_subject_msg_sec: Optional[int] = None
+    time_since_last_initiative_sec: Optional[int] = None
     last_delivered_initiative_at: Optional[datetime] = None
     last_subject_msg_at: Optional[datetime] = None
 
@@ -78,6 +79,8 @@ class CheckinFeatures:
 
     frequency_cap_per_day: Optional[int] = None
     daily_initiatives_today: int = 0
+    diegetic_today: int = 0
+    proactive_today: int = 0
     quiet_hours_active: bool = False
 
 
@@ -188,6 +191,9 @@ NON_RESPONSE_BACKOFF = 3
 ASK_COOLDOWN_HOURS = 12
 REFLECT_COOLDOWN_DAYS = 7
 BRIEF_SHARE_MIN_AVG_TOKENS = 10.0
+MIN_INITIATIVE_GAP_HOURS = 4
+DIEGETIC_MAX_PER_DAY = 1
+PROACTIVE_MAX_PER_DAY = 1
 
 
 def _clamp(value: float, lower: float, upper: float) -> float:
@@ -271,9 +277,17 @@ def select_decision(
     ):
         return Decision(EventType.SILENT, Posture.QUIET, "frequency_cap_reached")
 
+    if (
+        features.time_since_last_initiative_sec is not None
+        and features.time_since_last_initiative_sec < MIN_INITIATIVE_GAP_HOURS * 3600
+    ):
+        return Decision(EventType.SILENT, Posture.QUIET, "initiative_spacing")
+
     if decision_type == "diegetic":
         if not features.diegetic_enabled:
             return Decision(EventType.SILENT, Posture.QUIET, "diegetic_disabled")
+        if features.diegetic_today >= DIEGETIC_MAX_PER_DAY:
+            return Decision(EventType.SILENT, Posture.QUIET, "diegetic_daily_cap")
         if (
             features.diegetic_frequency is not None
             and features.diegetic_frequency < 0.25
@@ -310,6 +324,8 @@ def select_decision(
         return Decision(EventType.FOLLOWUP, Posture.FOLLOW_UP_TERSE, "followup_after_silence")
 
     if decision_type == "proactivity":
+        if features.proactive_today >= PROACTIVE_MAX_PER_DAY:
+            return Decision(EventType.SILENT, Posture.QUIET, "proactive_daily_cap")
         if features.non_response_streak >= NON_RESPONSE_BACKOFF:
             return Decision(EventType.SILENT, Posture.QUIET, "proactive_backoff")
         if features.comfort_with_initiative < 0.2:

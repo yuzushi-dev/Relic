@@ -128,6 +128,24 @@ def test_diegetic_frequency_backoff_preempts_tolerance_share():
     )
 
 
+def test_diegetic_daily_cap_short_circuits_silent():
+    decision = select_decision(
+        CheckinFeatures(
+            diegetic_enabled=True,
+            diegetic_tolerance=0.9,
+            diegetic_today=1,
+        ),
+        decision_type="diegetic",
+        **_enabled(),
+    )
+
+    assert decision == Decision(
+        EventType.SILENT,
+        Posture.QUIET,
+        "diegetic_daily_cap",
+    )
+
+
 @pytest.mark.parametrize(
     ("intensity", "posture", "reason"),
     [

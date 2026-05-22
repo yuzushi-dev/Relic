@@ -505,6 +505,8 @@ def build_checkin_features(
     last_reflect_age_days: Optional[int] = None
 
     daily_initiatives_today = 0
+    proactive_today = 0
+    diegetic_today = 0
     if db_path.exists():
         conn = sqlite3.connect(str(db_path), timeout=5.0)
         try:
@@ -516,6 +518,18 @@ def build_checkin_features(
             conn.close()
 
     daily_initiatives_today += _count_today_initiatives(subject_id, relic_home, now)
+    proactive_today = _count_today_initiatives_by_type(
+        subject_id,
+        relic_home,
+        now,
+        decision_type="proactivity",
+    )
+    diegetic_today = _count_today_initiatives_by_type(
+        subject_id,
+        relic_home,
+        now,
+        decision_type="diegetic",
+    )
 
     salience_top = _safe_load_salience_top(subject_id, relic_home)
     topic_freshness = _safe_load_topic_freshness(subject_id, relic_home)
@@ -554,6 +568,8 @@ def build_checkin_features(
     features.risk_flag_active = risk_flag
     features.quiet_hours_active = quiet_hours_active
     features.daily_initiatives_today = daily_initiatives_today
+    features.proactive_today = proactive_today
+    features.diegetic_today = diegetic_today
 
     features.reach_score = compute_reach_score(
         features.non_response_streak,
@@ -568,6 +584,14 @@ def build_checkin_features(
     features.posture_history_last_5 = posture_history
     features.subject_avg_tokens_14d = subject_avg_tokens_14d
     features.time_since_last_subject_msg_sec = time_since_last_msg
+    if features.last_delivered_initiative_at is not None:
+        try:
+            features.time_since_last_initiative_sec = max(
+                0,
+                int((now - features.last_delivered_initiative_at).total_seconds()),
+            )
+        except (TypeError, ValueError):
+            features.time_since_last_initiative_sec = None
     features.facet_status = facet_status
     features.asked_recently_12h = asked_recently_12h
     features.last_reflect_age_days = last_reflect_age_days
@@ -670,16 +694,32 @@ def _load_facet_state(
 
 
 def _count_today_initiatives(subject_id: str, relic_home: Path, now: datetime) -> int:
-    """Count DELIVER events for ``subject_id`` whose created_at is today (UTC).
+    """Count DELIVER events for ``subject_id`` whose created_at is today (UTC)."""
+    return _count_today_initiatives_by_type(
+        subject_id,
+        relic_home,
+        now,
+        decision_type=None,
+    )
+
+
+def _count_today_initiatives_by_type(
+    subject_id: str,
+    relic_home: Path,
+    now: datetime,
+    *,
+    decision_type: Optional[str],
+) -> int:
+    """Count today's DELIVER events, optionally filtered by ``decision_type``.
 
     Reads the canonical RELIC_HOME-wide ``decision_events.jsonl`` so the
-    frequency cap in select_decision actually fires. Returns 0 on missing
-    file / parse errors.
+    shared frequency cap and per-type arbitration use the same source.
+    Returns 0 on missing file / parse errors.
     """
     log_path = Path(relic_home) / "decision_events.jsonl"
     if not log_path.exists():
         return 0
-    day_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    day_start = now.astimezone(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
     count = 0
     try:
         with open(log_path, "r", encoding="utf-8") as fh:
@@ -694,6 +734,8 @@ def _count_today_initiatives(subject_id: str, relic_home: Path, now: datetime) -
                 if row.get("subject_id") != subject_id:
                     continue
                 if row.get("decision") != "DELIVER":
+                    continue
+                if decision_type is not None and row.get("decision_type") != decision_type:
                     continue
                 created = _to_dt(row.get("created_at"))
                 if created is None:

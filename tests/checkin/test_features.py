@@ -262,6 +262,84 @@ def test_daily_initiatives_today_populated_from_decision_log(tmp_path):
     assert f.daily_initiatives_today == 2
 
 
+def test_build_features_populates_initiative_spacing_and_per_type_daily_counts(tmp_path: Path):
+    relic_home = tmp_path / "relic"
+    hermes_home = tmp_path / "hermes"
+    now = datetime(2026, 5, 22, 12, 0, tzinfo=timezone.utc)
+    db_path = _make_db(tmp_path, "s1")
+
+    conn = sqlite3.connect(str(db_path))
+    try:
+        save_cadence_state(
+            conn,
+            CadenceState(
+                subject_id="s1",
+                last_delivered_initiative_at=now - timedelta(hours=6),
+                updated_at=now,
+            ),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    relic_home.mkdir(exist_ok=True)
+    rows = [
+        {
+            "subject_id": "s1",
+            "decision": "DELIVER",
+            "decision_type": "checkin",
+            "created_at": (now - timedelta(hours=3)).isoformat(),
+        },
+        {
+            "subject_id": "s1",
+            "decision": "DELIVER",
+            "decision_type": "proactivity",
+            "created_at": (now - timedelta(hours=2)).isoformat(),
+        },
+        {
+            "subject_id": "s1",
+            "decision": "DELIVER",
+            "decision_type": "diegetic",
+            "created_at": (now - timedelta(hours=1)).isoformat(),
+        },
+        {
+            "subject_id": "s1",
+            "decision": "DELIVER",
+            "decision_type": "diegetic",
+            "created_at": (now - timedelta(days=1, minutes=1)).isoformat(),
+        },
+        {
+            "subject_id": "s2",
+            "decision": "DELIVER",
+            "decision_type": "proactivity",
+            "created_at": (now - timedelta(hours=1)).isoformat(),
+        },
+        {
+            "subject_id": "s1",
+            "decision": "NO_REPLY",
+            "decision_type": "proactivity",
+            "created_at": (now - timedelta(minutes=30)).isoformat(),
+        },
+    ]
+    (relic_home / "decision_events.jsonl").write_text(
+        "\n".join(json.dumps(row) for row in rows) + "\n",
+        encoding="utf-8",
+    )
+
+    features = build_checkin_features(
+        subject_id="s1",
+        decision_type="checkin",
+        relic_home=relic_home,
+        hermes_home=hermes_home,
+        now=now,
+    )
+
+    assert features.time_since_last_initiative_sec == 6 * 3600
+    assert features.daily_initiatives_today == 3
+    assert features.proactive_today == 1
+    assert features.diegetic_today == 1
+
+
 def test_load_cadence_state_defaults_missing_diegetic_columns_on_legacy_schema(tmp_path: Path):
     db_path = tmp_path / "legacy.db"
     conn = sqlite3.connect(str(db_path))
