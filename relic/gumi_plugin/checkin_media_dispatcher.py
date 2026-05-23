@@ -15,15 +15,47 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 from pathlib import Path
 from typing import Optional
+from datetime import datetime, timezone
 
 from relic.gumi_plugin.media_state import record_media_delivery, record_outbound_delivery
 from relic.gumi_plugin.image_gen import generate_checkin_image
 from relic.gumi_plugin.tts import synthesize_checkin_audio
 from relic.gumi_plugin.lyria import LyriaGenerator
 from relic.gumi_plugin.output_sanitizer import sanitize_for_subject
+
+_TRAILING_SYMBOL_RE = re.compile(
+    r"(\s*(?:[\U0001F300-\U0001FAFF\u2600-\u27BF]\ufe0f?|\ufe0f)+\s*)$"
+)
+
+
+def ensure_checkin_question_mark(text: str) -> str:
+    """Ensure check-in questions keep an explicit question mark.
+
+    Some models generate a semantically interrogative sentence and end with an
+    emoji instead of punctuation. Put the question mark before trailing emoji so
+    voice/text/image branches all preserve the question contract.
+    """
+    stripped = text.rstrip()
+    if not stripped or "?" in stripped:
+        return text
+    match = _TRAILING_SYMBOL_RE.search(stripped)
+    if match:
+        body = stripped[: match.start()].rstrip()
+        return f"{body}?{match.group(1)}"
+    return f"{stripped}?"
+
+
+def clean_image_caption(caption: str) -> str:
+    """Remove only trailing periods from image captions.
+
+    The old cleanup removed all terminal punctuation, including ``?``. The
+    intended style rule is only "no final full stop" on captions.
+    """
+    return re.sub(r"\.+$", "", caption.strip())
 
 
 def parse_gate_output(llm_output: str) -> dict:
@@ -142,9 +174,7 @@ def _send_telegram_media(
 
     # voice: no caption, no extra text
     if media_type == "image" and caption:
-        # Strip trailing punctuation except commas; keep clean
-        import re
-        clean_caption = re.sub(r"[.!?;:]+$", "", caption.strip())
+        clean_caption = clean_image_caption(caption)
         if clean_caption:
             body_parts.append(_part("caption", clean_caption[:1024]))
 
@@ -267,6 +297,41 @@ def _critic_block_reason(text: str) -> Optional[str]:
         return None
 
 
+def _event_kind_for_decision_type(decision_type: str) -> str:
+    if decision_type == "proactivity":
+        return "proactive"
+    return decision_type or "checkin"
+
+
+def _record_delivered_decision_event(subject_id: str, decision_type: str) -> None:
+    """Append a canonical delivered event after the Telegram API accepted delivery."""
+    try:
+        from relic.paths import get_relic_home
+
+        now = datetime.now(timezone.utc).isoformat()
+        event = {
+            "decision": "DELIVER",
+            "reason_codes": ["dispatch_delivered"],
+            "subject_id": subject_id,
+            "gumi_instance_id": subject_id,
+            "hermes_profile_id": "",
+            "target_id": None,
+            "metadata": {"source": "checkin_media_dispatcher"},
+            "created_at": now,
+            "delivered_at": now,
+            "decision_type": decision_type,
+            "event_kind": _event_kind_for_decision_type(decision_type),
+            "outcome_status": "delivered",
+            "delivered": True,
+        }
+        path = get_relic_home() / "decision_events.jsonl"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, "a", encoding="utf-8") as fh:
+            fh.write(json.dumps(event, ensure_ascii=False) + "\n")
+    except Exception as exc:
+        print(f"[WARN] delivered decision event write failed: {exc}", file=sys.stderr)
+
+
 def dispatch(
     llm_output: str,
     hermes_home: Path,
@@ -274,6 +339,7 @@ def dispatch(
     subject_id: str,
     dry_run: bool = False,
     force: bool = False,
+    decision_type: str = "checkin",
 ) -> dict:
     """Dispatch media based on gate output.
 
@@ -293,6 +359,10 @@ def dispatch(
     parsed = parse_gate_output(llm_output)
     tipo = parsed["tipo"]
     testo = parsed["testo"]
+    if decision_type == "checkin" and tipo in {"text", "voice", "image"}:
+        testo = ensure_checkin_question_mark(testo)
+        if parsed.get("caption"):
+            parsed["caption"] = ensure_checkin_question_mark(parsed["caption"])
 
     # Delivery-time language guardrail: applies to every subject-facing branch
     # (text body, and the source text synthesized into voice/image/music) before
@@ -316,6 +386,7 @@ def dispatch(
         delivered = _send_telegram_text(hermes_home, safe)
         if delivered:
             record_outbound_delivery(hermes_home, "telegram", "text")
+            _record_delivered_decision_event(subject_id, decision_type)
         return {"tipo": "text", "success": True, "output": safe, "telegram_delivered": delivered}
 
     elif tipo == "voice":
@@ -337,6 +408,7 @@ def dispatch(
         delivered = _send_telegram_media(hermes_home, audio_path, "voice")
         if delivered:
             record_outbound_delivery(hermes_home, "telegram", "voice")
+            _record_delivered_decision_event(subject_id, decision_type)
         status = "DELIVERED" if delivered else "LOCAL_ONLY"
         print(f"MEDIA:{audio_path} [{status}]", file=sys.stderr)
         # No stdout: voice delivered directly via Telegram Bot API
@@ -383,6 +455,7 @@ def dispatch(
         delivered = _send_telegram_media(hermes_home, image_path, "image", caption=caption[:1024])
         if delivered:
             record_outbound_delivery(hermes_home, "telegram", "image")
+            _record_delivered_decision_event(subject_id, decision_type)
         status = "DELIVERED" if delivered else "LOCAL_ONLY"
         print(f"MEDIA:{image_path} [{status}]", file=sys.stderr)
         # No stdout: image + caption delivered directly via Telegram Bot API
@@ -428,6 +501,7 @@ def dispatch(
         ) if media_file else False
         if delivered:
             record_outbound_delivery(hermes_home, "telegram", "music")
+            _record_delivered_decision_event(subject_id, decision_type)
         status = "DELIVERED" if delivered else "LOCAL_ONLY"
         print(f"MEDIA:{media_file} [{status}] title={music_title!r}", file=sys.stderr)
         # No stdout: music delivered directly via Telegram Bot API
@@ -442,6 +516,7 @@ def dispatch(
         delivered = _send_telegram_text(hermes_home, safe)
         if delivered:
             record_outbound_delivery(hermes_home, "telegram", "text")
+            _record_delivered_decision_event(subject_id, decision_type)
         return {"tipo": "text", "success": True, "output": safe, "telegram_delivered": delivered}
 
 

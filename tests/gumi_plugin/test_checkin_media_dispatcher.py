@@ -7,7 +7,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from relic.gumi_plugin.checkin_media_dispatcher import parse_gate_output, dispatch
+from relic.gumi_plugin.checkin_media_dispatcher import (
+    clean_image_caption,
+    dispatch,
+    ensure_checkin_question_mark,
+    parse_gate_output,
+)
 
 
 def test_parse_gate_output_voice() -> None:
@@ -15,6 +20,56 @@ def test_parse_gate_output_voice() -> None:
     result = parse_gate_output(raw)
     assert result["tipo"] == "voice"
     assert result["testo"] == "DELIVER\nCiao come stai?"
+
+
+def test_ensure_checkin_question_mark_inserts_before_trailing_emoji() -> None:
+    text = "Quando scopri qualcosa di nuovo, vai più di pancia o ti fai prima un'idea chiara 🎵"
+
+    result = ensure_checkin_question_mark(text)
+
+    assert result == "Quando scopri qualcosa di nuovo, vai più di pancia o ti fai prima un'idea chiara? 🎵"
+
+
+def test_dispatch_checkin_music_does_not_force_question_mark(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture,
+) -> None:
+    hermes_home = tmp_path / "hermes"
+    relic_home = tmp_path / "relic"
+    hermes_home.mkdir()
+    relic_home.mkdir()
+
+    llm_output = "DELIVER\ntipo: music\nora: 09:00 CEST\nwarm ambient prompt"
+
+    mock_generator = MagicMock()
+    mock_generator.generate_and_deliver.return_value = {
+        "success": True,
+        "caption": "Warm track",
+        "audio_path": str(tmp_path / "track.mp3"),
+    }
+
+    with patch("relic.gumi_plugin.checkin_media_dispatcher._get_api_key", return_value="fake-key"), \
+         patch("relic.gumi_plugin.checkin_media_dispatcher.LyriaGenerator", return_value=mock_generator), \
+         patch("relic.gumi_plugin.checkin_media_dispatcher.record_media_delivery"), \
+         patch("relic.gumi_plugin.checkin_media_dispatcher._send_telegram_media", return_value=False):
+        result = dispatch(
+            llm_output,
+            hermes_home,
+            relic_home,
+            "test_subject",
+            decision_type="checkin",
+        )
+
+    capsys.readouterr()
+    assert result["tipo"] == "music"
+    assert result["success"] is True
+    assert mock_generator.generate_and_deliver.call_args.kwargs["lyria_prompt"] == "DELIVER\nwarm ambient prompt"
+
+
+def test_clean_image_caption_removes_only_trailing_periods() -> None:
+    assert clean_image_caption("Sto cucinando.") == "Sto cucinando"
+    assert clean_image_caption("Ti va di raccontarmelo?") == "Ti va di raccontarmelo?"
+    assert clean_image_caption("guardo fuori,") == "guardo fuori,"
 
 
 def test_parse_gate_output_image() -> None:
