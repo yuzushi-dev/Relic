@@ -60,15 +60,40 @@ def test_policy_enabled_non_silent_prepends_constraint_header(monkeypatch):
         )
         with patch(
             "relic.checkin.policy.select_decision",
-            return_value=Decision(EventType.CHECKIN, Posture.OBSERVE, "default_observe"),
+            return_value=Decision(EventType.CHECKIN, Posture.ASK, "topic_fresh_and_ask_ready"),
         ):
             decision, _, data = make_decision("s1", "g1", "p1", decision_type="checkin")
     assert decision == RuntimeDecision.DELIVER
     assert data is not None
     assert data["event_type"] == "checkin"
-    assert data["posture"] == "observe"
+    assert data["posture"] == "ask"
     assert "[EVENTO: checkin]" in data["message"]
+    assert "con domanda" in data["message"]
     assert data["message"].rstrip().endswith("DELIVER\ntipo: text")
+
+
+def test_force_checkin_with_ask_prepends_question_constraint_header(monkeypatch):
+    monkeypatch.delenv("RELIC_CHECKIN_POLICY_ENABLED", raising=False)
+
+    with patch("relic.gumi_plugin.cron_wiring._run_outcome_reconciler"), \
+         patch("relic.gumi_plugin.cron_wiring._select_media_type", return_value="text"), \
+         patch(
+             "relic.gumi_plugin.cron_wiring._select_ask_decision",
+             return_value=(True, "Velocità nel decidere"),
+         ):
+        decision, _, data = make_decision(
+            "s1",
+            "g1",
+            "p1",
+            decision_type="checkin",
+            force=True,
+        )
+
+    assert decision == RuntimeDecision.DELIVER
+    assert data is not None
+    assert "[POSTURA: ask]" in data["message"]
+    assert "con domanda" in data["message"]
+    assert "ask_topic: Velocità nel decidere" in data["message"]
 
 
 def test_policy_enabled_diegetic_candidate_returns_no_reply_when_silent(monkeypatch):

@@ -142,7 +142,7 @@ def build_topic_hint_section(subject_id: str, db_path: Path, bl_path: Path) -> s
         day_seed = (
             int(
                 hashlib.sha256(
-                    f"{subject_id}|checkin|{datetime.now(timezone.utc).date()}".encode()
+                    f"{subject_id}|ask|{datetime.now(timezone.utc).date()}".encode()
                 ).hexdigest(),
                 16,
             )

@@ -27,11 +27,24 @@ def test_reach_below_threshold_goes_silent():
     assert d.event_type is EventType.SILENT
 
 
-def test_checkin_observe_default_when_enabled():
+def test_checkin_without_facet_target_goes_silent_when_enabled():
     f = CheckinFeatures(reach_score=1.0, time_since_last_subject_msg_sec=3600)
     d = select_decision(f, decision_type="checkin", policy_enabled=True)
+    assert d.event_type is EventType.SILENT
+    assert d.posture is Posture.QUIET
+    assert d.reason == "checkin_no_facet_target"
+
+
+def test_checkin_with_facet_target_asks_question():
+    f = CheckinFeatures(
+        reach_score=1.0,
+        time_since_last_subject_msg_sec=3600,
+        facet_status="ask_now",
+        asked_recently_12h=False,
+    )
+    d = select_decision(f, decision_type="checkin", policy_enabled=True)
     assert d.event_type is EventType.CHECKIN
-    assert d.posture is Posture.OBSERVE
+    assert d.posture is Posture.ASK
 
 
 def test_proactivity_requires_salience():
@@ -114,12 +127,14 @@ def test_initiative_spacing_does_not_block_when_gap_is_none_or_large_enough(gap_
         reach_score=1.0,
         time_since_last_subject_msg_sec=3600,
         time_since_last_initiative_sec=gap_seconds,
+        facet_status="ask_now",
+        asked_recently_12h=False,
     )
 
     decision = select_decision(f, decision_type="checkin", policy_enabled=True)
 
     assert decision.event_type is EventType.CHECKIN
-    assert decision.posture is Posture.OBSERVE
+    assert decision.posture is Posture.ASK
     assert decision.reason != "initiative_spacing"
 
 
@@ -143,6 +158,8 @@ def test_default_spacing_and_per_type_counts_preserve_current_decisions():
             reach_score=1.0,
             time_since_last_subject_msg_sec=3600,
             time_since_last_initiative_sec=None,
+            facet_status="ask_now",
+            asked_recently_12h=False,
             proactive_today=0,
             diegetic_today=0,
         ),
@@ -163,6 +180,74 @@ def test_default_spacing_and_per_type_counts_preserve_current_decisions():
     )
 
     assert checkin.event_type is EventType.CHECKIN
-    assert checkin.posture is Posture.OBSERVE
+    assert checkin.posture is Posture.ASK
     assert proactivity.event_type is EventType.PROACTIVE
     assert proactivity.posture is Posture.BRIEF_SHARE
+
+
+def test_checkin_slot_disabled_blocks_checkin_when_slots_are_configured():
+    f = CheckinFeatures(
+        reach_score=1.0,
+        time_since_last_subject_msg_sec=3600,
+        current_checkin_slot="morning",
+        enabled_checkin_slots=["evening"],
+    )
+
+    decision = select_decision(f, decision_type="checkin", policy_enabled=True)
+
+    assert decision.event_type is EventType.SILENT
+    assert decision.reason == "checkin_slot_disabled"
+
+
+def test_checkin_enabled_slot_allows_checkin_once_per_slot():
+    allowed = CheckinFeatures(
+        reach_score=1.0,
+        time_since_last_subject_msg_sec=3600,
+        current_checkin_slot="evening",
+        enabled_checkin_slots=["evening"],
+        used_checkin_slots_today=[],
+        facet_status="ask_now",
+        asked_recently_12h=False,
+    )
+    used = CheckinFeatures(
+        reach_score=1.0,
+        time_since_last_subject_msg_sec=3600,
+        current_checkin_slot="evening",
+        enabled_checkin_slots=["evening"],
+        used_checkin_slots_today=["evening"],
+    )
+
+    allowed_decision = select_decision(allowed, decision_type="checkin", policy_enabled=True)
+    used_decision = select_decision(used, decision_type="checkin", policy_enabled=True)
+
+    assert allowed_decision.event_type is EventType.CHECKIN
+    assert used_decision.event_type is EventType.SILENT
+    assert used_decision.reason == "checkin_slot_already_used"
+
+
+def test_diegetic_and_proactive_fill_only_residual_slots():
+    reserved = CheckinFeatures(
+        reach_score=1.0,
+        salience_top=0.8,
+        time_since_last_subject_msg_sec=7200,
+        current_checkin_slot="morning",
+        enabled_checkin_slots=["morning"],
+        used_checkin_slots_today=[],
+        diegetic_enabled=True,
+        diegetic_tolerance=0.9,
+    )
+    residual = CheckinFeatures(
+        reach_score=1.0,
+        salience_top=0.8,
+        time_since_last_subject_msg_sec=7200,
+        current_checkin_slot="afternoon",
+        enabled_checkin_slots=["morning"],
+        used_checkin_slots_today=[],
+        diegetic_enabled=True,
+        diegetic_tolerance=0.9,
+    )
+
+    assert select_decision(reserved, decision_type="diegetic", policy_enabled=True).reason == "reserved_checkin_slot"
+    assert select_decision(reserved, decision_type="proactivity", policy_enabled=True).reason == "reserved_checkin_slot"
+    assert select_decision(residual, decision_type="diegetic", policy_enabled=True).event_type is EventType.DIEGETIC
+    assert select_decision(residual, decision_type="proactivity", policy_enabled=True).event_type is EventType.PROACTIVE

@@ -44,11 +44,19 @@ from dataclasses import dataclass, field, fields, replace
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable, Optional
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from relic.checkin.hermes_state_reader import last_subject_msg_at, subject_avg_tokens
 from relic.checkin.policy import CheckinFeatures
 
 logger = logging.getLogger(__name__)
+
+CHECKIN_SLOT_WINDOWS = {
+    "morning": (8, 12),
+    "afternoon": (12, 18),
+    "evening": (18, 22),
+}
+CHECKIN_SLOT_ORDER = ("morning", "afternoon", "evening")
 
 
 # ---------------------------------------------------------------------------
@@ -513,7 +521,12 @@ def build_checkin_features(
             state = load_cadence_state(conn, subject_id)
             posture_history = _load_posture_history(conn, subject_id, limit=5)
             last_reflect_age_days = _load_last_reflect_age_days(conn, subject_id, now)
-            facet_status, asked_recently_12h = _load_facet_state(conn, now)
+            facet_status, asked_recently_12h = _load_facet_state(
+                conn,
+                now,
+                subject_id=subject_id,
+                subject_baseline_path=db_path.with_name("subject_baseline.json"),
+            )
         finally:
             conn.close()
 
@@ -542,7 +555,16 @@ def build_checkin_features(
         risk_flag,
         freq_cap_from_boundary,
         diegetic_enabled,
+        enabled_checkin_slots,
+        checkin_timezone,
     ) = _safe_load_boundary(subject_id, relic_home)
+    current_checkin_slot = _checkin_slot_for_datetime(now, checkin_timezone)
+    used_checkin_slots_today = _used_checkin_slots_today(
+        subject_id,
+        relic_home,
+        now,
+        timezone_name=checkin_timezone,
+    )
     quiet_hours_active = _safe_load_quiet_hours_active(subject_id, relic_home, now)
     time_since_last_msg, last_subject_msg_at, subject_avg_tokens_14d = _safe_load_subject_msg_state(
         hermes_home, now
@@ -570,6 +592,9 @@ def build_checkin_features(
     features.daily_initiatives_today = daily_initiatives_today
     features.proactive_today = proactive_today
     features.diegetic_today = diegetic_today
+    features.current_checkin_slot = current_checkin_slot
+    features.enabled_checkin_slots = enabled_checkin_slots
+    features.used_checkin_slots_today = used_checkin_slots_today
 
     features.reach_score = compute_reach_score(
         features.non_response_streak,
@@ -674,6 +699,9 @@ def _load_last_reflect_age_days(
 def _load_facet_state(
     conn: sqlite3.Connection,
     now: datetime,
+    *,
+    subject_id: str,
+    subject_baseline_path: Path,
 ) -> tuple[Optional[str], bool]:
     try:
         row = conn.execute(
@@ -683,14 +711,30 @@ def _load_facet_state(
         ).fetchone()
     except sqlite3.DatabaseError:
         return None, False
-    if not row:
-        return None, False
-    facet_id, asked_at_raw = row[0], row[1]
-    asked_recently = False
-    asked_at = _to_dt(asked_at_raw)
-    if asked_at is not None and (now - asked_at) < timedelta(hours=12):
-        asked_recently = True
-    return facet_id, asked_recently
+    facet_id: Optional[str] = None
+    if row:
+        facet_id, asked_at_raw = row[0], row[1]
+        asked_at = _to_dt(asked_at_raw)
+        if asked_at is not None and (now - asked_at) < timedelta(hours=12):
+            return "asked_recently", True
+
+    try:
+        import hashlib
+        from relic.checkin.question_engine import select_facet
+
+        facet_seed = int(
+            hashlib.sha256(f"{subject_id}|ask|{now.date()}".encode()).hexdigest(),
+            16,
+        ) % (2**32)
+        sel = select_facet(
+            conn,
+            subject_baseline_path if subject_baseline_path.exists() else None,
+            seed=facet_seed,
+        )
+        status = sel.get("status")
+        return (str(status) if status else None), False
+    except Exception:
+        return facet_id, False
 
 
 def _count_today_initiatives(subject_id: str, relic_home: Path, now: datetime) -> int:
@@ -735,19 +779,99 @@ def _count_today_initiatives_by_type(
                     continue
                 if row.get("decision") != "DELIVER":
                     continue
+                if row.get("outcome_status") != "delivered":
+                    continue
                 if decision_type is not None and row.get("decision_type") != decision_type:
                     continue
-                created = _to_dt(row.get("created_at"))
-                if created is None:
+                delivered_at = _to_dt(row.get("delivered_at"))
+                if delivered_at is None:
                     continue
                 try:
-                    if created.astimezone(timezone.utc) >= day_start:
+                    if delivered_at.astimezone(timezone.utc) >= day_start:
                         count += 1
                 except (TypeError, ValueError):
                     continue
     except OSError:
         return 0
     return count
+
+
+def _zoneinfo_or_default(timezone_name: str | None) -> ZoneInfo:
+    try:
+        return ZoneInfo(timezone_name or "Europe/Rome")
+    except ZoneInfoNotFoundError:
+        return ZoneInfo("Europe/Rome")
+
+
+def _checkin_slot_for_datetime(value: datetime, timezone_name: str | None = None) -> Optional[str]:
+    local = value.astimezone(_zoneinfo_or_default(timezone_name))
+    hour = local.hour
+    for slot, (start, end) in CHECKIN_SLOT_WINDOWS.items():
+        if start <= hour < end:
+            return slot
+    return None
+
+
+def _normalize_checkin_slots(raw: object) -> list[str]:
+    if raw is None:
+        return []
+    if isinstance(raw, dict):
+        nested = raw.get("slots") or raw.get("enabled_slots")
+        if nested is not None:
+            return _normalize_checkin_slots(nested)
+        return [slot for slot in CHECKIN_SLOT_ORDER if raw.get(slot)]
+    if isinstance(raw, (list, tuple, set)):
+        values = {str(item).strip().lower() for item in raw if str(item).strip()}
+        return [slot for slot in CHECKIN_SLOT_ORDER if slot in values]
+    if isinstance(raw, str):
+        values = {part.strip().lower() for part in raw.split(",") if part.strip()}
+        return [slot for slot in CHECKIN_SLOT_ORDER if slot in values]
+    return []
+
+
+def _used_checkin_slots_today(
+    subject_id: str,
+    relic_home: Path,
+    now: datetime,
+    *,
+    timezone_name: str | None,
+) -> list[str]:
+    log_path = Path(relic_home) / "decision_events.jsonl"
+    if not log_path.exists():
+        return []
+    tz = _zoneinfo_or_default(timezone_name)
+    local_day = now.astimezone(tz).date()
+    used: set[str] = set()
+    try:
+        with open(log_path, "r", encoding="utf-8") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    row = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if row.get("subject_id") != subject_id:
+                    continue
+                if row.get("decision") != "DELIVER":
+                    continue
+                if row.get("outcome_status") != "delivered":
+                    continue
+                if row.get("decision_type") != "checkin":
+                    continue
+                delivered_at = _to_dt(row.get("delivered_at"))
+                if delivered_at is None:
+                    continue
+                local_created = delivered_at.astimezone(tz)
+                if local_created.date() != local_day:
+                    continue
+                slot = _checkin_slot_for_datetime(local_created, timezone_name)
+                if slot:
+                    used.add(slot)
+    except OSError:
+        return []
+    return [slot for slot in CHECKIN_SLOT_ORDER if slot in used]
 
 
 def _safe_load_salience_top(subject_id: str, relic_home: Path) -> float:
@@ -877,18 +1001,20 @@ def _safe_load_consent(subject_id: str, relic_home: Path) -> bool:
 def _safe_load_boundary(
     subject_id: str,
     relic_home: Path,
-) -> tuple[bool, bool, Optional[int], bool]:
+) -> tuple[bool, bool, Optional[int], bool, list[str], str]:
     boundary_path = relic_home / "subjects" / subject_id / "boundary_policy.json"
     strict = False
     risk_flag = False
     cap = None
     diegetic_enabled = False
+    checkin_slots: list[str] = []
+    timezone_name = "Europe/Rome"
     if not boundary_path.exists():
-        return strict, risk_flag, cap, diegetic_enabled
+        return strict, risk_flag, cap, diegetic_enabled, checkin_slots, timezone_name
     try:
         data = json.loads(boundary_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
-        return strict, risk_flag, cap, diegetic_enabled
+        return strict, risk_flag, cap, diegetic_enabled, checkin_slots, timezone_name
     if data.get("careful_distancing_enabled"):
         strict = True
     if data.get("risk_flags"):
@@ -897,7 +1023,16 @@ def _safe_load_boundary(
     if isinstance(cap_value, (int, float)):
         cap = int(cap_value)
     diegetic_enabled = bool(data.get("diegetic_enabled", False))
-    return strict, risk_flag, cap, diegetic_enabled
+    quiet_hours = data.get("quiet_hours")
+    if isinstance(quiet_hours, dict):
+        timezone_name = str(quiet_hours.get("timezone") or timezone_name)
+    timezone_name = str(data.get("timezone") or timezone_name)
+    schedule = data.get("checkin_schedule")
+    if isinstance(schedule, dict):
+        checkin_slots = _normalize_checkin_slots(schedule)
+    if not checkin_slots:
+        checkin_slots = _normalize_checkin_slots(data.get("checkin_slots"))
+    return strict, risk_flag, cap, diegetic_enabled, checkin_slots, timezone_name
 
 
 def _safe_load_quiet_hours_active(subject_id: str, relic_home: Path, now: datetime) -> bool:

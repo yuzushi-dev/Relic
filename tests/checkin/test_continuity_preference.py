@@ -112,9 +112,11 @@ def test_continuity_preference_high_triggers_ask_and_reflection_sooner():
         **_enabled(reflection_enabled=True),
     )
 
-    assert ask_neutral_decision.posture is Posture.OBSERVE
+    assert ask_neutral_decision.event_type is EventType.SILENT
+    assert ask_neutral_decision.reason == "checkin_no_facet_target"
     assert ask_high_decision.posture is Posture.ASK
-    assert reflect_neutral_decision.posture is Posture.OBSERVE
+    assert reflect_neutral_decision.event_type is EventType.SILENT
+    assert reflect_neutral_decision.reason == "checkin_no_facet_target"
     assert reflect_high_decision.event_type is EventType.REFLECTION
     assert reflect_high_decision.posture is Posture.REFLECTIVE_MIRROR
 

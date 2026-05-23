@@ -19,6 +19,7 @@ def test_prompt_mentions_ask_mode():
     assert "ask: true" in p
     assert "ASK MODE" in p or "ask mode" in p.lower()
     assert "ask_topic" in p
+    assert "punto interrogativo" in p
 
 
 def test_prompt_instructs_follow_up_on_subject():
@@ -28,7 +29,7 @@ def test_prompt_instructs_follow_up_on_subject():
 
 def test_prompt_warns_against_questions_outside_ask_mode():
     p = _checkin_prompt()
-    assert "NON fare domande" in p
+    assert "Se non vedi 'ask: true', rispondi esattamente [SILENT]" in p
 
 
 def test_prompt_drops_gumi_centric_framing():

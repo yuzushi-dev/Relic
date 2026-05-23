@@ -18,15 +18,16 @@ def _enabled(**overrides) -> dict:
     }
 
 
-def test_scenario_lightweight_checkin_returns_observe():
+def test_scenario_lightweight_checkin_without_facet_is_silent():
     f = CheckinFeatures(
         reach_score=1.0,
         time_since_last_subject_msg_sec=3 * 3600,
         salience_top=0.1,
     )
     d = select_decision(f, decision_type="checkin", **_enabled())
-    assert d.event_type is EventType.CHECKIN
-    assert d.posture is Posture.OBSERVE
+    assert d.event_type is EventType.SILENT
+    assert d.posture is Posture.QUIET
+    assert d.reason == "checkin_no_facet_target"
 
 
 def test_scenario_followup_warm_first_attempt():
@@ -79,7 +80,7 @@ def test_scenario_risk_flag_forces_silent_even_with_high_salience():
     assert d.reason == "risk_flag_active"
 
 
-def test_scenario_brief_share_blocked_when_subject_is_laconic():
+def test_scenario_brief_share_no_longer_used_for_checkin():
     f = CheckinFeatures(
         reach_score=1.0,
         salience_top=0.5,
@@ -87,8 +88,8 @@ def test_scenario_brief_share_blocked_when_subject_is_laconic():
         time_since_last_subject_msg_sec=3 * 3600,
     )
     d = select_decision(f, decision_type="checkin", **_enabled())
-    assert d.event_type is EventType.CHECKIN
-    assert d.posture is Posture.OBSERVE
+    assert d.event_type is EventType.SILENT
+    assert d.reason == "checkin_no_facet_target"
 
 
 def test_scenario_reflection_remains_disabled_by_default():
@@ -116,14 +117,20 @@ def test_scenario_ask_when_topic_fresh_and_facet_ready():
     assert d.posture is Posture.ASK
 
 
-def test_observe_scenario_emits_constraint_header():
+def test_ask_scenario_emits_constraint_header():
     from relic.checkin.policy import apply_constraint_header
 
-    f = CheckinFeatures(reach_score=1.0, time_since_last_subject_msg_sec=3600)
+    f = CheckinFeatures(
+        reach_score=1.0,
+        time_since_last_subject_msg_sec=3600,
+        facet_status="ask_now",
+        asked_recently_12h=False,
+    )
     decision = select_decision(f, decision_type="checkin", policy_enabled=True)
     out = apply_constraint_header("DELIVER\ntipo: text", decision)
     assert "[EVENTO: checkin]" in out
-    assert "[POSTURA: observe]" in out
+    assert "[POSTURA: ask]" in out
+    assert "con domanda" in out
 
 
 def test_silent_scenario_emits_no_header():

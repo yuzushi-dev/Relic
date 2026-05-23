@@ -33,3 +33,12 @@ def test_proactive_prompt_is_distinct_from_checkin_and_diegetic():
     assert proactive_prompt != diegetic_prompt
     assert "battery" not in proactive_prompt.lower()
     assert "frammento di vita" not in proactive_prompt.lower()
+
+
+def test_checkin_prompt_requires_facet_question_contract():
+    reg = ProfileRegistry.__new__(ProfileRegistry)
+    prompt = reg._cron_prompt_for_job({"task": "gumi_checkin_message", "output": ""}).lower()
+
+    assert "ask_topic" in prompt
+    assert "necessariamente una domanda" in prompt
+    assert "rispondi esattamente [silent]" in prompt

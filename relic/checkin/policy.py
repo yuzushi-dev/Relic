@@ -82,6 +82,9 @@ class CheckinFeatures:
     diegetic_today: int = 0
     proactive_today: int = 0
     quiet_hours_active: bool = False
+    current_checkin_slot: Optional[str] = None
+    enabled_checkin_slots: list[str] = field(default_factory=list)
+    used_checkin_slots_today: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -242,6 +245,20 @@ def _last_posture(features: CheckinFeatures) -> Optional[str]:
     return features.posture_history_last_5[0]
 
 
+def _enabled_checkin_slots(features: CheckinFeatures) -> set[str]:
+    return {str(slot).strip().lower() for slot in features.enabled_checkin_slots if str(slot).strip()}
+
+
+def _used_checkin_slots(features: CheckinFeatures) -> set[str]:
+    return {str(slot).strip().lower() for slot in features.used_checkin_slots_today if str(slot).strip()}
+
+
+def _current_checkin_slot(features: CheckinFeatures) -> Optional[str]:
+    if not features.current_checkin_slot:
+        return None
+    return str(features.current_checkin_slot).strip().lower() or None
+
+
 def select_decision(
     features: CheckinFeatures,
     *,
@@ -282,6 +299,20 @@ def select_decision(
         and features.time_since_last_initiative_sec < MIN_INITIATIVE_GAP_HOURS * 3600
     ):
         return Decision(EventType.SILENT, Posture.QUIET, "initiative_spacing")
+
+    enabled_slots = _enabled_checkin_slots(features)
+    current_slot = _current_checkin_slot(features)
+    used_slots = _used_checkin_slots(features)
+
+    if decision_type == "checkin" and enabled_slots:
+        if current_slot not in enabled_slots:
+            return Decision(EventType.SILENT, Posture.QUIET, "checkin_slot_disabled")
+        if current_slot in used_slots:
+            return Decision(EventType.SILENT, Posture.QUIET, "checkin_slot_already_used")
+
+    if decision_type in {"diegetic", "proactivity"} and enabled_slots:
+        if current_slot in enabled_slots and current_slot not in used_slots:
+            return Decision(EventType.SILENT, Posture.QUIET, "reserved_checkin_slot")
 
     if decision_type == "diegetic":
         if not features.diegetic_enabled:
@@ -365,10 +396,4 @@ def select_decision(
     ):
         return Decision(EventType.CHECKIN, Posture.ASK, "topic_fresh_and_ask_ready")
 
-    if features.salience_top > BRIEF_SHARE_THRESHOLD:
-        avg = features.subject_avg_tokens_14d
-        if avg is None or avg >= BRIEF_SHARE_MIN_AVG_TOKENS:
-            return Decision(EventType.CHECKIN, Posture.BRIEF_SHARE, "salient_brief_share")
-        # subject is laconic → forbidden brief_share, fall through to observe.
-
-    return Decision(EventType.CHECKIN, Posture.OBSERVE, "default_observe")
+    return Decision(EventType.SILENT, Posture.QUIET, "checkin_no_facet_target")

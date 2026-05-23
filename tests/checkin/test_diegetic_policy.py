@@ -54,6 +54,8 @@ def test_diegetic_decision_path_is_explicit_and_existing_paths_stay_unchanged():
             reach_score=1.0,
             time_since_last_subject_msg_sec=3 * 3600,
             salience_top=0.1,
+            facet_status="ask_now",
+            asked_recently_12h=False,
         ),
         decision_type="checkin",
         **_enabled(),
@@ -84,7 +86,7 @@ def test_diegetic_decision_path_is_explicit_and_existing_paths_stay_unchanged():
         "diegetic_below_tolerance",
     )
     assert unchanged_checkin.event_type is EventType.CHECKIN
-    assert unchanged_checkin.posture is Posture.OBSERVE
+    assert unchanged_checkin.posture is Posture.ASK
     assert unchanged_proactivity.event_type is EventType.PROACTIVE
     assert unchanged_proactivity.posture is Posture.BRIEF_SHARE
 

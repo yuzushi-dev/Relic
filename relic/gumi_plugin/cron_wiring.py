@@ -39,7 +39,6 @@ MEDIA_COOLDOWN_DAYS = {"image": 2.0, "voice": 1.0, "music": 7.0}
 _MEDIA_PROB_THRESHOLDS = {"music": 5, "voice": 30, "image": 50}  # cumulative %
 
 ASK_COOLDOWN_HOURS = 12
-ASK_DAILY_PROB_THRESHOLD = 35  # percent
 
 
 _PRO_MEDIA_KEY: dict[str, str] = {
@@ -68,7 +67,11 @@ def _pro_media_allowed(subject_id: str, mtype: str) -> bool:
 
 
 def _select_ask_decision(
-    subject_id: str, now: datetime, relic_home: Path | None = None
+    subject_id: str,
+    now: datetime,
+    relic_home: Path | None = None,
+    *,
+    ignore_cooldown: bool = False,
 ) -> tuple[bool, str | None]:
     """Decide whether this checkin should embed an open question and which topic.
 
@@ -77,7 +80,6 @@ def _select_ask_decision(
     Gates (all must pass):
       * select_facet returns status='ask_now'
       * last checkin_exchanges.asked_at older than ASK_COOLDOWN_HOURS
-      * deterministic daily roll < ASK_DAILY_PROB_THRESHOLD
     """
     try:
         if relic_home is None:
@@ -87,11 +89,6 @@ def _select_ask_decision(
         db_path = relic_home / "subjects" / subject_id / "relic.db"
         bl_path = relic_home / "subjects" / subject_id / "subject_baseline.json"
         if not db_path.exists():
-            return (False, None)
-
-        day_seed_src = f"{subject_id}|ask|{now.date()}"
-        roll = int(hashlib.sha256(day_seed_src.encode()).hexdigest(), 16) % 100
-        if roll >= ASK_DAILY_PROB_THRESHOLD:
             return (False, None)
 
         import sqlite3
@@ -107,7 +104,7 @@ def _select_ask_decision(
         finally:
             conn.close()
 
-        if last_asked_iso:
+        if last_asked_iso and not ignore_cooldown:
             try:
                 last_dt = datetime.fromisoformat(last_asked_iso)
                 if last_dt.tzinfo is None:
@@ -119,7 +116,7 @@ def _select_ask_decision(
 
         from relic.checkin.question_engine import select_facet
         facet_seed = int(
-            hashlib.sha256(f"{subject_id}|facet|{now.date()}".encode()).hexdigest(),
+            hashlib.sha256(f"{subject_id}|ask|{now.date()}".encode()).hexdigest(),
             16,
         ) % (2**32)
         conn2 = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=5.0)
@@ -662,9 +659,10 @@ def _evaluate_decision(
     now_str = now_dt.strftime("%H:%M %Z")
     media_type = _select_media_type(subject_id, hermes_home, now_dt)
     ask, ask_topic = _select_ask_decision(subject_id, now_dt)
+    if not ask or not ask_topic:
+        return RuntimeDecision.NO_REPLY, reasons, None
     msg = f"DELIVER\ntipo: {media_type}\nora: {now_str}"
-    if ask and ask_topic:
-        msg += f"\nask: true\nask_topic: {ask_topic}"
+    msg += f"\nask: true\nask_topic: {ask_topic}"
     return RuntimeDecision.DELIVER, reasons, {"message": msg}
 
 
@@ -827,10 +825,30 @@ def make_decision(
             media_type = forced_media
         else:
             media_type = _select_media_type(subject_id, hermes_home, now_dt)
-        ask, ask_topic = _select_ask_decision(subject_id, now_dt)
+        ask, ask_topic = _select_ask_decision(
+            subject_id,
+            now_dt,
+            ignore_cooldown=True,
+        )
         msg = f"DELIVER\ntipo: {media_type}\nora: {now_str} [FORCE]"
         if ask and ask_topic:
             msg += f"\nask: true\nask_topic: {ask_topic}"
+            if decision_type == "checkin":
+                from relic.checkin.policy import (
+                    apply_constraint_header,
+                    Decision as PolicyDecision,
+                    EventType,
+                    Posture,
+                )
+
+                msg = apply_constraint_header(
+                    msg,
+                    PolicyDecision(
+                        EventType.CHECKIN,
+                        Posture.ASK,
+                        "forced_ask_topic",
+                    ),
+                )
         return RuntimeDecision.DELIVER, reasons, {"message": msg}
 
     decision, reasons, candidate_data = _evaluate_decision(
@@ -1053,9 +1071,7 @@ try:
     pol_posture = _cd.get("posture")
     pol_features_id = _cd.get("features_id")
 
-    if decision == RuntimeDecision.DELIVER:
-        pol_outcome_status = "delivered"
-    elif decision == RuntimeDecision.NO_REPLY and pol_event_kind == "silent":
+    if decision == RuntimeDecision.NO_REPLY and pol_event_kind == "silent":
         pol_outcome_status = "silent"
     elif decision == RuntimeDecision.BLOCKED:
         pol_outcome_status = "blocked"
@@ -1111,7 +1127,7 @@ try:
             posture=pol_posture,
             features_id=pol_features_id,
             outcome_status=pol_outcome_status,
-            delivered=(decision == RuntimeDecision.DELIVER),
+            delivered=False,
         )
         sys.exit(0)
 
@@ -1127,7 +1143,7 @@ try:
         posture=pol_posture,
         features_id=pol_features_id,
         outcome_status=pol_outcome_status,
-        delivered=(decision == RuntimeDecision.DELIVER),
+        delivered=False,
     )
 
     if decision == RuntimeDecision.NO_REPLY:
@@ -1554,11 +1570,6 @@ if [ -z "$LATEST" ]; then
     exit 0
 fi
 
-# Skip [SILENT] responses (case where the LLM short-circuited).
-if grep -q '\\[SILENT\\]' "$LATEST" 2>/dev/null; then
-    exit 0
-fi
-
 FORCE="${{RELIC_FORCE_CHECKIN:-}}"
 FORCE_FLAG=""
 if [ "$FORCE" = "1" ] || [ "$FORCE" = "true" ] || [ "$FORCE" = "yes" ]; then
@@ -1595,6 +1606,7 @@ dispatch(
     hermes_home=hermes_home,
     relic_subject_home=relic_subject_home,
     subject_id=subject_id,
+    decision_type="checkin",
     force=force,
 )
 PYEOF
@@ -1645,11 +1657,6 @@ if [ -z "$LATEST" ]; then
     exit 0
 fi
 
-# Skip [SILENT] responses (case where the LLM short-circuited).
-if grep -q '\\[SILENT\\]' "$LATEST" 2>/dev/null; then
-    exit 0
-fi
-
 # Fail-safe default: local target means dry-run only, no real send.
 if [ "$DELIVER_TARGET" = "local" ]; then
     exit 0
@@ -1689,6 +1696,7 @@ dispatch(
     hermes_home=hermes_home,
     relic_subject_home=relic_subject_home,
     subject_id=subject_id,
+    decision_type="diegetic",
     force=force,
 )
 PYEOF
@@ -1739,11 +1747,6 @@ if [ -z "$LATEST" ]; then
     exit 0
 fi
 
-# Skip [SILENT] responses (case where the LLM short-circuited).
-if grep -q '\\[SILENT\\]' "$LATEST" 2>/dev/null; then
-    exit 0
-fi
-
 # Fail-safe default: local target means dry-run only, no real send.
 if [ "$DELIVER_TARGET" = "local" ]; then
     exit 0
@@ -1783,6 +1786,7 @@ dispatch(
     hermes_home=hermes_home,
     relic_subject_home=relic_subject_home,
     subject_id=subject_id,
+    decision_type="proactivity",
     force=force,
 )
 PYEOF

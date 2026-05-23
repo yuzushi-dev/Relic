@@ -183,6 +183,85 @@ def test_build_features_loads_diegetic_enabled_from_boundary_policy(
     assert features.diegetic_enabled is expected
 
 
+def test_build_features_loads_checkin_slots_from_boundary_policy(tmp_path: Path):
+    relic_home = tmp_path / "relic"
+    subject_dir = relic_home / "subjects" / "s1"
+    subject_dir.mkdir(parents=True)
+    (subject_dir / "boundary_policy.json").write_text(
+        json.dumps(
+            {
+                "quiet_hours": {"timezone": "Europe/Rome"},
+                "checkin_slots": {
+                    "morning": False,
+                    "afternoon": False,
+                    "evening": True,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    features = build_checkin_features(
+        subject_id="s1",
+        decision_type="checkin",
+        relic_home=relic_home,
+        hermes_home=tmp_path / "hermes",
+        now=datetime(2026, 5, 22, 19, 0, tzinfo=timezone.utc),
+    )
+
+    assert features.current_checkin_slot == "evening"
+    assert features.enabled_checkin_slots == ["evening"]
+
+
+def test_build_features_populates_used_checkin_slots_today(tmp_path: Path):
+    relic_home = tmp_path / "relic"
+    subject_dir = relic_home / "subjects" / "s1"
+    subject_dir.mkdir(parents=True)
+    (subject_dir / "boundary_policy.json").write_text(
+        json.dumps(
+            {
+                "quiet_hours": {"timezone": "Europe/Rome"},
+                "checkin_slots": ["morning", "evening"],
+            }
+        ),
+        encoding="utf-8",
+    )
+    now = datetime(2026, 5, 22, 19, 0, tzinfo=timezone.utc)
+    rows = [
+        {
+            "subject_id": "s1",
+            "decision": "DELIVER",
+            "outcome_status": "delivered",
+            "decision_type": "checkin",
+            "created_at": datetime(2026, 5, 22, 7, 30, tzinfo=timezone.utc).isoformat(),
+            "delivered_at": datetime(2026, 5, 22, 7, 30, tzinfo=timezone.utc).isoformat(),
+        },
+        {
+            "subject_id": "s1",
+            "decision": "DELIVER",
+            "outcome_status": "delivered",
+            "decision_type": "diegetic",
+            "created_at": datetime(2026, 5, 22, 17, 30, tzinfo=timezone.utc).isoformat(),
+            "delivered_at": datetime(2026, 5, 22, 17, 30, tzinfo=timezone.utc).isoformat(),
+        },
+    ]
+    (relic_home / "decision_events.jsonl").write_text(
+        "\n".join(json.dumps(row) for row in rows) + "\n",
+        encoding="utf-8",
+    )
+
+    features = build_checkin_features(
+        subject_id="s1",
+        decision_type="checkin",
+        relic_home=relic_home,
+        hermes_home=tmp_path / "hermes",
+        now=now,
+    )
+
+    assert features.current_checkin_slot == "evening"
+    assert features.used_checkin_slots_today == ["morning"]
+
+
 def test_persist_features_returns_features_id_and_posture_history(tmp_path: Path):
     db_path = _make_db(tmp_path, "s1")
     conn = sqlite3.connect(str(db_path))
@@ -246,9 +325,9 @@ def test_daily_initiatives_today_populated_from_decision_log(tmp_path):
     log = relic_home / "decision_events.jsonl"
     now = datetime.now(timezone.utc).isoformat()
     rows = [
-        {"subject_id": "s1", "decision": "DELIVER", "created_at": now},
-        {"subject_id": "s1", "decision": "DELIVER", "created_at": now},
-        {"subject_id": "s2", "decision": "DELIVER", "created_at": now},
+        {"subject_id": "s1", "decision": "DELIVER", "outcome_status": "delivered", "created_at": now, "delivered_at": now},
+        {"subject_id": "s1", "decision": "DELIVER", "outcome_status": "delivered", "created_at": now, "delivered_at": now},
+        {"subject_id": "s2", "decision": "DELIVER", "outcome_status": "delivered", "created_at": now, "delivered_at": now},
         {"subject_id": "s1", "decision": "NO_REPLY", "created_at": now},
     ]
     log.write_text("\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8")
@@ -287,32 +366,42 @@ def test_build_features_populates_initiative_spacing_and_per_type_daily_counts(t
         {
             "subject_id": "s1",
             "decision": "DELIVER",
+            "outcome_status": "delivered",
             "decision_type": "checkin",
             "created_at": (now - timedelta(hours=3)).isoformat(),
+            "delivered_at": (now - timedelta(hours=3)).isoformat(),
         },
         {
             "subject_id": "s1",
             "decision": "DELIVER",
+            "outcome_status": "delivered",
             "decision_type": "proactivity",
             "created_at": (now - timedelta(hours=2)).isoformat(),
+            "delivered_at": (now - timedelta(hours=2)).isoformat(),
         },
         {
             "subject_id": "s1",
             "decision": "DELIVER",
+            "outcome_status": "delivered",
             "decision_type": "diegetic",
             "created_at": (now - timedelta(hours=1)).isoformat(),
+            "delivered_at": (now - timedelta(hours=1)).isoformat(),
         },
         {
             "subject_id": "s1",
             "decision": "DELIVER",
+            "outcome_status": "delivered",
             "decision_type": "diegetic",
             "created_at": (now - timedelta(days=1, minutes=1)).isoformat(),
+            "delivered_at": (now - timedelta(days=1, minutes=1)).isoformat(),
         },
         {
             "subject_id": "s2",
             "decision": "DELIVER",
+            "outcome_status": "delivered",
             "decision_type": "proactivity",
             "created_at": (now - timedelta(hours=1)).isoformat(),
+            "delivered_at": (now - timedelta(hours=1)).isoformat(),
         },
         {
             "subject_id": "s1",

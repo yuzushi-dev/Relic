@@ -77,13 +77,15 @@ def test_replay_preserves_event_kind_when_unchanged():
             "event_id": "e3",
             "decision_type": "checkin",
             "event_kind": "checkin",
-            "posture": "observe",
+            "posture": "ask",
             "features_json": {
                 "reach_score": 1.0,
                 "time_since_last_subject_msg_sec": 3600,
+                "facet_status": "ask_now",
+                "asked_recently_12h": False,
             },
         }
     )
     assert record["new_event_kind"] == "checkin"
-    assert record["new_posture"] == "observe"
+    assert record["new_posture"] == "ask"
     assert record["changed"] is False
