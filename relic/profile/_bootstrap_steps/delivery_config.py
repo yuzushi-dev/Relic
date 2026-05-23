@@ -104,6 +104,59 @@ def _ask_yes_no(io_in: TextIO, io_out: TextIO, question: str, default: bool = Fa
             return default
 
 
+def _collect_delivery_preferences(io_in: TextIO, io_out: TextIO) -> dict:
+    print("\n" + "-" * 60, file=io_out)
+    print("  STEP 4: Quiet Hours (optional)", file=io_out)
+    print("-" * 60, file=io_out)
+    quiet_start = prompt_optional("quiet_hours.start", "Quiet hours start", io_in, io_out, default="22:00")
+    quiet_end = prompt_optional("quiet_hours.end", "Quiet hours end", io_in, io_out, default="08:00")
+    quiet_tz = prompt_optional("quiet_hours.timezone", "Timezone", io_in, io_out, default="Europe/Rome")
+
+    print("\n" + "-" * 60, file=io_out)
+    print("  STEP 5: Delivery Windows", file=io_out)
+    print("  Define up to 2 daily time windows when Gumi may send proactive", file=io_out)
+    print("  messages. Format HH:MM-HH:MM. Leave blank to skip.", file=io_out)
+    print("-" * 60, file=io_out)
+    win1_raw = prompt_optional(
+        "delivery_windows.1", "Window 1 (e.g. 09:00-11:00)", io_in, io_out, default="09:00-11:00"
+    )
+    win2_raw = prompt_optional(
+        "delivery_windows.2", "Window 2 (e.g. 19:00-21:00)", io_in, io_out, default="19:00-21:00"
+    )
+    delivery_windows = []
+    for raw in [win1_raw, win2_raw]:
+        if raw and "-" in raw:
+            parts = raw.split("-", 1)
+            delivery_windows.append({"start": parts[0].strip(), "end": parts[1].strip()})
+
+    print("\n" + "-" * 60, file=io_out)
+    print("  STEP 6: Check-in Slots", file=io_out)
+    print("  Choose when check-ins may be sent: morning, afternoon, evening.", file=io_out)
+    print("  Diegetic/proactive messages can use the remaining enabled delivery windows.", file=io_out)
+    print("-" * 60, file=io_out)
+    raw_checkin_slots = prompt_optional(
+        "checkin_slots",
+        "Check-in slots (comma-separated)",
+        io_in,
+        io_out,
+        default="morning,afternoon,evening",
+    )
+    allowed_slots = ("morning", "afternoon", "evening")
+    requested_slots = {
+        part.strip().lower()
+        for part in (raw_checkin_slots or "").split(",")
+        if part.strip()
+    }
+    checkin_slots = [slot for slot in allowed_slots if slot in requested_slots]
+
+    return {
+        "timezone": quiet_tz,
+        "quiet_hours": {"start": quiet_start, "end": quiet_end, "timezone": quiet_tz},
+        "delivery_windows": delivery_windows,
+        "checkin_slots": checkin_slots,
+    }
+
+
 def collect_delivery_config(
     io_in: TextIO,
     io_out: TextIO,
@@ -133,8 +186,9 @@ def collect_delivery_config(
     
     configure_now = _ask_yes_no(io_in, io_out, "Configure Telegram now?", default=False)
     if not configure_now:
+        preferences = _collect_delivery_preferences(io_in, io_out)
         print("\n  Telegram delivery skipped.", file=io_out)
-        return {"delivery_enabled": False}
+        return {"delivery_enabled": False, **preferences}
     
     print("\n" + "-" * 60, file=io_out)
     print("  STEP 1: Get your Telegram User ID", file=io_out)
@@ -218,29 +272,7 @@ def collect_delivery_config(
                 break
             print("  Token format invalid (expected digits:letters, e.g. 123456789:ABCdef...).", file=io_out)
     
-    print("\n" + "-" * 60, file=io_out)
-    print("  STEP 4: Quiet Hours (optional)", file=io_out)
-    print("-" * 60, file=io_out)
-    quiet_start = prompt_optional("quiet_hours.start", "Quiet hours start", io_in, io_out, default="22:00")
-    quiet_end = prompt_optional("quiet_hours.end", "Quiet hours end", io_in, io_out, default="08:00")
-    quiet_tz = prompt_optional("quiet_hours.timezone", "Timezone", io_in, io_out, default="Europe/Rome")
-    
-    print("\n" + "-" * 60, file=io_out)
-    print("  STEP 5: Delivery Windows", file=io_out)
-    print("  Define up to 2 daily time windows when Gumi may send proactive", file=io_out)
-    print("  messages. Format HH:MM-HH:MM. Leave blank to skip.", file=io_out)
-    print("-" * 60, file=io_out)
-    win1_raw = prompt_optional(
-        "delivery_windows.1", "Window 1 (e.g. 09:00-11:00)", io_in, io_out, default="09:00-11:00"
-    )
-    win2_raw = prompt_optional(
-        "delivery_windows.2", "Window 2 (e.g. 19:00-21:00)", io_in, io_out, default="19:00-21:00"
-    )
-    delivery_windows = []
-    for raw in [win1_raw, win2_raw]:
-        if raw and "-" in raw:
-            parts = raw.split("-", 1)
-            delivery_windows.append({"start": parts[0].strip(), "end": parts[1].strip()})
+    preferences = _collect_delivery_preferences(io_in, io_out)
 
     enabled = bool(telegram_user_id and bot_token_env)
 
@@ -256,8 +288,8 @@ def collect_delivery_config(
             print(f"  Token:     set in environment.", file=io_out)
         else:
             print(f"  Token:     NOT set — export {bot_token_env}=YOUR_BOT_TOKEN before sending.", file=io_out)
-        if delivery_windows:
-            for w in delivery_windows:
+        if preferences["delivery_windows"]:
+            for w in preferences["delivery_windows"]:
                 print(f"  Window:    {w['start']} – {w['end']}", file=io_out)
     else:
         print("  Telegram delivery not configured.", file=io_out)
@@ -268,9 +300,7 @@ def collect_delivery_config(
         "contact_channel": "telegram",
         "telegram_user_id": telegram_user_id,
         "bot_token_env": bot_token_env,
-        "timezone": quiet_tz,
-        "quiet_hours": {"start": quiet_start, "end": quiet_end, "timezone": quiet_tz},
-        "delivery_windows": delivery_windows,
+        **preferences,
     }
 
 

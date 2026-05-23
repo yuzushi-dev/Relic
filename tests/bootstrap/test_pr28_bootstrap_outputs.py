@@ -320,6 +320,47 @@ def test_comfort_items_drive_contact_and_diegesis_when_present() -> None:
     assert subject["interaction"]["fictional_diegesis_tolerance"] == 0.6
 
 
+def test_bootstrap_mapping_carries_checkin_slots_into_boundary() -> None:
+    subject = subject_data_from_bootstrap_state(
+        subject_id="subj_001",
+        experiment_id="exp_001",
+        state={"delivery_config": {"checkin_slots": ["evening"]}},
+        consent_record={"delivery": True},
+    )
+
+    assert subject["boundary"]["checkin_slots"] == ["evening"]
+
+
+def test_bootstrap_mapping_prefers_delivery_quiet_hours_for_boundary() -> None:
+    subject = subject_data_from_bootstrap_state(
+        subject_id="subj_001",
+        experiment_id="exp_001",
+        state={
+            "delivery_config": {
+                "quiet_hours": {
+                    "start": "21:30",
+                    "end": "07:30",
+                    "timezone": "Europe/London",
+                }
+            },
+            "boundaries": {
+                "quiet_hours": {
+                    "start": "22:00",
+                    "end": "08:00",
+                    "timezone": "Europe/Rome",
+                }
+            },
+        },
+        consent_record={"delivery": True},
+    )
+
+    assert subject["boundary"]["quiet_hours"] == {
+        "start": "21:30",
+        "end": "07:30",
+        "timezone": "Europe/London",
+    }
+
+
 def test_media_tolerance_uses_comfort_when_allowed_and_floors_on_denial() -> None:
     state = {
         "item_battery": {

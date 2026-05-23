@@ -106,6 +106,7 @@ def subject_data_from_bootstrap_state(
     state = state or {}
     consent_record = consent_record or {}
     boundaries = state.get("boundaries", {})
+    delivery_config = state.get("delivery_config", {}) if isinstance(state, dict) else {}
     opt_out = state.get("opt_out_categories", {})
     opt_out_values = opt_out.get("values", []) if isinstance(opt_out, dict) else []
     delivery_allowed = bool(consent_record.get("delivery", False))
@@ -210,7 +211,9 @@ def subject_data_from_bootstrap_state(
             # permission answer. build_pr28_bootstrap_outputs further caps this.
             "maximum_daily_initiatives": 1 + round(scaled_checkin_tolerance),
             "opt_out_categories": list(opt_out_values),
-            "quiet_hours": boundaries.get("quiet_hours", {"start": "22:00", "end": "08:00", "timezone": "Europe/Rome"}),
+            "quiet_hours": delivery_config.get("quiet_hours")
+            or boundaries.get("quiet_hours", {"start": "22:00", "end": "08:00", "timezone": "Europe/Rome"}),
+            "checkin_slots": list(delivery_config.get("checkin_slots") or boundaries.get("checkin_slots") or []),
             "careful_distancing_enabled": careful_distancing_enabled,
             "sensitive_topics_blocked": True,
         },
@@ -367,6 +370,7 @@ def build_pr28_bootstrap_outputs(
         "maximum_daily_initiatives": max_daily,
         "opt_out_categories": list(boundary_input.get("opt_out_categories", [])),
         "quiet_hours": boundary_input.get("quiet_hours", {}),
+        "checkin_slots": list(boundary_input.get("checkin_slots", [])),
         "careful_distancing_enabled": careful_distancing,
         "sensitive_topics_blocked": bool(boundary_input.get("sensitive_topics_blocked", True)),
         "high_stakes_proactive_block": high_stakes_proactive_block,

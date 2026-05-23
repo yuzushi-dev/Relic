@@ -110,6 +110,33 @@ class TestCollectDeliveryConfig:
         output = out.getvalue()
         assert "skipped" in output.lower()
 
+    def test_skip_telegram_still_collects_delivery_preferences(self):
+        """Skipping Telegram credentials still records schedule/check-in preferences."""
+        consent = {"delivery": True}
+        inp = StringIO(
+            "n\n"
+            "21:30\n"
+            "07:30\n"
+            "Europe/London\n"
+            "08:00-10:00\n"
+            "18:00-20:00\n"
+            "morning,evening\n"
+        )
+        out = StringIO()
+        result = collect_delivery_config(inp, out, consent)
+
+        assert result["delivery_enabled"] is False
+        assert result["quiet_hours"] == {
+            "start": "21:30",
+            "end": "07:30",
+            "timezone": "Europe/London",
+        }
+        assert result["delivery_windows"] == [
+            {"start": "08:00", "end": "10:00"},
+            {"start": "18:00", "end": "20:00"},
+        ]
+        assert result["checkin_slots"] == ["morning", "evening"]
+
     def test_full_configure_with_defaults(self):
         """User configures Telegram with default quiet hours, skips token value."""
         consent = {"delivery": True}
@@ -147,6 +174,25 @@ class TestCollectDeliveryConfig:
         assert result["quiet_hours"]["timezone"] == "America/New_York"
         assert result["delivery_windows"][0]["start"] == "09:00"
         assert result["delivery_windows"][1]["start"] == "19:00"
+
+    def test_configure_checkin_slots(self):
+        """Check-in slots can be restricted to one or more day parts."""
+        consent = {"delivery": True}
+        inp = StringIO(
+            "y\n"
+            "987654321\n"
+            "\n"
+            "23:00\n"
+            "07:00\n"
+            "Europe/Rome\n"
+            "09:00-11:00\n"
+            "19:00-21:00\n"
+            "evening\n"
+        )
+        out = StringIO()
+        result = collect_delivery_config(inp, out, consent)
+
+        assert result["checkin_slots"] == ["evening"]
 
     def test_full_configure_with_token_value(self):
         """User enters bot token value — it is exported to os.environ under auto env name."""

@@ -337,6 +337,7 @@ class BootstrapTUI:
             "researcher_coded_fields": researcher_coded_fields,
             "interaction_preferences": interaction_preferences,
             "relational_expectations": relational_expectations,
+            "delivery_config": delivery_config,
             "boundaries": boundaries_data.get("boundaries", {}),
             "opt_out_categories": boundaries_data.get(
                 "opt_out_categories", {"values": [], "origin": "subject-stated"}
