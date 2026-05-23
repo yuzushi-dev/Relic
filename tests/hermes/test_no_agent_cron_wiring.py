@@ -265,6 +265,9 @@ class TestCandidateRequiresDeliveryGate:
                 "relic.gumi_plugin.cron_wiring._is_delivery_window_open",
                 return_value=True,
             ), patch(
+                "relic.gumi_plugin.cron_wiring._select_ask_decision",
+                return_value=(True, "Velocità nel decidere"),
+            ), patch(
                 "relic.gumi_plugin.cron_wiring._is_followup_not_due",
                 return_value=False,
             ), patch(

@@ -128,8 +128,14 @@ def build_observations_section(db_path: Path) -> str:
         return ""
 
 
-def build_topic_hint_section(subject_id: str, db_path: Path, bl_path: Path) -> str:
-    """Select topic facet, render hint, persist exchange; return block or ''."""
+def build_topic_hint_section(
+    subject_id: str,
+    db_path: Path,
+    bl_path: Path,
+    *,
+    persist_exchange: bool = True,
+) -> str:
+    """Select topic facet, render hint, optionally persist exchange; return block or ''."""
     try:
         if not db_path.exists():
             return ""
@@ -190,24 +196,25 @@ def build_topic_hint_section(subject_id: str, db_path: Path, bl_path: Path) -> s
         if not topic_block:
             return ""
 
-        # RO conn closed above — safe to open RW without lock contention.
-        # Inner try/except so connect/write errors never discard the rendered block.
-        try:
-            conn_rw = sqlite3.connect(str(db_path), timeout=5.0)
+        if persist_exchange:
+            # RO conn closed above — safe to open RW without lock contention.
+            # Inner try/except so connect/write errors never discard the rendered block.
             try:
-                conn_rw.execute(
-                    "INSERT INTO checkin_exchanges "
-                    "(facet_id, question_text, asked_at) VALUES (?, ?, ?)",
-                    (topic_facet_id, topic_hint_text, datetime.now(timezone.utc).isoformat()),
-                )
-                conn_rw.commit()
-            except Exception as e_ins:
-                if "no such table" not in str(e_ins):
-                    print(f"[checkin] persist: {e_ins}", file=sys.stderr)
-            finally:
-                conn_rw.close()
-        except Exception as e_rw:
-            print(f"[checkin] persist (connect failed): {e_rw}", file=sys.stderr)
+                conn_rw = sqlite3.connect(str(db_path), timeout=5.0)
+                try:
+                    conn_rw.execute(
+                        "INSERT INTO checkin_exchanges "
+                        "(facet_id, question_text, asked_at) VALUES (?, ?, ?)",
+                        (topic_facet_id, topic_hint_text, datetime.now(timezone.utc).isoformat()),
+                    )
+                    conn_rw.commit()
+                except Exception as e_ins:
+                    if "no such table" not in str(e_ins):
+                        print(f"[checkin] persist: {e_ins}", file=sys.stderr)
+                finally:
+                    conn_rw.close()
+            except Exception as e_rw:
+                print(f"[checkin] persist (connect failed): {e_rw}", file=sys.stderr)
 
         return f"\n{topic_block}"
     except Exception as e:
@@ -432,6 +439,7 @@ def build_deliver_context(
     event_type: str | None = None,
     posture: str | None = None,
     policy_packet: dict | None = None,
+    persist_topic_hint: bool = True,
 ) -> str:
     """Build context string for check-in DELIVER output.
 
@@ -487,7 +495,12 @@ def build_deliver_context(
             anchor_sections["recent_observations"] = sec
             parts.append(sec)
         if flags.get("topic_hint"):
-            sec = build_topic_hint_section(subject_id, db_path, bl_path)
+            sec = build_topic_hint_section(
+                subject_id,
+                db_path,
+                bl_path,
+                persist_exchange=persist_topic_hint,
+            )
             anchor_sections["topic_hint"] = sec
             parts.append(sec)
         if flags.get("style_hints"):

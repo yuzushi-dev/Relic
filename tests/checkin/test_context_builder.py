@@ -416,6 +416,37 @@ class TestBuildTopicHintSection:
             check.close()
             assert len(rows) >= 1
 
+    def test_can_render_topic_hint_without_persisting_exchange(
+        self, relic_dir: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        """Forced dry-runs should preview the ask without consuming ask cooldown."""
+        conn = _init_db(relic_dir)
+        conn.close()
+        db_path = relic_dir / "subjects" / "test_subj" / "relic.db"
+        monkeypatch.setattr(
+            "relic.checkin.question_engine.select_facet",
+            lambda *_args, **_kwargs: {
+                "status": "ask_now",
+                "selected_facet": "cognitive.decision_speed",
+                "question_hint": "Velocità nel prendere decisioni",
+            },
+        )
+
+        result = build_topic_hint_section(
+            "test_subj",
+            db_path,
+            relic_dir / "subjects" / "test_subj" / "subject_baseline.json",
+            persist_exchange=False,
+        )
+
+        assert result
+        check = sqlite3.connect(str(db_path))
+        try:
+            rows = check.execute("SELECT id FROM checkin_exchanges").fetchall()
+        finally:
+            check.close()
+        assert rows == []
+
 
 # ---------------------------------------------------------------------------
 # build_recent_subject_messages_section

@@ -1092,6 +1092,7 @@ try:
                     Path(_relic_home_env),
                     event_type=pol_event_kind,
                     posture=pol_posture,
+                    persist_topic_hint=not force,
                 ) or ""
             payload = {{
                 "wakeAgent": True,
@@ -1167,6 +1168,7 @@ try:
                 Path(_relic_home_env),
                 event_type=pol_event_kind,
                 posture=pol_posture,
+                persist_topic_hint=not force,
             )
             if _ctx:
                 print(_ctx)
