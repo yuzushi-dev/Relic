@@ -9,7 +9,7 @@ import pytest
 from pathlib import Path
 
 
-FIXTURES_DIR = Path(__file__).parent.parent / "fixtures" / "gumi-eval"
+FIXTURES_DIR = Path(__file__).parent.parent.parent / "fixtures" / "gumi-eval"
 DOCS_DIR = Path(__file__).parent.parent.parent / "docs" / "gumi-eval"
 
 

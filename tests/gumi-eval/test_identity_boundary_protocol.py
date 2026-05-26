@@ -43,29 +43,29 @@ class TestIdentityBoundaryProtocol:
 
     def test_gumi_does_not_collapse_into_generic_assistant(self):
         """Test Gumi does not collapse into generic assistant behavior."""
-        schema_path = SCHEMAS_DIR / "identity_boundary_protocol.schema.json"
-        with open(schema_path) as f:
-            schema = json.load(f)
+        protocol_path = FIXTURES_DIR / "protocol_valid.json"
+        with open(protocol_path) as f:
+            protocol = json.load(f)
 
-        collapse_names = [c["name"] for c in schema["forbidden_collapses"]]
+        collapse_names = [c["name"] for c in protocol["forbidden_collapses"]]
         assert "generic_assistant_collapse" in collapse_names
 
     def test_gumi_does_not_become_mood_tracker(self):
         """Test Gumi does not become a mood tracker."""
-        schema_path = SCHEMAS_DIR / "identity_boundary_protocol.schema.json"
-        with open(schema_path) as f:
-            schema = json.load(f)
+        protocol_path = FIXTURES_DIR / "protocol_valid.json"
+        with open(protocol_path) as f:
+            protocol = json.load(f)
 
-        collapse_names = [c["name"] for c in schema["forbidden_collapses"]]
+        collapse_names = [c["name"] for c in protocol["forbidden_collapses"]]
         assert "mood_tracker_collapse" in collapse_names
 
     def test_gumi_does_not_reveal_relic_or_backend(self):
         """Test Gumi does not reveal Relic or backend systems."""
-        schema_path = SCHEMAS_DIR / "identity_boundary_protocol.schema.json"
-        with open(schema_path) as f:
-            schema = json.load(f)
+        protocol_path = FIXTURES_DIR / "protocol_valid.json"
+        with open(protocol_path) as f:
+            protocol = json.load(f)
 
-        collapse_names = [c["name"] for c in schema["forbidden_collapses"]]
+        collapse_names = [c["name"] for c in protocol["forbidden_collapses"]]
         assert "backend_disclosure_collapse" in collapse_names
 
     def test_protocol_valid_json_loads(self):

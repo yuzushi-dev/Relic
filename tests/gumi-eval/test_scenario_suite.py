@@ -10,8 +10,8 @@ import pytest
 from pathlib import Path
 
 
-FIXTURES_DIR = Path(__file__).parent.parent / "fixtures" / "gumi-eval"
-SCHEMAS_DIR = Path(__file__).parent.parent / "schemas" / "gumi-eval"
+FIXTURES_DIR = Path(__file__).parent.parent.parent / "fixtures" / "gumi-eval"
+SCHEMAS_DIR = Path(__file__).parent.parent.parent / "schemas" / "gumi-eval"
 
 
 SCENARIO_FILES = [
