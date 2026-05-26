@@ -11,8 +11,27 @@ from relic.gumi_plugin.checkin_media_dispatcher import (
     clean_image_caption,
     dispatch,
     ensure_checkin_question_mark,
+    ensure_question_mark_if_interrogative,
     parse_gate_output,
 )
+
+
+def test_proactive_interrogative_restores_question_mark() -> None:
+    text = "ti funziona più il corpo o la mente quando cerchi di ritrovare il tuo equilibrio"
+    assert (
+        ensure_question_mark_if_interrogative(text)
+        == "ti funziona più il corpo o la mente quando cerchi di ritrovare il tuo equilibrio?"
+    )
+
+
+def test_proactive_interrogative_inserts_before_trailing_emoji() -> None:
+    assert ensure_question_mark_if_interrogative("cosa ti va di fare stasera 🌙") == "cosa ti va di fare stasera? 🌙"
+
+
+def test_proactive_statement_is_left_untouched() -> None:
+    # A diegetic/proactive statement must never be turned into a question.
+    text = "Oggi ho fatto una passeggiata al parco e ho visto un gatto arancione"
+    assert ensure_question_mark_if_interrogative(text) == text
 
 
 def test_parse_gate_output_voice() -> None:

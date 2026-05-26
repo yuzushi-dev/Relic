@@ -49,6 +49,52 @@ def ensure_checkin_question_mark(text: str) -> str:
     return f"{stripped}?"
 
 
+# Italian interrogative openers used to detect when a proactive/diegetic line is
+# actually a question (so we only restore a dropped "?" on real questions and
+# never turn a statement into one). One- and two-token openers.
+_IT_INTERROGATIVE_OPENERS = frozenset(
+    {
+        "come", "cosa", "che", "chi", "dove", "quando", "perché", "perche",
+        "quanto", "quanta", "quanti", "quante", "quale", "quali",
+        "preferisci", "hai", "sei", "vuoi", "riesci", "pensi", "senti",
+        "ti va", "ti funziona", "ti andrebbe", "ti capita", "secondo te",
+        "che cosa", "com'è", "come va", "come stai",
+    }
+)
+
+
+def _looks_interrogative(text: str) -> bool:
+    """Heuristic: does this line read as an Italian question?
+
+    True if it already carries a "?" anywhere, or it opens with a known
+    interrogative word/phrase. Conservative on purpose — used to decide whether
+    to restore a dropped question mark without inventing questions.
+    """
+    body = _TRAILING_SYMBOL_RE.sub("", text).strip().lower()
+    if not body:
+        return False
+    if "?" in body:
+        return True
+    tokens = body.split()
+    if not tokens:
+        return False
+    first = tokens[0].strip(".,;:!")
+    two = " ".join(tokens[:2]).strip(".,;:!")
+    return first in _IT_INTERROGATIVE_OPENERS or two in _IT_INTERROGATIVE_OPENERS
+
+
+def ensure_question_mark_if_interrogative(text: str) -> str:
+    """Restore a dropped question mark only when the line reads as a question.
+
+    Used for proactive re-engagement, whose questions are optional — unlike
+    check-ins, where the question is mandatory and ``ensure_checkin_question_mark``
+    applies unconditionally.
+    """
+    if not _looks_interrogative(text):
+        return text
+    return ensure_checkin_question_mark(text)
+
+
 def clean_image_caption(caption: str) -> str:
     """Remove only trailing periods from image captions.
 
@@ -359,10 +405,18 @@ def dispatch(
     parsed = parse_gate_output(llm_output)
     tipo = parsed["tipo"]
     testo = parsed["testo"]
-    if decision_type == "checkin" and tipo in {"text", "voice", "image"}:
-        testo = ensure_checkin_question_mark(testo)
-        if parsed.get("caption"):
-            parsed["caption"] = ensure_checkin_question_mark(parsed["caption"])
+    if tipo in {"text", "voice", "image"}:
+        if decision_type == "checkin":
+            # Check-ins always carry a question — enforce unconditionally.
+            testo = ensure_checkin_question_mark(testo)
+            if parsed.get("caption"):
+                parsed["caption"] = ensure_checkin_question_mark(parsed["caption"])
+        elif decision_type == "proactivity":
+            # Proactive questions are optional — only restore a dropped "?" when
+            # the line actually reads as a question, never invent one.
+            testo = ensure_question_mark_if_interrogative(testo)
+            if parsed.get("caption"):
+                parsed["caption"] = ensure_question_mark_if_interrogative(parsed["caption"])
 
     # Delivery-time language guardrail: applies to every subject-facing branch
     # (text body, and the source text synthesized into voice/image/music) before
