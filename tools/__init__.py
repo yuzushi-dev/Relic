@@ -1,4 +1,4 @@
-"""Hermes plugin support tools."""
+"""Developer support tools."""
 
 from pkgutil import extend_path
 
