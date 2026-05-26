@@ -34,11 +34,32 @@ _DISMISSAL_TOKENS = frozenset({
 _DELIVERED_LOOKBACK = timedelta(hours=REPLY_WINDOW_HOURS)
 
 
+# Signatures of agent/cron scaffold text that must never be captured as a
+# subject reply. Under a no-agent cron, the check-in *delivery* turn passes the
+# cron instruction prompt into sync_turn as user_msg; without this guard it was
+# stored as the check-in reply, corrupting the row and blocking the subject's
+# real answer (WHERE reply_text IS NULL).
+_AGENT_PROMPT_MARKERS = (
+    "you are running as a scheduled cron job",
+    "your final response will be automatically delivered",
+    "do not use send_message",
+    "sei gumi. il gate mostra",
+    "se il gate non inizia con deliver",
+)
+
+
+def _is_agent_scaffold(text: str) -> bool:
+    low = text.lower()
+    return any(marker in low for marker in _AGENT_PROMPT_MARKERS)
+
+
 def _is_substantive(text: str) -> bool:
     stripped = text.strip()
     if len(stripped) < _MIN_LEN:
         return False
     if stripped.lower().rstrip(".!? ") in _DISMISSAL_TOKENS:
+        return False
+    if _is_agent_scaffold(stripped):
         return False
     return True
 

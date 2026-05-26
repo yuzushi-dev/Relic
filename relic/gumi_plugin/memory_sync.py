@@ -339,11 +339,65 @@ def main() -> None:
         hermes_arg = hermes_home
 
     result = sync(Path(hermes_home))
+
+    # Close the check-in → facet → baseline loop. Pending check-in replies are
+    # otherwise never processed (facet_updater was not wired into any cron),
+    # leaving subject_baseline.json unconsolidated. Fail-open: never break the
+    # no-agent cron stdout contract. Single-host pilot: process every subject
+    # under RELIC_HOME that has pending replies.
+    facet_result = _process_pending_facets()
+    result["facet_processing"] = facet_result
+
     # Status to stderr only — no-agent cron delivers stdout, must stay silent on success.
     print(json.dumps(result, ensure_ascii=False), file=sys.stderr)
 
     if not result.get("done"):
         sys.exit(1)
+
+
+def _process_pending_facets() -> dict[str, Any]:
+    """Process pending check-in replies into facet observations + baseline.
+
+    Fail-open and side-effect-safe: any error is captured and returned, never
+    raised, so the cron's stdout delivery contract is preserved.
+    """
+    summary: dict[str, Any] = {"subjects": {}, "error": None}
+    try:
+        import sqlite3 as _sqlite3
+        from relic.checkin.facet_updater import process_pending_exchanges
+
+        relic_home = Path(os.environ.get("RELIC_HOME", str(Path.home() / ".relic")))
+        subjects_dir = relic_home / "subjects"
+        if not subjects_dir.is_dir():
+            return summary
+
+        only = os.environ.get("RELIC_SUBJECT_ID", "").strip()
+        for subject_path in sorted(subjects_dir.iterdir()):
+            if not subject_path.is_dir():
+                continue
+            subject_id = subject_path.name
+            if only and subject_id != only:
+                continue
+            db_path = subject_path / "relic.db"
+            baseline_path = subject_path / "subject_baseline.json"
+            if not db_path.exists() or not baseline_path.exists():
+                continue
+            try:
+                conn = _sqlite3.connect(str(db_path))
+                results = process_pending_exchanges(
+                    conn, baseline_path, subject_id, dry_run=False,
+                )
+                conn.close()
+                if results:
+                    summary["subjects"][subject_id] = {
+                        "processed": len(results),
+                        "informative": sum(1 for r in results if r.get("informative")),
+                    }
+            except Exception as exc:  # per-subject isolation
+                summary["subjects"][subject_id] = {"error": str(exc)}
+    except Exception as exc:
+        summary["error"] = str(exc)
+    return summary
 
 
 if __name__ == "__main__":

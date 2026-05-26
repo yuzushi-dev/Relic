@@ -93,6 +93,24 @@ class TestIsSubstantive:
     def test_non_dismissal_min_len(self):
         assert _is_substantive("nono") is True  # 4 chars, not in dismissal set
 
+    def test_rejects_cron_scaffold_prompt(self):
+        # Under a no-agent cron the delivery turn's prompt was being captured as
+        # the subject reply; it must be rejected.
+        scaffold = (
+            "[IMPORTANT: You are running as a scheduled cron job. DELIVERY: Your "
+            "final response will be automatically delivered to the user — do NOT "
+            "use send_message or try to call tools.]"
+        )
+        assert _is_substantive(scaffold) is False
+
+    def test_rejects_proactive_gate_prompt(self):
+        assert _is_substantive("Sei Gumi. Il gate mostra DELIVER con tipo, ora e contesto.") is False
+
+    def test_genuine_reply_still_substantive(self):
+        assert _is_substantive(
+            "Bella domanda, non saprei. Di certo ho un bias a stimare le tempistiche."
+        ) is True
+
     def test_exactly_min_len(self):
         assert _is_substantive("a" * 3) is True
 
