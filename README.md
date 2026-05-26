@@ -192,6 +192,22 @@ subject-specific local profiles, and real media artifacts are excluded from this
 repo. Sensitive marker scans live under `tests/`, and public examples use
 synthetic demo data only.
 
+## Evidence Sufficiency Gate and Evaluation Status
+
+To prevent the software artifact from supporting premature or unevidenced scientific claims, the evaluation framework includes a machine-readable **Evidence Sufficiency Gate** (implemented as `scientific_defensibility_gate_v1`).
+
+The gate enforces a strict separation between implemented system contracts and empirical human studies. It tracks seven requirements:
+
+1. **Controlled Governance Benchmark** (Satisfied: Synthetic fixture benchmark covers 180+ scenarios across 5 conditions)
+2. **Live-Model Generation Campaign** (Satisfied: Multi-provider validation runs complete and verified)
+3. **Live Runtime Telemetry** (Satisfied: Gateway tracing verifies `cron_delivery_path` and `hermes_entry_transform_hook` under mock workloads)
+4. **Human Annotation with Inter-Rater Reliability** (Blocked/Pending: Requires recruited human annotation data)
+5. **Expert Non-Clinical Red-Teaming** (Blocked/Pending: Requires expert-review panels and risk-category agreement)
+6. **Longitudinal Non-Clinical Pilot** (Blocked/Pending: Requires longitudinal field study results)
+7. **Researcher Workbench Usability Study** (Blocked/Pending: Requires recruited task-usability metrics)
+
+The gate blocks general release packaging (returning a non-zero exit code) until all seven requirements are satisfied. The current repository implements the core architecture, test contracts, synthetic fixtures, and mock telemetry. No claim of clinical efficacy, therapeutic outcome, or validated psychometric measurement is made or supported by the current artifact.
+
 ## License
 
 [AGPL-3.0](LICENSE.txt): if you use this in a product or network service, your
