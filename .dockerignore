@@ -1,0 +1,12 @@
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.venv/
+__pycache__/
+*.py[cod]
+artifacts/
+htmlcov/
+node_modules/
+ui/.next/
+ui/node_modules/
