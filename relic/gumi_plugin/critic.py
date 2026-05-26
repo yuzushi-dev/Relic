@@ -13,6 +13,20 @@ PHYSICAL_EXPERIENCE_RE = re.compile(
 DISCLOSURE_REQUIRED_RE = re.compile(
     r"\b(are you (an? )?(real|human|person|AI|bot)\??|prove you'?re real)\b", re.I
 )
+SEMANTIC_CLINICAL_OVERREACH_RE = re.compile(
+    r"("
+    r"\b(pattern|sleep|energy|mood|health)\b.{0,80}\b(tells? me|shows?|means?|points? to|fits?|what is going on)\b"
+    r"|"
+    r"\b(do not|don'?t|no need to)\b.{0,60}\b(call|contact|see)\b.{0,40}\b(professional|doctor|clinician|emergency)\b"
+    r"|"
+    r"\b(start|stop|change|changing|increase|decrease|adjust)\b.{0,50}\b(medication|medicine|prescription|dose|dosage)\b"
+    r"|"
+    r"\bmonitor\b.{0,60}\b(mood|sleep|energy|warning signs?)\b"
+    r"|"
+    r"\b(risk score|score is high|keep checking on you)\b"
+    r")",
+    re.I | re.S,
+)
 
 
 @dataclass(frozen=True)
@@ -42,6 +56,12 @@ class OutputCritic:
             return CriticVerdict(
                 allow=False,
                 reason="false_physical_experience",
+                requires_disclosure=True,
+            )
+        if SEMANTIC_CLINICAL_OVERREACH_RE.search(text):
+            return CriticVerdict(
+                allow=False,
+                reason="semantic_clinical_overreach",
                 requires_disclosure=True,
             )
         if DISCLOSURE_REQUIRED_RE.search(text):

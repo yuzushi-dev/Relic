@@ -116,6 +116,21 @@ def _normalize_context_result(result: Any) -> str:
     return ""
 
 
+def _critic_replacement(response_text: str) -> str | None:
+    try:
+        from relic.gumi_plugin.critic import OutputCritic
+
+        verdict = OutputCritic().review(response_text, consensual=True)
+    except Exception:
+        return None
+
+    if verdict.allow:
+        return None
+    if verdict.reason == "false_physical_experience":
+        return "[SILENT]"
+    return "I'm here with you in this. What would feel most helpful right now?"
+
+
 def register(ctx) -> None:
     try:
         _ensure_repo_on_syspath()
@@ -174,6 +189,9 @@ def register(ctx) -> None:
                 response_text = _safe_text(kwargs.get("response_text"))
                 if not response_text:
                     return None
+                replacement = _critic_replacement(response_text)
+                if replacement is not None:
+                    return replacement
                 sanitized = sanitize_for_subject(response_text)
                 if sanitized is None or sanitized == response_text:
                     return None

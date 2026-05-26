@@ -169,11 +169,54 @@ GUMI_WORDS_FIELD = "gumi_words"
 class ContinuityService:
     """Service for Shared Continuity Memory operations."""
 
-    def __init__(self):
+    def __init__(self, repository: Optional[Any] = None):
+        self._repository = repository
         self._markers: Dict[str, ContinuityMarker] = {}
         self._followups: Dict[str, ContinuityFollowup] = {}
         self._corrections: Dict[str, ContinuityCorrection] = {}
         self._scopes: Dict[str, Dict[str, Any]] = {}
+        if self._repository is not None:
+            state = self._repository.load_state()
+            self._markers.update(state.get("markers", {}))
+            self._followups.update(state.get("followups", {}))
+            self._corrections.update(state.get("corrections", {}))
+            self._scopes.update(state.get("scopes", {}))
+
+    def _save_marker(self, marker: ContinuityMarker) -> None:
+        if self._repository is not None:
+            self._repository.save_marker(marker)
+
+    def _save_correction(self, correction: ContinuityCorrection) -> None:
+        if self._repository is not None:
+            self._repository.save_correction(correction)
+
+    def _save_scope(self, scope_key: str, scope: Dict[str, Any]) -> None:
+        if self._repository is not None:
+            self._repository.save_scope(scope_key, scope)
+
+    def _append_event(
+        self,
+        *,
+        event_type: str,
+        subject_id: str,
+        gumi_instance_id: str,
+        hermes_profile_id: str,
+        marker_id: Optional[str] = None,
+        correction_id: Optional[str] = None,
+        event_data: Optional[Dict[str, Any]] = None,
+        source: str = "service",
+    ) -> None:
+        if self._repository is not None:
+            self._repository.append_event(
+                subject_id=subject_id,
+                gumi_instance_id=gumi_instance_id,
+                hermes_profile_id=hermes_profile_id,
+                event_type=event_type,
+                marker_id=marker_id,
+                correction_id=correction_id,
+                event_data=event_data or {},
+                source=source,
+            )
 
     def _contains_clinical_term(self, text: str) -> bool:
         """Check if text contains forbidden clinical terms."""
@@ -349,6 +392,19 @@ class ContinuityService:
         )
 
         self._markers[marker_id] = marker
+        self._save_marker(marker)
+        self._append_event(
+            event_type="marker_created",
+            subject_id=subject_id,
+            gumi_instance_id=gumi_instance_id,
+            hermes_profile_id=hermes_profile_id,
+            marker_id=marker_id,
+            event_data={
+                "source_type": source_type,
+                "subject_confirmation": True,
+            },
+            source="subject",
+        )
 
         return self._sanitize_output(marker, normalized_tags, gumi_words)
 
@@ -410,6 +466,19 @@ class ContinuityService:
         )
 
         self._markers[marker_id] = marker
+        self._save_marker(marker)
+        self._append_event(
+            event_type="marker_candidate_created",
+            subject_id=subject_id,
+            gumi_instance_id=gumi_instance_id,
+            hermes_profile_id=hermes_profile_id,
+            marker_id=marker_id,
+            event_data={
+                "source_type": source_type,
+                "subject_confirmation": False,
+            },
+            source="service",
+        )
 
         return self._sanitize_output(marker, normalized_tags, gumi_words)
 
@@ -482,6 +551,8 @@ class ContinuityService:
         )
 
         self._markers[new_marker_id] = new_marker
+        self._save_marker(old_marker)
+        self._save_marker(new_marker)
 
         # Create correction record
         correction_id = f"correction_{subject_id}_{datetime.now().timestamp()}"
@@ -503,6 +574,21 @@ class ContinuityService:
         )
 
         self._corrections[correction_id] = correction
+        self._save_correction(correction)
+        self._append_event(
+            event_type="correction_created",
+            subject_id=subject_id,
+            gumi_instance_id=gumi_instance_id,
+            hermes_profile_id=hermes_profile_id,
+            marker_id=new_marker_id,
+            correction_id=correction_id,
+            event_data={
+                "original_marker_id": marker_id,
+                "new_marker_id": new_marker_id,
+                "authoritative": True,
+            },
+            source=created_by,
+        )
 
         return {
             "correction_id": correction_id,
@@ -774,6 +860,16 @@ class ContinuityService:
 
         # Remove from Gumi recall
         marker.gumi_recall_allowed = False
+        self._save_marker(marker)
+        self._append_event(
+            event_type="marker_forgotten",
+            subject_id=marker.subject_id,
+            gumi_instance_id=marker.gumi_instance_id,
+            hermes_profile_id=marker.hermes_profile_id,
+            marker_id=marker_id,
+            event_data={"gumi_recall_allowed": False},
+            source="subject",
+        )
 
         return {
             "marker_id": marker_id,
@@ -804,6 +900,8 @@ class ContinuityService:
         scope_keys = [k for k, s in self._scopes.items() if s.get("subject_id") == subject_id]
         for k in scope_keys:
             del self._scopes[k]
+        if self._repository is not None:
+            self._repository.delete_subject(subject_id)
 
         return {
             "subject_id": subject_id,
@@ -833,6 +931,15 @@ class ContinuityService:
             "hermes_profile_id": hermes_profile_id,
             "scope_name": scope_name,
         }
+        self._save_scope(scope_key, self._scopes[scope_key])
+        self._append_event(
+            event_type="scope_paused",
+            subject_id=subject_id,
+            gumi_instance_id=gumi_instance_id or "",
+            hermes_profile_id=hermes_profile_id or "",
+            event_data={"scope_name": scope_name},
+            source="subject",
+        )
 
         return {
             "subject_id": subject_id,
@@ -856,6 +963,15 @@ class ContinuityService:
         if scope_key in self._scopes:
             self._scopes[scope_key]["is_paused"] = False
             self._scopes[scope_key]["resumed_at"] = datetime.now().isoformat() + "Z"
+            self._save_scope(scope_key, self._scopes[scope_key])
+            self._append_event(
+                event_type="scope_resumed",
+                subject_id=subject_id,
+                gumi_instance_id=gumi_instance_id or "",
+                hermes_profile_id=hermes_profile_id or "",
+                event_data={"scope_name": scope_name},
+                source="subject",
+            )
 
         return {
             "subject_id": subject_id,

@@ -100,6 +100,27 @@ def test_artifact_registry_exists():
             conn.close()
 
 
+def test_init_db_creates_shared_continuity_tables():
+    """Database initialization creates durable Shared Continuity tables."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        db_path = Path(tmpdir) / "test.db"
+        init_db(db_path)
+        conn = get_connection(db_path)
+        try:
+            tables = {
+                row[0]
+                for row in conn.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table'"
+                ).fetchall()
+            }
+            assert "continuity_marker" in tables
+            assert "continuity_correction" in tables
+            assert "continuity_scope" in tables
+            assert "continuity_event" in tables
+        finally:
+            conn.close()
+
+
 def test_get_connection_enables_foreign_keys():
     """Ordinary DB connections enforce declared foreign keys."""
     with tempfile.TemporaryDirectory() as tmpdir:

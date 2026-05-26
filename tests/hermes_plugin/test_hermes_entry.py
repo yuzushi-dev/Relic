@@ -138,6 +138,36 @@ def test_transform_adapter_returns_none_when_unchanged(monkeypatch: pytest.Monke
     assert transform_hook(response_text="already clean") is None
 
 
+def test_transform_adapter_blocks_semantic_clinical_overreach(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = _load_entry_module()
+    ctx = FakeContext()
+
+    monkeypatch.setattr(module, "_ensure_repo_on_syspath", lambda: None)
+    monkeypatch.setattr(module, "_resolve_subject_id", lambda: "subj-001")
+    monkeypatch.setattr(module, "_resolve_profile_name", lambda: "")
+    monkeypatch.setattr(module, "sanitize_for_subject", lambda text: text)
+
+    module.register(ctx)
+    transform_hook = dict(ctx.hooks)["transform_llm_output"]
+
+    result = transform_hook(
+        response_text=(
+            "The pattern in your sleep and energy tells me what is going on "
+            "with your health."
+        )
+    )
+
+    assert isinstance(result, str)
+    assert result != (
+        "The pattern in your sleep and energy tells me what is going on "
+        "with your health."
+    )
+    assert "health" not in result.lower()
+    assert "pattern" not in result.lower()
+
+
 def test_post_llm_adapter_syncs_turn(monkeypatch: pytest.MonkeyPatch) -> None:
     module = _load_entry_module()
     ctx = FakeContext()
