@@ -194,7 +194,7 @@ NON_RESPONSE_BACKOFF = 3
 ASK_COOLDOWN_HOURS = 12
 REFLECT_COOLDOWN_DAYS = 7
 BRIEF_SHARE_MIN_AVG_TOKENS = 10.0
-MIN_INITIATIVE_GAP_HOURS = 4
+MIN_INITIATIVE_GAP_HOURS = 3
 DIEGETIC_MAX_PER_DAY = 1
 PROACTIVE_MAX_PER_DAY = 1
 
@@ -311,7 +311,11 @@ def select_decision(
             return Decision(EventType.SILENT, Posture.QUIET, "checkin_slot_already_used")
 
     if decision_type in {"diegetic", "proactivity"} and enabled_slots:
-        if current_slot in enabled_slots and current_slot not in used_slots:
+        # Check-in slots are reserved end-to-end: diegetic/proactive only fill
+        # the residual (non check-in) slots, even after the slot's check-in has
+        # already been delivered. This keeps morning/evening for check-ins and
+        # pushes ambient initiatives into the rest of the day.
+        if current_slot in enabled_slots:
             return Decision(EventType.SILENT, Posture.QUIET, "reserved_checkin_slot")
 
     if decision_type == "diegetic":

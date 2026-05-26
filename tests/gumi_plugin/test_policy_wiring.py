@@ -166,7 +166,13 @@ def test_evaluate_decision_routes_naturalness_types_to_candidate(monkeypatch, de
     delivery_window_mock.assert_not_called()
     assert decision == RuntimeDecision.CANDIDATE
     assert reasons == [RuntimeDecisionReason.no_due_work]
-    assert data == {"message": ""}
+    # Gate now emits a complete DELIVER header (tipo + ora) so the diegetic/
+    # proactive composer is time-aware; the naturalness policy still gates whether
+    # this becomes a real initiative.
+    assert data is not None
+    msg = data["message"]
+    assert msg.startswith("DELIVER\ntipo: ")
+    assert "\nora: " in msg
 
 
 @pytest.mark.parametrize(

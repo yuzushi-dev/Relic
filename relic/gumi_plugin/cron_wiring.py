@@ -38,7 +38,10 @@ except Exception:
 MEDIA_COOLDOWN_DAYS = {"image": 2.0, "voice": 1.0, "music": 7.0}
 _MEDIA_PROB_THRESHOLDS = {"music": 5, "voice": 30, "image": 50}  # cumulative %
 
-ASK_COOLDOWN_HOURS = 12
+# Spacing before another open question. Kept below the morning↔evening slot
+# gap so the second daily check-in can still embed an ask. Mirrors
+# relic.checkin.features.FACET_ASK_COOLDOWN_HOURS.
+ASK_COOLDOWN_HOURS = 6
 
 
 _PRO_MEDIA_KEY: dict[str, str] = {
@@ -634,7 +637,17 @@ def _evaluate_decision(
 
     if decision_type in ("diegetic", "proactivity"):
         reasons.append(RuntimeDecisionReason.no_due_work)
-        return RuntimeDecision.CANDIDATE, reasons, {"message": ""}
+        # Build the same DELIVER/tipo/ora header the check-in path emits so the
+        # diegetic/proactive composer is time-aware (the prompt contract expects
+        # "tipo" and "ora"). The naturalness policy still gates whether this
+        # becomes a real initiative; here we only make the gate output complete.
+        hermes_home_str = os.environ.get("HERMES_HOME", "")
+        hermes_home = Path(hermes_home_str) if hermes_home_str else Path.home() / ".hermes"
+        now_dt = _subject_now(subject_id)
+        now_str = now_dt.strftime("%H:%M %Z")
+        media_type = _select_media_type(subject_id, hermes_home, now_dt)
+        msg = f"DELIVER\ntipo: {media_type}\nora: {now_str}"
+        return RuntimeDecision.CANDIDATE, reasons, {"message": msg}
 
     # Check for due followups — used to determine CANDIDATE vs DELIVER vs NO_REPLY
     _svc = get_continuity_service()

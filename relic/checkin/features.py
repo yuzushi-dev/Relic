@@ -58,6 +58,11 @@ CHECKIN_SLOT_WINDOWS = {
 }
 CHECKIN_SLOT_ORDER = ("morning", "afternoon", "evening")
 
+# Minimum spacing before the same subject is asked another open question.
+# Must stay below the gap between adjacent check-in slots (≈8-10h for the
+# morning/evening pairing) so the second daily check-in can still ask.
+FACET_ASK_COOLDOWN_HOURS = 6
+
 
 # ---------------------------------------------------------------------------
 # Cadence state
@@ -609,6 +614,15 @@ def build_checkin_features(
     features.posture_history_last_5 = posture_history
     features.subject_avg_tokens_14d = subject_avg_tokens_14d
     features.time_since_last_subject_msg_sec = time_since_last_msg
+    # Spacing anchor: prefer the freshest of (cadence-state DB, decision log).
+    # The live no-agent cron loop never replays the log into the DB, so the DB
+    # column is usually stale/None; the log carries every dispatched delivery.
+    log_initiative_at = _last_delivered_initiative_at_from_log(subject_id, relic_home)
+    if log_initiative_at is not None and (
+        features.last_delivered_initiative_at is None
+        or log_initiative_at > features.last_delivered_initiative_at
+    ):
+        features.last_delivered_initiative_at = log_initiative_at
     if features.last_delivered_initiative_at is not None:
         try:
             features.time_since_last_initiative_sec = max(
@@ -715,7 +729,7 @@ def _load_facet_state(
     if row:
         facet_id, asked_at_raw = row[0], row[1]
         asked_at = _to_dt(asked_at_raw)
-        if asked_at is not None and (now - asked_at) < timedelta(hours=12):
+        if asked_at is not None and (now - asked_at) < timedelta(hours=FACET_ASK_COOLDOWN_HOURS):
             return "asked_recently", True
 
     try:
@@ -794,6 +808,49 @@ def _count_today_initiatives_by_type(
     except OSError:
         return 0
     return count
+
+
+def _last_delivered_initiative_at_from_log(
+    subject_id: str,
+    relic_home: Path,
+) -> Optional[datetime]:
+    """Return the most recent delivered-initiative timestamp from the log.
+
+    The cadence-state DB column ``last_delivered_initiative_at`` is only written
+    by the replay/reconciler path, which does not run in the live no-agent cron
+    loop. The dispatcher, however, always appends a ``delivered`` event to
+    ``decision_events.jsonl``. Reading the log directly keeps the inter-initiative
+    spacing gate accurate regardless of whether the DB was replayed.
+    Returns None on missing file / parse errors.
+    """
+    log_path = Path(relic_home) / "decision_events.jsonl"
+    if not log_path.exists():
+        return None
+    latest: Optional[datetime] = None
+    try:
+        with open(log_path, "r", encoding="utf-8") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    row = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if row.get("subject_id") != subject_id:
+                    continue
+                if row.get("decision") != "DELIVER":
+                    continue
+                if row.get("outcome_status") != "delivered":
+                    continue
+                delivered_at = _to_dt(row.get("delivered_at"))
+                if delivered_at is None:
+                    continue
+                if latest is None or delivered_at > latest:
+                    latest = delivered_at
+    except OSError:
+        return None
+    return latest
 
 
 def _zoneinfo_or_default(timezone_name: str | None) -> ZoneInfo:

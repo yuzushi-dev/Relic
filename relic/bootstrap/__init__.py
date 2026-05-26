@@ -52,6 +52,36 @@ def _clamp(value: float) -> float:
     return max(0.0, min(1.0, round(float(value), 3)))
 
 
+def _initiative_cap(
+    *,
+    checkin_slots: object,
+    proactive_tolerance: float,
+    checkin_tolerance: float,
+) -> int:
+    """Daily initiative ceiling.
+
+    When explicit check-in slots are configured, the cap is derived from the
+    intended cadence: one initiative per check-in slot plus an ambient budget
+    (diegetic + proactive) scaled by proactive-contact tolerance. A morning +
+    evening subject who is comfortable with proactive contact therefore gets
+    room for 2 check-ins + 1 diegetic + 1 proactive = 4.
+
+    When no slots are configured the legacy conservative default applies
+    (1 + checkin tolerance, ≤ 2), preserving prior behaviour.
+    """
+    slots = [s for s in (checkin_slots or []) if s] if isinstance(checkin_slots, (list, tuple, set)) else []
+    n_slots = len(slots)
+    if not n_slots:
+        return 1 + round(_clamp(checkin_tolerance))
+    if proactive_tolerance < 0.40:
+        ambient = 0
+    elif proactive_tolerance < 0.70:
+        ambient = 1
+    else:
+        ambient = 2
+    return n_slots + ambient
+
+
 def _common(subject_id: str, experiment_id: str) -> dict[str, Any]:
     return {
         "schema_version": SCHEMA_VERSION,
@@ -209,7 +239,17 @@ def subject_data_from_bootstrap_state(
             "diegetic_life_fragments_allowed": False,
             # Derived from initiative comfort when present, otherwise the legacy
             # permission answer. build_pr28_bootstrap_outputs further caps this.
-            "maximum_daily_initiatives": 1 + round(scaled_checkin_tolerance),
+            # With explicit check-in slots the cap scales to fit one initiative
+            # per slot plus an ambient (diegetic/proactive) budget.
+            "maximum_daily_initiatives": _initiative_cap(
+                checkin_slots=(
+                    delivery_config.get("checkin_slots")
+                    or boundaries.get("checkin_slots")
+                    or []
+                ),
+                proactive_tolerance=scaled_proactive_tolerance,
+                checkin_tolerance=scaled_checkin_tolerance,
+            ),
             "opt_out_categories": list(opt_out_values),
             "quiet_hours": delivery_config.get("quiet_hours")
             or boundaries.get("quiet_hours", {"start": "22:00", "end": "08:00", "timezone": "Europe/Rome"}),
@@ -330,7 +370,17 @@ def build_pr28_bootstrap_outputs(
     music = _clamp(interaction["music_tolerance"])
     challenge = _clamp(interaction.get("challenge_tolerance", 0.50))
     careful_distancing = bool(boundary_input.get("careful_distancing_enabled", True)) or attachment_anxiety >= 0.70
-    max_daily = min(int(boundary_input.get("maximum_daily_initiatives", 1)), 1 if proactive < 0.40 else 2)
+    _checkin_slots_in = boundary_input.get("checkin_slots") or []
+    if _checkin_slots_in:
+        # Slot-aware ceiling: room for one initiative per slot + ambient budget.
+        _ceiling = _initiative_cap(
+            checkin_slots=_checkin_slots_in,
+            proactive_tolerance=proactive,
+            checkin_tolerance=0.0,
+        )
+        max_daily = min(int(boundary_input.get("maximum_daily_initiatives", _ceiling)), _ceiling)
+    else:
+        max_daily = min(int(boundary_input.get("maximum_daily_initiatives", 1)), 1 if proactive < 0.40 else 2)
 
     relational_profile = {
         **common,

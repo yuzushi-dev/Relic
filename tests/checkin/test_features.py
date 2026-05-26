@@ -423,7 +423,11 @@ def test_build_features_populates_initiative_spacing_and_per_type_daily_counts(t
         now=now,
     )
 
-    assert features.time_since_last_initiative_sec == 6 * 3600
+    # Spacing now tracks the freshest *actual* delivery from the decision log
+    # (the diegetic delivered 1h ago), not the stale cadence-state DB value (6h).
+    # The live no-agent cron loop never replays the log into the DB, so the log
+    # is the authoritative source for inter-initiative spacing.
+    assert features.time_since_last_initiative_sec == 1 * 3600
     assert features.daily_initiatives_today == 3
     assert features.proactive_today == 1
     assert features.diegetic_today == 1

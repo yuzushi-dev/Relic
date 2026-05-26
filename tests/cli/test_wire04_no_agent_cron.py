@@ -275,8 +275,11 @@ def test_bootstrap_tui_calls_provision_for_subject_after_hermes_provisioning(
 
     monkeypatch.setattr(registry, "generate_gumi_background", fake_generate_gumi_background)
 
-    # Minimal inputs for the remaining yes/no prompts.
+    # Minimal inputs for the remaining yes/no prompts, in the order run_init asks
+    # them. The researcher-coded-overrides confirm precedes the hermes-provision
+    # confirm, so it must be answered first or the "yes" lands on the wrong prompt.
     inputs = "\n".join([
+        "no",                   # researcher-coded overrides (keep battery-derived)
         "yes",                  # hermes provision
         "no",                   # first_message_gate
     ]) + "\n"
