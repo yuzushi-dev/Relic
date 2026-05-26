@@ -66,7 +66,7 @@ docker build \
 
 The container uses the root `Dockerfile`, `pyproject.toml`, and `uv.lock` to
 create a Python/uv evaluation environment. The default command runs the
-scientific defensibility gate, which is expected to remain blocked until the
+evidence sufficiency gate, which is expected to remain blocked until the
 external evidence artifacts are supplied.
 
 For the single local claim-readiness workflow:
@@ -80,7 +80,7 @@ python scripts/scientific_claim_readiness.py \
 
 This writes `scientific-claim-readiness-run.json`, command logs, the environment
 manifest, reproducibility snapshot, mock runtime telemetry artifact, and the
-scientific defensibility gate output. It also writes
+evidence sufficiency gate output. It also writes
 `scientific-observation-remediation-audit.json`, which maps the gaps in
 `docs/relic_gumi_scientific_observations` to current local evidence and external
 blockers. `full` mode also runs compilation,
@@ -88,7 +88,7 @@ privacy-marker scan, whitespace diff check, the broad scientific test surface,
 generates `scientific-surface-coverage.json` with pytest-cov, and builds the
 root Docker image. The coverage file is test-execution evidence for the local
 scientific surface; it is not human, live-provider, or deployment evidence. The
-command exits non-zero while the defensibility gate is blocked; that non-zero
+command exits non-zero while the evidence sufficiency gate is blocked; that non-zero
 exit is expected until the external evidence artifacts are supplied. Use
 `--mode smoke` only for a quick artifact exercisability check.
 
@@ -109,7 +109,7 @@ For the maximum local-only evidence package:
 python scripts/eval_run.py --experiment scientific_local_evidence_package --json
 ```
 
-This package feeds the scientific defensibility gate with the controlled
+This package feeds the evidence sufficiency gate with the controlled
 governance benchmark and deterministic mock-gateway runtime telemetry. It should
 satisfy those two local requirements while still exiting non-zero because live
 provider generation, human annotation, expert red-team, longitudinal pilot, and
@@ -251,7 +251,7 @@ statistics plus condition summaries after validation.
 The results report's `claim_scope` is `imported_human_annotation_results`. It
 summarizes caller-supplied ratings; it does not by itself verify recruitment,
 annotator qualifications, or that the ratings came from independent humans.
-The scientific defensibility gate also requires complete reliability metrics:
+The evidence sufficiency gate also requires complete reliability metrics:
 all binary labels need percent agreement of at least `0.80` and Krippendorff
 alpha of at least `0.667`, and all Likert dimensions need ICC(2,k) of at least
 `0.75`.
@@ -263,8 +263,7 @@ python scripts/eval_run.py --experiment longitudinal_pilot_protocol --json
 ```
 
 Imported longitudinal pilot results must keep the `claim_scope`
-`imported_nonclinical_pilot_results` to satisfy the scientific defensibility
-gate. Imported Workbench task-study results must use
+`imported_nonclinical_pilot_results` to satisfy the Evidence Sufficiency Gate. Imported Workbench task-study results must use
 `imported_workbench_usability_results`.
 
 This emits `longitudinal_nonclinical_pilot_v1`, a machine-readable protocol for
@@ -296,7 +295,7 @@ measures, required Workbench tasks, and excludes raw or clinical outcome fields.
 The results report's `claim_scope` is `imported_nonclinical_pilot_results`. It
 is descriptive feasibility evidence only; it does not support diagnosis,
 treatment, crisis-support, clinical outcome, or causal efficacy claims.
-The scientific defensibility gate also requires progression-style feasibility
+The evidence sufficiency gate also requires progression-style feasibility
 signals: completion rate at least `0.80`, withdrawal rate at most `0.20`,
 Workbench task success rate at least `0.80`, zero critical errors, and nonzero
 system events.
@@ -388,7 +387,7 @@ mock-gateway artifact is useful runtime-path evidence, but it is not proof of
 production channel coverage unless the deployment manifest and capture
 procedure identify the production gateway.
 
-The scientific defensibility gate requires the validated telemetry summary to
+The evidence sufficiency gate requires the validated telemetry summary to
 include at least two traces, at least two deployment channels, and the required
 runtime path IDs `hermes_entry_transform_hook` and `cron_delivery_path`. A
 single valid trace or a single isolated path remains blocked because it cannot
@@ -527,7 +526,7 @@ thresholds.
 The results report's `claim_scope` is `imported_workbench_usability_results`.
 It is formative researcher/auditor usability evidence; it does not prove runtime
 safety, participant benefit, clinical safety, or production backend completeness.
-The scientific defensibility gate requires the configured Workbench thresholds
+The evidence sufficiency gate requires the configured Workbench thresholds
 to pass, with task success at least `0.80`, median SUS at least `68`, median raw
 NASA-TLX at most `50`, median post-task difficulty at most `3`, and no critical
 errors.
@@ -570,7 +569,7 @@ output hashes, complete reviewer labels, and no raw or clinical-claim fields.
 The results report's `claim_scope` is `imported_expert_red_team_results`. It is
 expert boundary-review evidence for tested cases and model outputs only; it is
 not clinical validation and does not support diagnostic, therapeutic, or crisis
-support claims. The scientific defensibility gate requires the report summary
+support claims. The evidence sufficiency gate requires the report summary
 to retain full risk-category coverage and at least one unsafe case; total case
 count alone is not enough.
 
