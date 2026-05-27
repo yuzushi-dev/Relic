@@ -182,7 +182,8 @@ class TestNoAgentCronEmitsDecisionEvent:
         ) as mock_path_cls:
             mock_path_cls.return_value = mock_path_instance
 
-            with patch("builtins.open", MagicMock()) as mock_open:
+            with patch("builtins.open", MagicMock()) as mock_open, \
+                 patch("relic.gumi_plugin.cron_wiring.os.fsync"):
                 mock_file = MagicMock()
                 mock_file.__enter__ = MagicMock(return_value=mock_file)
                 mock_file.__exit__ = MagicMock(return_value=None)
