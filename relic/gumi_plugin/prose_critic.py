@@ -34,6 +34,8 @@ _BANNED_PHRASES: list[tuple[str, re.Pattern[str]]] = [
         r"|è importante (notare|ricordare|sottolineare)"
         r"|vale la pena (notare|ricordare|sottolineare)"
         r"|va (notato|detto|ricordato) che"
+        r"|emerge chiaramente|possiamo affermare che|resta inteso che"
+        r"|spero che questo messaggio ti trovi bene"
         r"|in (conclusione|sintesi|definitiva))\b", re.I)),
     ("ai_cliche", re.compile(
         # English first
@@ -43,6 +45,8 @@ _BANNED_PHRASES: list[tuple[str, re.Pattern[str]]] = [
         r"|in the (realm|world) of"
         # Italian
         r"|nel (mondo|panorama) (di|del|della)"
+        r"|valore aggiunto|senza precedenti|in continua evoluzione"
+        r"|a lungo termine|panorama attuale"
         r"|un viaggio (attraverso|nel))\b", re.I)),
     ("hedging_filler", re.compile(
         # English first
@@ -70,7 +74,8 @@ _RHETORICAL_SETUP_RE = re.compile(
     # English first, then Italian
     r"\b(have you ever (wondered|thought)|do you (know|ever wonder)"
     r"|here'?s the (thing|truth)|the (truth|thing) is"
-    r"|ti sei mai (chiesto|domandato)|sai (qual è|cosa)|la verità è che)\b", re.I)
+    r"|ti sei mai (chiesto|domandato)|sai (qual è|cosa)|la verità è che"
+    r"|chi (di noi )?non (vorrebbe|desidera|vuole|sogna))\b", re.I)
 _EM_DASH_RE = re.compile(r"\s—\s")
 
 # Score model: start at MAX, subtract a fixed cost per matched violation,
@@ -80,8 +85,12 @@ _MAX_SCORE = 50
 _PHRASE_COST = 6
 _STRUCTURE_COST = 5
 _EM_DASH_COST = 3
-# Default review threshold (advisory): mirrors stop-slop's 35/50 cutoff.
-DEFAULT_THRESHOLD = 35
+# Default review threshold (advisory). Calibrated offline against a gemma
+# judge over a generated Italian Gumi-style corpus (scripts/prose_calibration.py):
+# n=19, Youden J=0.70 at this cutoff (gemma natural>=50 vs slop<50). Replaces the
+# original stop-slop 35/50 default, which left dense Italian slop above the line.
+# Still advisory: hard_block is off by default; re-run calibration as corpus grows.
+DEFAULT_THRESHOLD = 45
 
 
 @dataclass(frozen=True)
@@ -112,17 +121,23 @@ class ProseCritic:
         violations: list[str] = []
         score = _MAX_SCORE
 
+        # Score by occurrence count (density), not mere presence: dense slop
+        # must lose more than a single passing tell. The violations list stays
+        # deduplicated (one code per category) for readability.
         for code, pattern in _BANNED_PHRASES:
-            if pattern.search(text):
+            hits = len(pattern.findall(text))
+            if hits:
                 violations.append(code)
-                score -= _PHRASE_COST
+                score -= _PHRASE_COST * hits
 
-        if _BINARY_CONTRAST_RE.search(text):
+        binary_hits = len(_BINARY_CONTRAST_RE.findall(text))
+        if binary_hits:
             violations.append("binary_contrast")
-            score -= _STRUCTURE_COST
-        if _RHETORICAL_SETUP_RE.search(text):
+            score -= _STRUCTURE_COST * binary_hits
+        rhetorical_hits = len(_RHETORICAL_SETUP_RE.findall(text))
+        if rhetorical_hits:
             violations.append("rhetorical_setup")
-            score -= _STRUCTURE_COST
+            score -= _STRUCTURE_COST * rhetorical_hits
 
         em_dashes = len(_EM_DASH_RE.findall(text))
         if em_dashes:

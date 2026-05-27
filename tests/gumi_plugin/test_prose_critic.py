@@ -91,6 +91,23 @@ class TestProseCritic:
         v = ProseCritic().review("Have you ever wondered why this happens?")
         assert "rhetorical_setup" in v.violations
 
+    def test_density_scored_by_occurrence(self) -> None:
+        # More tells of the same kind → lower score (density, not mere presence).
+        one = ProseCritic().review("In conclusione, è andata bene.")
+        many = ProseCritic().review(
+            "In conclusione, è importante notare che, in definitiva, vale la pena ricordare."
+        )
+        assert many.score < one.score
+
+    def test_real_italian_slop_below_clean(self) -> None:
+        slop = ProseCritic().review(
+            "In conclusione, possiamo affermare che tale dinamica sia essenziale "
+            "per navigare le complessità del panorama attuale."
+        )
+        clean = ProseCritic().review("Ehi, come è andata oggi?")
+        assert slop.score < clean.score
+        assert clean.score == 50
+
     def test_score_floors_at_zero(self) -> None:
         text = SLOP + " " + SLOP + " — — — non solo A ma anche B. La verità è che..."
         v = ProseCritic().review(text)
