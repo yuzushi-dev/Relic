@@ -19,8 +19,76 @@ import pytest
 from relic.hermes_plugin.context_injection import (
     inject_context,
     _build_user_private_facts,
+    _gender_agreement_directive,
     _load_subject_profile_fields,
 )
+
+
+class TestGenderAgreementDirective:
+    @pytest.mark.parametrize("value", ["male", "maschio", "Uomo", "M"])
+    def test_masculine_variants(self, value: str) -> None:
+        out = _gender_agreement_directive(value)
+        assert out is not None and "maschile" in out and "lui" in out
+
+    @pytest.mark.parametrize("value", ["female", "femmina", "Donna", "F"])
+    def test_feminine_variants(self, value: str) -> None:
+        out = _gender_agreement_directive(value)
+        assert out is not None and "femminile" in out and "lei" in out
+
+    @pytest.mark.parametrize("value", ["non-binary", "non binario", "genderqueer", "agender"])
+    def test_nonbinary_stays_neutral(self, value: str) -> None:
+        out = _gender_agreement_directive(value)
+        assert out is not None and "non binario" in out
+        assert "lui" not in out and "lei" not in out
+
+    def test_unknown_value_surfaced_neutral(self) -> None:
+        out = _gender_agreement_directive("two-spirit")
+        assert out is not None and "two-spirit" in out and "neutre" in out
+
+    @pytest.mark.parametrize("value", [None, "", "   "])
+    def test_empty_returns_none(self, value: str | None) -> None:
+        assert _gender_agreement_directive(value) is None
+
+    @pytest.mark.parametrize("p", ["lui", "He/Him"])
+    def test_explicit_masculine_pronoun(self, p: str) -> None:
+        out = _gender_agreement_directive(None, preferred_pronoun=p)
+        assert out is not None and "lui" in out and "maschile" in out
+
+    @pytest.mark.parametrize("p", ["lei", "she/her"])
+    def test_explicit_feminine_pronoun(self, p: str) -> None:
+        out = _gender_agreement_directive(None, preferred_pronoun=p)
+        assert out is not None and "lei" in out and "femminile" in out
+
+    def test_pronoun_overrides_gender_identity(self) -> None:
+        # Non-binary identity but explicit "lei" → feminine agreement wins.
+        out = _gender_agreement_directive("non-binary", preferred_pronoun="lei")
+        assert out is not None and "femminile" in out
+        assert "non binario" not in out
+
+    def test_custom_pronoun_surfaced(self) -> None:
+        out = _gender_agreement_directive("non-binary", preferred_pronoun="ə")
+        assert out is not None and "ə" in out and "neutre" in out
+
+    def test_pronoun_injected_into_private_facts(self) -> None:
+        fields = {
+            "preferred_name": "Alex",
+            "gender_identity": "non-binary",
+            "preferred_pronoun": "lui",
+            "interaction_preferences": {},
+            "relational_expectations": {},
+        }
+        result = _build_user_private_facts(fields)
+        assert "lui" in result and "maschile" in result
+
+    def test_directive_injected_into_private_facts(self) -> None:
+        fields = {
+            "preferred_name": "Sara",
+            "gender_identity": "female",
+            "interaction_preferences": {},
+            "relational_expectations": {},
+        }
+        result = _build_user_private_facts(fields)
+        assert "femminile" in result and "lei" in result
 
 
 class TestBuildUserPrivateFacts:

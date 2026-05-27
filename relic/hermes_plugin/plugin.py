@@ -181,6 +181,27 @@ class RelicHermesPlugin:
 
             gumi_hooks.register(gumi_hooks.POST_LLM_CALL, _post_llm_handler)
 
+            # Wire ProseCritic as an observe-only post_llm_call scorer: it scores
+            # prose quality + AI-tell violations but never blocks delivery
+            # (threshold not yet calibrated on real Italian Gumi output).
+            from relic.gumi_plugin.prose_critic import ProseCritic
+            _prose_critic = ProseCritic()
+
+            def _post_llm_prose_handler(payload: dict) -> dict:
+                """Fail-open prose-quality observer — score only, never blocks."""
+                try:
+                    text = payload.get("assistant_response", "") or ""
+                    verdict = _prose_critic.review(text)
+                    return {
+                        "prose_score": verdict.score,
+                        "prose_reason": verdict.reason,
+                        "prose_violations": verdict.violations,
+                    }
+                except Exception:
+                    return {}
+
+            gumi_hooks.register(gumi_hooks.POST_LLM_CALL, _post_llm_prose_handler)
+
             # Wire RelicMemoryProvider as pre/post_llm_call hooks (Fix B).
             # subject_id sourced from config first, then RELIC_SUBJECT_ID env var.
             import os as _os

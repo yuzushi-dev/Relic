@@ -567,8 +567,8 @@ class BootstrapTUI:
                 pass
 
         sr_new_fields = [
-            "preferred_name", "age_range", "gender_identity", "language",
-            "occupation_or_study", "location", "family_structure",
+            "preferred_name", "age_range", "gender_identity", "preferred_pronoun",
+            "language", "occupation_or_study", "location", "family_structure",
             "narrative_self_description", "contact_channel_preference",
         ]
         if any(f not in sr for f in sr_new_fields):
@@ -617,8 +617,8 @@ class BootstrapTUI:
         # self_report_fields
         sr = bl.get("self_report_fields", {})
         sr_new_fields = [
-            "preferred_name", "age_range", "gender_identity", "language",
-            "occupation_or_study", "location", "family_structure",
+            "preferred_name", "age_range", "gender_identity", "preferred_pronoun",
+            "language", "occupation_or_study", "location", "family_structure",
             "narrative_self_description", "contact_channel_preference",
         ]
         if any(f not in sr for f in sr_new_fields):

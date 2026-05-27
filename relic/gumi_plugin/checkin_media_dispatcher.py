@@ -343,6 +343,30 @@ def _critic_block_reason(text: str) -> Optional[str]:
         return None
 
 
+def _prose_block_reason(text: str) -> Optional[str]:
+    """Delivery-time prose-quality scorer (AI-tell detection).
+
+    Observe-only by default: logs score + violations to stderr and returns None
+    (never blocks). Hard block is opt-in via RELIC_PROSE_HARD_BLOCK=1, gated by
+    a threshold not yet calibrated on real Italian Gumi output. Fail-open: any
+    error allows delivery so the runtime never blocks on the scorer itself.
+    """
+    try:
+        from relic.gumi_plugin.prose_critic import ProseCritic
+
+        hard = os.environ.get("RELIC_PROSE_HARD_BLOCK", "").strip().lower() in {"1", "true", "yes"}
+        verdict = ProseCritic(hard_block=hard).review(text or "")
+        if verdict.violations:
+            print(
+                f"[dispatch] prose_critic score={verdict.score} "
+                f"reason={verdict.reason} violations={','.join(verdict.violations)}",
+                file=sys.stderr,
+            )
+        return None if verdict.allow else f"prose:{verdict.reason}"
+    except Exception:
+        return None
+
+
 def _event_kind_for_decision_type(decision_type: str) -> str:
     if decision_type == "proactivity":
         return "proactive"
@@ -428,6 +452,15 @@ def dispatch(
             file=sys.stderr,
         )
         return {"tipo": tipo, "success": False, "reason": f"critic_blocked:{block_reason}"}
+
+    # Delivery-time prose-quality scorer (observe-only unless RELIC_PROSE_HARD_BLOCK).
+    prose_reason = _prose_block_reason(testo)
+    if prose_reason:
+        print(
+            f"[dispatch] blocked by prose critic: {prose_reason} — silent drop",
+            file=sys.stderr,
+        )
+        return {"tipo": tipo, "success": False, "reason": f"prose_blocked:{prose_reason}"}
 
     api_key = _get_api_key()
 

@@ -21,6 +21,12 @@ _FIELDS = [
         str,
     ),
     (
+        "preferred_pronoun",
+        "Pronome con cui riferirsi al soggetto in italiano (lui / lei / forme neutre). "
+        "Determina l'accordo grammaticale; utile soprattutto se non-binary. Skippabile.",
+        str,
+    ),
+    (
         "language",
         "Lingua principale del soggetto (es. it, en, fr). Codice ISO 639-1 o nome esteso.",
         str,

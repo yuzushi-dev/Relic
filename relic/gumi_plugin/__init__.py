@@ -10,6 +10,7 @@ from relic.gumi_plugin.admission import AdmissionPolicy, AdmissionVerdict
 from relic.gumi_plugin.continuity import ContinuityCompactor
 from relic.gumi_plugin.storage import GumiStorage
 from relic.gumi_plugin.critic import OutputCritic, CriticVerdict
+from relic.gumi_plugin.prose_critic import ProseCritic, ProseVerdict
 from relic.gumi_plugin.cron_tasks import CronJob, list_cron_jobs
 
 __all__ = [
@@ -21,6 +22,8 @@ __all__ = [
     "GumiStorage",
     "OutputCritic",
     "CriticVerdict",
+    "ProseCritic",
+    "ProseVerdict",
     "CronJob",
     "list_cron_jobs",
 ]

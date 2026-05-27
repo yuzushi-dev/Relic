@@ -74,6 +74,68 @@ def _load_subject_profile_fields(subject_id: str) -> dict[str, Any]:
         return {}
 
 
+# Subject gender_identity → Italian grammatical-agreement directive.
+# Italian agreement (lui/lei, aggettivi, participi) is gendered, so the model
+# must be told explicitly how to refer to the subject. Keys are normalised
+# (lowercased, stripped); values are free-text from self-report, so we map both
+# English and Italian variants and fall back to a neutral directive.
+_MASCULINE_GENDER = {"male", "maschio", "maschile", "uomo", "man", "m"}
+_FEMININE_GENDER = {"female", "femmina", "femminile", "donna", "woman", "f"}
+_NONBINARY_GENDER = {
+    "non-binary", "non binary", "nonbinary", "non-binario", "non binario",
+    "genderqueer", "genderfluid", "fluid", "fluido", "agender", "agenere",
+    "gender non-conforming", "altro", "other",
+}
+
+
+_MASCULINE_PRONOUN = {"lui", "lui/lei→lui", "he", "him", "he/him"}
+_FEMININE_PRONOUN = {"lei", "she", "her", "she/her"}
+
+
+def _gender_agreement_directive(
+    gender_identity: str | None, preferred_pronoun: str | None = None
+) -> str | None:
+    """Return an explicit Italian-agreement instruction for the subject.
+
+    An explicit `preferred_pronoun` takes precedence over inference from
+    `gender_identity` (decisive for non-binary subjects, who can pick lui/lei
+    or neutral forms regardless of identity). Returns None when nothing is set.
+    """
+    # Explicit pronoun wins when present.
+    if preferred_pronoun:
+        pkey = str(preferred_pronoun).strip().lower()
+        if pkey in _MASCULINE_PRONOUN:
+            return ("Pronome del soggetto: lui. Riferisciti al soggetto al "
+                    "maschile (aggettivi e participi al maschile).")
+        if pkey in _FEMININE_PRONOUN:
+            return ("Pronome del soggetto: lei. Riferisciti al soggetto al "
+                    "femminile (aggettivi e participi al femminile).")
+        if pkey:
+            return (f"Pronome del soggetto (come dichiarato): {preferred_pronoun}. "
+                    "Rispetta questa forma; in caso di dubbio sull'accordo usa "
+                    "forme neutre o la seconda persona.")
+    if not gender_identity:
+        return None
+    key = str(gender_identity).strip().lower()
+    if not key:
+        return None
+    if key in _MASCULINE_GENDER:
+        return ("Genere del soggetto: maschile. Riferisciti al soggetto al "
+                "maschile (lui; aggettivi e participi al maschile).")
+    if key in _FEMININE_GENDER:
+        return ("Genere del soggetto: femminile. Riferisciti al soggetto al "
+                "femminile (lei; aggettivi e participi al femminile).")
+    if key in _NONBINARY_GENDER:
+        return ("Genere del soggetto: non binario. Non assumere un genere "
+                "grammaticale: rivolgiti direttamente in seconda persona o "
+                "riformula in modo neutro, evitando aggettivi e participi "
+                "marcati al maschile o femminile.")
+    # Unrecognised free-text value: surface it verbatim and stay neutral.
+    return (f"Genere del soggetto (come dichiarato): {gender_identity}. "
+            "In caso di dubbio sull'accordo grammaticale, usa forme neutre o "
+            "la seconda persona.")
+
+
 def _build_user_private_facts(fields: dict[str, Any]) -> str:
     """Build a redacted system-guidance block from collected profile fields.
 
@@ -95,6 +157,12 @@ def _build_user_private_facts(fields: dict[str, Any]) -> str:
     preferred_name = _srval("preferred_name")
     if preferred_name:
         lines.append(f"Nome preferito: {preferred_name}")
+
+    gender_directive = _gender_agreement_directive(
+        _srval("gender_identity"), preferred_pronoun=_srval("preferred_pronoun")
+    )
+    if gender_directive:
+        lines.append(gender_directive)
 
     language = _srval("language")
     if language:
