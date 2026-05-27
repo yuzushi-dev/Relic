@@ -8,6 +8,7 @@ Falls back to minimal template renderers if Ollama is unavailable.
 from __future__ import annotations
 
 import json
+import re
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
@@ -44,6 +45,84 @@ _REQUIRED_SOUL_SECTIONS = [
     "diegetic",         # diegetic life reference
     "not",              # negative boundary (what Gumi is NOT)
 ]
+
+# Third-person verbs that appear in the persona templates and need their
+# singular -s dropped when the persona uses singular "they".
+_THEY_VERB_DESINGULARIZE = {
+    "is": "are", "was": "were", "has": "have", "does": "do", "goes": "go",
+    "maintains": "maintain", "lives": "live", "draws": "draw", "treats": "treat",
+    "matches": "match", "varies": "vary", "rotates": "rotate", "redirects": "redirect",
+    "recalls": "recall", "uses": "use", "knows": "know", "stays": "stay",
+    "dives": "dive", "leaves": "leave", "finds": "find", "cuts": "cut",
+    "responds": "respond", "repeats": "repeat", "says": "say", "wears": "wear",
+    "mentions": "mention", "presents": "present", "engages": "engage",
+    "speaks": "speak", "fills": "fill", "opens": "open", "starts": "start",
+    "describes": "describe", "narrates": "narrate", "invites": "invite",
+    "suggests": "suggest", "fabricates": "fabricate", "claims": "claim",
+    "enumerates": "enumerate", "ends": "end", "needs": "need",
+}
+
+
+def _persona_pronouns(gender_expr: str) -> dict[str, str] | None:
+    """Map a persona's ``gender_expression`` to third-person pronouns.
+
+    Returns ``None`` for feminine/unspecified expressions, which keep the
+    templates' default feminine wording unchanged. Masculine maps to he/his
+    (verb-safe: 3rd-person singular conjugation matches she). Other expressions
+    (non-conforming, androgynous, non-binary) map to singular they.
+    """
+    g = (gender_expr or "").lower()
+    if "masc" in g or g in {"male", "man"}:
+        return {"subj": "he", "poss": "his", "obj": "him", "refl": "himself", "plural": ""}
+    if "femin" in g or g in {"female", "woman"} or not g:
+        return None
+    # non-conforming / androgynous / non-binary / unknown → singular they
+    return {"subj": "they", "poss": "their", "obj": "them", "refl": "themselves", "plural": "1"}
+
+
+# Verbs/prepositions after which a following "her" is the object form (→ him/them),
+# as opposed to the far more common possessive determiner ("her world" → his/their).
+_OBJECT_HER = re.compile(
+    r"\b(visit|tell|ask|meet|join|see|call|with|to|for|of|about|near|than|like|let|invite)\s+her\b",
+    re.IGNORECASE,
+)
+
+
+def _conform_persona_pronouns(text: str, gender_expr: str) -> str:
+    """Rewrite the templates' default feminine pronouns to match the persona's gender.
+
+    The persona templates are authored with she/her; this conforms the final
+    generated text (LLM or fallback) so a masculine or non-binary persona does
+    not refer to itself with the wrong pronouns. No-op for feminine personas.
+    """
+    p = _persona_pronouns(gender_expr)
+    if not p or not text:
+        return text
+
+    def _case(repl: str, sample: str) -> str:
+        return repl.capitalize() if sample[:1].isupper() else repl
+
+    # Object "her" first (verb/preposition + her) → him/them.
+    text = _OBJECT_HER.sub(lambda m: f"{m.group(1)} {p['obj']}", text)
+    # Reflexive.
+    text = re.sub(r"\b([Hh])erself\b", lambda m: _case(p["refl"], m.group(0)), text)
+    # Remaining "her" is possessive determiner → his/their.
+    text = re.sub(r"\b([Hh])er\b", lambda m: _case(p["poss"], m.group(0)), text)
+    # Subject pronoun.
+    text = re.sub(r"\b([Ss])he\b", lambda m: _case(p["subj"], m.group(0)), text)
+
+    # Fix verb agreement for singular they (he/she keep the singular conjugation).
+    if p["plural"]:
+        def _fix_verb(m: re.Match) -> str:
+            verb = m.group(2)
+            base = _THEY_VERB_DESINGULARIZE.get(verb.lower())
+            if base is None:
+                return m.group(0)
+            return f"{m.group(1)} {base if verb.islower() else base.capitalize()}"
+
+        text = re.sub(r"\b(They|they)\s+([A-Za-z]+)\b", _fix_verb, text)
+
+    return text
 
 
 @dataclass
@@ -138,31 +217,35 @@ class OllamaNarrator:
     # Public API
     # ------------------------------------------------------------------ #
 
+    def _gender_expr(self, ctx: GumiBuildContext) -> str:
+        return ctx.domains.get("embodiment", {}).get("gender_expression", "")
+
     def generate_soul_md(self, ctx: GumiBuildContext) -> str:
         """Generate SOUL.md identity file for Gumi."""
         prompt = self._soul_prompt(ctx)
         text = self._call_llm(prompt)
-        return self._validate_and_sanitize_soul(text, ctx)
+        soul = self._validate_and_sanitize_soul(text, ctx)
+        return _conform_persona_pronouns(soul, self._gender_expr(ctx))
 
     def generate_world_md(self, ctx: GumiBuildContext) -> str:
         """Generate world.md diegetic world description."""
         prompt = self._world_prompt(ctx)
         text = self._call_llm(prompt)
-        return self._sanitize_output(text)
+        return _conform_persona_pronouns(self._sanitize_output(text), self._gender_expr(ctx))
 
     def generate_relationship_policy_md(self, ctx: GumiBuildContext) -> str:
         """Generate relationship_policy.md."""
         prompt = self._relationship_policy_prompt(ctx)
         text = self._call_llm(prompt)
-        return self._sanitize_output(text)
+        return _conform_persona_pronouns(self._sanitize_output(text), self._gender_expr(ctx))
 
     def generate_avatar_spec_md(self, ctx: GumiBuildContext) -> str:
         """Generate AVATAR_SPEC.md — visual identity anchor for image generation."""
         prompt = self._avatar_spec_prompt(ctx)
         text = self._call_llm(prompt)
         if not text:
-            return self.fallback_avatar_spec_md(ctx)
-        return self._sanitize_output(text)
+            return _conform_persona_pronouns(self.fallback_avatar_spec_md(ctx), self._gender_expr(ctx))
+        return _conform_persona_pronouns(self._sanitize_output(text), self._gender_expr(ctx))
 
     # ------------------------------------------------------------------ #
     # Prompts
