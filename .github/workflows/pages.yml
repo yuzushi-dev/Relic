@@ -45,16 +45,16 @@ jobs:
           printf '%s\n' \
             '<!doctype html>' \
             '<meta charset="utf-8">' \
-            '<meta http-equiv="refresh" content="0; url=workbench/">' \
+            '<meta http-equiv="refresh" content="0; url=dashboard/">' \
             '<title>Relic Researcher Workbench</title>' \
-            '<a href="workbench/">Open Relic Researcher Workbench</a>' \
+            '<a href="dashboard/">Open Relic Researcher Workbench</a>' \
             > "$publish_root/index.html"
           printf '%s\n' \
             '<!doctype html>' \
             '<meta charset="utf-8">' \
-            '<meta http-equiv="refresh" content="0; url=../workbench/">' \
+            '<meta http-equiv="refresh" content="0; url=../dashboard/">' \
             '<title>Relic Researcher Workbench</title>' \
-            '<a href="../workbench/">Open Relic Researcher Workbench</a>' \
+            '<a href="../dashboard/">Open Relic Researcher Workbench</a>' \
             > "$publish_root/demo/console.html"
       - uses: actions/upload-pages-artifact@v3
         with:
