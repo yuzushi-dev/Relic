@@ -31,6 +31,20 @@ _TRAILING_SYMBOL_RE = re.compile(
     r"(\s*(?:[\U0001F300-\U0001FAFF\u2600-\u27BF]\ufe0f?|\ufe0f)+\s*)$"
 )
 
+# Gate control tokens / bracketed headers that may prefix a message blob but are
+# not subject-facing prose. Used to look past them when detecting questions.
+_GATE_CONTROL_RE = re.compile(r"^(DELIVER|BLOCKED|NO_REPLY|SILENT)\b", re.IGNORECASE)
+
+
+def _strip_gate_control_lines(text: str) -> str:
+    """Drop leading gate-control/header lines so question detection sees the prose."""
+    kept = [
+        ln for ln in text.splitlines()
+        if not _GATE_CONTROL_RE.match(ln.strip())
+        and not (ln.strip().startswith("[") and ln.strip().endswith("]"))
+    ]
+    return "\n".join(kept).strip()
+
 
 def ensure_checkin_question_mark(text: str) -> str:
     """Ensure check-in questions keep an explicit question mark.
@@ -70,7 +84,7 @@ def _looks_interrogative(text: str) -> bool:
     interrogative word/phrase. Conservative on purpose — used to decide whether
     to restore a dropped question mark without inventing questions.
     """
-    body = _TRAILING_SYMBOL_RE.sub("", text).strip().lower()
+    body = _TRAILING_SYMBOL_RE.sub("", _strip_gate_control_lines(text)).strip().lower()
     if not body:
         return False
     if "?" in body:
@@ -460,9 +474,9 @@ def dispatch(
             testo = ensure_checkin_question_mark(testo)
             if parsed.get("caption"):
                 parsed["caption"] = ensure_checkin_question_mark(parsed["caption"])
-        elif decision_type == "proactivity":
-            # Proactive questions are optional — only restore a dropped "?" when
-            # the line actually reads as a question, never invent one.
+        elif decision_type in {"proactivity", "diegetic"}:
+            # Proactive/diegetic questions are optional — only restore a dropped
+            # "?" when the line actually reads as a question, never invent one.
             testo = ensure_question_mark_if_interrogative(testo)
             if parsed.get("caption"):
                 parsed["caption"] = ensure_question_mark_if_interrogative(parsed["caption"])

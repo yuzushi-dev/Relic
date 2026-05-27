@@ -125,6 +125,24 @@ def test_dispatch_text_prints_to_stdout(tmp_path: Path, capsys: pytest.CaptureFi
     assert result["success"] is True
 
 
+def test_dispatch_diegetic_interrogative_restores_question_mark(
+    tmp_path: Path, capsys: pytest.CaptureFixture
+) -> None:
+    hermes_home = tmp_path / "hermes"
+    relic_home = tmp_path / "relic"
+    hermes_home.mkdir()
+    relic_home.mkdir()
+
+    # Diegetic line that reads as a question but lost its "?" must be restored.
+    llm_output = "DELIVER\ntipo: text\nora: 10:00 CEST\nCome va la tua giornata"
+    result = dispatch(
+        llm_output, hermes_home, relic_home, "test_subject", decision_type="diegetic"
+    )
+    captured = capsys.readouterr()
+    assert "Come va la tua giornata?" in captured.out
+    assert result["success"] is True
+
+
 def test_dispatch_voice_with_mock(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
     hermes_home = tmp_path / "hermes"
     relic_home = tmp_path / "relic"
