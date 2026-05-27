@@ -820,7 +820,7 @@ class BootstrapTUI:
                         agent_name=agent_name, background=background
                     )
                     ollama_endpoint = _os.environ.get("RELIC_OLLAMA_ENDPOINT", "http://localhost:11434/v1")
-                    ollama_model = _os.environ.get("RELIC_OLLAMA_MODEL", "devstral-small-2:24b-cloud")
+                    ollama_model = _os.environ.get("RELIC_OLLAMA_MODEL", "gemma4:31b-cloud")
                     narrator = OllamaNarrator(endpoint=ollama_endpoint, model=ollama_model)
                     if narrator.is_available():
                         world_text = narrator.generate_world_md(ctx)

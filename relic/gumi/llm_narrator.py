@@ -123,7 +123,7 @@ class OllamaNarrator:
     """
 
     DEFAULT_ENDPOINT = "http://localhost:11434/v1"
-    DEFAULT_MODEL = "qwen3:latest"
+    DEFAULT_MODEL = "gemma4:31b-cloud"
     TIMEOUT = 120
 
     def __init__(

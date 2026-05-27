@@ -218,6 +218,30 @@ function readRiskData(profile: LiveSubjectProfile): LiveRiskData {
   return { severity, flag_count, flags };
 }
 
+// ---------------------------------------------------------------------------
+// Subject DB (per-subject relic.db) query helper
+// ---------------------------------------------------------------------------
+
+type SubjectDbRow = Record<string, unknown>;
+
+function querySubjectDb(dbPath: string, sql: string): SubjectDbRow[] {
+  if (!fs.existsSync(dbPath)) return [];
+  const python = process.env.RELIC_PYTHON || "python3";
+  try {
+    // One-liner python script: connect read-only (avoids WAL issues on ro mounts), execute, dump JSON
+    const script = `import sqlite3,json,sys;db=sqlite3.connect(f"file:{sys.argv[1]}?mode=ro&immutable=1",uri=True);db.row_factory=sqlite3.Row;rows=db.execute(sys.argv[2]).fetchall();print(json.dumps([dict(r) for r in rows]))`;
+    const out = execFileSync(python, ["-c", script, dbPath, sql], {
+      encoding: "utf8",
+      timeout: 5000,
+      maxBuffer: 8 * 1024 * 1024,
+    });
+    return JSON.parse(out) as SubjectDbRow[];
+  } catch (err) {
+    console.error(`[SubjectDb] query failed:`, (err as Error).message?.slice(0, 200));
+    return [];
+  }
+}
+
 function readConsentStatus(profile: LiveSubjectProfile): string {
   const subjectHome = profile.relic_subject_home ?? "";
   if (!subjectHome) return "not configured";
@@ -458,14 +482,51 @@ export function getGumiProfile(subjectId: string): GumiProfile | null {
   );
   const agentName = idLog?.agent_name ?? profile.hermes_profile_name?.replace("gumi-", "") ?? "Gumi";
 
+  const worldText = readText(path.join(subjectHome, "gumi_world.md"));
+  const worldFallback = hermesHome ? readText(path.join(hermesHome, "workspace", "gumi", "world.md")) : null;
+  // Synthesize world_md from background domains if the dedicated file is empty/missing
+  const worldSynthesized = (() => {
+    const domains = background?.domains ?? {};
+    if (!Object.keys(domains).length) return null;
+    const lines: string[] = ["# Gumi World Profile (synthesized from background domains)\n"];
+    for (const [domain, data] of Object.entries(domains)) {
+      lines.push(`## ${domain.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}`);
+      if (data && typeof data === "object" && !Array.isArray(data)) {
+        for (const [k, v] of Object.entries(data as Record<string, unknown>)) {
+          const val = Array.isArray(v) ? v.join(", ") : String(v);
+          lines.push(`- **${k.replace(/_/g, " ")}**: ${val}`);
+        }
+      } else {
+        lines.push(`- ${String(data)}`);
+      }
+      lines.push("");
+    }
+    return lines.join("\n");
+  })();
+  const world_md = worldText || worldFallback || worldSynthesized;
+
+  const relText = readText(path.join(subjectHome, "gumi_relationship_policy.md"));
+  const relFallback = hermesHome ? readText(path.join(hermesHome, "workspace", "gumi", "relationship_policy.md")) : null;
+  // Synthesize relationship_policy_md from boundary_policy.json if the file is empty/missing
+  const relSynthesized = (() => {
+    const bp = readJson<Record<string, unknown>>(path.join(subjectHome, "boundary_policy.json"));
+    if (!bp) return null;
+    const lines: string[] = ["# Relationship Policy (synthesized from boundary_policy.json)\n"];
+    for (const [k, v] of Object.entries(bp)) {
+      if (k === "created_at" || k === "updated_at" || k === "experiment_id") continue;
+      const val = Array.isArray(v) ? (v.length ? v.join(", ") : "none") : String(v);
+      lines.push(`- **${k.replace(/_/g, " ")}**: ${val}`);
+    }
+    return lines.join("\n");
+  })();
+  const relationship_policy_md = relText || relFallback || relSynthesized;
+
   return {
     subject_id: subjectId,
     agent_name: agentName,
     soul_md: hermesHome ? readText(path.join(hermesHome, "SOUL.md")) : null,
-    world_md: hermesHome ? readText(path.join(hermesHome, "workspace", "gumi", "world.md")) : null,
-    relationship_policy_md: hermesHome
-      ? readText(path.join(hermesHome, "workspace", "gumi", "relationship_policy.md"))
-      : null,
+    world_md,
+    relationship_policy_md,
     domains: background?.domains ?? {},
     sweet_spot_score: sweetSpot?.sweet_spot_score ?? null,
     risk_flags: sweetSpot?.risk_flags ?? [],
@@ -592,15 +653,82 @@ export function getEventStream(subjectId: string): EventStream | null {
     });
   }
 
-  // Merge Chronicle events (deduplicate by event_id)
-  const chronicleEvents = chronicleQuery(subjectId);
-  const seen = new Set(events.map((e) => e.event_id));
-  for (const ce of chronicleEvents) {
-    if (!seen.has(ce.event_id)) {
-      events.push(ce);
-      seen.add(ce.event_id);
+  // Merge checkin_exchanges from subject relic.db (primary source of recent events)
+  const subjectDbFile = path.join(subjectHome, "relic.db");
+  if (fs.existsSync(subjectDbFile)) {
+    type CeRow = {
+      id: number; asked_at: string; reply_captured_at: string | null;
+      question_text: string; reply_text: string | null; facet_id: string | null;
+      facet_name: string | null; posture: string | null; observations_extracted: number;
+    };
+    const ceRows = querySubjectDb(subjectDbFile, `
+      SELECT ce.id, ce.asked_at, ce.reply_captured_at, ce.question_text, ce.reply_text,
+             ce.facet_id, f.name as facet_name, ce.posture, ce.observations_extracted
+      FROM checkin_exchanges ce
+      LEFT JOIN facets f ON ce.facet_id = f.id
+      ORDER BY ce.asked_at ASC
+    `) as CeRow[];
+
+    for (const row of ceRows) {
+      // Add the checkin send event
+      events.push({
+        event_id: `ce_ask_${row.id}`,
+        subject_id: subjectId,
+        gumi_instance_id: profile.hermes_profile_name || "",
+        hermes_profile_id: profile.hermes_profile_name || "",
+        event_class: "gumi_initiative",
+        ontological_class: "checkin_question",
+        timestamp: row.asked_at ?? "",
+        delivered: true,
+        decision: "DELIVER",
+        policy_snapshot: { rate_limit_mode: "auto-gated", careful_distancing: false, max_proactive_per_day: 0 },
+        source_refs: [],
+        content_preview: `[checkin] ${row.facet_name ?? row.facet_id ?? "facet"} · ${String(row.question_text ?? "").slice(0, 80)}`,
+        raw_content_availability: "none",
+        eligible_for_user_model: false,
+        eligible_for_experience_analysis: true,
+        related_inference_ids: [],
+        related_correction_ids: [],
+        initiator: "gumi",
+        risk_level: "none",
+        has_user_response: Boolean(row.reply_text),
+        has_correction: false,
+        has_boundary_risk: false,
+        has_media: false,
+      });
+      // Add reply event if present
+      if (row.reply_text && row.reply_captured_at) {
+        events.push({
+          event_id: `ce_reply_${row.id}`,
+          subject_id: subjectId,
+          gumi_instance_id: profile.hermes_profile_name || "",
+          hermes_profile_id: profile.hermes_profile_name || "",
+          event_class: "system",
+          ontological_class: "checkin_reply",
+          timestamp: row.reply_captured_at,
+          delivered: false,
+          decision: "received",
+          policy_snapshot: { rate_limit_mode: "auto-gated", careful_distancing: false, max_proactive_per_day: 0 },
+          source_refs: [],
+          content_preview: `[reply] ${row.facet_name ?? row.facet_id ?? "facet"} · obs_extracted=${row.observations_extracted ?? 0}`,
+          raw_content_availability: "none",
+          eligible_for_user_model: true,
+          eligible_for_experience_analysis: true,
+          related_inference_ids: [],
+          related_correction_ids: [],
+          initiator: "subject",
+          risk_level: "none",
+          has_user_response: true,
+          has_correction: false,
+          has_boundary_risk: false,
+          has_media: false,
+        });
+      }
     }
   }
+
+  // Deduplicate by event_id
+  const seen = new Set(events.map((e) => e.event_id));
 
   events.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
 
@@ -730,131 +858,180 @@ export function getSubjectIntelligence(subjectId: string): SubjectIntelligenceDa
   if (!profile?.relic_subject_home) return null;
 
   const subjectHome = profile.relic_subject_home;
-
-  type ScoreEntry = {
-    value?: number;
-    confidence?: string;
-    confidence_float?: number;
-    observations?: number;
-    spectrum_low?: string;
-    spectrum_high?: string;
-  };
-
-  const subjectBaseline = readJson<{
-    created_at?: string;
-    last_checkin_update?: string;
-    psychological?: Record<string, ScoreEntry>;
-    interaction?: Record<string, ScoreEntry>;
-    extended_facets?: Record<string, ScoreEntry>;
-  }>(path.join(subjectHome, "subject_baseline.json"));
+  const dbPath = path.join(subjectHome, "relic.db");
 
   const baselineProfile = readJson<{
     researcher_coded_fields?: Record<string, { value?: unknown; origin?: string }>;
     self_report_fields?: Record<string, { value?: unknown; origin?: string }>;
   }>(path.join(subjectHome, "baseline_user_profile.json"));
 
-  function scoreToFacet(k: string, v: ScoreEntry, leftAnchor: string, rightAnchor: string): SubjectIntelligenceData["facet_groups"][number]["facets"][number] {
-    const conf = v.confidence_float !== undefined
-      ? v.confidence_float
-      : (() => {
-          const s = v.confidence ?? "low_initial";
-          return s.startsWith("high") ? 0.8 : s.startsWith("medium") ? 0.5 : 0.25;
-        })();
-    return {
-      facet: k.replace(/_/g, " "),
-      position: v.value ?? 0.5,
-      confidence: conf,
-      confidence_label: conf >= 0.7 ? "high" : conf >= 0.4 ? "medium" : "low",
-      observations: v.observations ?? 0,
-      left_anchor: v.spectrum_low ?? leftAnchor,
-      right_anchor: v.spectrum_high ?? rightAnchor,
-    };
-  }
-
-  const psychFacets = Object.entries(subjectBaseline?.psychological ?? {})
-    .filter(([, v]) => typeof v.value === "number")
-    .map(([k, v]) => scoreToFacet(k, v, "low", "high"));
-
-  const interactionFacets = Object.entries(subjectBaseline?.interaction ?? {})
-    .filter(([, v]) => typeof v.value === "number")
-    .map(([k, v]) => scoreToFacet(k, v, "low", "high"));
-
-  // Group extended_facets by category prefix (e.g. "relational.x" → "relational")
-  const extendedByCategory: Record<string, SubjectIntelligenceData["facet_groups"][number]["facets"]> = {};
-  for (const [k, v] of Object.entries(subjectBaseline?.extended_facets ?? {})) {
-    if (typeof v.value !== "number") continue;
-    const cat = k.includes(".") ? k.split(".")[0] : "other";
-    const label = cat.replace(/_/g, " ");
-    if (!extendedByCategory[label]) extendedByCategory[label] = [];
-    extendedByCategory[label].push(scoreToFacet(k, v, "low", "high"));
-  }
-
-  const facet_groups: SubjectIntelligenceData["facet_groups"] = [];
-  if (psychFacets.length > 0) facet_groups.push({ group: "Psychological", facets: psychFacets });
-  if (interactionFacets.length > 0) facet_groups.push({ group: "Interaction Preferences", facets: interactionFacets });
-  for (const [cat, facets] of Object.entries(extendedByCategory)) {
-    facet_groups.push({ group: cat.charAt(0).toUpperCase() + cat.slice(1), facets });
-  }
-
-  const allFacets = [...psychFacets, ...interactionFacets, ...Object.values(extendedByCategory).flat()];
-  const topConfidence = [...allFacets].sort((a, b) => b.confidence - a.confidence).slice(0, 5).map(f => ({
-    facet: f.facet, position: f.position, confidence: f.confidence,
-    confidence_label: f.confidence_label, observations: f.observations,
-    left_anchor: f.left_anchor, right_anchor: f.right_anchor,
-  }));
-
   const rcf = baselineProfile?.researcher_coded_fields ?? {};
   const srf = baselineProfile?.self_report_fields ?? {};
-  const topTraits: string[] = [
-    rcf.communication_style?.value ? `communication: ${rcf.communication_style.value}` : "",
-    rcf.attachment_style?.value ? `attachment: ${rcf.attachment_style.value}` : "",
-    srf.gender_identity?.value ? String(srf.gender_identity.value) : "",
-    srf.occupation_or_study?.value ? String(srf.occupation_or_study.value) : "",
-    srf.contact_channel_preference?.value ? `channel: ${srf.contact_channel_preference.value}` : "",
-    srf.language?.value ? `lang: ${srf.language.value}` : "",
-  ].filter(Boolean).slice(0, 6) as string[];
 
-  const summaryParts: string[] = [];
-  if (rcf.communication_style?.value) summaryParts.push(`Communication: ${rcf.communication_style.value}`);
-  if (rcf.attachment_style?.value) summaryParts.push(`Attachment: ${rcf.attachment_style.value}`);
-  if (rcf.affect_regulation_notes?.value) summaryParts.push(String(rcf.affect_regulation_notes.value).slice(0, 120));
-  const summary = summaryParts.join(". ") || "Live behavioral data collected from subject_baseline.json.";
+  // ── Read full 60-facet model from relic.db (traits + facets tables) ─────────
+  type TraitRow = {
+    facet_id: string; value_position: number | null; confidence: number;
+    observation_count: number; name: string; category: string;
+    spectrum_low: string | null; spectrum_high: string | null; notes: string | null;
+  };
+  const traitRows = querySubjectDb(dbPath, `
+    SELECT t.facet_id, t.value_position, t.confidence, t.observation_count,
+           f.name, f.category, f.spectrum_low, f.spectrum_high, t.notes
+    FROM traits t
+    JOIN facets f ON t.facet_id = f.id
+    ORDER BY f.category, f.name
+  `) as TraitRow[];
 
+  // Group traits by category into facet_groups
+  const byCategory: Record<string, SubjectIntelligenceData["facet_groups"][number]["facets"]> = {};
+  for (const row of traitRows) {
+    const cat = (row.category ?? "other").replace(/_/g, " ");
+    const label = cat.charAt(0).toUpperCase() + cat.slice(1);
+    if (!byCategory[label]) byCategory[label] = [];
+    const conf = typeof row.confidence === "number" ? row.confidence : 0;
+    byCategory[label].push({
+      facet: (row.name ?? row.facet_id).replace(/_/g, " "),
+      position: typeof row.value_position === "number" ? row.value_position : 0.5,
+      confidence: conf,
+      confidence_label: conf >= 0.7 ? "high" : conf >= 0.4 ? "medium" : "low",
+      observations: typeof row.observation_count === "number" ? row.observation_count : 0,
+      left_anchor: row.spectrum_low ?? "low",
+      right_anchor: row.spectrum_high ?? "high",
+    });
+  }
+
+  const facet_groups: SubjectIntelligenceData["facet_groups"] = Object.entries(byCategory).map(
+    ([group, facets]) => ({ group, facets })
+  );
+  const allFacets = facet_groups.flatMap((g) => g.facets);
+
+  const facets_total = traitRows.length || subjectIntelligenceFixture.model_summary.facets_total;
+  const facets_modeled = traitRows.filter(
+    (r) => typeof r.value_position === "number" && r.observation_count > 0
+  ).length;
+
+  // ── Observations count from DB ───────────────────────────────────────────────
+  const obsCountRows = querySubjectDb(dbPath, "SELECT COUNT(*) as cnt FROM observations");
+  const seed_observations = Number((obsCountRows[0]?.cnt) ?? 0);
+  const extraction_signals = traitRows.filter(r => r.observation_count > 0).length;
+
+  // ── Hypotheses from DB ───────────────────────────────────────────────────────
+  type HypRow = { id: number; hypothesis: string; confidence: number; status: string; created_at: string };
+  const hypRows = querySubjectDb(dbPath, `
+    SELECT id, hypothesis, confidence, status, created_at
+    FROM hypotheses
+    WHERE confidence > 0.5
+    ORDER BY confidence DESC
+    LIMIT 20
+  `) as HypRow[];
+
+  const hypotheses: SubjectIntelligenceData["hypotheses"] = hypRows.map((h) => {
+    const conf = typeof h.confidence === "number" ? h.confidence : 0.5;
+    return {
+      title: String(h.hypothesis ?? "").slice(0, 80) + (String(h.hypothesis ?? "").length > 80 ? "…" : ""),
+      summary: String(h.hypothesis ?? ""),
+      confidence: conf,
+      confidence_label: conf >= 0.7 ? "high" : conf >= 0.4 ? "medium" : "low",
+      facets: [],
+    };
+  });
+
+  // ── Top traits from high-confidence facets ───────────────────────────────────
+  const topTraitFacets = [...allFacets]
+    .filter((f) => f.confidence >= 0.5 && f.observations > 0)
+    .sort((a, b) => b.confidence - a.confidence)
+    .slice(0, 6);
+  const topTraits: string[] = topTraitFacets.map(
+    (f) => `${f.facet}: ${f.position > 0.65 ? f.right_anchor : f.position < 0.35 ? f.left_anchor : "mid"} (${Math.round(f.confidence * 100)}%)`
+  );
+
+  // ── Behavioral summary ───────────────────────────────────────────────────────
+  // Pull from top high-confidence traits notes for richer summary
+  type NoteRow = { name: string; notes: string; confidence: number; value_position: number };
+  const noteRows = querySubjectDb(dbPath, `
+    SELECT f.name, t.notes, t.confidence, t.value_position
+    FROM traits t
+    JOIN facets f ON t.facet_id = f.id
+    WHERE t.notes IS NOT NULL AND t.confidence > 0.5 AND t.value_position IS NOT NULL
+    ORDER BY t.confidence DESC, t.observation_count DESC
+    LIMIT 5
+  `) as NoteRow[];
+  // Filter and pick the best note segment per trait.
+  // Notes are pipe-separated extraction outputs; the first segment is often the most recent
+  // (and may be garbage if extracted from a technical/assistant context). Strategy:
+  // - Split on "|", trim each segment
+  // - Drop segments that look like file paths, URLs, code, or are < 20 chars
+  // - Pick the first surviving segment; skip the trait entirely if none survive
+  function _bestNote(raw: string): string | null {
+    // Match file system paths, URLs, code fences, and SQL statement patterns.
+    // Bare SQL keywords (SELECT, IN, AND) are intentionally NOT matched — they appear
+    // in natural Italian/English prose. Instead match statement-level patterns only.
+    const BAD = /\/home\/|\/tmp\/|https?:\/\/|```|`[^`]{10}|\.json\b|\.py\b|\.sh\b|\bpath\b.*\/|\bSELECT\b.{1,60}\bFROM\b|\bINSERT\s+INTO\b/i;
+    const segs = String(raw).split("|").map((s) => s.trim()).filter((s) => s.length >= 20 && !BAD.test(s));
+    return segs[0] ?? null;
+  }
+  const summaryParts: string[] = noteRows.flatMap((n) => {
+    const note = _bestNote(String(n.notes ?? ""));
+    if (!note) return [];
+    const dir = (n.value_position ?? 0.5) > 0.6 ? "high" : (n.value_position ?? 0.5) < 0.4 ? "low" : "mid";
+    const truncated = note.length > 120 ? note.slice(0, 120) + "…" : note;
+    return [`${(n.name ?? "").replace(/_/g, " ")} [${dir}]: ${truncated}`];
+  });
+  if (rcf.communication_style?.value) summaryParts.unshift(`Communication style: ${rcf.communication_style.value}`);
+  const summary = summaryParts.join("\n") || "Behavioral model populated from relic.db observations.";
+
+  // ── Top confidence facets ────────────────────────────────────────────────────
+  const topConfidence = [...allFacets]
+    .filter((f) => f.observations > 0)
+    .sort((a, b) => b.confidence - a.confidence)
+    .slice(0, 5);
+
+  // ── Extraction sample ────────────────────────────────────────────────────────
+  type ExSampleRow = { name: string; value_position: number; confidence: number; source_type: string; content: string };
+  const exSampleRows = querySubjectDb(dbPath, `
+    SELECT f.name, o.signal_position as value_position, o.signal_strength as confidence,
+           o.source_type, o.content
+    FROM observations o
+    JOIN facets f ON o.facet_id = f.id
+    WHERE o.signal_position IS NOT NULL
+    ORDER BY o.signal_strength DESC
+    LIMIT 5
+  `) as ExSampleRow[];
+  const extraction_sample = exSampleRows.map((r) => ({
+    facet: (r.name ?? "").replace(/_/g, " "),
+    direction: (r.value_position ?? 0.5) > 0.6 ? "positive" : (r.value_position ?? 0.5) < 0.4 ? "negative" : "neutral",
+    strength: typeof r.confidence === "number" ? r.confidence : 0.5,
+    source: r.source_type ?? "observation",
+  }));
+
+  // ── Artifacts ────────────────────────────────────────────────────────────────
   const artifacts: SubjectIntelligenceData["artifacts"] = [
-    { name: "subject_baseline.json", kind: "baseline", lineage: `${subjectId}/subject_baseline` },
+    { name: "relic.db (traits)", kind: "model_snapshot", lineage: `${subjectId}/relic.db#traits` },
+    { name: "relic.db (observations)", kind: "model_snapshot", lineage: `${subjectId}/relic.db#observations` },
     { name: "baseline_user_profile.json", kind: "baseline", lineage: `${subjectId}/baseline_user_profile` },
   ];
-  if (subjectBaseline?.extended_facets && Object.keys(subjectBaseline.extended_facets).length > 0) {
-    artifacts.push({ name: "extended_facets (checkin-derived)", kind: "model_snapshot", lineage: `${subjectId}/subject_baseline#extended_facets` });
-  }
-  const dbPath = path.join(subjectHome, "relic.db");
-  if (path.isAbsolute(dbPath) && fs.existsSync(dbPath)) {
-    artifacts.push({ name: "relic.db", kind: "model_snapshot", lineage: `${subjectId}/relic.db` });
+  if (fs.existsSync(path.join(subjectHome, "subject_baseline.json"))) {
+    artifacts.push({ name: "subject_baseline.json", kind: "baseline", lineage: `${subjectId}/subject_baseline` });
   }
 
   return {
     subject_id: subjectId,
-    generated_at: subjectBaseline?.created_at ?? new Date().toISOString(),
+    generated_at: new Date().toISOString(),
     model_summary: {
-      facets_modeled: allFacets.filter(f => f.observations > 0).length,
-      facets_total: subjectIntelligenceFixture.model_summary.facets_total,
-      seed_observations: Object.keys(rcf).length + Object.keys(srf).length,
-      extraction_signals: allFacets.length,
-      hypotheses: 0,
+      facets_modeled,
+      facets_total,
+      seed_observations,
+      extraction_signals,
+      hypotheses: hypotheses.length,
       summary,
     },
     top_traits: topTraits,
     active_goals: [],
     top_confidence_facets: topConfidence,
-    hypotheses: [],
+    hypotheses,
     facet_groups,
     transcript: [],
-    extraction_sample: allFacets.slice(0, 5).map((f: SubjectIntelligenceData["facet_groups"][number]["facets"][number]) => ({
-      facet: f.facet,
-      direction: f.position > 0.6 ? "positive" : f.position < 0.4 ? "negative" : "neutral",
-      strength: f.confidence,
-      source: "subject_baseline",
-    })),
+    extraction_sample,
     artifacts,
   };
 }
@@ -944,145 +1121,161 @@ function normalizeLiveSnapshot(r: Record<string, unknown>): ChronicleSnapshot {
   };
 }
 
-function chronicleLiveEvents(subjectId: string, filters?: ChronicleEventFilters) {
-  const python = process.env.RELIC_PYTHON || "python3";
-  const args = [
-    "-m", "relic.chronicle.cli.main", "query",
-    "--subject", subjectId,
-    "--format", "jsonl",
-    "--no-audit",
-  ];
-  if (filters?.limit) { args.push("--limit", String(filters.limit)); }
+// Chronicle live functions: read from subject-specific relic.db
+// (chronicle_events table not yet in global DB; subject DB has checkin_exchanges,
+//  model_snapshots, and delivery_decision_log.jsonl for decisions)
 
-  try {
-    const out = execFileSync(python, args, {
-      encoding: "utf8",
-      env: { ...process.env },
-      timeout: 8000,
-      maxBuffer: 16 * 1024 * 1024,
-    });
-    return out.split("\n")
-      .filter(Boolean)
-      .flatMap((l: string) => { try { return [JSON.parse(l) as Record<string, unknown>]; } catch { return []; } })
-      .map(normalizeLiveEvent);
-  } catch (err) {
-    console.error("[chronicle] events query failed:", (err as Error).message?.slice(0, 200));
-    return [];
-  }
+function _subjectDbPath(subjectId: string): string | null {
+  const profile = liveProfiles().find((p) => p.subject_id === subjectId);
+  if (!profile?.relic_subject_home) return null;
+  const p = path.join(profile.relic_subject_home, "relic.db");
+  return fs.existsSync(p) ? p : null;
+}
+
+function chronicleLiveEvents(subjectId: string, filters?: ChronicleEventFilters) {
+  const dbPath = _subjectDbPath(subjectId);
+  if (!dbPath) return [];
+
+  const limit = filters?.limit ?? 200;
+  // Map checkin_exchanges to chronicle events
+  type CeRow = {
+    id: number; asked_at: string; reply_captured_at: string | null;
+    question_text: string; reply_text: string | null; facet_id: string | null;
+    facet_name: string | null; posture: string | null; observations_extracted: number;
+  };
+  const rows = querySubjectDb(dbPath, `
+    SELECT ce.id, ce.asked_at, ce.reply_captured_at, ce.question_text, ce.reply_text,
+           ce.facet_id, f.name as facet_name, ce.posture, ce.observations_extracted
+    FROM checkin_exchanges ce
+    LEFT JOIN facets f ON ce.facet_id = f.id
+    ORDER BY ce.asked_at DESC
+    LIMIT ${limit * 2}
+  `) as CeRow[];
+
+  const events: ChronicleEvent[] = rows.map((row) => {
+    const ts = row.reply_captured_at ?? row.asked_at ?? "";
+    const facetLabel = row.facet_name ?? row.facet_id ?? "unknown";
+    const hasReply = Boolean(row.reply_text);
+    const category = hasReply ? "agent" : "system";
+    const summaryText = hasReply
+      ? `checkin reply · ${facetLabel} · obs: ${row.observations_extracted ?? 0}`
+      : `checkin sent · ${facetLabel}`;
+    return {
+      event_id: `ce_${row.id}`,
+      subject_id: subjectId,
+      timestamp: ts,
+      category,
+      severity: "info" as ChronicleEvent["severity"],
+      sensitivity: "internal" as ChronicleEvent["sensitivity"],
+      actor: "gumi",
+      summary: summaryText,
+      payload: {
+        facet: facetLabel,
+        posture: row.posture,
+        has_reply: hasReply,
+        question_preview: String(row.question_text ?? "").slice(0, 80),
+      },
+      tags: [facetLabel, row.posture ?? ""].filter(Boolean),
+    };
+  });
+
+  return events;
 }
 
 function chronicleLiveDecisions(subjectId: string, filters?: ChronicleDecisionFilters) {
-  const python = process.env.RELIC_PYTHON || "python3";
-  const args = [
-    "-m", "relic.chronicle.cli.main", "decision",
-    "--subject", subjectId,
-    "--format", "json",
-  ];
-  if (filters?.limit) { args.push("--limit", String(filters.limit)); }
+  const profile = liveProfiles().find((p) => p.subject_id === subjectId);
+  if (!profile?.relic_subject_home) return [];
 
-  try {
-    const out = execFileSync(python, args, {
-      encoding: "utf8",
-      env: { ...process.env },
-      timeout: 8000,
-      maxBuffer: 16 * 1024 * 1024,
-    });
-    const parsed = JSON.parse(out);
-    const arr: Record<string, unknown>[] = Array.isArray(parsed) ? parsed : [];
-    return arr.map(normalizeLiveDecision);
-  } catch (err) {
-    console.error("[chronicle] decisions query failed:", (err as Error).message?.slice(0, 200));
-    return [];
-  }
+  const limit = filters?.limit ?? 100;
+  type DelivEntry = {
+    created_at?: string; status?: string; event_type?: string;
+    delivery_backend?: string; hermes_cron_job?: string; target_display?: string;
+  };
+  const entries = readJsonLines<DelivEntry>(
+    path.join(profile.relic_subject_home, "delivery_decision_log.jsonl")
+  ).slice(0, limit * 2);
+
+  return entries
+    .filter((e) => e.created_at)
+    .slice(0, limit)
+    .map((e, i): ChronicleDecision => ({
+      decision_id: `del_${i}`,
+      subject_id: subjectId,
+      timestamp: e.created_at ?? "",
+      title: e.hermes_cron_job ?? e.event_type ?? "delivery",
+      rationale: `status=${e.status ?? "?"} via ${e.delivery_backend ?? "?"} → ${e.target_display ?? "?"}`,
+      confidence: e.status === "sent" || e.status === "delivery_ready" ? 0.9 : 0.4,
+      validation_status: "pending" as ChronicleDecision["validation_status"],
+      inputs: [e.hermes_cron_job ?? e.event_type ?? "trigger"].filter(Boolean),
+      outputs: [e.target_display ?? e.delivery_backend ?? "output"].filter(Boolean),
+      actor: "gumi",
+    }));
 }
 
 function chronicleLiveSnapshots(subjectId: string, filters?: ChronicleSnapshotFilters) {
-  const python = process.env.RELIC_PYTHON || "python3";
-  const args = [
-    "-m", "relic.chronicle.cli.main", "snapshot",
-    "--subject", subjectId,
-    "--format", "json",
-  ];
-  if (filters?.limit) { args.push("--limit", String(filters.limit)); }
+  const dbPath = _subjectDbPath(subjectId);
+  if (!dbPath) return [];
 
-  try {
-    const out = execFileSync(python, args, {
-      encoding: "utf8",
-      env: { ...process.env },
-      timeout: 8000,
-      maxBuffer: 16 * 1024 * 1024,
-    });
-    const parsed = JSON.parse(out);
-    const arr: Record<string, unknown>[] = Array.isArray(parsed) ? parsed : [];
-    return arr.map(normalizeLiveSnapshot);
-  } catch (err) {
-    console.error("[chronicle] snapshots query failed:", (err as Error).message?.slice(0, 200));
-    return [];
-  }
+  const limit = filters?.limit ?? 20;
+  type SnapRow = {
+    id: number; snapshot_at: string; total_observations: number;
+    avg_confidence: number; coverage_pct: number; snapshot_data: string | null;
+  };
+  const rows = querySubjectDb(dbPath, `
+    SELECT id, snapshot_at, total_observations, avg_confidence, coverage_pct, snapshot_data
+    FROM model_snapshots
+    ORDER BY snapshot_at DESC
+    LIMIT ${limit}
+  `) as SnapRow[];
+
+  return rows.map((row): ChronicleSnapshot => ({
+    snapshot_id: `snap_${row.id}`,
+    subject_id: subjectId,
+    timestamp: row.snapshot_at ?? "",
+    label: `model_snapshot`,
+    state: {
+      total_observations: row.total_observations,
+      avg_confidence: row.avg_confidence,
+      coverage_pct: row.coverage_pct,
+    },
+    parent_snapshot_id: null,
+    diff_summary: `obs=${row.total_observations} conf=${(row.avg_confidence ?? 0).toFixed(3)} cov=${(row.coverage_pct ?? 0).toFixed(1)}%`,
+  }));
 }
 
 function chronicleLiveStats(subjectId: string): ChronicleStats | null {
-  const python = process.env.RELIC_PYTHON || "python3";
-  try {
-    const out = execFileSync(
-      python,
-      ["-m", "relic.chronicle.cli.main", "stats",
-       "--subject", subjectId,
-       "--format", "json"],
-      { encoding: "utf8", env: { ...process.env }, timeout: 8000 }
-    );
-    const raw = JSON.parse(out) as Record<string, unknown>;
-    const arrToRec = (key: string, valKey: string): Record<string, number> => {
-      const arr = raw[key];
-      if (!Array.isArray(arr)) return {};
-      const rec: Record<string, number> = {};
-      for (const item of arr as Array<Record<string, unknown>>) {
-        const k = String(item[valKey] ?? "");
-        const v = Number(item.count ?? 0);
-        if (k) rec[k] = v;
-      }
-      return rec;
-    };
-    const by_event_type = arrToRec("by_event_type", "type");
-    const by_severity = arrToRec("by_severity", "severity");
-    const by_sensitivity = arrToRec("by_sensitivity", "sensitivity");
-    const totalEvents = Object.values(by_event_type).reduce((a, b) => a + b, 0)
-      || Number(raw.total_events ?? 0);
-    return {
-      subject_id: subjectId,
-      total_events: totalEvents,
-      total_decisions: Number(raw.total_decisions ?? 0),
-      total_snapshots: Number(raw.total_snapshots ?? 0),
-      by_category: by_event_type,
-      by_severity,
-      by_sensitivity,
-      first_event_at: (raw.first_event_at as string) ?? null,
-      last_event_at: (raw.last_event_at as string) ?? null,
-    };
-  } catch (err) {
-    console.error("[chronicle] stats query failed:", (err as Error).message?.slice(0, 200));
-    return null;
-  }
+  const dbPath = _subjectDbPath(subjectId);
+  if (!dbPath) return null;
+
+  type CountRow = { cnt: number };
+  const ceCount = (querySubjectDb(dbPath, "SELECT COUNT(*) as cnt FROM checkin_exchanges") as CountRow[])[0]?.cnt ?? 0;
+  const delCount = (() => {
+    const profile = liveProfiles().find((p) => p.subject_id === subjectId);
+    if (!profile?.relic_subject_home) return 0;
+    return readJsonLines(path.join(profile.relic_subject_home, "delivery_decision_log.jsonl")).length;
+  })();
+  const snapCount = (querySubjectDb(dbPath, "SELECT COUNT(*) as cnt FROM model_snapshots") as CountRow[])[0]?.cnt ?? 0;
+  const obsCount = (querySubjectDb(dbPath, "SELECT COUNT(*) as cnt FROM observations") as CountRow[])[0]?.cnt ?? 0;
+
+  type FirstLastRow = { first_at: string | null; last_at: string | null };
+  const dateRange = (querySubjectDb(dbPath, "SELECT MIN(asked_at) as first_at, MAX(asked_at) as last_at FROM checkin_exchanges") as FirstLastRow[])[0];
+
+  return {
+    subject_id: subjectId,
+    total_events: ceCount,
+    total_decisions: delCount,
+    total_snapshots: snapCount,
+    by_category: { checkin: ceCount, observations: obsCount },
+    by_severity: { info: ceCount },
+    by_sensitivity: { internal: ceCount },
+    first_event_at: dateRange?.first_at ?? null,
+    last_event_at: dateRange?.last_at ?? null,
+  };
 }
 
 function chronicleLiveProvenance(subjectId: string) {
-  const python = process.env.RELIC_PYTHON || "python3";
-  try {
-    const out = execFileSync(
-      python,
-      ["-m", "relic.chronicle.cli.main", "provenance",
-       "--subject", subjectId,
-       "--format", "json",
-       "--no-audit"],
-      { encoding: "utf8", env: { ...process.env }, timeout: 8000 }
-    );
-    const parsed = JSON.parse(out);
-    const edges = Array.isArray(parsed) ? parsed : (parsed.edges ?? []);
-    return { edges: edges.map((e: unknown) => ChronicleProvenanceEdgeSchema.parse(e)) };
-  } catch (err) {
-    console.error("[chronicle] provenance query failed:", (err as Error).message?.slice(0, 200));
-    return { edges: [] };
-  }
+  // No provenance edges in subject DB yet; return empty
+  return { edges: [] };
 }
 
 function applyEventFilters(events: ChronicleEvent[], filters?: ChronicleEventFilters) {
