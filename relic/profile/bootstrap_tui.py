@@ -475,11 +475,19 @@ class BootstrapTUI:
                     cron_families = ["maintenance"]
                     delivery_policy_path = profile.relic_subject_home / "delivery_policy.json"
                     if delivery_policy_path.exists():
+                        # Initiative (check-in), diegetic fragments and proactive
+                        # re-engagement all require a configured delivery target.
                         cron_families.append("initiative")
+                        cron_families.append("diegetic")
+                        cron_families.append("proactive")
                     if any(consent_record.get(k) for k in ("generated_images", "generated_audio", "generated_music")):
                         cron_families.append("media")
                     self.registry.provision_subject_cron_specs(
-                        subject_id, families=cron_families, dry_run=False
+                        subject_id,
+                        families=cron_families,
+                        dry_run=False,
+                        diegetic_deliver_target="telegram",
+                        proactive_deliver_target="telegram",
                     )
                     self._log_step("cron_provisioned", ",".join(cron_families))
                 except Exception as exc:

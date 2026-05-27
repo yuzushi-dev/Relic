@@ -1407,7 +1407,10 @@ Eight visual modes for consistent photography:
             path.write_text(_render_simple_yaml(data), encoding="utf-8")
             paths["diegetic"] = path
             jobs_to_apply.extend(data["jobs"])
-            from relic.gumi_plugin.cron_wiring import render_diegetic_dispatch_script
+            from relic.gumi_plugin.cron_wiring import (
+                render_diegetic_dispatch_script,
+                render_no_agent_script,
+            )
 
             diegetic_dispatch_script_path = profile.hermes_home / "scripts" / subject_id / "relic_diegetic_dispatch.sh"
             diegetic_dispatch_script_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1416,6 +1419,15 @@ Eight visual modes for consistent photography:
                 encoding="utf-8",
             )
             diegetic_dispatch_script_path.chmod(0o755)
+            # Decision (gate/message) script — gate and message jobs reference it.
+            diegetic_decision_script_path = (
+                profile.hermes_home / "scripts" / subject_id / "relic_diegetic_decision.sh"
+            )
+            diegetic_decision_script_path.write_text(
+                render_no_agent_script(diegetic_decision_script_path),
+                encoding="utf-8",
+            )
+            diegetic_decision_script_path.chmod(0o755)
         if "proactive" in families:
             proactive_target = (proactive_deliver_target or "local").strip() or "local"
             proactive_script = f"{subject_id}/relic_proactive_decision.sh"
@@ -1460,7 +1472,10 @@ Eight visual modes for consistent photography:
             path.write_text(_render_simple_yaml(data), encoding="utf-8")
             paths["proactive"] = path
             jobs_to_apply.extend(data["jobs"])
-            from relic.gumi_plugin.cron_wiring import render_proactive_dispatch_script
+            from relic.gumi_plugin.cron_wiring import (
+                render_no_agent_script,
+                render_proactive_dispatch_script,
+            )
 
             proactive_dispatch_script_path = profile.hermes_home / "scripts" / subject_id / "relic_proactive_dispatch.sh"
             proactive_dispatch_script_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1469,6 +1484,15 @@ Eight visual modes for consistent photography:
                 encoding="utf-8",
             )
             proactive_dispatch_script_path.chmod(0o755)
+            # Decision (gate/message) script — gate and message jobs reference it.
+            proactive_decision_script_path = (
+                profile.hermes_home / "scripts" / subject_id / "relic_proactive_decision.sh"
+            )
+            proactive_decision_script_path.write_text(
+                render_no_agent_script(proactive_decision_script_path),
+                encoding="utf-8",
+            )
+            proactive_decision_script_path.chmod(0o755)
         # T5: gumi_memory_sync — no-agent script that syncs cron sessions → MEMORY.md
         memory_sync_script = f"{subject_id}/relic_memory_sync.sh"
         memory_sync_job = {
