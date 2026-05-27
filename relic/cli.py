@@ -199,11 +199,17 @@ def _configure_hindsight_local(available: bool, model: str) -> None:
 
 
 def start_hermes_gateway_for_profile(profile_name: str, timeout_seconds: int = 30) -> bool:
-    """Start Hermes gateway for a specific profile and wait until it is ready.
+    """Install + start the managed Hermes gateway service for a profile.
 
-    Polls hermes gateway list every second until the profile appears with a
-    running status or the timeout is exceeded.  Returns True if the gateway is
-    confirmed running, False otherwise (non-fatal — caller prints the warning).
+    Installs the per-profile systemd/launchd unit (via ``hermes gateway
+    install``) and starts it, then polls ``hermes gateway list`` until the
+    profile reports running or the timeout is exceeded.
+
+    Using the managed service — not a detached ``gateway run`` subprocess —
+    means the gateway survives terminal close and reboot, and exactly one
+    instance per profile polls Telegram. A detached run leaves an unmanaged
+    process that dies with the shell and never registers for autostart.
+    Returns True if confirmed running, False otherwise (non-fatal).
     """
     import subprocess
     import time
@@ -213,34 +219,7 @@ def start_hermes_gateway_for_profile(profile_name: str, timeout_seconds: int = 3
         print("  [skip] Hermes not found in PATH; skipping gateway start.")
         return False
 
-    # Check if already running
-    try:
-        result = subprocess.run(
-            [hermes, "gateway", "list"],
-            capture_output=True, text=True, timeout=10,
-        )
-        for line in result.stdout.splitlines():
-            if profile_name in line and "✓" in line:
-                print(f"  [ok] Gateway '{profile_name}' already running.")
-                return True
-    except Exception:
-        pass
-
-    print(f"  Starting gateway '{profile_name}'...")
-    try:
-        subprocess.Popen(
-            [hermes, "gateway", "run", "--profile", profile_name],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-    except Exception as exc:
-        print(f"  [skip] Could not launch gateway: {exc}")
-        return False
-
-    # Poll until ready or timeout
-    deadline = time.monotonic() + timeout_seconds
-    while time.monotonic() < deadline:
-        time.sleep(1)
+    def _is_ready() -> bool:
         try:
             result = subprocess.run(
                 [hermes, "gateway", "list"],
@@ -248,10 +227,38 @@ def start_hermes_gateway_for_profile(profile_name: str, timeout_seconds: int = 3
             )
             for line in result.stdout.splitlines():
                 if profile_name in line and "✓" in line:
-                    print(f"  [ok] Gateway '{profile_name}' is ready.")
                     return True
         except Exception:
             pass
+        return False
+
+    if _is_ready():
+        print(f"  [ok] Gateway '{profile_name}' already running.")
+        return True
+
+    print(f"  Installing + starting gateway service '{profile_name}'...")
+    try:
+        # The profile is selected via the global --profile flag, before the
+        # subcommand; install is idempotent with --force.
+        subprocess.run(
+            [hermes, "--profile", profile_name, "gateway", "install", "--force"],
+            capture_output=True, text=True, timeout=60,
+        )
+        subprocess.run(
+            [hermes, "--profile", profile_name, "gateway", "start"],
+            capture_output=True, text=True, timeout=60,
+        )
+    except Exception as exc:
+        print(f"  [skip] Could not install/start gateway service: {exc}")
+        return False
+
+    # Poll until ready or timeout
+    deadline = time.monotonic() + timeout_seconds
+    while time.monotonic() < deadline:
+        time.sleep(1)
+        if _is_ready():
+            print(f"  [ok] Gateway '{profile_name}' is ready.")
+            return True
 
     print(f"  [warn] Gateway '{profile_name}' did not become ready within {timeout_seconds}s.")
     return False
