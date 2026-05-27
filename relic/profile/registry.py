@@ -1570,7 +1570,7 @@ Eight visual modes for consistent photography:
                 "\n"
                 "ASK MODE — se vedi 'ask: true' e 'ask_topic: <hint>':\n"
                 "Il messaggio DEVE includere una domanda aperta sul soggetto ispirata al topic (non letterale, "
-                "non da intervista, non clinica). Domanda concreta, naturale, da amica curiosa. "
+                "non da intervista, non clinica). Domanda concreta, naturale, da chi ti conosce e ci tiene. "
                 "Una domanda sola, e la domanda deve contenere esplicitamente un punto interrogativo '?'. "
                 "Niente preamboli tipo 'posso chiederti una cosa?'.\n"
                 "Se non vedi 'ask: true', rispondi esattamente [SILENT].\n"
@@ -1594,7 +1594,7 @@ Eight visual modes for consistent photography:
                 "\n"
                 "tipo: music\n"
                 "Scrivi un prompt per Lyria 3 in inglese che esprima il tuo stato d'animo e momento attuale. "
-                "Includi: voce (es. 'Female mezzo-soprano, warm timbre'), stile musicale, "
+                "Includi: voce coerente con la tua identità (timbro e registro che useresti tu, es. 'warm mezzo timbre'), stile musicale, "
                 "[Verse] 2 righe in inglese (max 10 parole/riga), [Chorus] 2 righe. "
                 "Il testo deve suonare come qualcosa che potresti cantare tu, non generico. "
                 "Nota: ask: true viene ignorato in modalità music.\n"
@@ -2471,9 +2471,11 @@ Eight visual modes for consistent photography:
             generation_log["method"] = "ollama"
             generation_log["model"] = ollama_model
         else:
-            soul_text = narrator._fallback_soul(ctx)
-            world_text = narrator.fallback_world_md(ctx)
-            rel_text = narrator.fallback_relationship_policy_md(ctx)
+            from relic.gumi.llm_narrator import _conform_persona_pronouns
+            _ge = narrator._gender_expr(ctx)
+            soul_text = _conform_persona_pronouns(narrator._fallback_soul(ctx), _ge)
+            world_text = _conform_persona_pronouns(narrator.fallback_world_md(ctx), _ge)
+            rel_text = _conform_persona_pronouns(narrator.fallback_relationship_policy_md(ctx), _ge)
             generation_log["method"] = "template_fallback"
             generation_log["reason"] = "ollama_unavailable"
 

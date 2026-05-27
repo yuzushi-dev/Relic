@@ -101,12 +101,19 @@ class LyriaGenerator:
         bg = self._read_background()
 
         persona = bg.get("persona_summary", "Una persona normale, calda e riflessiva")
-        gender = bg.get("gender", "female")
-        singer_profile = (
-            "Female mezzo-soprano, warm and intimate timbre"
-            if gender == "female"
-            else "Male baritone, warm and calm timbre"
-        )
+        _emb = bg.get("embodiment") if isinstance(bg.get("embodiment"), dict) else {}
+        gender = str(
+            _emb.get("gender_expression")
+            or bg.get("gender_expression")
+            or bg.get("gender")
+            or ""
+        ).lower()
+        if "masc" in gender or gender in {"male", "man"}:
+            singer_profile = "Male baritone, warm and calm timbre"
+        elif "femin" in gender or gender in {"female", "woman"}:
+            singer_profile = "Female mezzo-soprano, warm and intimate timbre"
+        else:
+            singer_profile = "Androgynous mid-range voice, warm and intimate timbre"
         context_snippet = memory[:300] if memory else ""
         mood = mood_hint or "malinconico e sognante"
 
