@@ -200,7 +200,8 @@ def load_calibration_scores(path: object = None) -> list[int]:
 
 
 def log_calibration_sample(
-    verdict: "ProseVerdict", text: str, *, decision_type: str = "", sink: object = None
+    verdict: "ProseVerdict", text: str, *, decision_type: str = "",
+    gemma_score: int | None = None, sink: object = None,
 ) -> None:
     """Append a numeric-only calibration record to prose_calibration.jsonl.
 
@@ -220,6 +221,7 @@ def log_calibration_sample(
             "violations": list(verdict.violations),
             "decision_type": decision_type or "",
             "n_words": len(text.split()) if isinstance(text, str) else 0,
+            "gemma_score": gemma_score,
         }
         line = json.dumps(record, ensure_ascii=False)
         if sink is not None:

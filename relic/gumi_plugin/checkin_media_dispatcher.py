@@ -352,19 +352,41 @@ def _prose_block_reason(text: str, decision_type: str = "") -> Optional[str]:
     error allows delivery so the runtime never blocks on the scorer itself.
     """
     try:
-        from relic.gumi_plugin.prose_critic import ProseCritic
+        from relic.gumi_plugin.prose_critic import ProseCritic, log_calibration_sample
 
-        hard = os.environ.get("RELIC_PROSE_HARD_BLOCK", "").strip().lower() in {"1", "true", "yes"}
+        def _truthy(name: str) -> bool:
+            return os.environ.get(name, "").strip().lower() in {"1", "true", "yes"}
+
+        hard = _truthy("RELIC_PROSE_HARD_BLOCK")
         verdict = ProseCritic(hard_block=hard).review(text or "")
+
+        # Gemma LLM judge (opt-in): higher recall than the regex on Italian slop.
+        # Synchronous + timeout-bounded; fine on this non-interactive cron path.
+        gemma_score: int | None = None
+        gemma_block = False
+        if _truthy("RELIC_PROSE_GEMMA_JUDGE"):
+            from relic.gumi_plugin.gemma_judge import judge_score
+            gemma_score = judge_score(text or "")
+            if gemma_score is not None:
+                try:
+                    cut = int(os.environ.get("RELIC_PROSE_GEMMA_CUT", "50"))
+                except ValueError:
+                    cut = 50
+                gemma_block = hard and gemma_score < cut
+
         # Numeric-only calibration log (no text/hash) for threshold tuning.
-        from relic.gumi_plugin.prose_critic import log_calibration_sample
-        log_calibration_sample(verdict, text or "", decision_type=decision_type)
-        if verdict.violations:
+        log_calibration_sample(
+            verdict, text or "", decision_type=decision_type, gemma_score=gemma_score
+        )
+        if verdict.violations or gemma_score is not None:
             print(
                 f"[dispatch] prose_critic score={verdict.score} "
-                f"reason={verdict.reason} violations={','.join(verdict.violations)}",
+                f"reason={verdict.reason} violations={','.join(verdict.violations)} "
+                f"gemma={gemma_score}",
                 file=sys.stderr,
             )
+        if gemma_block:
+            return f"prose:gemma_low_{gemma_score}"
         return None if verdict.allow else f"prose:{verdict.reason}"
     except Exception:
         return None

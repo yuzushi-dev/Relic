@@ -124,7 +124,9 @@ class TestCalibration:
         rec = json.loads(line)
         # Privacy: raw text must never appear in the record.
         assert "segreto" not in line
-        assert set(rec.keys()) == {"created_at", "score", "violations", "decision_type", "n_words"}
+        assert set(rec.keys()) == {
+            "created_at", "score", "violations", "decision_type", "n_words", "gemma_score"
+        }
         assert rec["decision_type"] == "checkin"
         assert rec["n_words"] == len(secret.split())
 
