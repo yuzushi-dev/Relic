@@ -25,7 +25,7 @@ function resolveRequest(url) {
   const candidates = [];
 
   if (pathname === "/") {
-    candidates.push(path.join(root, "workbench", "index.html"));
+    candidates.push(path.join(root, "dashboard", "index.html"));
   }
 
   candidates.push(path.join(root, cleanPath));

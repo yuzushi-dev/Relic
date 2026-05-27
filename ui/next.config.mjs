@@ -11,7 +11,7 @@ const nextConfig = {
     ? { trailingSlash: true, images: { unoptimized: true } }
     : {
         async redirects() {
-          return [{ source: "/", destination: "/workbench", permanent: false }];
+          return [{ source: "/", destination: "/dashboard", permanent: false }];
         },
       }),
 };

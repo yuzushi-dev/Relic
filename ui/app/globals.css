@@ -1,38 +1,77 @@
+/* Google Fonts must come before @import "tailwindcss" */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+@import "tailwindcss";
+
 /* ============================================================
    RELIC RESEARCHER WORKBENCH — Design System v2
    Instrument-grade precision. Research governance, not SaaS.
    ============================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap');
+/* Tailwind v4 theme: map Tailwind color tokens to CSS variables */
+@theme {
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --color-card: var(--s0);
+  --color-card-foreground: var(--text);
+  --color-popover: var(--s1);
+  --color-popover-foreground: var(--text);
+  --color-primary: var(--obs);
+  --color-primary-foreground: #ffffff;
+  --color-secondary: var(--s2);
+  --color-secondary-foreground: var(--text);
+  --color-muted: var(--s1);
+  --color-muted-foreground: var(--text-dim);
+  --color-accent: var(--s2);
+  --color-accent-foreground: var(--text);
+  --color-destructive: var(--block);
+  --color-destructive-foreground: #ffffff;
+  --color-border: var(--line-med);
+  --color-input: var(--line);
+  --color-ring: var(--obs);
+  --color-success: var(--ok);
+  --color-warning: var(--pend);
+  --color-gumi: var(--gumi);
+
+  --font-sans: var(--sans), system-ui, sans-serif;
+  --font-mono: var(--mono), monospace;
+
+  --radius-lg: var(--r0, 2px);
+  --radius-md: calc(var(--r0, 2px) - 1px);
+  --radius-sm: calc(var(--r0, 2px) - 2px);
+}
+
+/* Dark mode variant: [data-theme="dark"] selector */
+@variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 /* ─── Design tokens ─────────────────────────────────────────────────────── */
 :root {
   /* Surfaces */
-  --bg:      #090b0e;
-  --s0:      #101318;
-  --s1:      #171c23;
-  --s2:      #1e2430;
-  --sunken:  #060708;
+  --bg:      #f5f7fa;
+  --s0:      #ffffff;
+  --s1:      #edf1f7;
+  --s2:      #e2e8f0;
+  --sunken:  #dae1eb;
 
   /* Borders */
-  --line:     rgba(255,255,255,0.06);
-  --line-med: rgba(255,255,255,0.12);
-  --line-hi:  rgba(255,255,255,0.20);
+  --line:     rgba(0,0,0,0.08);
+  --line-med: rgba(0,0,0,0.14);
+  --line-hi:  rgba(0,0,0,0.24);
 
   /* Text */
-  --text:     #ced1da;
-  --text-sub: #94a1b2; /* Higher contrast than before */
-  --text-dim: #708498;
+  --text:     #1a202c;
+  --text-sub: #4a5568;
+  --text-dim: #718096;
 
   /* Semantic colors */
-  --obs:        #5292c0;   /* primary / info */
-  --inf:        #7868c0;
-  --pend:       #b89840;   /* warning */
-  --ok:         #3e8c6a;   /* success */
-  --block:      #d05050;   /* error */
-  --gumi:       #c260bc;
-  --runtime:    #3a70a0;
-  --correction: #c07030;
+  --obs:        #2b6cb0;   /* primary / info */
+  --inf:        #553c9a;
+  --pend:       #b7791f;   /* warning */
+  --ok:         #2f855a;   /* success */
+  --block:      #c53030;   /* error */
+  --gumi:       #8a1a82;
+  --runtime:    #1a4e80;
+  --correction: #944010;
 
   /* Stream background fills */
   --obs-bg:      color-mix(in srgb, var(--obs) 8%, transparent);
@@ -53,31 +92,33 @@
 }
 
 /* ─── Light theme ────────────────────────────────────────────────────────── */
-:root[data-theme="light"] {
-  --bg:      #f5f7fa;
-  --s0:      #ffffff;
-  --s1:      #edf1f7;
-  --s2:      #e2e8f0;
-  --sunken:  #dae1eb;
+:root[data-theme="dark"] {
+  --bg:      #090b0e;
+  --s0:      #101318;
+  --s1:      #171c23;
+  --s2:      #1e2430;
+  --sunken:  #060708;
 
-  --line:     rgba(0,0,0,0.08);
-  --line-med: rgba(0,0,0,0.14);
-  --line-hi:  rgba(0,0,0,0.24);
+  --line:     rgba(255,255,255,0.06);
+  --line-med: rgba(255,255,255,0.12);
+  --line-hi:  rgba(255,255,255,0.20);
 
-  --text:     #1a202c;
-  --text-sub: #4a5568;
-  --text-dim: #718096;
+  --text:     #ced1da;
+  --text-sub: #94a1b2;
+  --text-dim: #708498;
 
-  --obs:        #2b6cb0;
-  --inf:        #553c9a;
-  --pend:       #b7791f;
-  --ok:         #2f855a;
-  --block:      #c53030;
-  --gumi:       #8a1a82;
-  --runtime:    #1a4e80;
-  --correction: #944010;
+  --obs:        #5292c0;
+  --inf:        #7868c0;
+  --pend:       #b89840;
+  --ok:         #3e8c6a;
+  --block:      #d05050;
+  --gumi:       #c260bc;
+  --runtime:    #3a70a0;
+  --correction: #c07030;
 }
 
+
+@layer base {
 /* ─── Reset ──────────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
@@ -95,7 +136,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-:root[data-theme="light"] body {
+body:not([data-theme="dark"]) {
   background-image: repeating-linear-gradient(
     0deg,
     transparent,
@@ -160,6 +201,9 @@ button { font: inherit; cursor: pointer; }
   outline-color: var(--obs);
 }
 
+}
+
+@layer components {
 /* ─── App shell ──────────────────────────────────────────────────────────── */
 .layout {
   display: grid;
@@ -943,4 +987,6 @@ pre {
   .page-title { font-size: 18px; }
   .stat-bar { grid-template-columns: 1fr 1fr; }
   .stat-val { font-size: 22px; }
+}
+
 }

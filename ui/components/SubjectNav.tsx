@@ -17,23 +17,26 @@ const VIEW_SUFFIX: Record<Exclude<Props["view"], "chronicle">, string> = {
 
 export function SubjectNav({ subjects, currentSubjectId, view }: Props) {
   const subjectSlug = currentSubjectId.replace(/-/g, "_");
-  const base = `/workbench/subjects/${subjectSlug}`;
+  const base = `/dashboard/subjects/${subjectSlug}`;
 
   if (view === "chronicle") {
     return (
-      <nav aria-label="Chronicle navigation">
-        <div className="mb-3">
-          <span className="filter-label">Subject</span>
-          <div className="flex flex-wrap gap-1">
+      <nav aria-label="Chronicle navigation" className="space-y-4 bg-card p-4 border border-border">
+        <div>
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-2">Subject Registry</span>
+          <div className="flex flex-wrap gap-1.5">
             {subjects.map((s) => {
               const slug = s.subject_id.replace(/-/g, "_");
               const isCurrent = slug === currentSubjectId || s.subject_id === currentSubjectId;
               return (
                 <Link
                   key={s.subject_id}
-                  href={`/workbench/subjects/${slug}/chronicle` as any}
-                  className={`filter-btn ${isCurrent ? "active" : ""}`}
-                  style={{ textDecoration: "none" }}
+                  href={`/dashboard/subjects/${slug}/chronicle` as any}
+                  className={`inline-flex items-center justify-center whitespace-nowrap text-xs font-mono font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring border h-8 px-3 ${
+                    isCurrent
+                      ? "bg-primary text-primary-foreground shadow"
+                      : "border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground"
+                  }`}
                 >
                   {s.subject_id}
                 </Link>
@@ -41,13 +44,23 @@ export function SubjectNav({ subjects, currentSubjectId, view }: Props) {
             })}
           </div>
         </div>
-        <div className="border-t border-gray-200 pt-3">
-          <span className="filter-label">Chronicle</span>
-          <div className="flex flex-wrap gap-1">
-            <Link href={`${base}/chronicle` as any} className="filter-btn" style={{ textDecoration: "none" }}>Overview</Link>
-            <Link href={`${base}/chronicle/events` as any} className="filter-btn" style={{ textDecoration: "none" }}>Events</Link>
-            <Link href={`${base}/chronicle/decisions` as any} className="filter-btn" style={{ textDecoration: "none" }}>Decisions</Link>
-            <Link href={`${base}/chronicle/snapshots` as any} className="filter-btn" style={{ textDecoration: "none" }}>Snapshots</Link>
+        <div className="border-t border-border pt-3">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-2">Chronicle Sections</span>
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              { href: `${base}/chronicle`, label: "Overview" },
+              { href: `${base}/chronicle/events`, label: "Events Log" },
+              { href: `${base}/chronicle/decisions`, label: "Decisions History" },
+              { href: `${base}/chronicle/snapshots`, label: "State Snapshots" },
+            ].map((link) => (
+              <Link
+                key={link.href}
+                href={link.href as any}
+                className="inline-flex items-center justify-center whitespace-nowrap text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring border h-8 px-3 border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground"
+              >
+                {link.label}
+              </Link>
+            ))}
           </div>
         </div>
       </nav>
@@ -56,18 +69,21 @@ export function SubjectNav({ subjects, currentSubjectId, view }: Props) {
 
   const suffix = VIEW_SUFFIX[view] ?? "";
   return (
-    <nav aria-label="Subject navigation">
-      <span className="filter-label">Quick Switch</span>
-      <div className="flex flex-wrap gap-1">
+    <nav aria-label="Subject navigation" className="bg-card p-4 border border-border">
+      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-2">Quick Switch Subject</span>
+      <div className="flex flex-wrap gap-1.5">
         {subjects.map((s) => {
           const slug = s.subject_id.replace(/-/g, "_");
           const isCurrent = slug === currentSubjectId || s.subject_id === currentSubjectId;
           return (
             <Link
               key={s.subject_id}
-              href={`/workbench/subjects/${slug}${suffix}` as any}
-              className={`filter-btn ${isCurrent ? "active" : ""}`}
-              style={{ textDecoration: "none" }}
+              href={`/dashboard/subjects/${slug}${suffix}` as any}
+              className={`inline-flex items-center justify-center whitespace-nowrap text-xs font-mono font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring border h-8 px-3 ${
+                isCurrent
+                  ? "bg-primary text-primary-foreground shadow"
+                  : "border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground"
+              }`}
             >
               {s.subject_id}
             </Link>

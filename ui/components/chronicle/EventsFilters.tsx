@@ -1,6 +1,7 @@
 "use client";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 
 export function EventsFilters() {
   const router = useRouter();
@@ -13,56 +14,60 @@ export function EventsFilters() {
   }, [router, searchParams]);
 
   return (
-    <div className="flex flex-wrap gap-3" role="search" aria-label="Events filter">
-      <label className="flex items-center gap-1 text-sm">
-        severity:
-        <select
-          className="rounded border border-gray-300 px-2 py-1 text-xs"
-          aria-label="severity"
-          defaultValue={searchParams.get("severity") ?? ""}
-          onChange={(e) => update("severity", e.target.value)}
-        >
-          <option value="">all</option>
-          <option value="debug">debug</option>
-          <option value="info">info</option>
-          <option value="warning">warning</option>
-          <option value="error">error</option>
-          <option value="critical">critical</option>
-        </select>
-      </label>
-      <label className="flex items-center gap-1 text-sm">
-        category:
-        <select
-          className="rounded border border-gray-300 px-2 py-1 text-xs"
-          aria-label="category"
-          defaultValue={searchParams.get("category") ?? ""}
-          onChange={(e) => update("category", e.target.value)}
-        >
-          <option value="">all</option>
-          <option value="ingest">ingest</option>
-          <option value="synthesis">synthesis</option>
-          <option value="decision">decision</option>
-          <option value="correction">correction</option>
-          <option value="risk">risk</option>
-          <option value="boundary">boundary</option>
-          <option value="model_update">model_update</option>
-          <option value="delivery">delivery</option>
-        </select>
-      </label>
-      <label className="flex items-center gap-1 text-sm">
-        sensitivity:
-        <select
-          className="rounded border border-gray-300 px-2 py-1 text-xs"
-          aria-label="sensitivity"
-          defaultValue={searchParams.get("sensitivity") ?? ""}
-          onChange={(e) => update("sensitivity", e.target.value)}
-        >
-          <option value="">all</option>
-          <option value="internal">internal</option>
-          <option value="confidential">confidential</option>
-          <option value="restricted">restricted</option>
-        </select>
-      </label>
-    </div>
+    <Card className="rounded-none border-border bg-muted/10 p-4">
+      <CardContent className="p-0 flex flex-wrap gap-4 items-center" role="search" aria-label="Events filter">
+        <label className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-muted-foreground">
+          <span>Severity:</span>
+          <select
+            className="rounded-none border border-input bg-background px-3 py-1.5 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-ring text-foreground"
+            aria-label="severity"
+            defaultValue={searchParams.get("severity") ?? ""}
+            onChange={(e) => update("severity", e.target.value)}
+          >
+            <option value="">ALL</option>
+            <option value="debug">DEBUG</option>
+            <option value="info">INFO</option>
+            <option value="warning">WARNING</option>
+            <option value="error">ERROR</option>
+            <option value="critical">CRITICAL</option>
+          </select>
+        </label>
+        
+        <label className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-muted-foreground">
+          <span>Category:</span>
+          <select
+            className="rounded-none border border-input bg-background px-3 py-1.5 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-ring text-foreground"
+            aria-label="category"
+            defaultValue={searchParams.get("category") ?? ""}
+            onChange={(e) => update("category", e.target.value)}
+          >
+            <option value="">ALL</option>
+            <option value="ingest">INGEST</option>
+            <option value="synthesis">SYNTHESIS</option>
+            <option value="decision">DECISION</option>
+            <option value="correction">CORRECTION</option>
+            <option value="risk">RISK</option>
+            <option value="boundary">BOUNDARY</option>
+            <option value="model_update">MODEL UPDATE</option>
+            <option value="delivery">DELIVERY</option>
+          </select>
+        </label>
+
+        <label className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-muted-foreground">
+          <span>Sensitivity:</span>
+          <select
+            className="rounded-none border border-input bg-background px-3 py-1.5 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-ring text-foreground"
+            aria-label="sensitivity"
+            defaultValue={searchParams.get("sensitivity") ?? ""}
+            onChange={(e) => update("sensitivity", e.target.value)}
+          >
+            <option value="">ALL</option>
+            <option value="internal">INTERNAL</option>
+            <option value="confidential">CONFIDENTIAL</option>
+            <option value="restricted">RESTRICTED</option>
+          </select>
+        </label>
+      </CardContent>
+    </Card>
   );
 }

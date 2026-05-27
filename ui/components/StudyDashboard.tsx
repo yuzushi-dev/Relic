@@ -4,40 +4,54 @@ import Link from "next/link";
 import { useState } from "react";
 import { formatDate, formatDateTime } from "../lib/format";
 import type { StudyOverview, SubjectRow } from "../lib/workbench-data";
+import { Badge } from "./ui/badge";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "./ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
+import { ClipboardList, ShieldAlert, CheckCircle2, AlertTriangle, HelpCircle } from "lucide-react";
 
 function StatusMarker({ status }: { status: SubjectRow["status"] }) {
-  return <span className="state-marker" data-state={status}>{status}</span>;
+  const variant = status === "active" ? "success" : status === "paused" ? "warning" : "secondary";
+  return (
+    <Badge variant={variant} className="capitalize rounded-none font-mono">
+      {status}
+    </Badge>
+  );
 }
 
 function RiskBadge({ risk }: { risk: SubjectRow["risk"] }) {
-  return <span className="risk-badge" data-risk={risk}>{risk}</span>;
+  const variant = risk === "high" || risk === "critical" ? "destructive" : risk === "medium" || risk === "low" ? "warning" : "secondary";
+  return (
+    <Badge variant={variant} className="capitalize rounded-none font-mono">
+      {risk}
+    </Badge>
+  );
 }
 
 function HermesCell({ profileId }: { profileId: string | null | undefined }) {
   if (!profileId) {
-    return <span className="stream-chip" data-stream="blocked">provisioning failed</span>;
+    return <Badge variant="destructive" className="rounded-none font-mono">failed</Badge>;
   }
   return (
-    <span className="mono" style={{ fontSize: "11.5px", fontVariantNumeric: "tabular-nums" }}>
+    <code className="text-xs bg-muted px-1.5 py-0.5 border border-border font-mono">
       {profileId}
-    </span>
+    </code>
   );
 }
 
 function ReviewCell({ pending }: { pending: boolean }) {
-  if (pending) return <span className="stream-chip" data-stream="pending">queued</span>;
-  return <span className="text-dim">—</span>;
+  if (pending) {
+    return <Badge variant="warning" className="rounded-none font-mono">queued</Badge>;
+  }
+  return <span className="text-muted-foreground">—</span>;
 }
-
-/* ─────────────────────────────────────────────────────────────────────────── */
 
 export function StudyDashboard({ studyOverviewData }: { studyOverviewData: StudyOverview }) {
   const [conditionFilter, setConditionFilter] = useState("all");
-  const [statusFilter, setStatusFilter]       = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
 
-  const subjects   = studyOverviewData.subject_registry;
+  const subjects = studyOverviewData.subject_registry;
   const conditions = ["all", ...Array.from(new Set(subjects.map((s) => s.condition)))];
-  const statuses   = ["all", "active", "paused", "archived"];
+  const statuses = ["all", "active", "paused", "archived"];
 
   const filtered = subjects.filter(
     (s) =>
@@ -50,126 +64,195 @@ export function StudyDashboard({ studyOverviewData }: { studyOverviewData: Study
     : "never";
 
   return (
-    <>
-      {/* Page header */}
-      <header className="page-header">
-        <div className="page-eyebrow">Study Monitoring</div>
-        <h1 className="page-title">{studyOverviewData.study_id}</h1>
-        <div className="page-meta">
-          <span>Protocol {studyOverviewData.protocol_version}</span>
-          <span className="mono" style={{ fontSize: "10px", opacity: 0.5 }}>|</span>
+    <div className="space-y-8">
+      {/* Page Header */}
+      <header className="border-b border-border pb-5">
+        <div className="text-xs font-mono uppercase tracking-widest text-primary mb-1">
+          Study Monitoring
+        </div>
+        <h1 className="text-3xl font-bold tracking-tight font-mono mb-2">
+          {studyOverviewData.study_id}
+        </h1>
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground font-mono">
+          <span>Protocol: v{studyOverviewData.protocol_version}</span>
+          <span>•</span>
           <span>{subjects.length} Subjects Registered</span>
-          <span className="mono" style={{ fontSize: "10px", opacity: 0.5 }}>|</span>
-          <span>Validated {validation}</span>
+          <span>•</span>
+          <span>Validated: {validation}</span>
         </div>
       </header>
 
-      {/* Stat bar */}
-      <div className="stat-bar" role="region" aria-label="Study Metrics">
+      {/* Stat Bar */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4" role="region" aria-label="Study Metrics">
         {[
-          { key: "Active Subjects", val: studyOverviewData.subjects_active,    state: studyOverviewData.subjects_active    > 0 ? "ok"   : undefined },
-          { key: "Paused Subjects", val: studyOverviewData.subjects_paused,    state: studyOverviewData.subjects_paused    > 0 ? "warn" : undefined },
-          { key: "Archived",        val: studyOverviewData.subjects_archived,  state: undefined },
-          { key: "Active Risks",    val: studyOverviewData.active_risk_alerts, state: studyOverviewData.active_risk_alerts > 0 ? "fault": undefined },
-          { key: "Pending Review",  val: studyOverviewData.pending_reviews,    state: studyOverviewData.pending_reviews    > 0 ? "warn" : undefined },
-        ].map((item) => (
-          <div key={item.key} className="stat-item">
-            <div className="stat-key">{item.key}</div>
-            <div
-              className="stat-val"
-              data-ok={item.state === "ok" || undefined}
-              data-warn={item.state === "warn" || undefined}
-              data-fault={item.state === "fault" || undefined}
-            >
-              {item.val}
+          {
+            key: "Active Subjects",
+            val: studyOverviewData.subjects_active,
+            icon: CheckCircle2,
+            color: "text-success",
+          },
+          {
+            key: "Paused Subjects",
+            val: studyOverviewData.subjects_paused,
+            icon: AlertTriangle,
+            color: studyOverviewData.subjects_paused > 0 ? "text-warning" : "text-muted-foreground",
+          },
+          {
+            key: "Archived",
+            val: studyOverviewData.subjects_archived,
+            icon: HelpCircle,
+            color: "text-muted-foreground",
+          },
+          {
+            key: "Active Risks",
+            val: studyOverviewData.active_risk_alerts,
+            icon: ShieldAlert,
+            color: studyOverviewData.active_risk_alerts > 0 ? "text-destructive" : "text-muted-foreground",
+          },
+          {
+            key: "Pending Review",
+            val: studyOverviewData.pending_reviews,
+            icon: ClipboardList,
+            color: studyOverviewData.pending_reviews > 0 ? "text-warning" : "text-muted-foreground",
+          },
+        ].map((item) => {
+          const Icon = item.icon;
+          return (
+            <Card key={item.key} className="rounded-none border-border">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
+                <CardDescription className="text-[10px] font-semibold uppercase tracking-wider">
+                  {item.key}
+                </CardDescription>
+                <Icon className={`h-4 w-4 ${item.color}`} />
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
+                <div className="text-2xl font-bold font-mono tracking-tight">{item.val}</div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Subject Registry */}
+      <Card className="rounded-none border-border">
+        <CardHeader className="border-b border-border">
+          <CardTitle className="font-mono text-sm font-semibold uppercase tracking-wider">
+            Subject Registry
+          </CardTitle>
+          <CardDescription>
+            Core catalog of enrolled human-AI interaction profiles.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          {/* Filters Bar */}
+          <div className="p-4 border-b border-border bg-muted/20 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+            <div className="flex flex-wrap gap-4 items-center">
+              <div>
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1.5">
+                  Condition
+                </span>
+                <div className="flex flex-wrap gap-1">
+                  {conditions.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      className={`px-2.5 py-1 text-xs border transition-colors rounded-none ${
+                        conditionFilter === c
+                          ? "bg-primary text-primary-foreground border-primary font-medium"
+                          : "border-input bg-background hover:bg-accent"
+                      }`}
+                      onClick={() => setConditionFilter(c)}
+                    >
+                      {c.replace(/_/g, " ")}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1.5 md:text-right">
+                Status
+              </span>
+              <div className="flex flex-wrap gap-1">
+                {statuses.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    className={`px-2.5 py-1 text-xs border transition-colors rounded-none ${
+                      statusFilter === s
+                        ? "bg-primary text-primary-foreground border-primary font-medium"
+                        : "border-input bg-background hover:bg-accent"
+                    }`}
+                    onClick={() => setStatusFilter(s)}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-        ))}
-      </div>
 
-      {/* Subject registry */}
-      <div className="wgrid">
-        <article className="card col-12">
-          <h2 className="card-label">Subject Registry</h2>
-
-          {/* Filter bar */}
-          <div className="filter-bar" role="group" aria-label="Filter registry">
-            <span className="filter-label">Condition</span>
-            {conditions.map((c) => (
-              <button
-                key={c}
-                type="button"
-                className={`filter-btn ${conditionFilter === c ? "active" : ""}`}
-                onClick={() => setConditionFilter(c)}
-              >
-                {c.replace(/_/g, " ")}
-              </button>
-            ))}
-
-            <div style={{ flex: 1 }} />
-
-            <span className="filter-label">Status</span>
-            {statuses.map((s) => (
-              <button
-                key={s}
-                type="button"
-                className={`filter-btn ${statusFilter === s ? "active" : ""}`}
-                onClick={() => setStatusFilter(s)}
-              >
-                {s}
-              </button>
-            ))}
+          {/* Table */}
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/10">
+                  <TableHead className="font-mono text-xs uppercase tracking-wider">Subject ID</TableHead>
+                  <TableHead className="font-mono text-xs uppercase tracking-wider">Condition</TableHead>
+                  <TableHead className="font-mono text-xs uppercase tracking-wider">Status</TableHead>
+                  <TableHead className="font-mono text-xs uppercase tracking-wider">Risk Level</TableHead>
+                  <TableHead className="font-mono text-xs uppercase tracking-wider">Hermes Profile</TableHead>
+                  <TableHead className="font-mono text-xs uppercase tracking-wider">Interaction</TableHead>
+                  <TableHead className="font-mono text-xs uppercase tracking-wider">Review Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="h-24 text-center text-muted-foreground italic">
+                      No subjects match the active filters.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filtered.map((subject) => (
+                    <TableRow key={subject.subject_id} className="hover:bg-muted/30">
+                      <TableCell className="font-mono font-medium">
+                        <Link
+                          href={`/dashboard/subjects/${subject.subject_id.replace(/-/g, "_")}`}
+                          className="text-primary hover:underline"
+                        >
+                          {subject.subject_id}
+                        </Link>
+                      </TableCell>
+                      <TableCell className="capitalize">
+                        {subject.condition.replace(/_/g, " ")}
+                      </TableCell>
+                      <TableCell>
+                        <StatusMarker status={subject.status} />
+                      </TableCell>
+                      <TableCell>
+                        <RiskBadge risk={subject.risk} />
+                      </TableCell>
+                      <TableCell>
+                        <HermesCell profileId={subject.hermes_profile_id} />
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {subject.last_user_interaction_at
+                          ? formatDate(subject.last_user_interaction_at)
+                          : "—"}
+                      </TableCell>
+                      <TableCell>
+                        <ReviewCell pending={subject.pending_review} />
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
           </div>
-
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th scope="col">Subject ID</th>
-                <th scope="col">Condition</th>
-                <th scope="col">Status</th>
-                <th scope="col">Risk</th>
-                <th scope="col">Hermes Profile</th>
-                <th scope="col">Interaction</th>
-                <th scope="col">Review</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="empty-state">
-                    No subjects match the current filters.
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((subject) => (
-                  <tr key={subject.subject_id}>
-                    <td>
-                      <Link
-                        href={`/workbench/subjects/${subject.subject_id.replace("-", "_")}`}
-                        className="subject-link"
-                      >
-                        {subject.subject_id}
-                      </Link>
-                    </td>
-                    <td>{subject.condition.replace(/_/g, " ")}</td>
-                    <td><StatusMarker status={subject.status} /></td>
-                    <td><RiskBadge risk={subject.risk} /></td>
-                    <td><HermesCell profileId={subject.hermes_profile_id} /></td>
-                    <td className="mono" style={{ fontSize: "11px" }}>
-                      {subject.last_user_interaction_at ? formatDate(subject.last_user_interaction_at) : "—"}
-                    </td>
-                    <td><ReviewCell pending={subject.pending_review} /></td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </article>
-      </div>
-
-      <footer className="page-footer">
-        {studyOverviewData.study_id} · {subjects.length} subjects
-      </footer>
-    </>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

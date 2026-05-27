@@ -1,6 +1,8 @@
 "use client";
 import type { ChronicleEvent } from "@/lib/chronicle-types";
 import { SeverityBadge, SensitivityBadge } from "./Badges";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 function formatTs(ts: string) {
   return new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }).format(new Date(ts));
@@ -8,33 +10,38 @@ function formatTs(ts: string) {
 
 export function EventsTable({ events }: { events: ChronicleEvent[] }) {
   if (events.length === 0)
-    return <p className="text-sm text-gray-500">No events match the current filters.</p>;
+    return <p className="text-sm text-muted-foreground italic p-4 text-center">No events match the current filters.</p>;
+    
   return (
-    <table className="w-full text-sm" data-testid="events-table">
-      <thead>
-        <tr className="border-b border-gray-200 text-left text-xs text-gray-500">
-          <th className="pb-2 pr-4">Time</th>
-          <th className="pb-2 pr-4">Category</th>
-          <th className="pb-2 pr-4">Severity</th>
-          <th className="pb-2 pr-4">Sensitivity</th>
-          <th className="pb-2 pr-4">Summary</th>
-          <th className="pb-2">Actor</th>
-        </tr>
-      </thead>
-      <tbody>
-        {events.map((e) => (
-          <tr key={e.event_id} className="border-b border-gray-100 hover:bg-gray-50">
-            <td className="py-2 pr-4 font-mono text-xs text-gray-500">{formatTs(e.timestamp)}</td>
-            <td className="py-2 pr-4">
-              <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">{e.category}</span>
-            </td>
-            <td className="py-2 pr-4"><SeverityBadge severity={e.severity} /></td>
-            <td className="py-2 pr-4"><SensitivityBadge sensitivity={e.sensitivity} /></td>
-            <td className="py-2 pr-4">{e.summary}</td>
-            <td className="py-2 text-xs text-gray-500">{e.actor ?? "—"}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <div className="overflow-x-auto border border-border">
+      <Table data-testid="events-table">
+        <TableHeader>
+          <TableRow className="bg-muted/10">
+            <TableHead className="font-mono text-xs uppercase tracking-wider">Time</TableHead>
+            <TableHead className="font-mono text-xs uppercase tracking-wider">Category</TableHead>
+            <TableHead className="font-mono text-xs uppercase tracking-wider">Severity</TableHead>
+            <TableHead className="font-mono text-xs uppercase tracking-wider">Sensitivity</TableHead>
+            <TableHead className="font-mono text-xs uppercase tracking-wider">Summary</TableHead>
+            <TableHead className="font-mono text-xs uppercase tracking-wider">Actor</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {events.map((e) => (
+            <TableRow key={e.event_id} className="hover:bg-muted/30">
+              <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap">{formatTs(e.timestamp)}</TableCell>
+              <TableCell>
+                <Badge variant="outline" className="rounded-none font-mono text-[10px]">
+                  {e.category}
+                </Badge>
+              </TableCell>
+              <TableCell><SeverityBadge severity={e.severity} /></TableCell>
+              <TableCell><SensitivityBadge sensitivity={e.sensitivity} /></TableCell>
+              <TableCell className="text-sm font-medium text-foreground">{e.summary}</TableCell>
+              <TableCell className="font-mono text-xs text-muted-foreground">{e.actor ?? "—"}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 }
