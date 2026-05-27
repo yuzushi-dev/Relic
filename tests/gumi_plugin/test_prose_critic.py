@@ -11,7 +11,17 @@ from __future__ import annotations
 
 import pytest
 
-from relic.gumi_plugin.prose_critic import ProseCritic, ProseVerdict, DEFAULT_THRESHOLD
+import io
+import json
+
+from relic.gumi_plugin.prose_critic import (
+    ProseCritic,
+    ProseVerdict,
+    DEFAULT_THRESHOLD,
+    log_calibration_sample,
+    load_calibration_scores,
+    suggest_threshold,
+)
 
 
 CLEAN = "Ehi, ho pensato a te oggi. Come è andata col progetto?"
@@ -85,3 +95,43 @@ class TestProseCritic:
         text = SLOP + " " + SLOP + " — — — non solo A ma anche B. La verità è che..."
         v = ProseCritic().review(text)
         assert v.score >= 0
+
+
+class TestCalibration:
+    def test_log_sample_is_numeric_only_no_text(self) -> None:
+        sink = io.StringIO()
+        secret = "questo testo segreto non deve mai finire nel log delle emozioni"
+        v = ProseCritic().review(secret)
+        log_calibration_sample(v, secret, decision_type="checkin", sink=sink)
+        line = sink.getvalue().strip()
+        rec = json.loads(line)
+        # Privacy: raw text must never appear in the record.
+        assert "segreto" not in line
+        assert set(rec.keys()) == {"created_at", "score", "violations", "decision_type", "n_words"}
+        assert rec["decision_type"] == "checkin"
+        assert rec["n_words"] == len(secret.split())
+
+    def test_log_sample_fail_open(self) -> None:
+        # Bad sink must not raise.
+        class Boom:
+            def write(self, _: str) -> None:
+                raise RuntimeError("disk full")
+
+        log_calibration_sample(ProseCritic().review("ciao"), "ciao", sink=Boom())
+
+    def test_load_scores_from_jsonl(self, tmp_path) -> None:
+        p = tmp_path / "cal.jsonl"
+        p.write_text(
+            "\n".join(json.dumps({"score": s, "violations": []}) for s in [50, 40, 30])
+            + "\nNOT_JSON\n",  # malformed line ignored
+            encoding="utf-8",
+        )
+        assert load_calibration_scores(p) == [50, 40, 30]
+
+    def test_suggest_threshold_needs_min_samples(self) -> None:
+        assert suggest_threshold([50] * 29) is None  # <30 → None
+
+    def test_suggest_threshold_percentile(self) -> None:
+        scores = list(range(1, 101))  # 1..100
+        # 10th percentile, nearest-rank → 10
+        assert suggest_threshold(scores, percentile=10.0) == 10

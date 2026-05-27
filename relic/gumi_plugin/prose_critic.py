@@ -141,3 +141,80 @@ class ProseCritic:
         else:
             reason = "tells_present"
         return ProseVerdict(allow=allow, reason=reason, score=score, violations=violations)
+
+
+def suggest_threshold(scores: list[int], percentile: float = 10.0) -> int | None:
+    """Suggest a hard-block threshold from a real score distribution.
+
+    Returns the score at the given low percentile (default 10th): blocking
+    below it targets the worst ~10% of real output. Returns None when there
+    is too little data to be meaningful (<30 samples) — never guess on noise.
+    """
+    clean = sorted(int(s) for s in scores if isinstance(s, (int, float)))
+    if len(clean) < 30:
+        return None
+    pct = max(0.0, min(100.0, percentile))
+    # Nearest-rank percentile.
+    rank = max(1, int(round(pct / 100.0 * len(clean))))
+    return clean[rank - 1]
+
+
+def load_calibration_scores(path: object = None) -> list[int]:
+    """Load score values from the calibration jsonl. Empty list on any error."""
+    try:
+        import json
+
+        if path is None:
+            from relic.paths import get_relic_home
+
+            path = get_relic_home() / "prose_calibration.jsonl"
+        scores: list[int] = []
+        with open(path, encoding="utf-8") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    rec = json.loads(line)
+                    scores.append(int(rec["score"]))
+                except Exception:
+                    continue
+        return scores
+    except Exception:
+        return []
+
+
+def log_calibration_sample(
+    verdict: "ProseVerdict", text: str, *, decision_type: str = "", sink: object = None
+) -> None:
+    """Append a numeric-only calibration record to prose_calibration.jsonl.
+
+    PRIVACY: never writes the prose itself nor a hash of it. Only the score,
+    violation codes, decision_type, and word count — enough to compute a
+    threshold from the real score distribution without retaining content.
+    Fail-open: any error is swallowed so calibration logging never blocks
+    or breaks delivery.
+    """
+    try:
+        import json
+        from datetime import datetime, timezone
+
+        record = {
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "score": verdict.score,
+            "violations": list(verdict.violations),
+            "decision_type": decision_type or "",
+            "n_words": len(text.split()) if isinstance(text, str) else 0,
+        }
+        line = json.dumps(record, ensure_ascii=False)
+        if sink is not None:
+            sink.write(line + "\n")  # injectable for tests
+            return
+        from relic.paths import get_relic_home
+
+        path = get_relic_home() / "prose_calibration.jsonl"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, "a", encoding="utf-8") as fh:
+            fh.write(line + "\n")
+    except Exception:
+        pass

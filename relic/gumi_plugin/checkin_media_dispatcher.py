@@ -343,7 +343,7 @@ def _critic_block_reason(text: str) -> Optional[str]:
         return None
 
 
-def _prose_block_reason(text: str) -> Optional[str]:
+def _prose_block_reason(text: str, decision_type: str = "") -> Optional[str]:
     """Delivery-time prose-quality scorer (AI-tell detection).
 
     Observe-only by default: logs score + violations to stderr and returns None
@@ -356,6 +356,9 @@ def _prose_block_reason(text: str) -> Optional[str]:
 
         hard = os.environ.get("RELIC_PROSE_HARD_BLOCK", "").strip().lower() in {"1", "true", "yes"}
         verdict = ProseCritic(hard_block=hard).review(text or "")
+        # Numeric-only calibration log (no text/hash) for threshold tuning.
+        from relic.gumi_plugin.prose_critic import log_calibration_sample
+        log_calibration_sample(verdict, text or "", decision_type=decision_type)
         if verdict.violations:
             print(
                 f"[dispatch] prose_critic score={verdict.score} "
@@ -454,7 +457,7 @@ def dispatch(
         return {"tipo": tipo, "success": False, "reason": f"critic_blocked:{block_reason}"}
 
     # Delivery-time prose-quality scorer (observe-only unless RELIC_PROSE_HARD_BLOCK).
-    prose_reason = _prose_block_reason(testo)
+    prose_reason = _prose_block_reason(testo, decision_type=decision_type)
     if prose_reason:
         print(
             f"[dispatch] blocked by prose critic: {prose_reason} — silent drop",
