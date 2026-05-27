@@ -1002,6 +1002,26 @@ def checkin_main(argv: list[str]) -> int:
     status_parser.add_argument("--subject-id", required=True)
     status_parser.add_argument("--relic-home", default=None)
 
+    snap_parser = subparsers.add_parser(
+        "snapshot",
+        help="Write a model_snapshots row for a subject (force or backfill)",
+    )
+    snap_parser.add_argument("--subject-id", required=True, help="Subject identifier")
+    snap_parser.add_argument("--relic-home", default=None, help="Override RELIC_HOME")
+    snap_parser.add_argument(
+        "--force", action="store_true",
+        help="Write snapshot even if model has not changed (bypasses debounce)",
+    )
+    snap_parser.add_argument(
+        "--backfill", action="store_true",
+        help=(
+            "Reconstruct daily snapshots from observations table for the gap "
+            "since the last snapshot. Each reconstructed row is tagged "
+            'reason=\\"backfill\\" in snapshot_data. Use --force to also write '
+            "today's snapshot unconditionally after backfilling."
+        ),
+    )
+
     args = parser.parse_args(argv)
 
     relic_home = args.relic_home or os.environ.get("RELIC_HOME") or str(Path.home() / ".relic")
@@ -1075,8 +1095,165 @@ def checkin_main(argv: list[str]) -> int:
         }, indent=2))
         return 0
 
+    if args.checkin_action == "snapshot":
+        import sqlite3 as _sqlite3
+        from relic.checkin.facet_updater import write_snapshot, maybe_write_snapshot
+        from relic.checkin.db_init import init_db as _init_db_schema
+
+        subject_id = args.subject_id
+        db_path = Path(relic_home) / "subjects" / subject_id / "relic.db"
+        if not db_path.exists():
+            print(f"Error: relic.db not found at {db_path}", file=sys.stderr)
+            return 1
+
+        conn = _init_db_schema(db_path)
+        try:
+            if args.backfill:
+                result = _checkin_snapshot_backfill(conn, subject_id)
+                print(json.dumps(result, indent=2))
+                if args.force:
+                    snap = write_snapshot(conn, reason="manual")
+                    print(json.dumps({"forced_snapshot": snap}, indent=2))
+            elif args.force:
+                snap = write_snapshot(conn, reason="manual")
+                print(json.dumps(snap, indent=2))
+            else:
+                snap = maybe_write_snapshot(conn, reason="manual")
+                if snap:
+                    print(json.dumps(snap, indent=2))
+                else:
+                    print(json.dumps({"status": "skipped", "reason": "no model change or debounce active"}))
+        finally:
+            conn.close()
+        return 0
+
     parser.print_help()
     return 1
+
+
+def _checkin_snapshot_backfill(conn: "sqlite3.Connection", subject_id: str) -> dict:  # type: ignore[name-defined]
+    """Reconstruct daily model snapshots from observations table.
+
+    For each calendar day between (last_snapshot + 1 day) and yesterday that had
+    ≥1 observation, compute a traits-like summary of all observations up to end-of-day
+    and insert a model_snapshots row tagged reason='backfill', reconstructed=true.
+
+    This is a best-effort reconstruction: it does not replay the weighted update law
+    per-exchange; instead it aggregates observation positions/confidences by facet
+    using a simple mean, which approximates the running accumulation.
+    """
+    import sqlite3
+    from datetime import datetime, timedelta, date
+
+    # Find gap start
+    last_snap_row = conn.execute(
+        "SELECT MAX(snapshot_at) FROM model_snapshots"
+    ).fetchone()
+    last_snap_str = last_snap_row[0] if last_snap_row else None
+
+    if last_snap_str:
+        try:
+            last_snap_dt = datetime.fromisoformat(last_snap_str)
+            gap_start = (last_snap_dt.date() + timedelta(days=1))
+        except ValueError:
+            gap_start = date(2026, 1, 1)
+    else:
+        # No snapshots at all — start from first observation
+        first_obs = conn.execute("SELECT MIN(created_at) FROM observations").fetchone()[0]
+        if not first_obs:
+            return {"backfill": "no observations found"}
+        gap_start = datetime.fromisoformat(first_obs).date()
+
+    gap_end = date.today() - timedelta(days=1)  # exclude today
+
+    if gap_start > gap_end:
+        return {"backfill": "no gap to fill", "last_snapshot": last_snap_str}
+
+    # Get facet list
+    facets = {
+        row[0]: {"category": row[1], "name": row[2]}
+        for row in conn.execute("SELECT id, category, name FROM facets").fetchall()
+    }
+
+    written = []
+    skipped = []
+    current_day = gap_start
+    while current_day <= gap_end:
+        day_end_iso = f"{current_day.isoformat()}T23:59:59+00:00"
+        # Count observations up to end of this day
+        obs_count = conn.execute(
+            "SELECT COUNT(*) FROM observations WHERE created_at <= ?", (day_end_iso,)
+        ).fetchone()[0]
+
+        # Only write a snapshot on days that had at least 1 new observation
+        day_start_iso = f"{current_day.isoformat()}T00:00:00+00:00"
+        new_on_day = conn.execute(
+            "SELECT COUNT(*) FROM observations WHERE created_at >= ? AND created_at <= ?",
+            (day_start_iso, day_end_iso),
+        ).fetchone()[0]
+
+        if new_on_day == 0:
+            skipped.append(str(current_day))
+            current_day += timedelta(days=1)
+            continue
+
+        # Aggregate per-facet signals up to end of this day
+        rows = conn.execute(
+            """SELECT facet_id,
+                      AVG(CASE WHEN signal_position IS NOT NULL THEN signal_position END),
+                      AVG(CASE WHEN signal_strength IS NOT NULL THEN signal_strength END),
+                      COUNT(*)
+               FROM observations
+               WHERE created_at <= ?
+               GROUP BY facet_id""",
+            (day_end_iso,),
+        ).fetchall()
+
+        snap_facets = []
+        for facet_id, avg_pos, avg_strength, cnt in rows:
+            snap_facets.append({
+                "facet_id": facet_id,
+                "value_position": round(avg_pos, 4) if avg_pos is not None else None,
+                "confidence": round(min((avg_strength or 0.1) * (cnt / max(cnt, 10)), 0.85), 4),
+                "observation_count": cnt,
+                "reconstructed": True,
+            })
+
+        confidences = [r["confidence"] for r in snap_facets if r["confidence"] is not None]
+        avg_conf = sum(confidences) / len(confidences) if confidences else 0.0
+        with_data = sum(1 for r in snap_facets if r["value_position"] is not None)
+        cov_pct = 100.0 * with_data / len(facets) if facets else 0.0
+        snap_at = f"{current_day.isoformat()}T23:00:00+00:00"  # end-of-day marker
+
+        payload = {
+            "reason": "backfill",
+            "reconstructed": True,
+            "note": "Reconstructed from observations aggregate; not a contemporaneous capture.",
+            "facets": snap_facets,
+        }
+        try:
+            conn.execute(
+                "INSERT INTO model_snapshots "
+                "(snapshot_at, total_observations, avg_confidence, coverage_pct, snapshot_data) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (snap_at, obs_count, avg_conf, cov_pct, json.dumps(payload)),
+            )
+            conn.commit()
+            written.append(str(current_day))
+        except Exception as exc:
+            skipped.append(f"{current_day} (error: {exc})")
+
+        current_day += timedelta(days=1)
+
+    return {
+        "backfill": "complete",
+        "gap_start": str(gap_start),
+        "gap_end": str(gap_end),
+        "days_written": len(written),
+        "days_skipped": len(skipped),
+        "written": written,
+        "skipped": skipped,
+    }
 
 
 def main(argv: list[str] | None = None) -> int:

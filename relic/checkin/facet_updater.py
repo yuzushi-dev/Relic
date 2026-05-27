@@ -479,7 +479,147 @@ def process_pending_exchanges(
 
         results.append(entry)
 
+    # After all exchanges are processed, take a model snapshot if warranted.
+    if not dry_run:
+        maybe_write_snapshot(conn, reason="checkin")
+
     return results
+
+
+def write_snapshot(conn: sqlite3.Connection, reason: str = "checkin") -> dict[str, Any]:
+    """Write a model_snapshots row reflecting current traits state.
+
+    Returns a dict with the snapshot stats (for logging/testing).
+    Never raises — failure is logged and the caller continues.
+    """
+    try:
+        cols = [
+            "facet_id", "value_position", "confidence", "observation_count",
+            "last_observation_at", "last_synthesis_at", "status", "notes",
+        ]
+        rows = conn.execute(
+            "SELECT facet_id, value_position, confidence, observation_count, "
+            "last_observation_at, last_synthesis_at, status, notes FROM traits"
+        ).fetchall()
+        snap_data = [dict(zip(cols, r)) for r in rows]
+
+        total = len(snap_data)
+        with_data = sum(
+            1 for r in snap_data
+            if r["value_position"] is not None and (r["observation_count"] or 0) > 0
+        )
+        confidences = [r["confidence"] for r in snap_data if r["confidence"] is not None]
+        avg_conf = sum(confidences) / len(confidences) if confidences else 0.0
+        cov_pct = 100.0 * with_data / total if total else 0.0
+
+        total_obs = conn.execute("SELECT COUNT(*) FROM observations").fetchone()[0]
+        now_iso = datetime.now(timezone.utc).isoformat()
+
+        # Attach trigger reason to snapshot_data header
+        payload = {"reason": reason, "facets": snap_data}
+
+        conn.execute(
+            "INSERT INTO model_snapshots "
+            "(snapshot_at, total_observations, avg_confidence, coverage_pct, snapshot_data) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (now_iso, total_obs, avg_conf, cov_pct, json.dumps(payload)),
+        )
+        conn.commit()
+        return {
+            "snapshot_at": now_iso,
+            "total_observations": total_obs,
+            "avg_confidence": avg_conf,
+            "coverage_pct": cov_pct,
+            "facets_total": total,
+            "facets_with_data": with_data,
+            "reason": reason,
+        }
+    except Exception as exc:
+        import logging
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        logging.getLogger(__name__).warning("model_snapshots write failed: %s", exc)
+        return {}
+
+
+def _snapshot_needs_update(conn: sqlite3.Connection) -> bool:
+    """Return True if a new snapshot is warranted (model changed AND debounce elapsed).
+
+    Change criteria (any one sufficient):
+      - total_observations increased since last snapshot
+      - any facet confidence changed by >= 0.05
+      - any facet value_position changed
+      - coverage_pct changed
+
+    Debounce: at least 1h since last snapshot.
+    """
+    from datetime import timedelta
+
+    row = conn.execute(
+        "SELECT snapshot_at, total_observations, snapshot_data FROM model_snapshots "
+        "ORDER BY snapshot_at DESC LIMIT 1"
+    ).fetchone()
+
+    if row is None:
+        return True  # no snapshots ever — write one
+
+    last_at_str, last_obs, last_data_json = row
+
+    # Debounce: skip if last snapshot < 1h ago
+    try:
+        last_at = datetime.fromisoformat(last_at_str)
+        if datetime.now(timezone.utc) - last_at < timedelta(hours=1):
+            return False
+    except (ValueError, TypeError):
+        pass  # malformed timestamp — proceed
+
+    # Check observation count
+    current_obs = conn.execute("SELECT COUNT(*) FROM observations").fetchone()[0]
+    if current_obs != (last_obs or 0):
+        return True
+
+    # Check trait-level changes vs snapshot_data
+    try:
+        last_payload = json.loads(last_data_json or "{}") if last_data_json else {}
+        # Support both old list format and new {"reason":..., "facets":[...]} format
+        last_facets_list = (
+            last_payload.get("facets", last_payload)
+            if isinstance(last_payload, dict)
+            else last_payload
+        )
+        last_facets = {
+            r["facet_id"]: r
+            for r in last_facets_list
+            if isinstance(r, dict) and "facet_id" in r
+        }
+        current_rows = conn.execute(
+            "SELECT facet_id, value_position, confidence FROM traits"
+        ).fetchall()
+        for facet_id, vp, conf in current_rows:
+            prev = last_facets.get(facet_id, {})
+            prev_conf = prev.get("confidence")
+            prev_vp = prev.get("value_position")
+            if prev_conf is None and conf is not None:
+                return True
+            if conf is not None and prev_conf is not None and abs(conf - prev_conf) >= 0.05:
+                return True
+            if vp != prev_vp:
+                return True
+    except Exception:
+        return True  # parse failure — be conservative and write
+
+    return False
+
+
+def maybe_write_snapshot(
+    conn: sqlite3.Connection, reason: str = "checkin"
+) -> dict[str, Any]:
+    """Write a snapshot if the model changed AND debounce elapsed. Fail-soft."""
+    if _snapshot_needs_update(conn):
+        return write_snapshot(conn, reason=reason)
+    return {}
 
 
 def main() -> int:

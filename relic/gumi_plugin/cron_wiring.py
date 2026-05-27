@@ -730,11 +730,56 @@ def emit_decision_event(
     # Write event to RELIC_HOME-aware decision_events.jsonl (Plan §Task 1, Step 4).
     from relic.paths import get_relic_home
 
-    event_log_path = get_relic_home() / "decision_events.jsonl"
+    _relic_home = get_relic_home()
+    event_log_path = _relic_home / "decision_events.jsonl"
     event_log_path.parent.mkdir(parents=True, exist_ok=True)
 
     with open(event_log_path, "a") as f:
         f.write(json.dumps(event.to_dict()) + "\n")
+        f.flush()
+        os.fsync(f.fileno())
+
+    # Also append to subject-scoped delivery_decision_log.jsonl.
+    # We log ALL decision types (NO_REPLY, CANDIDATE, DELIVER, BLOCKED, ERROR)
+    # so the researcher UI can distinguish "system was silent by design" from
+    # "system was broken / never ran". Chronicle event is written first (above),
+    # so the flat-file is a derived/secondary observer — fail-soft on errors.
+    if subject_id:
+        try:
+            _delivery_log_path = (
+                _relic_home / "subjects" / subject_id / "delivery_decision_log.jsonl"
+            )
+            _delivery_log_path.parent.mkdir(parents=True, exist_ok=True)
+            # Compute decision string once to avoid triple hasattr checks
+            _decision_str = decision.value if hasattr(decision, "value") else str(decision)
+            _log_record = {
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "subject_id": subject_id,
+                "decision": _decision_str,
+                "reason_codes": [
+                    r.value if hasattr(r, "value") else str(r) for r in reason_codes
+                ] if reason_codes else [],
+                "decision_type": decision_type,
+                "event_kind": event_kind,
+                "hermes_cron_job": hermes_profile_id or gumi_instance_id or None,
+                "delivery_backend": "telegram" if delivered else None,
+                "target_display": target_id,
+                "posture": posture,
+                "reach_score": reach_score,
+                "outcome_status": outcome_status,
+                "status": "sent" if delivered else _decision_str.lower(),
+            }
+            # Strip None values to keep the log compact
+            _log_record = {k: v for k, v in _log_record.items() if v is not None}
+            with open(_delivery_log_path, "a") as _f:
+                _f.write(json.dumps(_log_record) + "\n")
+                _f.flush()
+                os.fsync(_f.fileno())
+        except Exception as _exc:
+            # Fail-soft: delivery log append must never crash the decision path.
+            # Log at debug so a persistently failing path (e.g. unwritable subject dir)
+            # is detectable without surfacing as an error.
+            logger.debug("delivery_decision_log append failed for %s: %s", subject_id, _exc)
 
     if _CHRONICLE:
         try:

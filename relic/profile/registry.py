@@ -1157,7 +1157,7 @@ class ProfileRegistry:
             from relic.gumi.llm_narrator import GumiBuildContext, OllamaNarrator
             import os as _os
             ollama_endpoint = _os.environ.get("RELIC_OLLAMA_ENDPOINT", "http://localhost:11434/v1")
-            ollama_model = _os.environ.get("RELIC_OLLAMA_MODEL", "devstral-small-2:24b-cloud")
+            ollama_model = _os.environ.get("RELIC_OLLAMA_MODEL", "gemma4:31b-cloud")
             _narrator = OllamaNarrator(endpoint=ollama_endpoint, model=ollama_model)
             _ctx = GumiBuildContext.from_background_and_personalization(
                 agent_name=background.get("display_name", subject_id),
@@ -2445,7 +2445,7 @@ Eight visual modes for consistent photography:
         # Derive Ollama config from relic config if available
         import os
         ollama_endpoint = os.environ.get("RELIC_OLLAMA_ENDPOINT", "http://localhost:11434/v1")
-        ollama_model = os.environ.get("RELIC_OLLAMA_MODEL", "devstral-small-2:24b-cloud")
+        ollama_model = os.environ.get("RELIC_OLLAMA_MODEL", "gemma4:31b-cloud")
         narrator = OllamaNarrator(endpoint=ollama_endpoint, model=ollama_model)
 
         generation_log: dict[str, str] = {}
