@@ -1050,6 +1050,12 @@ class ProfileRegistry:
             "TELEGRAM_HOME_CHANNEL": telegram_user_id,  # plain int — Hermes parses this directly
             "GUMI_TELEGRAM_BOT_TOKEN_ENV": bot_token_env,
             "GUMI_DELIVERY_CHANNEL": "telegram",
+            # Relic dispatch scripts default each target to "local" (generate but
+            # don't send) unless flipped to the contact channel. Without these the
+            # checkin/proactive/diegetic cron jobs never deliver to the subject.
+            "RELIC_DIEGETIC_DELIVER_TARGET": "telegram",
+            "RELIC_PROACTIVE_DELIVER_TARGET": "telegram",
+            "RELIC_CHECKIN_POLICY_ENABLED": "true",
             # Suppress Hermes system/lifecycle messages (gateway_started/stopped/restarted)
             # from the subject chat — operator fills TELEGRAM_ADMIN_CHANNEL to reroute them.
             "HERMES_SUPPRESS_SYSTEM_MESSAGES": "true",
@@ -1058,10 +1064,18 @@ class ProfileRegistry:
         token = os.environ.get(bot_token_env)
         if token:
             values["TELEGRAM_BOT_TOKEN"] = token
-        # Propagate LLM provider keys from environment so the profile's cron jobs
-        # can reach the model provider without relying on the global ~/.hermes/.env.
+        # Propagate LLM provider keys so the profile's cron jobs can reach the
+        # model provider. Prefer the live environment, but fall back to the global
+        # ~/.hermes/.env when the researcher ran the TUI without the keys exported
+        # — otherwise cron AI calls crash with "Provider ... but no API key found".
+        global_env_path = Path.home() / ".hermes" / ".env"
+        global_env = (
+            _parse_env_text(global_env_path.read_text(encoding="utf-8"))
+            if global_env_path.exists()
+            else {}
+        )
         for _key in ("DASHSCOPE_API_KEY", "ALIBABA_CODING_PLAN_API_KEY", "GEMINI_API_KEY"):
-            _val = os.environ.get(_key)
+            _val = os.environ.get(_key) or global_env.get(_key)
             if _val:
                 values[_key] = _val
         _write_env_values(env_path, values)
