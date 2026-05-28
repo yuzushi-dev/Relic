@@ -1,7 +1,6 @@
 """TUI step: collect Telegram delivery configuration without secrets."""
 from __future__ import annotations
 
-import hashlib
 import os
 import re
 from pathlib import Path
@@ -66,11 +65,10 @@ def _offer_existing_key(
         return None
     items = list(candidates.items())
     print(f"\n  Chiavi {label} già configurate per altri soggetti:", file=io_out)
-    for i, (k, v) in enumerate(items, 1):
-        # Never emit any byte of the secret. Show a non-reversible fingerprint so
-        # the researcher can still tell distinct keys apart without disclosure.
-        fingerprint = hashlib.sha256(v.encode("utf-8")).hexdigest()[:8]
-        print(f"    {i}. {k} [fp:{fingerprint}]", file=io_out)
+    for i, (k, _v) in enumerate(items, 1):
+        # Show only the key name; never emit or hash the secret value. Candidates
+        # are deduplicated by key name, so the name alone identifies the choice.
+        print(f"    {i}. {k}", file=io_out)
     print(f"    0. Inserisci nuova chiave", file=io_out)
     print(f"  Scelta (0-{len(items)}): ", end="", flush=True, file=io_out)
     try:
