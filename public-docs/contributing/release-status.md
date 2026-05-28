@@ -65,7 +65,7 @@ A flatter view oriented at researchers deciding what to depend on. Status legend
 | Workbench corrections + recompile | Stable | Authoritative, propagates |
 | Workbench export/delete buttons | Gated | `EXPORT_BUNDLE` permission not granted by default |
 | CAC scoring + traces | Stable | Deterministic rules, immutable traces |
-| Shared Continuity memory | Stable | Subject-confirmed markers, recall limits |
+| Shared Continuity memory | Stable | Subject-confirmed markers, recall limits. In-process by default (lost on restart); durable persistence requires injecting the optional SQLite repository, not wired into the default runtime |
 | Memory provider: Hindsight (local) | Stable | Default for full Gumi |
 | Memory provider: builtin / holographic | Stable | Local, lower-power options |
 | Memory provider: Byterover / Honcho | Eval fixtures only | Live providers not enabled as runtime defaults |

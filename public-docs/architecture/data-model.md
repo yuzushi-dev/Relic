@@ -77,7 +77,7 @@ The ontological class is the most important field for data stream separation. It
 
 ## Continuity markers
 
-Continuity markers store subject-confirmed relational memory across sessions. They require explicit confirmation before permanent storage (`confirmed: true`). Unconfirmed markers cannot be stored in the registry.
+Continuity markers store subject-confirmed relational memory. They require explicit confirmation (`confirmed: true`) before they can be stored; unconfirmed markers cannot enter the registry. The default Shared Continuity service holds markers in-process: they are retained across conversation sessions for the lifetime of the running gateway but are lost on process restart. Durable, restart-surviving storage requires injecting the optional SQLite-backed continuity repository (`relic/shared_continuity/repository.py`, migration `0013_shared_continuity.sql`); it is not wired into the default runtime.
 
 When a marker is corrected, the original is preserved. The correction is authoritative but the original is part of the audit trail. Gumi can recall only subject-confirmed markers.
 

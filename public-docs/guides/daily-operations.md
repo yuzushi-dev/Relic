@@ -86,7 +86,7 @@ relic runtime doctor
 hermes gateway run --profile gumi-<subject_id>
 ```
 
-The session resumes from disk state. Memory and continuity markers persist across restarts.
+The session resumes from disk state (Chronicle events, observations, profile, and check-in state are SQLite-backed and survive restart). Shared Continuity markers, however, run in the in-process service by default (`ContinuityService()` with no repository injected) and are **not** retained across a gateway restart unless the optional SQLite-backed continuity repository is configured. Do not rely on cross-restart continuity-marker recall in the default deployment.
 
 ## Sending Gumi an out-of-band first message
 
