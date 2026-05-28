@@ -5,8 +5,11 @@ Service implementing remember, correct, due_followups, recent_markers,
 forget, pause, and resume operations for Shared Continuity Memory.
 """
 
+import logging
+import os
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Optional, List, Dict, Any
 from enum import Enum
 
@@ -981,13 +984,61 @@ class ContinuityService:
         }
 
 
-# Global service instance
+# Global in-memory fallback (used when no subject scope is resolvable, e.g. in
+# tests or generic contexts). Markers held here are lost on process restart.
 _service = ContinuityService()
+
+# Per-subject durable services, cached for the process lifetime. The live
+# gateway runs one subject per process (RELIC_SUBJECT_ID), so this is normally
+# a single entry.
+_durable_services: Dict[str, ContinuityService] = {}
+
+
+def _durable_continuity_db_path(subject_id: str) -> Optional[Path]:
+    """Return the per-subject continuity.db path, or None if the subject home
+    does not exist (so unprovisioned/test contexts fall back to in-memory)."""
+    relic_home = Path(os.environ.get("RELIC_HOME") or (Path.home() / ".relic"))
+    subject_home = relic_home / "subjects" / subject_id
+    if not subject_home.is_dir():
+        return None
+    return subject_home / "continuity.db"
 
 
 def get_continuity_service() -> ContinuityService:
-    """Get the global continuity service instance."""
-    return _service
+    """Return the continuity service for the current subject scope.
+
+    When ``RELIC_SUBJECT_ID`` is set and the subject home exists, return a
+    durable SQLite-backed service so confirmed markers, corrections, scope
+    state, and lifecycle events survive process restart. Otherwise fall back to
+    the in-process service. Repository wiring is fail-open: any error degrades
+    to the in-memory service rather than breaking continuity at runtime.
+    """
+    subject_id = os.environ.get("RELIC_SUBJECT_ID", "").strip()
+    if not subject_id:
+        return _service
+
+    cached = _durable_services.get(subject_id)
+    if cached is not None:
+        return cached
+
+    db_path = _durable_continuity_db_path(subject_id)
+    if db_path is None:
+        return _service
+
+    try:
+        from relic.shared_continuity.repository import SQLiteContinuityRepository
+
+        service = ContinuityService(repository=SQLiteContinuityRepository(db_path))
+        _durable_services[subject_id] = service
+        return service
+    except Exception as exc:  # fail-open: never break runtime continuity
+        logging.getLogger(__name__).warning(
+            "durable continuity repository unavailable for subject=%s, "
+            "falling back to in-memory service: %s",
+            subject_id,
+            exc,
+        )
+        return _service
 
 
 # ---------------------------------------------------------------------------

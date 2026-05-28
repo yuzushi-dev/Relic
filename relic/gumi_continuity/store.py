@@ -24,7 +24,14 @@ class GumiContinuityStore:
     """
 
     def __init__(self):
-        self._service: ContinuityService = get_shared_continuity_service()
+        # Service is resolved per-access (see property below) so the store always
+        # binds to the current subject's durable service even if this store was
+        # constructed before RELIC_SUBJECT_ID was set in the process.
+        pass
+
+    @property
+    def _service(self) -> ContinuityService:
+        return get_shared_continuity_service()
 
     def get_marker(self, marker_id: str) -> Optional[Dict[str, Any]]:
         """Get a marker by ID."""
