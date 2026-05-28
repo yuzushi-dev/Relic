@@ -64,7 +64,14 @@ ui/tsconfig.tsbuildinfo
 /skills/
 
 # Internal docs (only public-docs/ is published)
-/docs/
+/docs/*
+# Publishable research methodology + reproducibility evidence.
+# Synthetic fixtures only, PII-scanned (see docs/research/evidence/*/README.md).
+# Deliberately keeps docs/pilot-study/ (real-subject data) and internal tooling
+# notes ignored.
+!/docs/research/
+/docs/research/perplexity-academic-codebase-review-prompt.md
+/docs/research/BRANCH_CHANGES.md
 
 # E2E test subjects (local data)
 subjects/*

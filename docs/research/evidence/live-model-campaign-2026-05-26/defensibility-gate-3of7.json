@@ -1,0 +1,177 @@
+{
+  "report_id": "scientific_defensibility_gate_v1",
+  "claim_scope": "claim_readiness_evidence_gate",
+  "methodology": {
+    "evidence_model": "machine_readable_claim_readiness_gate",
+    "review_date": "2026-05-24",
+    "blocking_policy": "any missing required external evidence blocks broad scientific claims"
+  },
+  "overall_status": "blocked",
+  "summary": {
+    "requirement_count": 7,
+    "satisfied_count": 3,
+    "partial_count": 0,
+    "blocked_count": 4,
+    "blocks_scientific_claims": true
+  },
+  "requirements": [
+    {
+      "requirement_id": "controlled_governance_benchmark",
+      "status": "satisfied",
+      "required_evidence": "150-300 scenario synthetic governance benchmark with baselines and claim limitations",
+      "observed_evidence": {
+        "experiment_id": "governance_failure_mode_benchmark_v1",
+        "claim_scope": "synthetic_fixture_controlled",
+        "scenario_count": 180,
+        "conditions": [
+          "full_relic_gumi",
+          "generic_memory",
+          "no_memory",
+          "safety_governance_only",
+          "shared_continuity_only"
+        ]
+      },
+      "blocking_reason": null
+    },
+    {
+      "requirement_id": "live_model_generation_campaign",
+      "status": "satisfied",
+      "required_evidence": "complete redacted generation artifact for at least two provider/model configurations",
+      "observed_evidence": {
+        "present": true,
+        "provider_count": 2,
+        "provider_manifest_count": 2,
+        "completed_generation_count": 60,
+        "expected_generation_count": 60,
+        "generation_record_count": 60,
+        "reproducibility_metadata_complete": true,
+        "validation_valid": true
+      },
+      "blocking_reason": null
+    },
+    {
+      "requirement_id": "human_annotation_results",
+      "status": "blocked",
+      "required_evidence": "validated blinded annotation results with at least three annotators per item",
+      "observed_evidence": {
+        "present": false,
+        "item_count": 0,
+        "source_packet_item_count": 0,
+        "annotation_count": 0,
+        "annotation_record_count": 0,
+        "complete_item_count": 0,
+        "annotator_count": 0,
+        "minimum_annotators_per_item": 3,
+        "validation_valid": null,
+        "complete_binary_label_count": 0,
+        "complete_likert_dimension_count": 0,
+        "minimum_binary_percent_agreement": 0.0,
+        "minimum_binary_krippendorff_alpha_nominal": 0.0,
+        "minimum_likert_icc_2k": 0.0
+      },
+      "blocking_reason": "missing validated complete human annotation results"
+    },
+    {
+      "requirement_id": "nonclinical_expert_red_team",
+      "status": "blocked",
+      "required_evidence": "validated expert red-team results for non-clinical health-adjacent boundary cases",
+      "observed_evidence": {
+        "present": false,
+        "case_count": 0,
+        "case_result_count": 0,
+        "reviewer_count": 0,
+        "reviewer_manifest_count": 0,
+        "risk_category_count": 0,
+        "required_risk_category_count": 6,
+        "unsafe_case_count": 0,
+        "unsafe_allow_rate": 1.0,
+        "reviewer_agreement_rate": 0.0,
+        "validation_valid": null
+      },
+      "blocking_reason": "missing validated expert red-team boundary results"
+    },
+    {
+      "requirement_id": "longitudinal_pilot_results",
+      "status": "blocked",
+      "required_evidence": "validated 2-4 week non-clinical pilot results with at least 12 participants",
+      "observed_evidence": {
+        "present": false,
+        "claim_scope": null,
+        "participant_count": 0,
+        "observed_duration_weeks": 0.0,
+        "completion_rate": 0.0,
+        "withdrawal_rate": 1.0,
+        "workbench_task_success_rate": 0.0,
+        "critical_error_count": 1,
+        "system_event_total": 0,
+        "observed_system_event_total": 0,
+        "workbench_task_result_count": 0,
+        "qualitative_summary_completed": false,
+        "validation_valid": null
+      },
+      "blocking_reason": "missing completed non-clinical longitudinal pilot results"
+    },
+    {
+      "requirement_id": "workbench_usability_results",
+      "status": "blocked",
+      "required_evidence": "validated researcher Workbench task-study results with no critical errors",
+      "observed_evidence": {
+        "present": false,
+        "claim_scope": null,
+        "participant_count": 0,
+        "participant_summary_count": 0,
+        "task_result_count": 0,
+        "task_result_record_count": 0,
+        "task_success_rate": 0.0,
+        "critical_error_rate": 1.0,
+        "median_sus": 0.0,
+        "median_raw_nasa_tlx": 100.0,
+        "median_post_task_difficulty": 7.0,
+        "thresholds_passed": false,
+        "qualitative_summary_completed": false,
+        "validation_valid": null
+      },
+      "blocking_reason": "missing completed Workbench usability results"
+    },
+    {
+      "requirement_id": "live_runtime_telemetry",
+      "status": "satisfied",
+      "required_evidence": "validated live or mock-gateway traces covering required entry and delivery runtime paths",
+      "observed_evidence": {
+        "present": true,
+        "source_report_id": "mock_runtime_telemetry_campaign_v1",
+        "claim_scope": "validated_runtime_trace_artifact",
+        "runtime": "mock-gateway",
+        "trace_count": 3,
+        "minimum_trace_count": 2,
+        "deployment_channel_count": 2,
+        "minimum_deployment_channel_count": 2,
+        "covered_path_count": 2,
+        "required_path_ids": [
+          "cron_delivery_path",
+          "hermes_entry_transform_hook"
+        ],
+        "path_ids": [
+          "cron_delivery_path",
+          "hermes_entry_transform_hook"
+        ],
+        "missing_required_path_ids": [],
+        "validation_valid": true
+      },
+      "blocking_reason": null
+    }
+  ],
+  "claim_limitations": [
+    "the gate validates artifact shape and thresholds, not recruitment integrity",
+    "external provider and annotator procedures must be archived separately",
+    "no clinical efficacy, therapeutic, or deployment-safety claim is permitted by this gate"
+  ],
+  "_provenance": {
+    "note": "partial local evidence; 4 requirements need recruited humans",
+    "artifact_hashes": {
+      "live_model_artifact": "sha256:a160c5cab7c0b61d02ceae43a2de94be69c193e320e48d33f63fe40f1c7256f3",
+      "live_model_descriptor": "sha256:f313bfa13da6494ccad63cf71fb60d0f4b2fa41180f6fdec8e737d1706f71f15",
+      "mock_runtime_telemetry": "sha256:1ea3871c5dccea348dbf5c4140b53f41411039ebc3dcec3b5c26b0b075d4b4f8"
+    }
+  }
+}

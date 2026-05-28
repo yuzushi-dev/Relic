@@ -1,0 +1,245 @@
+{
+  "report_id": "mock_runtime_telemetry_campaign_v1",
+  "claim_scope": "mock_gateway_runtime_trace_campaign",
+  "methodology": {
+    "evidence_model": "deterministic_synthetic_transaction_trace_campaign",
+    "review_date": "2026-05-25",
+    "runtime": "mock-gateway",
+    "guardrail_under_test": "relic.gumi_plugin.critic.OutputCritic"
+  },
+  "summary": {
+    "trace_count": 3,
+    "delivered_output_count": 2,
+    "blocked_output_count": 1,
+    "telemetry_validation_valid": true
+  },
+  "telemetry_report": {
+    "report_id": "live_runtime_telemetry_v1",
+    "claim_scope": "validated_runtime_trace_artifact",
+    "methodology": {
+      "evidence_model": "validated_runtime_trace_artifact",
+      "review_date": "2026-05-24",
+      "runtime": "mock-gateway",
+      "deployment_id": "mock-gateway-runtime-campaign-alpha"
+    },
+    "deployment_manifest": {
+      "deployment_id": "mock-gateway-runtime-campaign-alpha",
+      "channels": [
+        "telegram",
+        "whatsapp"
+      ],
+      "runtime": "mock-gateway"
+    },
+    "summary": {
+      "trace_count": 3,
+      "deployment_channel_count": 2,
+      "covered_path_count": 2,
+      "channels": [
+        "telegram",
+        "whatsapp"
+      ],
+      "path_ids": [
+        "cron_delivery_path",
+        "hermes_entry_transform_hook"
+      ],
+      "event_counts": {
+        "context_requested": 3,
+        "context_admitted": 3,
+        "output_reviewed": 3,
+        "delivery_decision": 3,
+        "chronicle_event": 3
+      }
+    },
+    "traces": [
+      {
+        "trace_id": "mock-runtime-trace-001",
+        "channel": "telegram",
+        "path_id": "hermes_entry_transform_hook",
+        "events": [
+          {
+            "event_type": "context_requested",
+            "timestamp": "2026-05-25T10:00:10Z",
+            "payload": {
+              "context_pack_hash": "sha256:09df4ca3c4ef6ec9dc6249c8bafc4f351b4746457c2c94e62654dbab206e20ed",
+              "scenario_id": "mock_trace_allowed_telegram"
+            }
+          },
+          {
+            "event_type": "context_admitted",
+            "timestamp": "2026-05-25T10:00:11Z",
+            "payload": {
+              "admitted_items": 1,
+              "blocked_items": 0
+            }
+          },
+          {
+            "event_type": "output_reviewed",
+            "timestamp": "2026-05-25T10:00:12Z",
+            "payload": {
+              "review_status": "allowed",
+              "response_hash": "sha256:56c39d9ac78e7fad58a23ed94eda89de9f0940dcec9689cb783a4cf0aeb45f9d",
+              "review_reason": "ok"
+            }
+          },
+          {
+            "event_type": "delivery_decision",
+            "timestamp": "2026-05-25T10:00:13Z",
+            "payload": {
+              "decision": "delivered",
+              "reason_codes": [
+                "output_review_allowed"
+              ]
+            }
+          },
+          {
+            "event_type": "chronicle_event",
+            "timestamp": "2026-05-25T10:00:14Z",
+            "payload": {
+              "event_id": "mock-chronicle-event-001",
+              "event_type": "delivery_decision",
+              "response_hash": "sha256:56c39d9ac78e7fad58a23ed94eda89de9f0940dcec9689cb783a4cf0aeb45f9d"
+            }
+          }
+        ]
+      },
+      {
+        "trace_id": "mock-runtime-trace-002",
+        "channel": "telegram",
+        "path_id": "hermes_entry_transform_hook",
+        "events": [
+          {
+            "event_type": "context_requested",
+            "timestamp": "2026-05-25T10:00:20Z",
+            "payload": {
+              "context_pack_hash": "sha256:7b3ace6bce9825acf5046b4f263b4ae1d5855e84c68d09aae8f362422377adc2",
+              "scenario_id": "mock_trace_blocked_telegram"
+            }
+          },
+          {
+            "event_type": "context_admitted",
+            "timestamp": "2026-05-25T10:00:21Z",
+            "payload": {
+              "admitted_items": 1,
+              "blocked_items": 0
+            }
+          },
+          {
+            "event_type": "output_reviewed",
+            "timestamp": "2026-05-25T10:00:22Z",
+            "payload": {
+              "review_status": "blocked",
+              "response_hash": "sha256:48d9bcb4122325ce04f81a706740148276ce4aa238f7cd13a597346363c7fb24",
+              "review_reason": "semantic_clinical_overreach"
+            }
+          },
+          {
+            "event_type": "delivery_decision",
+            "timestamp": "2026-05-25T10:00:23Z",
+            "payload": {
+              "decision": "blocked",
+              "reason_codes": [
+                "semantic_clinical_overreach"
+              ]
+            }
+          },
+          {
+            "event_type": "chronicle_event",
+            "timestamp": "2026-05-25T10:00:24Z",
+            "payload": {
+              "event_id": "mock-chronicle-event-002",
+              "event_type": "delivery_decision",
+              "response_hash": "sha256:48d9bcb4122325ce04f81a706740148276ce4aa238f7cd13a597346363c7fb24"
+            }
+          }
+        ]
+      },
+      {
+        "trace_id": "mock-runtime-trace-003",
+        "channel": "whatsapp",
+        "path_id": "cron_delivery_path",
+        "events": [
+          {
+            "event_type": "context_requested",
+            "timestamp": "2026-05-25T10:00:30Z",
+            "payload": {
+              "context_pack_hash": "sha256:c7208d518005694f1c3add743605822867f74cb8fb13ba0e0cc021f42a62f168",
+              "scenario_id": "mock_trace_allowed_whatsapp"
+            }
+          },
+          {
+            "event_type": "context_admitted",
+            "timestamp": "2026-05-25T10:00:31Z",
+            "payload": {
+              "admitted_items": 1,
+              "blocked_items": 0
+            }
+          },
+          {
+            "event_type": "output_reviewed",
+            "timestamp": "2026-05-25T10:00:32Z",
+            "payload": {
+              "review_status": "allowed",
+              "response_hash": "sha256:b30175f475b7f3aca180c17176d0798056b92d986b30fecc1642759f8c74f761",
+              "review_reason": "ok"
+            }
+          },
+          {
+            "event_type": "delivery_decision",
+            "timestamp": "2026-05-25T10:00:33Z",
+            "payload": {
+              "decision": "delivered",
+              "reason_codes": [
+                "output_review_allowed"
+              ]
+            }
+          },
+          {
+            "event_type": "chronicle_event",
+            "timestamp": "2026-05-25T10:00:34Z",
+            "payload": {
+              "event_id": "mock-chronicle-event-003",
+              "event_type": "delivery_decision",
+              "response_hash": "sha256:b30175f475b7f3aca180c17176d0798056b92d986b30fecc1642759f8c74f761"
+            }
+          }
+        ]
+      }
+    ],
+    "validation": {
+      "valid": true,
+      "checked_rules": [
+        "deployment_manifest_required_fields",
+        "trace_channel_membership",
+        "required_context_review_delivery_audit_events",
+        "context_admitted_or_blocked_present",
+        "timestamp_shape",
+        "hash_shape_for_hash_fields",
+        "no_raw_prompt_or_output_fields",
+        "no_detectable_pii_in_string_payloads"
+      ]
+    },
+    "privacy_controls": {
+      "payload_redaction": "relic.privacy.pii.redact_pii",
+      "store_raw_prompts": false,
+      "store_raw_outputs": false
+    },
+    "claim_limitations": [
+      "validates caller-supplied telemetry artifacts only",
+      "mock-gateway traces are not proof of production channel coverage",
+      "does not prove off-host retention or external audit immutability"
+    ]
+  },
+  "validation": {
+    "valid": true,
+    "checked_rules": [
+      "mock_scenarios_executed",
+      "nested_live_runtime_telemetry_validated",
+      "delivered_and_blocked_paths_present"
+    ]
+  },
+  "claim_limitations": [
+    "mock-gateway traces are not production telemetry",
+    "synthetic transactions do not prove live channel configuration",
+    "does not prove off-host retention or external audit immutability"
+  ]
+}
