@@ -1540,7 +1540,34 @@ Eight visual modes for consistent photography:
         _write_json(profile.relic_subject_home / "gumi_cron_manifest.json", manifest)
         return profile, paths
 
-    def _cron_prompt_for_job(self, job: dict[str, Any]) -> str:
+    def _load_gumi_canon(
+        self, profile: SubjectProfile
+    ) -> tuple[Optional[dict], Optional[dict]]:
+        """Load (lyria_canon, voice_canon) from the profile's Gumi workspace.
+
+        Fail-open: returns (None, None) for either file that is missing or
+        unreadable so prompt rendering never crashes provisioning.
+        """
+        ws = self._hermes_workspace_gumi_dir(profile)
+        lyria: Optional[dict] = None
+        voice: Optional[dict] = None
+        try:
+            lyria_path = ws / "lyria_canon.json"
+            if lyria_path.exists():
+                lyria = json.loads(lyria_path.read_text(encoding="utf-8"))
+        except Exception:
+            lyria = None
+        try:
+            voice_path = ws / "voice_canon.json"
+            if voice_path.exists():
+                voice = json.loads(voice_path.read_text(encoding="utf-8"))
+        except Exception:
+            voice = None
+        return lyria, voice
+
+    def _cron_prompt_for_job(
+        self, job: dict[str, Any], profile: SubjectProfile | None = None
+    ) -> str:
         task = job["task"]
         output = job.get("output", "")
         if task in (
@@ -1633,11 +1660,13 @@ Eight visual modes for consistent photography:
         if task == "gumi_diegetic_message":
             from relic.gumi_plugin.cron_wiring import render_diegetic_message_prompt
 
-            return render_diegetic_message_prompt()
+            lyria_c, voice_c = self._load_gumi_canon(profile) if profile else (None, None)
+            return render_diegetic_message_prompt(lyria_canon=lyria_c, voice_canon=voice_c)
         if task == "gumi_proactive_message":
             from relic.gumi_plugin.cron_wiring import render_proactive_message_prompt
 
-            return render_proactive_message_prompt()
+            lyria_c, voice_c = self._load_gumi_canon(profile) if profile else (None, None)
+            return render_proactive_message_prompt(lyria_canon=lyria_c, voice_canon=voice_c)
         if task in {"world_state_compaction", "continuity_candidate_review"}:
             workspace = str(Path(output).parent.parent)
             canon_files = "\n".join(
@@ -1721,7 +1750,7 @@ Eight visual modes for consistent photography:
         if job.get("script"):
             parts += ["--script", job["script"]]
         parts.append(json.dumps(job["schedule"]))
-        prompt = self._cron_prompt_for_job(job)
+        prompt = self._cron_prompt_for_job(job, profile)
         if prompt:
             parts.append(json.dumps(prompt))
         parts += ["--name", json.dumps(job["id"])]
@@ -1750,7 +1779,7 @@ Eight visual modes for consistent photography:
             if job.get("script"):
                 cmd += ["--script", job["script"]]
             cmd.append(job["schedule"])
-            prompt = self._cron_prompt_for_job(job)
+            prompt = self._cron_prompt_for_job(job, profile)
             if prompt:
                 cmd.append(prompt)
             cmd += ["--name", job["id"]]

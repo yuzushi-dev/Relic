@@ -1604,11 +1604,75 @@ exec python3 -m relic.gumi_plugin.checkin_media_dispatcher \\
 '''
 
 
-def render_diegetic_message_prompt() -> str:
+def _render_music_section(
+    intro: str,
+    lyria_canon: Optional[dict],
+    voice_canon: Optional[dict],
+) -> str:
+    """Build the ``tipo: music`` block, deriving from Gumi's SOUL canon when available.
+
+    Pure function: no file I/O. ``intro`` is the scene-specific sentence describing
+    what the Lyria prompt should express. When either canon is missing/empty, falls
+    back to a generic instruction so callers keep backward-compatible behaviour.
+    """
+    header = (
+        "tipo: music\n"
+        "La PRIMA riga del tuo output deve essere esattamente `tipo: music`.\n"
+    )
+    if not lyria_canon and not voice_canon:
+        return (
+            header
+            + f"Nella riga successiva scrivi un prompt per Lyria 3 in inglese che {intro} "
+            "Includi voce, stile e un testo breve in inglese coerente con la scena.\n"
+        )
+
+    lyria_canon = lyria_canon or {}
+    voice_canon = voice_canon or {}
+    timbre = voice_canon.get("timbre", "")
+    pace = voice_canon.get("pace", "")
+    register = voice_canon.get("register", "")
+    music_profile = lyria_canon.get("music_profile", "")
+    instrumentation = ", ".join(lyria_canon.get("instrumentation", []) or [])
+    mood = ", ".join((lyria_canon.get("mood_palette", []) or [])[:2])
+    forbidden = ", ".join(lyria_canon.get("forbidden", []) or [])
+
+    lines = [
+        header,
+        f"Nella riga successiva scrivi un prompt per Lyria 3 in inglese che {intro}",
+        "Basa lo stile sul tuo SOUL:",
+    ]
+    if timbre or pace or register:
+        voice_desc = ", ".join(
+            p for p in (timbre, f"{pace} pace" if pace else "", register) if p
+        )
+        lines.append(f"- Voice: {voice_desc}")
+    if music_profile or instrumentation:
+        style = music_profile
+        if instrumentation:
+            style = f"{style}, instruments: {instrumentation}" if style else f"instruments: {instrumentation}"
+        lines.append(f"- Style: {style}")
+    if mood:
+        lines.append(f"- Mood: {mood}")
+    if forbidden:
+        lines.append(f"- Avoid: {forbidden}")
+    lines.append(
+        "Includi [Verse] 2 righe in inglese (max 10 parole/riga) coerenti con la scena."
+    )
+    return "\n".join(lines) + "\n"
+
+
+def render_diegetic_message_prompt(
+    lyria_canon: Optional[dict] = None,
+    voice_canon: Optional[dict] = None,
+) -> str:
     """Render the diegetic message contract for the agent cron job.
 
     The output is a first-person life fragment in Gumi's voice, not a check-in
-    question and not a message about the subject.
+    question and not a message about the subject. When ``lyria_canon``/``voice_canon``
+    are provided, the ``tipo: music`` section derives concrete instructions from
+    Gumi's SOUL; otherwise it falls back to a generic instruction.
+
+    Pure function: no file I/O, no side effects.
     """
     return (
         "Sei Gumi. Il gate mostra DELIVER con tipo, ora e contesto di supporto. "
@@ -1638,19 +1702,27 @@ def render_diegetic_message_prompt() -> str:
         "  caption: una frase in italiano che racconta il frammento, senza domanda.\n"
         "  image_prompt: descrizione fotorealistica in inglese di una foto di te in quel momento, coerente con il frammento e il tuo mondo. Max 80 parole.\n"
         "\n"
-        "tipo: music\n"
-        "La PRIMA riga del tuo output deve essere esattamente `tipo: music`. "
-        "Nella riga successiva scrivi un prompt per Lyria 3 in inglese che trasformi quel frammento in un momento musicale intimo e leggero. "
-        "Includi voce, stile e un testo breve in inglese coerente con la scena.\n"
+        + _render_music_section(
+            "trasformi quel frammento in un momento musicale intimo e leggero.",
+            lyria_canon,
+            voice_canon,
+        )
     )
 
 
-def render_proactive_message_prompt() -> str:
+def render_proactive_message_prompt(
+    lyria_canon: Optional[dict] = None,
+    voice_canon: Optional[dict] = None,
+) -> str:
     """Render the proactive re-engagement contract for the agent cron job.
 
     The output is a brief, relevant re-engagement in Gumi's voice when the
     subject has gone quiet. It is not a check-in script and not a diegetic
-    life fragment.
+    life fragment. When ``lyria_canon``/``voice_canon`` are provided, the
+    ``tipo: music`` section derives concrete instructions from Gumi's SOUL;
+    otherwise it falls back to a generic instruction.
+
+    Pure function: no file I/O, no side effects.
     """
     return (
         "Sei Gumi. Il gate mostra DELIVER con tipo, ora e contesto di supporto. "
@@ -1681,10 +1753,11 @@ def render_proactive_message_prompt() -> str:
         "  caption: una frase in italiano che riapre il filo in modo leggero e concreto, senza pressione.\n"
         "  image_prompt: descrizione fotorealistica in inglese di una foto di te coerente con quell'aggancio e con il tuo mondo. Max 80 parole.\n"
         "\n"
-        "tipo: music\n"
-        "La PRIMA riga del tuo output deve essere esattamente `tipo: music`. "
-        "Nella riga successiva scrivi un prompt per Lyria 3 in inglese che trasformi il riaggancio in un momento musicale intimo, lieve e non insistente. "
-        "Includi voce, stile e un testo breve in inglese coerente con il contesto.\n"
+        + _render_music_section(
+            "trasformi il riaggancio in un momento musicale intimo, lieve e non insistente.",
+            lyria_canon,
+            voice_canon,
+        )
     )
 
 
