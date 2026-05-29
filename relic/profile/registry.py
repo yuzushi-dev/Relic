@@ -1639,8 +1639,7 @@ Eight visual modes for consistent photography:
                 "Niente preamboli tipo 'posso chiederti una cosa?'.\n"
                 "Se non vedi 'ask: true', rispondi esattamente [SILENT].\n"
                 "\n"
-                "FORMATO: il check-in è sempre e solo testo (tipo: text). Niente voce, immagini o musica: "
-                "quelle modalità sono riservate ai messaggi diegetici e proattivi.\n"
+                "FORMATO: il check-in è sempre e solo testo (tipo: text). Niente voce, immagini o musica.\n"
                 "Max 2 frasi, italiano, tono tuo. La domanda (ask) può occupare la seconda frase e deve finire con '?'.\n"
             )
         if task == "gumi_diegetic_message":
