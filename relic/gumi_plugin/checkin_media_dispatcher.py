@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Optional
 from datetime import datetime, timezone
 
-from relic.gumi_plugin.media_state import record_media_delivery, record_outbound_delivery
+from relic.gumi_plugin.media_state import record_media_delivery, record_outbound_delivery, record_sent_media_memory
 from relic.gumi_plugin.image_gen import generate_checkin_image
 from relic.gumi_plugin.tts import synthesize_checkin_audio
 from relic.gumi_plugin.lyria import LyriaGenerator
@@ -557,6 +557,8 @@ def dispatch(
         if delivered:
             record_outbound_delivery(hermes_home, "telegram", "voice")
             _record_delivered_decision_event(subject_id, decision_type)
+            _summary = testo.strip().replace("\n", " ")[:90]
+            record_sent_media_memory(hermes_home, f"Ho mandato una nota vocale: «{_summary}»")
         status = "DELIVERED" if delivered else "LOCAL_ONLY"
         print(f"MEDIA:{audio_path} [{status}]", file=sys.stderr)
         # No stdout: voice delivered directly via Telegram Bot API
@@ -604,6 +606,11 @@ def dispatch(
         if delivered:
             record_outbound_delivery(hermes_home, "telegram", "image")
             _record_delivered_decision_event(subject_id, decision_type)
+            _cap = (caption or "").strip().replace("\n", " ")[:90]
+            record_sent_media_memory(
+                hermes_home,
+                f"Ho mandato una mia foto: «{_cap}»" if _cap else "Ho mandato una mia foto",
+            )
         status = "DELIVERED" if delivered else "LOCAL_ONLY"
         print(f"MEDIA:{image_path} [{status}]", file=sys.stderr)
         # No stdout: image + caption delivered directly via Telegram Bot API
@@ -650,6 +657,12 @@ def dispatch(
         if delivered:
             record_outbound_delivery(hermes_home, "telegram", "music")
             _record_delivered_decision_event(subject_id, decision_type)
+            _title = (music_title or "").strip()[:80]
+            record_sent_media_memory(
+                hermes_home,
+                f"Ho condiviso un brano che ho buttato giù («{_title}»)" if _title
+                else "Ho condiviso un brano che ho buttato giù",
+            )
         status = "DELIVERED" if delivered else "LOCAL_ONLY"
         print(f"MEDIA:{media_file} [{status}] title={music_title!r}", file=sys.stderr)
         # No stdout: music delivered directly via Telegram Bot API

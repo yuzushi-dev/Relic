@@ -80,6 +80,65 @@ def record_outbound_delivery(hermes_home: Path, channel: str, media_type: str) -
     os.replace(tmp, path)
 
 
+_SENT_MEDIA_BEGIN = "<!-- gumi:sent_media:begin -->"
+_SENT_MEDIA_END = "<!-- gumi:sent_media:end -->"
+
+
+def record_sent_media_memory(
+    hermes_home: Path,
+    summary: str,
+    *,
+    timestamp: Optional[str] = None,
+    max_entries: int = 8,
+) -> None:
+    """Append a first-person note of an outbound media to MEMORY.md.
+
+    Media is delivered directly via the Telegram Bot API, outside the gateway
+    conversation log, so the interactive agent would otherwise have no record
+    that Gumi sent a photo / voice note / song. This keeps a small rolling,
+    human-readable block in MEMORY.md (separate from the memory_sync block) so
+    Gumi stays aware of what she just sent and does not get caught off guard if
+    the subject replies to it. Best-effort: never raises.
+    """
+    try:
+        mem_path = hermes_home / "MEMORY.md"
+        ts = timestamp or datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M")
+        new_line = f"- [{ts}] {summary}".strip()
+
+        text = mem_path.read_text(encoding="utf-8") if mem_path.exists() else "# Memory Snapshot\n"
+
+        begin_i = text.find(_SENT_MEDIA_BEGIN)
+        end_i = text.find(_SENT_MEDIA_END)
+        if begin_i != -1 and end_i != -1 and end_i > begin_i:
+            inner = text[begin_i + len(_SENT_MEDIA_BEGIN):end_i]
+            lines = [ln for ln in inner.splitlines() if ln.strip().startswith("- [")]
+            lines.append(new_line)
+            lines = lines[-max_entries:]
+            block = (
+                _SENT_MEDIA_BEGIN
+                + "\n## Cose che ho inviato di recente\n"
+                + "\n".join(lines)
+                + "\n"
+                + _SENT_MEDIA_END
+            )
+            text = text[:begin_i] + block + text[end_i + len(_SENT_MEDIA_END):]
+        else:
+            block = (
+                _SENT_MEDIA_BEGIN
+                + "\n## Cose che ho inviato di recente\n"
+                + new_line
+                + "\n"
+                + _SENT_MEDIA_END
+            )
+            text = text.rstrip() + "\n\n" + block + "\n"
+
+        tmp = mem_path.with_suffix(".md.tmp")
+        tmp.write_text(text, encoding="utf-8")
+        os.replace(tmp, mem_path)
+    except Exception:
+        pass
+
+
 def last_outbound_ts(hermes_home: Path) -> Optional[datetime]:
     """Return last outbound delivery timestamp as tz-aware UTC datetime, or None."""
     path = hermes_home / OUTBOUND_STATE_PATH
