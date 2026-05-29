@@ -768,7 +768,10 @@ def _evaluate_decision(
     reasons.append(RuntimeDecisionReason.no_due_work)  # reuse existing enum value
     now_dt = _subject_now(subject_id)
     now_str = now_dt.strftime("%H:%M %Z")
-    media_type = _select_media_type(subject_id, hermes_home, now_dt)
+    # Check-ins are always plain text carrying the targeted question. Media
+    # (voice/image/music) is reserved for diegetic/proactive initiatives, where
+    # there is no question to drop.
+    media_type = "text"
     ask, ask_topic = _select_ask_decision(subject_id, now_dt)
     if not ask or not ask_topic:
         return RuntimeDecision.NO_REPLY, reasons, None
@@ -979,6 +982,10 @@ def make_decision(
         forced_media = os.environ.get("RELIC_FORCE_MEDIA_TYPE", "").strip().lower()
         if forced_media in ("voice", "image", "music", "text"):
             media_type = forced_media
+        elif decision_type == "checkin":
+            # Check-ins stay text-only (the question must survive); media is for
+            # diegetic/proactive initiatives.
+            media_type = "text"
         else:
             media_type = _select_media_type(subject_id, hermes_home, now_dt)
         ask, ask_topic = _select_ask_decision(
