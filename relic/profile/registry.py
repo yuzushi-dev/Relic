@@ -1174,7 +1174,9 @@ class ProfileRegistry:
             ollama_model = _os.environ.get("RELIC_OLLAMA_MODEL", "gemma4:31b-cloud")
             _narrator = OllamaNarrator(endpoint=ollama_endpoint, model=ollama_model)
             _ctx = GumiBuildContext.from_background_and_personalization(
-                agent_name=background.get("display_name", subject_id),
+                # Never fall back to subject_id: that names the Gumi after the
+                # human subject. Use the canonical Gumi name, else generic "Gumi".
+                agent_name=background.get("display_name") or background.get("agent_name") or "Gumi",
                 background=background,
             )
             if _narrator.is_available():
@@ -1183,7 +1185,7 @@ class ProfileRegistry:
                 avatar_spec = _narrator.fallback_avatar_spec_md(_ctx)
         except Exception:
             avatar_spec = (
-                f"{background.get('display_name', subject_id)}. "
+                f"{background.get('display_name') or background.get('agent_name') or 'Gumi'}. "
                 f"Visual style: quiet naturalism, desaturated palette, natural light. "
                 f"No artificial glow or stock portrait aesthetics."
             )
