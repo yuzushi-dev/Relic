@@ -2598,6 +2598,25 @@ Eight visual modes for consistent photography:
         (profile.relic_subject_home / "gumi_world.md").write_text(world_text, encoding="utf-8")
         (profile.relic_subject_home / "gumi_relationship_policy.md").write_text(rel_text, encoding="utf-8")
 
+        # Persist the canonical agent name into the background profile so
+        # downstream consumers (e.g. the music performer tag) resolve it
+        # without parsing SOUL.md or the provenance log.
+        bg_subject_path = profile.relic_subject_home / "gumi_background_profile.json"
+        if bg_subject_path.exists():
+            try:
+                bg_data = _read_json(bg_subject_path)
+                changed = False
+                if not bg_data.get("display_name"):
+                    bg_data["display_name"] = agent_name
+                    changed = True
+                if not bg_data.get("agent_name"):
+                    bg_data["agent_name"] = agent_name
+                    changed = True
+                if changed:
+                    _write_json(bg_subject_path, bg_data)
+            except Exception:
+                pass
+
         # Provenance log
         generation_log["agent_name"] = agent_name
         generation_log["created_at"] = _now_iso()

@@ -317,15 +317,37 @@ def _send_telegram_text(hermes_home: Path, text: str) -> bool:
 
 
 def _get_gumi_name(relic_subject_home: Path) -> str:
-    """Read Gumi's display name from background profile."""
+    """Resolve Gumi's display name.
+
+    Source-of-truth order:
+      1. gumi_background_profile.json display_name/agent_name
+      2. provenance/identity_generation_log.json agent_name (set at provision)
+    Falls back to "Gumi" only when no canonical name was ever recorded — older
+    subjects (e.g. barbara) carry the name only in the provenance log because
+    provisioning did not back-fill the background profile.
+    """
+    import json as _json
+
     bg_path = relic_subject_home / "gumi_background_profile.json"
     if bg_path.exists():
         try:
-            import json as _json
             bg = _json.loads(bg_path.read_text(encoding="utf-8"))
-            return bg.get("display_name") or bg.get("agent_name") or "Gumi"
+            name = bg.get("display_name") or bg.get("agent_name")
+            if name:
+                return name
         except Exception:
             pass
+
+    prov_path = relic_subject_home / "provenance" / "identity_generation_log.json"
+    if prov_path.exists():
+        try:
+            log = _json.loads(prov_path.read_text(encoding="utf-8"))
+            name = log.get("agent_name")
+            if name:
+                return name
+        except Exception:
+            pass
+
     return "Gumi"
 
 
