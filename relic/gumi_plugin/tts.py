@@ -72,12 +72,25 @@ def select_voice_for_canon(
     return VOICE_TRAIT_MAP.get(key, VOICE_TRAIT_MAP["default"])
 
 
-def _load_voice_canon(relic_subject_home: Path) -> dict:
-    """Load gumi_voice_canon.json."""
-    path = relic_subject_home / "gumi_voice_canon.json"
-    if path.exists():
-        with open(path, encoding="utf-8") as f:
-            return json.load(f)
+def _load_voice_canon(relic_subject_home: Path, hermes_home: Path | None = None) -> dict:
+    """Load the voice canon.
+
+    Primary source is the subject's ``gumi_voice_canon.json`` under the relic
+    home. Legacy subjects provisioned before the relic mirror was added only
+    carry the workspace copy, so fall back to
+    ``<hermes_home>/workspace/gumi/voice_canon.json`` to avoid silently
+    defaulting to a wrong voice.
+    """
+    candidates = [relic_subject_home / "gumi_voice_canon.json"]
+    if hermes_home is not None:
+        candidates.append(hermes_home / "workspace" / "gumi" / "voice_canon.json")
+    for path in candidates:
+        if path.exists():
+            try:
+                with open(path, encoding="utf-8") as f:
+                    return json.load(f)
+            except (json.JSONDecodeError, OSError):
+                continue
     return {}
 
 
@@ -170,7 +183,7 @@ def synthesize_checkin_audio(
     api_key: str,
 ) -> Path:
     """Synthesize checkin voice message, save to gumi-audio/."""
-    voice_canon = _load_voice_canon(relic_subject_home)
+    voice_canon = _load_voice_canon(relic_subject_home, hermes_home)
     voice_id = voice_canon.get("voice_id", "Kore")
 
     tmp_dir = hermes_home / "tmp" / "gumi-audio"
