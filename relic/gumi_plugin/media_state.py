@@ -45,17 +45,47 @@ def save_media_state(hermes_home: Path, state: dict) -> None:
     os.replace(tmp, path)
 
 
-def last_media_ts(hermes_home: Path, media_type: str) -> Optional[datetime]:
-    """Return last delivery timestamp for media_type, or None if never delivered."""
-    state = load_media_state(hermes_home)
-    ts_str = state.get(f"last_{media_type}_ts")
+def _parse_iso(ts_str: Optional[str]) -> Optional[datetime]:
     if not ts_str:
         return None
     try:
-        # Parse ISO format with timezone
         return datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
     except (ValueError, TypeError):
         return None
+
+
+def _lyria_last_generation(hermes_home: Path) -> Optional[datetime]:
+    """Read LyriaGenerator's own cooldown timestamp (state/lyria_music_state.json).
+
+    Kept as a direct file read (no import of lyria.py) to avoid coupling.
+    """
+    path = hermes_home / "state" / "lyria_music_state.json"
+    if not path.exists():
+        return None
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        return _parse_iso(data.get("last_generation"))
+    except (json.JSONDecodeError, OSError):
+        return None
+
+
+def last_media_ts(hermes_home: Path, media_type: str) -> Optional[datetime]:
+    """Return last delivery timestamp for media_type, or None if never delivered.
+
+    For ``music`` the timestamp is unified with LyriaGenerator's own cooldown
+    state (the later of the two). The gate (this module) and the generator
+    previously tracked the music cooldown in separate files and could diverge,
+    so the gate would select/force ``tipo: music`` that the generator then
+    refused with "Cooldown active" — a silent non-delivery. Taking the max
+    keeps both sides in agreement.
+    """
+    ts = _parse_iso(load_media_state(hermes_home).get(f"last_{media_type}_ts"))
+    if media_type == "music":
+        lyria_ts = _lyria_last_generation(hermes_home)
+        if lyria_ts is not None and (ts is None or lyria_ts > ts):
+            ts = lyria_ts
+    return ts
 
 
 def record_media_delivery(hermes_home: Path, media_type: str) -> None:
