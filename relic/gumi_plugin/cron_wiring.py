@@ -243,6 +243,69 @@ def _subject_now(subject_id: str) -> "datetime":
     return datetime.now().astimezone()
 
 
+def _parse_hhmm(value: str) -> Optional[tuple[int, int]]:
+    """Parse a clock string into (hour, minute).
+
+    Accepts "HH:MM", "HH" (minutes default to 00) and "H". Returns None on
+    malformed input instead of raising, so callers can fail-open.
+    """
+    value = str(value).strip()
+    if not value:
+        return None
+    parts = value.split(":")
+    try:
+        hour = int(parts[0])
+        minute = int(parts[1]) if len(parts) > 1 and parts[1].strip() != "" else 0
+    except (ValueError, IndexError):
+        return None
+    if not (0 <= hour <= 23) or not (0 <= minute <= 59):
+        return None
+    return hour, minute
+
+
+def _normalize_hhmm(value: str) -> str:
+    """Normalise a loose clock string into canonical "HH:MM".
+
+    Examples: "9" -> "09:00", "22" -> "22:00", "8:00" -> "08:00",
+    "08:5" -> "08:05". Falls back to the stripped input string when the
+    value cannot be parsed, so callers never lose data silently.
+    """
+    parsed = _parse_hhmm(value)
+    if parsed is None:
+        return str(value).strip()
+    hour, minute = parsed
+    return f"{hour:02d}:{minute:02d}"
+
+
+def _parse_quiet_hours(quiet_hours) -> Optional[tuple[int, int, int, int]]:
+    """Normalise quiet_hours config into (start_h, start_m, end_h, end_m).
+
+    Supports two formats:
+      • dict (canonical): {"start": "22:00", "end": "9", "timezone": ...}
+      • string (legacy):  "HH:MM-HH:MM", with the end side allowed to omit
+        minutes (e.g. "22:00-9" -> end 09:00).
+    Returns None on malformed/empty input.
+    """
+    if isinstance(quiet_hours, dict):
+        start = _parse_hhmm(quiet_hours.get("start", ""))
+        end = _parse_hhmm(quiet_hours.get("end", ""))
+        if start is None or end is None:
+            return None
+        return start[0], start[1], end[0], end[1]
+
+    if isinstance(quiet_hours, str):
+        if "-" not in quiet_hours:
+            return None
+        start_str, end_str = quiet_hours.split("-", 1)
+        start = _parse_hhmm(start_str)
+        end = _parse_hhmm(end_str)
+        if start is None or end is None:
+            return None
+        return start[0], start[1], end[0], end[1]
+
+    return None
+
+
 def _is_quiet_hours(subject_id: str) -> bool:
     """Check if current time is within quiet hours for the subject."""
     try:
@@ -262,13 +325,10 @@ def _is_quiet_hours(subject_id: str) -> bool:
         if not quiet_hours:
             return False
 
-        # Parse "HH:MM-HH:MM" format (e.g., "22:00-08:00")
-        if "-" not in quiet_hours:
+        parsed = _parse_quiet_hours(quiet_hours)
+        if parsed is None:
             return False
-
-        start_str, end_str = quiet_hours.split("-", 1)
-        start_hour, start_min = int(start_str.split(":")[0]), int(start_str.split(":")[1])
-        end_hour, end_min = int(end_str.split(":")[0]), int(end_str.split(":")[1])
+        start_hour, start_min, end_hour, end_min = parsed
 
         now = _subject_now(subject_id)
         current_minutes = now.hour * 60 + now.minute
@@ -281,6 +341,39 @@ def _is_quiet_hours(subject_id: str) -> bool:
         else:
             # Overnight range (e.g., 22:00-08:00)
             return current_minutes >= start_minutes or current_minutes <= end_minutes
+    except Exception:
+        return False
+
+
+def _is_late_night_blocked(subject_id: str) -> bool:
+    """Return True when late-night messaging is disallowed and it is currently late night.
+
+    Reads the subject's boundary_policy.json. If ``late_night_messages_allowed``
+    is False (default-allow when absent), messaging is blocked between 22:00 and
+    09:00 local subject time. Fail-open: any error returns False so a missing or
+    unreadable policy never silently blocks delivery.
+    """
+    try:
+        from relic.profile.registry import ProfileRegistry
+
+        registry = ProfileRegistry()
+        delivery_path = registry._delivery_policy_path(subject_id)
+        boundary_path = delivery_path.parent / "boundary_policy.json"
+        if not boundary_path.exists():
+            return False
+
+        import json
+
+        with open(boundary_path, encoding="utf-8") as fh:
+            boundary = json.load(fh)
+
+        if boundary.get("late_night_messages_allowed", True):
+            return False
+
+        now = _subject_now(subject_id)
+        current_minutes = now.hour * 60 + now.minute
+        # Late-night window: >= 22:00 or < 09:00 (subject-local time).
+        return current_minutes >= 22 * 60 or current_minutes < 9 * 60
     except Exception:
         return False
 
@@ -636,6 +729,11 @@ def _evaluate_decision(
         return RuntimeDecision.BLOCKED, reasons, None
 
     if decision_type in ("diegetic", "proactivity"):
+        # Late-night boundary: respect boundary_policy.late_night_messages_allowed
+        # for unsolicited diegetic/proactive initiatives (22:00–09:00 local).
+        if _is_late_night_blocked(subject_id):
+            reasons.append(RuntimeDecisionReason.quiet_hours)
+            return RuntimeDecision.BLOCKED, reasons, None
         reasons.append(RuntimeDecisionReason.no_due_work)
         # Build the same DELIVER/tipo/ora header the check-in path emits so the
         # diegetic/proactive composer is time-aware (the prompt contract expects
@@ -1541,7 +1639,8 @@ def render_diegetic_message_prompt() -> str:
         "  image_prompt: descrizione fotorealistica in inglese di una foto di te in quel momento, coerente con il frammento e il tuo mondo. Max 80 parole.\n"
         "\n"
         "tipo: music\n"
-        "Scrivi un prompt per Lyria 3 in inglese che trasformi quel frammento in un momento musicale intimo e leggero. "
+        "La PRIMA riga del tuo output deve essere esattamente `tipo: music`. "
+        "Nella riga successiva scrivi un prompt per Lyria 3 in inglese che trasformi quel frammento in un momento musicale intimo e leggero. "
         "Includi voce, stile e un testo breve coerente con la scena.\n"
     )
 
@@ -1583,7 +1682,8 @@ def render_proactive_message_prompt() -> str:
         "  image_prompt: descrizione fotorealistica in inglese di una foto di te coerente con quell'aggancio e con il tuo mondo. Max 80 parole.\n"
         "\n"
         "tipo: music\n"
-        "Scrivi un prompt per Lyria 3 in inglese che trasformi il riaggancio in un momento musicale intimo, lieve e non insistente. "
+        "La PRIMA riga del tuo output deve essere esattamente `tipo: music`. "
+        "Nella riga successiva scrivi un prompt per Lyria 3 in inglese che trasformi il riaggancio in un momento musicale intimo, lieve e non insistente. "
         "Includi voce, stile e un testo breve coerente con il contesto.\n"
     )
 

@@ -31,7 +31,7 @@ from relic.profile._bootstrap_steps.self_report import collect_self_report_field
 from relic.profile._bootstrap_steps.researcher_coded import collect_researcher_coded_fields
 from relic.profile._bootstrap_steps.interaction_prefs import collect_interaction_preferences
 from relic.profile._bootstrap_steps.relational_expectations import collect_relational_expectations
-from relic.gumi_plugin.cron_wiring import provision_for_subject
+from relic.gumi_plugin.cron_wiring import _normalize_hhmm, provision_for_subject
 from relic.cli import start_hermes_gateway_for_profile
 
 
@@ -432,7 +432,11 @@ class BootstrapTUI:
                             subject_id=subject_id,
                             telegram_bot_token_env=telegram_bot_token_env,
                             telegram_user_id=telegram_user_id,
-                            quiet_hours=f"{quiet_start}-{quiet_end}",
+                            quiet_hours={
+                                "start": _normalize_hhmm(quiet_start),
+                                "end": _normalize_hhmm(quiet_end),
+                                "timezone": delivery_config.get("timezone", "Europe/Rome"),
+                            },
                             delivery_windows=delivery_windows,
                             timezone=delivery_config.get("timezone", "Europe/Rome"),
                             consent_for_active_elicitation=consent_record.get("active_elicitation", False),

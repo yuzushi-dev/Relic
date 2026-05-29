@@ -246,7 +246,7 @@ class DeliveryPolicy:
     telegram_user_id_display: str
     telegram_bot_token_env: str
     delivery_enabled: bool
-    quiet_hours: str
+    quiet_hours: str | dict
     maximum_contact_frequency: str
     delivery_windows: list  # [{"start": "HH:MM", "end": "HH:MM"}, ...]
     timezone: str  # IANA timezone string, e.g. "Europe/Rome"
@@ -930,7 +930,7 @@ class ProfileRegistry:
         telegram_bot_token_env: str,
         telegram_user_id: str,
         contact_channel: str = "telegram",
-        quiet_hours: str = "22:00-08:00",
+        quiet_hours: str | dict = "22:00-08:00",
         maximum_contact_frequency: str = "2/day",
         delivery_windows: list | None = None,
         timezone: str = "Europe/Rome",
