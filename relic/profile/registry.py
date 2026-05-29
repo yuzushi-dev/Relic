@@ -1639,7 +1639,7 @@ Eight visual modes for consistent photography:
                 "Max 2 frasi, italiano, tono tuo. Se ask: true, la domanda può occupare la seconda frase e deve finire con '?'.\n"
                 "\n"
                 "tipo: voice\n"
-                "Scrivi esattamente come parleresti ad alta voce — stesso contenuto del text, tono più parlato. "
+                "Scrivi esattamente come parleresti ad alta voce, in italiano — stesso contenuto del text, tono più parlato. "
                 "Max 2 frasi. Se ask: true, mantieni il punto interrogativo finale. Il sistema converte in audio.\n"
                 "\n"
                 "tipo: image\n"
