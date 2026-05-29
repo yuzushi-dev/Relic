@@ -1641,7 +1641,7 @@ def render_diegetic_message_prompt() -> str:
         "tipo: music\n"
         "La PRIMA riga del tuo output deve essere esattamente `tipo: music`. "
         "Nella riga successiva scrivi un prompt per Lyria 3 in inglese che trasformi quel frammento in un momento musicale intimo e leggero. "
-        "Includi voce, stile e un testo breve coerente con la scena.\n"
+        "Includi voce, stile e un testo breve in inglese coerente con la scena.\n"
     )
 
 
@@ -1684,7 +1684,7 @@ def render_proactive_message_prompt() -> str:
         "tipo: music\n"
         "La PRIMA riga del tuo output deve essere esattamente `tipo: music`. "
         "Nella riga successiva scrivi un prompt per Lyria 3 in inglese che trasformi il riaggancio in un momento musicale intimo, lieve e non insistente. "
-        "Includi voce, stile e un testo breve coerente con il contesto.\n"
+        "Includi voce, stile e un testo breve in inglese coerente con il contesto.\n"
     )
 
 
