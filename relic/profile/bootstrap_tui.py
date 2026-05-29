@@ -524,6 +524,7 @@ class BootstrapTUI:
                         self.registry.dispatch_intro_via_hermes(subject_id)
                         profile = self.registry.mark_intro_composed(subject_id)
                         profile = self.registry.mark_intro_sent(subject_id)
+                        profile = self.registry.update_status(subject_id, "active")
                         self._log_step("intro_dispatched_via_hermes", "scheduled")
                         self._print("\nPrimo messaggio affidato a Hermes (invio entro ~1 min).")
                     except Exception as send_exc:

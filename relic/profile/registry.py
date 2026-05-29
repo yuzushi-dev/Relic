@@ -1529,6 +1529,13 @@ Eight visual modes for consistent photography:
         ]
         if not dry_run:
             manifest["apply_results"] = self._apply_hermes_cron_jobs(profile, jobs_to_apply)
+            self._patch_job_toolsets(
+                profile,
+                {
+                    f"{subject_id}_world_state_compaction": ["file"],
+                    f"{subject_id}_continuity_candidate_review": ["file"],
+                },
+            )
         _write_json(cron_dir / "install_manifest.json", manifest)
         _write_json(profile.relic_subject_home / "gumi_cron_manifest.json", manifest)
         return profile, paths
@@ -1632,10 +1639,43 @@ Eight visual modes for consistent photography:
 
             return render_proactive_message_prompt()
         if task in {"world_state_compaction", "continuity_candidate_review"}:
-            return (
-                f"Run {task} for this subject's private Gumi workspace. Mutate only bounded local state. "
-                f"Write the audit result to {output}. On success respond exactly [SILENT]; on failure return a short diagnostic."
+            workspace = str(Path(output).parent.parent)
+            canon_files = "\n".join(
+                f"  {workspace}/{f}"
+                for f in (
+                    "world.md",
+                    "voice_canon.json",
+                    "visual_canon.json",
+                    "lyria_canon.json",
+                    "media_policy.json",
+                    "relationship_policy.md",
+                )
             )
+            if task == "world_state_compaction":
+                return (
+                    f"Review the Gumi workspace state for compaction opportunities.\n\n"
+                    f"Step 1: Use read_file to read each of these files:\n{canon_files}\n\n"
+                    f"Step 2: Identify stale, redundant, or bloated entries "
+                    f"(e.g., duplicate constraints, obsolete references, unused fields).\n\n"
+                    f"Step 3: Use write_file to write a JSON report to {output} with this structure:\n"
+                    '{{"ts": "<ISO timestamp>", "status": "ok" | "candidates_found", '
+                    '"candidates": [{{"file": "<name>", "note": "<description>"}}]}}\n\n'
+                    f"Step 4: If status is \"ok\" (nothing to compact) respond exactly [SILENT]. "
+                    f"If candidates found, return a brief summary.\n\n"
+                    f"Do NOT modify any workspace files. Read-only except for writing the report."
+                )
+            else:
+                return (
+                    f"Review continuity candidates for the Gumi workspace.\n\n"
+                    f"Step 1: Use read_file to read each of these files:\n{canon_files}\n\n"
+                    f"Step 2: Check for internal inconsistencies, stale references, or drift between files "
+                    f"(e.g., palette conflicts, tone mismatches, outdated constraints).\n\n"
+                    f"Step 3: Use write_file to write a JSON audit to {output} with this structure:\n"
+                    '{{"ts": "<ISO timestamp>", "status": "ok" | "drift", "findings": ["<string>", ...]}}\n\n'
+                    f"Step 4: If status is \"ok\" (no drift, empty findings) respond exactly [SILENT]. "
+                    f"If drift found, return a brief summary.\n\n"
+                    f"Do NOT modify any canon files. Read-only except for writing the report."
+                )
         if task == "memory_exposure_log_rollup":
             return (
                 f"Aggregate and redact memory exposure events for this subject only. "
@@ -1657,6 +1697,22 @@ Eight visual modes for consistent photography:
             f"the local media policy explicitly enables them. Write the audit result to {output}. "
             "On success respond exactly [SILENT]; on failure return a short diagnostic."
         )
+
+    def _patch_job_toolsets(
+        self,
+        profile: SubjectProfile,
+        job_toolsets: dict[str, list[str]],
+    ) -> None:
+        """Patch enabled_toolsets in jobs.json for specific job IDs after cron create."""
+        jobs_path = profile.hermes_home / "cron" / "jobs.json"
+        if not jobs_path.exists():
+            return
+        data = json.loads(jobs_path.read_text(encoding="utf-8"))
+        for job in data.get("jobs", []):
+            toolsets = job_toolsets.get(job.get("id", ""))
+            if toolsets is not None:
+                job["enabled_toolsets"] = toolsets
+        jobs_path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
 
     def _render_hermes_cron_create_command(self, profile: SubjectProfile, job: dict[str, Any]) -> str:
         parts = [f"HERMES_HOME={profile.hermes_home}", "hermes", "cron", "create"]

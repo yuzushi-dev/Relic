@@ -358,6 +358,7 @@ def profile_main(argv: list[str] | None = None) -> int:
                         decision = registry.prepare_intro_delivery(args.subject_id, live=args.live)
                         if args.live:
                             updated = registry.mark_intro_sent(args.subject_id)
+                            updated = registry.update_status(args.subject_id, "active")
                             print(f"Delivered intro for '{updated.subject_id}' via Hermes.")
                             print(f"Status: {updated.status}")
                             return 0
