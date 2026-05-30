@@ -125,6 +125,35 @@ def test_dispatch_text_prints_to_stdout(tmp_path: Path, capsys: pytest.CaptureFi
     assert result["success"] is True
 
 
+def test_dispatch_text_dry_run_does_not_send(
+    tmp_path: Path, capsys: pytest.CaptureFixture
+) -> None:
+    # Regression: dry_run must short-circuit the text branch so no Telegram
+    # send happens. A malformed gate output (no `tipo:`) defaults to text and
+    # previously sent unconditionally, ignoring dry_run.
+    hermes_home = tmp_path / "hermes"
+    relic_home = tmp_path / "relic"
+    hermes_home.mkdir()
+    relic_home.mkdir()
+
+    with patch(
+        "relic.gumi_plugin.checkin_media_dispatcher._send_telegram_text"
+    ) as send:
+        result = dispatch(
+            "Ehi, pensavo a te, come va?",  # no tipo: -> text default
+            hermes_home,
+            relic_home,
+            "test_subject",
+            dry_run=True,
+            decision_type="proactivity",
+        )
+    captured = capsys.readouterr()
+    send.assert_not_called()
+    assert result["dry_run"] is True
+    assert result["success"] is True
+    assert "Ehi, pensavo a te" not in captured.out
+
+
 def test_dispatch_diegetic_interrogative_restores_question_mark(
     tmp_path: Path, capsys: pytest.CaptureFixture
 ) -> None:

@@ -530,6 +530,9 @@ def dispatch(
         if safe is None:
             print("[dispatch] text blocked by sanitizer — silent drop", file=sys.stderr)
             return {"tipo": "text", "success": False, "reason": "sanitized_empty"}
+        if dry_run:
+            print("[DRY-RUN] Text send skipped", file=sys.stderr)
+            return {"tipo": "text", "success": True, "dry_run": True, "output": safe}
         print(safe)  # stdout: subject-facing text message
         delivered = _send_telegram_text(hermes_home, safe)
         if delivered:
@@ -673,6 +676,9 @@ def dispatch(
         if safe is None:
             print("[dispatch] fallback text blocked by sanitizer — silent drop", file=sys.stderr)
             return {"tipo": "text", "success": False, "reason": "sanitized_empty"}
+        if dry_run:
+            print("[DRY-RUN] Fallback text send skipped", file=sys.stderr)
+            return {"tipo": "text", "success": True, "dry_run": True, "output": safe}
         print(safe)  # stdout: subject-facing text message
         delivered = _send_telegram_text(hermes_home, safe)
         if delivered:
