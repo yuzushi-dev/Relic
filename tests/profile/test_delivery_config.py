@@ -5,7 +5,37 @@ from relic.profile._bootstrap_steps.delivery_config import (
     collect_delivery_config,
     _ask_yes_no,
     _ENV_RE,
+    _slots_covered_by_windows,
 )
+
+
+class TestSlotsCoveredByWindows:
+    """Check-in slots must be reachable by a delivery window or they are dead."""
+
+    def test_morning_evening_windows_cover_morning_evening(self):
+        windows = [{"start": "09:00", "end": "11:00"}, {"start": "19:00", "end": "21:00"}]
+        assert _slots_covered_by_windows(windows) == {"morning", "evening"}
+
+    def test_afternoon_window_covers_afternoon(self):
+        assert _slots_covered_by_windows([{"start": "13:00", "end": "16:00"}]) == {"afternoon"}
+
+    def test_afternoon_slot_not_covered_by_morning_evening_windows(self):
+        # Regression: barbara had checkin_slots=['afternoon'] with morning/evening
+        # windows, making her check-ins structurally undeliverable.
+        windows = [{"start": "09:00", "end": "11:00"}, {"start": "19:00", "end": "21:00"}]
+        assert "afternoon" not in _slots_covered_by_windows(windows)
+
+    def test_window_spanning_band_boundary_covers_both(self):
+        # 11:00-13:00 straddles morning (8-12) and afternoon (12-18).
+        assert _slots_covered_by_windows([{"start": "11:00", "end": "13:00"}]) == {
+            "morning",
+            "afternoon",
+        }
+
+    def test_empty_or_malformed_windows(self):
+        assert _slots_covered_by_windows([]) == set()
+        assert _slots_covered_by_windows([{"start": "", "end": ""}]) == set()
+        assert _slots_covered_by_windows([{"start": "bad", "end": "worse"}]) == set()
 
 
 class TestEnvVarRegex:

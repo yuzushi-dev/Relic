@@ -8,6 +8,31 @@ from typing import TextIO
 
 from relic.profile._bootstrap_steps._io import prompt_optional
 
+# Hour bands for each check-in slot, mirroring relic.checkin.features.CHECKIN_SLOT_BANDS.
+# A check-in slot is only deliverable if at least one delivery window overlaps its band.
+_SLOT_BANDS = {"morning": (8, 12), "afternoon": (12, 18), "evening": (18, 22)}
+
+
+def _slots_covered_by_windows(delivery_windows: list[dict]) -> set[str]:
+    """Return the set of check-in slots reachable by at least one delivery window.
+
+    A window [start, end) covers a slot when it overlaps the slot's hour band.
+    Slots with no covering window can never deliver a check-in (the gate requires
+    an open delivery window while the policy requires the current slot to be
+    enabled), so provisioning must not retain them.
+    """
+    covered: set[str] = set()
+    for win in delivery_windows or []:
+        try:
+            start_h = int(str(win.get("start", "")).split(":")[0])
+            end_h = int(str(win.get("end", "")).split(":")[0])
+        except (ValueError, AttributeError):
+            continue
+        for slot, (band_start, band_end) in _SLOT_BANDS.items():
+            if start_h < band_end and end_h > band_start:
+                covered.add(slot)
+    return covered
+
 
 def _read_env_file(env_path: Path) -> dict[str, str]:
     """Parse a .env file and return key→value dict (no shell expansion)."""
@@ -149,6 +174,31 @@ def _collect_delivery_preferences(io_in: TextIO, io_out: TextIO) -> dict:
         if part.strip()
     }
     checkin_slots = [slot for slot in allowed_slots if slot in requested_slots]
+
+    # Consistency guard: a check-in slot is dead unless a delivery window overlaps
+    # it. Drop unreachable slots; if that empties the list (every requested slot
+    # was unreachable), fall back to the slots the windows actually cover so the
+    # subject still receives check-ins.
+    if delivery_windows:
+        covered = _slots_covered_by_windows(delivery_windows)
+        reachable = [slot for slot in checkin_slots if slot in covered]
+        if checkin_slots and not reachable:
+            fallback = [slot for slot in allowed_slots if slot in covered]
+            print(
+                "  ⚠ Check-in slots "
+                f"{', '.join(checkin_slots)} have no matching delivery window; "
+                f"using window-covered slots instead: {', '.join(fallback) or '(none)'}",
+                file=io_out,
+            )
+            checkin_slots = fallback
+        elif len(reachable) < len(checkin_slots):
+            dropped = [slot for slot in checkin_slots if slot not in covered]
+            print(
+                "  ⚠ Dropping check-in slots with no delivery window: "
+                f"{', '.join(dropped)}",
+                file=io_out,
+            )
+            checkin_slots = reachable
 
     return {
         "timezone": quiet_tz,

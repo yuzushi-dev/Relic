@@ -150,6 +150,17 @@ def subject_avg_tokens(
         _close_quietly(conn)
 
 
+# Scaffold filter: cron jobs inject the LLM prompt as a ``role='user'`` row
+# wrapped in an ``[IMPORTANT: ...]`` preamble. These are not subject replies and
+# must be excluded from reply detection, otherwise every delivery looks answered
+# (and, read against the wrong db, every delivery looks unanswered) — corrupting
+# the non-response streak. Mirrors relic.checkin.reply_capture scaffold markers.
+_SCAFFOLD_NOT_LIKE = (
+    "[IMPORTANT:%",
+    "%running as a scheduled cron job%",
+)
+
+
 def has_user_reply_between(
     hermes_home: Path,
     start: datetime,
@@ -157,18 +168,28 @@ def has_user_reply_between(
     *,
     session_or_platform: str | None = None,
 ) -> bool:
-    """Return whether a user-authored Hermes message exists in ``[start, end]``."""
+    """Return whether a genuine subject reply exists in ``[start, end]``.
+
+    Cron-injected agent scaffold messages (``role='user'`` prompt wrappers) are
+    excluded so they are never mistaken for a subject reply.
+    """
     opened = _open_messages_db(hermes_home)
     if opened is None:
         return False
     conn, schema = opened
     try:
         scope_sql, scope_params = _scope_sql(schema, session_or_platform)
+        scaffold_sql = "".join(f" AND content NOT LIKE ?" for _ in _SCAFFOLD_NOT_LIKE)
         row = conn.execute(
             "SELECT 1 FROM messages "
             f"WHERE role = 'user' AND {schema.time_column} >= ? AND {schema.time_column} <= ?"
-            f"{scope_sql} LIMIT 1",
-            (_to_query_value(schema, start), _to_query_value(schema, end), *scope_params),
+            f"{scope_sql}{scaffold_sql} LIMIT 1",
+            (
+                _to_query_value(schema, start),
+                _to_query_value(schema, end),
+                *scope_params,
+                *_SCAFFOLD_NOT_LIKE,
+            ),
         ).fetchone()
         return row is not None
     except (OSError, sqlite3.Error):

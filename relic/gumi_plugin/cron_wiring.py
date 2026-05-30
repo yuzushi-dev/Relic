@@ -923,7 +923,27 @@ def emit_decision_event(
             pass
 
 
-def _run_outcome_reconciler(subject_id: str) -> None:
+def _resolve_profile_hermes_home(hermes_home: Path, hermes_profile_id: str) -> Path:
+    """Return the per-profile Hermes home that owns the subject's state.db.
+
+    The reconciler must read the same ``state.db`` the gateway writes subject
+    replies into (``<base>/profiles/<profile_id>``). When invoked with a bare
+    base home (e.g. ``~/.hermes``) — as happens for any out-of-gateway call —
+    reply detection would otherwise hit the wrong/empty db and wrongly mark
+    answered deliveries as ``unanswered_24h``, inflating the non-response streak.
+    """
+    if not hermes_profile_id:
+        return hermes_home
+    # Already profile-scoped (parent dir is "profiles").
+    if hermes_home.parent.name == "profiles":
+        return hermes_home
+    candidate = hermes_home / "profiles" / hermes_profile_id
+    if candidate.exists():
+        return candidate
+    return hermes_home
+
+
+def _run_outcome_reconciler(subject_id: str, hermes_profile_id: str = "") -> None:
     """Best-effort: materialise overdue deliveries into unanswered_24h transitions
     before the policy reads cadence state. Never raises."""
     try:
@@ -932,6 +952,7 @@ def _run_outcome_reconciler(subject_id: str) -> None:
 
         hermes_home_str = os.environ.get("HERMES_HOME", "")
         hermes_home = Path(hermes_home_str) if hermes_home_str else Path.home() / ".hermes"
+        hermes_home = _resolve_profile_hermes_home(hermes_home, hermes_profile_id)
         reconcile_due_outcomes(
             subject_id,
             relic_home=get_relic_home(),
@@ -971,7 +992,7 @@ def make_decision(
             )
         except Exception:
             pass
-    _run_outcome_reconciler(subject_id)
+    _run_outcome_reconciler(subject_id, hermes_profile_id)
     if force:
         reasons = [RuntimeDecisionReason.no_due_work]
         hermes_home_str = os.environ.get("HERMES_HOME", "")
