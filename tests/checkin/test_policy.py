@@ -68,6 +68,53 @@ def test_proactivity_low_salience_goes_silent():
     assert d.event_type is EventType.SILENT
 
 
+def test_proactive_reengage_floor_fires_after_long_silence():
+    # Reach decayed + high non-response streak would normally stay silent
+    # forever; after >= 4 days with no initiative from us, a gentle proactive
+    # fires (bypassing reach/backoff/salience).
+    f = CheckinFeatures(
+        reach_score=0.004,
+        non_response_streak=15,
+        salience_top=0.1,
+        time_since_last_subject_msg_sec=7200,
+        time_since_last_initiative_sec=5 * 86400,
+        comfort_with_initiative=0.5,
+    )
+    d = select_decision(f, decision_type="proactivity", policy_enabled=True)
+    assert d.event_type is EventType.PROACTIVE
+    assert d.reason == "proactive_reengage_floor"
+
+
+def test_proactive_reengage_floor_does_not_fire_within_window():
+    # Same silent subject, but last initiative was recent (< floor): the reach
+    # gate must still suppress.
+    f = CheckinFeatures(
+        reach_score=0.004,
+        non_response_streak=15,
+        salience_top=0.1,
+        time_since_last_subject_msg_sec=7200,
+        time_since_last_initiative_sec=2 * 86400,
+    )
+    d = select_decision(f, decision_type="proactivity", policy_enabled=True)
+    assert d.event_type is EventType.SILENT
+    assert d.reason == "reach_below_threshold"
+
+
+def test_proactive_reengage_floor_respects_low_receptivity():
+    # Even at the floor, an explicit low-comfort signal keeps us silent.
+    f = CheckinFeatures(
+        reach_score=0.004,
+        non_response_streak=15,
+        salience_top=0.1,
+        time_since_last_subject_msg_sec=7200,
+        time_since_last_initiative_sec=5 * 86400,
+        comfort_with_initiative=0.1,
+    )
+    d = select_decision(f, decision_type="proactivity", policy_enabled=True)
+    assert d.event_type is EventType.SILENT
+    assert d.reason == "proactive_low_receptivity"
+
+
 def test_mid_conversation_short_circuits_silent():
     f = CheckinFeatures(reach_score=1.0, time_since_last_subject_msg_sec=30)
     d = select_decision(f, decision_type="checkin", policy_enabled=True)

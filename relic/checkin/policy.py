@@ -197,6 +197,13 @@ BRIEF_SHARE_MIN_AVG_TOKENS = 10.0
 MIN_INITIATIVE_GAP_HOURS = 3
 DIEGETIC_MAX_PER_DAY = 1
 PROACTIVE_MAX_PER_DAY = 1
+# Re-engagement floor: a subject whose reach has decayed to silence (high
+# non-response streak) would otherwise never receive a proactive again. After
+# this many days with no initiative delivered from us, allow one gentle
+# proactive that bypasses the reach/backoff/salience gates — a periodic light
+# touch instead of permanent silence. Daily cap, spacing and quiet hours still
+# apply (they are checked earlier in select_decision).
+PROACTIVE_REENGAGE_FLOOR_DAYS = 4
 
 
 def _clamp(value: float, lower: float, upper: float) -> float:
@@ -344,7 +351,14 @@ def select_decision(
             )
         return Decision(EventType.SILENT, Posture.QUIET, "diegetic_below_tolerance")
 
-    if features.reach_score < REACH_THRESHOLD:
+    proactive_reengage_floor = (
+        decision_type == "proactivity"
+        and features.time_since_last_initiative_sec is not None
+        and features.time_since_last_initiative_sec
+        >= PROACTIVE_REENGAGE_FLOOR_DAYS * 86400
+    )
+
+    if features.reach_score < REACH_THRESHOLD and not proactive_reengage_floor:
         return Decision(EventType.SILENT, Posture.QUIET, "reach_below_threshold")
 
     if (
@@ -361,6 +375,13 @@ def select_decision(
     if decision_type == "proactivity":
         if features.proactive_today >= PROACTIVE_MAX_PER_DAY:
             return Decision(EventType.SILENT, Posture.QUIET, "proactive_daily_cap")
+        if proactive_reengage_floor:
+            # Subject has gone fully silent; deliver a gentle periodic touch
+            # rather than nothing. Still honour an explicit low-receptivity
+            # signal, but bypass reach/backoff/salience.
+            if features.comfort_with_initiative < 0.2:
+                return Decision(EventType.SILENT, Posture.QUIET, "proactive_low_receptivity")
+            return Decision(EventType.PROACTIVE, Posture.BRIEF_SHARE, "proactive_reengage_floor")
         if features.non_response_streak >= NON_RESPONSE_BACKOFF:
             return Decision(EventType.SILENT, Posture.QUIET, "proactive_backoff")
         if features.comfort_with_initiative < 0.2:
