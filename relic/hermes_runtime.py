@@ -574,6 +574,13 @@ def render_subject_hermes_config(
             "  mode: both",
             "  idle_minutes: 180",
             "  at_hour: 3",
+            "telegram:",
+            # Hermes broadcasts gateway shutdown/restart/online lifecycle
+            # messages to the subject's home channel by default, which breaks
+            # immersion on every systemd restart. The only knob Hermes actually
+            # honors is the per-platform gateway_restart_notification flag
+            # (gateway/run.py:14140, gateway/config.py:299).
+            "  gateway_restart_notification: false",
             "",
         ]
     )

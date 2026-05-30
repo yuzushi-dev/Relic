@@ -1056,10 +1056,11 @@ class ProfileRegistry:
             "RELIC_DIEGETIC_DELIVER_TARGET": "telegram",
             "RELIC_PROACTIVE_DELIVER_TARGET": "telegram",
             "RELIC_CHECKIN_POLICY_ENABLED": "true",
-            # Suppress Hermes system/lifecycle messages (gateway_started/stopped/restarted)
-            # from the subject chat — operator fills TELEGRAM_ADMIN_CHANNEL to reroute them.
-            "HERMES_SUPPRESS_SYSTEM_MESSAGES": "true",
-            "TELEGRAM_ADMIN_CHANNEL": "",
+            # NOTE: Hermes gateway shutdown/restart/online lifecycle messages are
+            # suppressed via the telegram.gateway_restart_notification=false flag in
+            # config.yaml (see render_subject_hermes_config). The env vars Hermes
+            # never read (HERMES_SUPPRESS_SYSTEM_MESSAGES / TELEGRAM_ADMIN_CHANNEL)
+            # were no-ops and have been removed.
         }
         token = os.environ.get(bot_token_env)
         if token:
