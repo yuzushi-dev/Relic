@@ -574,13 +574,18 @@ def render_subject_hermes_config(
             "  mode: both",
             "  idle_minutes: 180",
             "  at_hour: 3",
-            "telegram:",
             # Hermes broadcasts gateway shutdown/restart/online lifecycle
             # messages to the subject's home channel by default, which breaks
-            # immersion on every systemd restart. The only knob Hermes actually
-            # honors is the per-platform gateway_restart_notification flag
-            # (gateway/run.py:14140, gateway/config.py:299).
-            "  gateway_restart_notification: false",
+            # immersion on every systemd restart. The only knob Hermes honors is
+            # the per-platform gateway_restart_notification flag, and it is read
+            # ONLY from platforms.telegram by load_gateway_config (config.py:759)
+            # → PlatformConfig.from_dict (config.py:320). The top-level
+            # `telegram:` shorthand is NOT mapped for this key, so the flag must
+            # live under platforms.telegram or the shutdown notice still leaks
+            # (gateway/run.py:_notify_active_sessions_of_shutdown).
+            "platforms:",
+            "  telegram:",
+            "    gateway_restart_notification: false",
             "",
         ]
     )

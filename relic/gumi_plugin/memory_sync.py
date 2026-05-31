@@ -95,6 +95,18 @@ def _extract_outbound_entries(
     except Exception:
         return []
 
+    # Skip internal maintenance cron jobs (workspace compaction, continuity
+    # review): their assistant output is an audit report read via workspace
+    # tools, NOT a message delivered to the subject. Counting them polluted
+    # MEMORY.md — the only interactive-continuity bridge — with tooling chatter.
+    # Fail-open: if the helper is unavailable, fall back to the legacy behaviour.
+    try:
+        from relic.hermes_plugin.recent_outbound import is_maintenance_session
+        if is_maintenance_session(data):
+            return []
+    except Exception:
+        pass
+
     messages = data.get("messages", [])
     entries: list[dict[str, Any]] = []
 

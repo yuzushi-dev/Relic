@@ -1057,10 +1057,12 @@ class ProfileRegistry:
             "RELIC_PROACTIVE_DELIVER_TARGET": "telegram",
             "RELIC_CHECKIN_POLICY_ENABLED": "true",
             # NOTE: Hermes gateway shutdown/restart/online lifecycle messages are
-            # suppressed via the telegram.gateway_restart_notification=false flag in
-            # config.yaml (see render_subject_hermes_config). The env vars Hermes
-            # never read (HERMES_SUPPRESS_SYSTEM_MESSAGES / TELEGRAM_ADMIN_CHANNEL)
-            # were no-ops and have been removed.
+            # suppressed via platforms.telegram.gateway_restart_notification=false
+            # in config.yaml (see render_subject_hermes_config). It MUST be under
+            # platforms.telegram — the top-level telegram: shorthand is not mapped
+            # for this key, so a top-level placement silently leaks the shutdown
+            # notice. The env vars Hermes never read (HERMES_SUPPRESS_SYSTEM_MESSAGES
+            # / TELEGRAM_ADMIN_CHANNEL) were no-ops and have been removed.
         }
         token = os.environ.get(bot_token_env)
         if token:
@@ -1675,8 +1677,9 @@ Eight visual modes for consistent photography:
                     f"Step 3: Use write_file to write a JSON report to {output} with this structure:\n"
                     '{{"ts": "<ISO timestamp>", "status": "ok" | "candidates_found", '
                     '"candidates": [{{"file": "<name>", "note": "<description>"}}]}}\n\n'
-                    f"Step 4: If status is \"ok\" (nothing to compact) respond exactly [SILENT]. "
-                    f"If candidates found, return a brief summary.\n\n"
+                    f"Step 4: ALWAYS respond exactly [SILENT], whether or not candidates were "
+                    f"found. The JSON report file is the only output; this is an internal "
+                    f"maintenance job and must NEVER deliver any text to the user.\n\n"
                     f"Do NOT modify any workspace files. Read-only except for writing the report."
                 )
             else:
@@ -1687,8 +1690,9 @@ Eight visual modes for consistent photography:
                     f"(e.g., palette conflicts, tone mismatches, outdated constraints).\n\n"
                     f"Step 3: Use write_file to write a JSON audit to {output} with this structure:\n"
                     '{{"ts": "<ISO timestamp>", "status": "ok" | "drift", "findings": ["<string>", ...]}}\n\n'
-                    f"Step 4: If status is \"ok\" (no drift, empty findings) respond exactly [SILENT]. "
-                    f"If drift found, return a brief summary.\n\n"
+                    f"Step 4: ALWAYS respond exactly [SILENT], whether or not drift was found. "
+                    f"The JSON audit file is the only output; this is an internal maintenance "
+                    f"job and must NEVER deliver any text to the user.\n\n"
                     f"Do NOT modify any canon files. Read-only except for writing the report."
                 )
         if task == "memory_exposure_log_rollup":
@@ -1740,8 +1744,13 @@ Eight visual modes for consistent photography:
         if prompt:
             parts.append(json.dumps(prompt))
         parts += ["--name", json.dumps(job["id"])]
-        # Skip --deliver for local no-agent jobs (memory_sync etc.)
-        if not (job.get("no_agent") and job.get("target") == "local"):
+        # Never deliver target:local jobs to the subject channel. These write
+        # their artifact to a workspace file (maintenance audits, rollups,
+        # no-agent gates); "local" is not a real messaging channel, so passing
+        # --deliver local makes Hermes fall back to the subject's home channel
+        # and leak workspace-audit prose into the chat. Only jobs with a real
+        # platform target (telegram, ...) are delivered.
+        if job.get("target") != "local":
             parts += ["--deliver", json.dumps(job["target"])]
         return " ".join(parts)
 
@@ -1769,8 +1778,11 @@ Eight visual modes for consistent photography:
             if prompt:
                 cmd.append(prompt)
             cmd += ["--name", job["id"]]
-            # Skip --deliver for local no-agent jobs (memory_sync etc.)
-            if not (job.get("no_agent") and job.get("target") == "local"):
+            # Never deliver target:local jobs (maintenance audits, rollups,
+            # no-agent gates) to the subject channel — "local" is not a real
+            # messaging channel and --deliver local leaks workspace-audit prose
+            # into the chat. Only real platform targets are delivered.
+            if job.get("target") != "local":
                 cmd += ["--deliver", job["target"]]
 
             # Idempotency pre-check: if a job with the same name exists, delete first.

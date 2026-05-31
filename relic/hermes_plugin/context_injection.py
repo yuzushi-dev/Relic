@@ -328,6 +328,7 @@ def inject_context(
         {"context": <redacted_text>} or None to skip injection.
     """
     import os
+    from pathlib import Path
 
     try:
         from relic.context_pack.builder import ContextPackBuilder
@@ -374,6 +375,32 @@ def inject_context(
                         injected=True,
                     )
                 )
+
+        # Recent outbound continuity (BUGCHAT fix): proactive/check-in/diegetic
+        # messages are produced in isolated cron sessions, so the interactive
+        # session that receives the subject's reply has no record of them. Surface
+        # the messages Gumi actually delivered so the turn stays conscious of its
+        # own recent outbound. Read straight from HERMES_HOME — subject-agnostic
+        # and independent of the memory_sync cron's timing.
+        try:
+            import os as _os
+            from relic.hermes_plugin.recent_outbound import build_recent_outbound_context
+
+            hermes_home = _os.environ.get("HERMES_HOME", "").strip()
+            if hermes_home:
+                recent_text = build_recent_outbound_context(Path(hermes_home))
+                if recent_text:
+                    pcp.system_sources.append(
+                        SystemSource(
+                            source=ContextSource.DIARY,
+                            priority=95,
+                            content=recent_text,
+                            injected=True,
+                        )
+                    )
+        except Exception as exc:
+            # Fail-open: continuity surfacing must never block a turn.
+            logger.warning("recent outbound injection skipped: %s", exc)
 
         context_text = render_compact(pcp)
 

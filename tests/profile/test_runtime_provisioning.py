@@ -88,8 +88,19 @@ def test_provisioned_config_suppresses_gateway_lifecycle_messages(
     profile = registry._load_required_subject("subj_001")
 
     config_text = (profile.hermes_home / "config.yaml").read_text(encoding="utf-8")
-    assert "telegram:" in config_text
     assert "gateway_restart_notification: false" in config_text
+
+    # The flag MUST live under platforms.telegram — Hermes' load_gateway_config
+    # reads gateway_restart_notification only from platforms.<plat>, NOT from the
+    # top-level telegram: shorthand. A top-level placement parses fine but is
+    # silently ignored, so the shutdown notice still leaks to the subject.
+    import yaml
+
+    parsed = yaml.safe_load(config_text)
+    assert (
+        parsed.get("platforms", {}).get("telegram", {}).get("gateway_restart_notification")
+        is False
+    ), "gateway_restart_notification must be under platforms.telegram to be honored"
 
 
 def test_configure_telegram_delivery_rejects_reusing_user_or_bot_across_subjects(
