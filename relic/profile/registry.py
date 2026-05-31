@@ -1744,13 +1744,12 @@ Eight visual modes for consistent photography:
         if prompt:
             parts.append(json.dumps(prompt))
         parts += ["--name", json.dumps(job["id"])]
-        # Never deliver target:local jobs to the subject channel. These write
-        # their artifact to a workspace file (maintenance audits, rollups,
-        # no-agent gates); "local" is not a real messaging channel, so passing
-        # --deliver local makes Hermes fall back to the subject's home channel
-        # and leak workspace-audit prose into the chat. Only jobs with a real
-        # platform target (telegram, ...) are delivered.
-        if job.get("target") != "local":
+        # Skip --deliver for local no-agent jobs (memory_sync etc.). Agent jobs
+        # with target:local still pass --deliver "local", which routes to a local
+        # file (Platform.LOCAL), NOT the subject channel — so maintenance audits
+        # never reach Telegram. Their suppression is handled by the [SILENT]
+        # prompt contract in _cron_prompt_for_job, not by withholding --deliver.
+        if not (job.get("no_agent") and job.get("target") == "local"):
             parts += ["--deliver", json.dumps(job["target"])]
         return " ".join(parts)
 
@@ -1778,11 +1777,12 @@ Eight visual modes for consistent photography:
             if prompt:
                 cmd.append(prompt)
             cmd += ["--name", job["id"]]
-            # Never deliver target:local jobs (maintenance audits, rollups,
-            # no-agent gates) to the subject channel — "local" is not a real
-            # messaging channel and --deliver local leaks workspace-audit prose
-            # into the chat. Only real platform targets are delivered.
-            if job.get("target") != "local":
+            # Skip --deliver for local no-agent jobs (memory_sync etc.). Agent
+            # jobs with target:local still pass --deliver "local", which routes to
+            # a local file (Platform.LOCAL), NOT the subject channel — maintenance
+            # audits never reach Telegram. Their suppression is the [SILENT]
+            # prompt contract, not withholding --deliver.
+            if not (job.get("no_agent") and job.get("target") == "local"):
                 cmd += ["--deliver", job["target"]]
 
             # Idempotency pre-check: if a job with the same name exists, delete first.
