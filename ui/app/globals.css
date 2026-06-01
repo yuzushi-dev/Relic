@@ -1,5 +1,5 @@
 /* Google Fonts must come before @import "tailwindcss" */
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Rajdhani:wght@400;500;600;700&display=swap');
 
 @import "tailwindcss";
 
@@ -89,6 +89,70 @@
 
   /* Radii — intentionally square/minimal */
   --r0: 0px;
+}
+
+/* ─── Relic Interface System skin ───────────────────────────────────────── */
+:root,
+:root[data-theme="dark"] {
+  --ris-void: #060708;
+  --ris-bg: #0a0c0e;
+  --ris-surface-1: #0f1316;
+  --ris-surface-2: #141a1e;
+  --ris-surface-3: #1b2228;
+  --ris-surface-4: #232c33;
+  --ris-line: #2a343b;
+  --ris-line-strong: #3b4750;
+  --ris-line-faint: #1a2126;
+  --ris-scanline: rgba(255, 255, 255, 0.025);
+  --ris-fg1: #e6ebe8;
+  --ris-fg2: #aab4b2;
+  --ris-fg3: #98a3a5;
+  --ris-fg4: #4a555b;
+  --ris-fg-invert: #07090a;
+  --ris-amber: #f2e205;
+  --ris-amber-glow: rgba(242, 226, 5, 0.18);
+  --ris-amber-line: rgba(242, 226, 5, 0.45);
+  --ris-cyan: #16e0e0;
+  --ris-cyan-dim: #0e9ea0;
+  --ris-cyan-glow: rgba(22, 224, 224, 0.16);
+  --ris-cyan-line: rgba(22, 224, 224, 0.45);
+  --ris-red: #ff2d3c;
+  --ris-red-glow: rgba(255, 45, 60, 0.16);
+  --ris-red-line: rgba(255, 45, 60, 0.45);
+  --ris-green: #2fe48a;
+  --ris-green-glow: rgba(47, 228, 138, 0.14);
+  --ris-violet: #b06bff;
+  --ris-magenta: #e85ad6;
+  --ris-magenta-glow: rgba(232, 90, 214, 0.16);
+  --ris-orange: #e08a3c;
+  --ris-font-display: "Chakra Petch", "Rajdhani", system-ui, sans-serif;
+  --ris-font-body: "Rajdhani", "Chakra Petch", system-ui, sans-serif;
+  --ris-font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --ris-clip: 10px;
+  --ris-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  --bg: var(--ris-bg);
+  --s0: var(--ris-surface-1);
+  --s1: var(--ris-surface-2);
+  --s2: var(--ris-surface-3);
+  --sunken: var(--ris-void);
+  --line: var(--ris-line-faint);
+  --line-med: var(--ris-line);
+  --line-hi: var(--ris-line-strong);
+  --text: var(--ris-fg1);
+  --text-sub: var(--ris-fg2);
+  --text-dim: var(--ris-fg3);
+  --obs: var(--ris-cyan);
+  --inf: var(--ris-violet);
+  --pend: var(--ris-amber);
+  --ok: var(--ris-green);
+  --block: var(--ris-red);
+  --gumi: var(--ris-magenta);
+  --runtime: var(--ris-cyan-dim);
+  --correction: var(--ris-orange);
+  --sans: var(--ris-font-body);
+  --mono: var(--ris-font-mono);
+  color-scheme: dark;
 }
 
 /* ─── Light theme ────────────────────────────────────────────────────────── */
@@ -989,4 +1053,162 @@ pre {
   .stat-val { font-size: 22px; }
 }
 
+}
+
+/* ─── RIS shared production primitives ──────────────────────────────────── */
+:root,
+:root[data-theme="light"],
+:root[data-theme="dark"] {
+  --bg: var(--ris-bg);
+  --s0: var(--ris-surface-1);
+  --s1: var(--ris-surface-2);
+  --s2: var(--ris-surface-3);
+  --sunken: var(--ris-void);
+  --line: var(--ris-line-faint);
+  --line-med: var(--ris-line);
+  --line-hi: var(--ris-line-strong);
+  --text: var(--ris-fg1);
+  --text-sub: var(--ris-fg2);
+  --text-dim: var(--ris-fg3);
+  --obs: var(--ris-cyan);
+  --inf: var(--ris-violet);
+  --pend: var(--ris-amber);
+  --ok: var(--ris-green);
+  --block: var(--ris-red);
+  --gumi: var(--ris-magenta);
+  --runtime: var(--ris-cyan-dim);
+  --correction: var(--ris-orange);
+  --sans: var(--ris-font-body);
+  --mono: var(--ris-font-mono);
+}
+
+body,
+body:not([data-theme="dark"]) {
+  background-color: var(--ris-bg);
+  background-image:
+    linear-gradient(var(--ris-line-faint) 1px, transparent 1px),
+    linear-gradient(90deg, var(--ris-line-faint) 1px, transparent 1px);
+  background-size: 32px 32px;
+  font-size: 16px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--ris-font-display);
+  text-transform: uppercase;
+}
+
+.font-display {
+  font-family: var(--ris-font-display);
+}
+
+.ris-shell {
+  min-height: 100vh;
+  background-color: var(--ris-bg);
+  background-image:
+    linear-gradient(var(--ris-line-faint) 1px, transparent 1px),
+    linear-gradient(90deg, var(--ris-line-faint) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.ris-status-bar {
+  background: color-mix(in srgb, var(--ris-surface-1) 96%, transparent);
+  border-bottom: 1px solid var(--ris-line);
+}
+
+.ris-nav-rail {
+  background: color-mix(in srgb, var(--ris-surface-1) 96%, transparent);
+  border-right: 1px solid var(--ris-line);
+}
+
+.ris-nav-link,
+.ris-mobile-link {
+  clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
+  transition: background 90ms var(--ris-ease), border-color 90ms var(--ris-ease), color 90ms var(--ris-ease);
+}
+
+.ris-nav-link[data-active="true"],
+.ris-mobile-link[data-active="true"] {
+  background: var(--ris-amber-glow);
+  border-color: var(--ris-amber-line);
+  color: var(--ris-amber);
+  box-shadow: 0 0 16px var(--ris-amber-glow);
+}
+
+.ris-panel {
+  position: relative;
+  border-radius: 0;
+  background: var(--ris-surface-1);
+  clip-path: polygon(0 0, calc(100% - var(--ris-clip)) 0, 100% var(--ris-clip), 100% 100%, var(--ris-clip) 100%, 0 calc(100% - var(--ris-clip)));
+  box-shadow: none;
+}
+
+.ris-panel:hover {
+  border-color: var(--ris-line-strong);
+}
+
+.ris-chip {
+  border-radius: 0;
+  clip-path: polygon(0 0, calc(100% - 5px) 0, 100% 5px, 100% 100%, 5px 100%, 0 calc(100% - 5px));
+  font-family: var(--ris-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ris-btn {
+  border-radius: 0;
+  clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 7px 100%, 0 calc(100% - 7px));
+  font-family: var(--ris-font-body);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.ris-kpi {
+  overflow: hidden;
+}
+
+.ris-kpi::before {
+  content: "";
+  position: absolute;
+  top: 13px;
+  bottom: 13px;
+  left: 0;
+  width: 2px;
+  background: var(--ris-kpi-accent, var(--ris-cyan));
+}
+
+.ris-subject-bar {
+  background: var(--ris-surface-1);
+  border: 1px solid var(--ris-line);
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+}
+
+.ris-subject-link {
+  min-height: 32px;
+  clip-path: polygon(0 0, calc(100% - 5px) 0, 100% 5px, 100% 100%, 5px 100%, 0 calc(100% - 5px));
+}
+
+.ris-scanlines::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  pointer-events: none;
+  background: repeating-linear-gradient(to bottom, transparent 0, transparent 2px, var(--ris-scanline) 2px, var(--ris-scanline) 3px);
+}
+
+@keyframes ris-blink {
+  50% { opacity: 0.15; }
+}
+
+.ris-blink {
+  animation: ris-blink 1.1s steps(1) infinite;
+}
+
+@media (max-width: 767px) {
+  body {
+    padding-bottom: 60px;
+  }
 }

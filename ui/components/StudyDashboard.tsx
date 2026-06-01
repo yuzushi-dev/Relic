@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { formatDate, formatDateTime } from "../lib/format";
 import type { StudyOverview, SubjectRow } from "../lib/workbench-data";
 import { Badge } from "./ui/badge";
@@ -64,13 +64,13 @@ export function StudyDashboard({ studyOverviewData }: { studyOverviewData: Study
     : "never";
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       {/* Page Header */}
-      <header className="border-b border-border pb-5">
-        <div className="text-xs font-mono uppercase tracking-widest text-primary mb-1">
-          Study Monitoring
+      <header className="border-b border-border pb-4">
+        <div className="mb-1 font-mono text-[11px] uppercase tracking-[0.24em] text-primary">
+          Root / Study / Overview
         </div>
-        <h1 className="text-3xl font-bold tracking-tight font-mono mb-2">
+        <h1 className="mb-2 font-display text-3xl font-bold uppercase tracking-tight">
           {studyOverviewData.study_id}
         </h1>
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground font-mono">
@@ -83,42 +83,51 @@ export function StudyDashboard({ studyOverviewData }: { studyOverviewData: Study
       </header>
 
       {/* Stat Bar */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4" role="region" aria-label="Study Metrics">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-5" role="region" aria-label="Study Metrics">
         {[
           {
             key: "Active Subjects",
             val: studyOverviewData.subjects_active,
             icon: CheckCircle2,
             color: "text-success",
+            accent: "var(--ris-green)",
           },
           {
             key: "Paused Subjects",
             val: studyOverviewData.subjects_paused,
             icon: AlertTriangle,
             color: studyOverviewData.subjects_paused > 0 ? "text-warning" : "text-muted-foreground",
+            accent: "var(--ris-amber)",
           },
           {
             key: "Archived",
             val: studyOverviewData.subjects_archived,
             icon: HelpCircle,
             color: "text-muted-foreground",
+            accent: "var(--ris-cyan)",
           },
           {
             key: "Active Risks",
             val: studyOverviewData.active_risk_alerts,
             icon: ShieldAlert,
             color: studyOverviewData.active_risk_alerts > 0 ? "text-destructive" : "text-muted-foreground",
+            accent: "var(--ris-red)",
           },
           {
             key: "Pending Review",
             val: studyOverviewData.pending_reviews,
             icon: ClipboardList,
             color: studyOverviewData.pending_reviews > 0 ? "text-warning" : "text-muted-foreground",
+            accent: "var(--ris-violet)",
           },
         ].map((item) => {
           const Icon = item.icon;
           return (
-            <Card key={item.key} className="rounded-none border-border">
+            <Card
+              key={item.key}
+              className="ris-kpi border-border"
+              style={{ "--ris-kpi-accent": item.accent } as CSSProperties}
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
                 <CardDescription className="text-[10px] font-semibold uppercase tracking-wider">
                   {item.key}
@@ -126,7 +135,7 @@ export function StudyDashboard({ studyOverviewData }: { studyOverviewData: Study
                 <Icon className={`h-4 w-4 ${item.color}`} />
               </CardHeader>
               <CardContent className="p-4 pt-0">
-                <div className="text-2xl font-bold font-mono tracking-tight">{item.val}</div>
+                <div className="font-display text-3xl font-bold tracking-tight">{item.val}</div>
               </CardContent>
             </Card>
           );
@@ -134,9 +143,9 @@ export function StudyDashboard({ studyOverviewData }: { studyOverviewData: Study
       </div>
 
       {/* Subject Registry */}
-      <Card className="rounded-none border-border">
-        <CardHeader className="border-b border-border">
-          <CardTitle className="font-mono text-sm font-semibold uppercase tracking-wider">
+      <Card className="border-border">
+        <CardHeader className="border-b border-border bg-muted/30">
+          <CardTitle className="font-display text-sm font-semibold uppercase tracking-[0.14em]">
             Subject Registry
           </CardTitle>
           <CardDescription>
@@ -156,7 +165,7 @@ export function StudyDashboard({ studyOverviewData }: { studyOverviewData: Study
                     <button
                       key={c}
                       type="button"
-                      className={`px-2.5 py-1 text-xs border transition-colors rounded-none ${
+                      className={`ris-btn border px-2.5 py-1 text-xs transition-colors ${
                         conditionFilter === c
                           ? "bg-primary text-primary-foreground border-primary font-medium"
                           : "border-input bg-background hover:bg-accent"
@@ -179,7 +188,7 @@ export function StudyDashboard({ studyOverviewData }: { studyOverviewData: Study
                   <button
                     key={s}
                     type="button"
-                    className={`px-2.5 py-1 text-xs border transition-colors rounded-none ${
+                    className={`ris-btn border px-2.5 py-1 text-xs transition-colors ${
                       statusFilter === s
                         ? "bg-primary text-primary-foreground border-primary font-medium"
                         : "border-input bg-background hover:bg-accent"

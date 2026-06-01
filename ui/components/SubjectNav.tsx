@@ -21,9 +21,9 @@ export function SubjectNav({ subjects, currentSubjectId, view }: Props) {
 
   if (view === "chronicle") {
     return (
-      <nav aria-label="Chronicle navigation" className="space-y-4 bg-card p-4 border border-border">
-        <div>
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-2">Subject Registry</span>
+      <nav aria-label="Chronicle navigation" className="ris-subject-bar space-y-3 p-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">SUBJECT</span>
           <div className="flex flex-wrap gap-1.5">
             {subjects.map((s) => {
               const slug = s.subject_id.replace(/-/g, "_");
@@ -32,9 +32,9 @@ export function SubjectNav({ subjects, currentSubjectId, view }: Props) {
                 <Link
                   key={s.subject_id}
                   href={`/dashboard/subjects/${slug}/chronicle` as any}
-                  className={`inline-flex items-center justify-center whitespace-nowrap text-xs font-mono font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring border h-8 px-3 ${
+                  className={`ris-subject-link inline-flex items-center justify-center whitespace-nowrap border px-3 font-mono text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
                     isCurrent
-                      ? "bg-primary text-primary-foreground shadow"
+                      ? "border-primary bg-primary text-black"
                       : "border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground"
                   }`}
                 >
@@ -43,9 +43,13 @@ export function SubjectNav({ subjects, currentSubjectId, view }: Props) {
               );
             })}
           </div>
+          <span className="ris-chip ml-auto inline-flex items-center gap-1.5 border border-primary/60 bg-primary/15 px-2 py-1 text-primary">
+            <i className="ris-blink h-1.5 w-1.5 bg-primary" />
+            SCOPED
+          </span>
         </div>
         <div className="border-t border-border pt-3">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-2">Chronicle Sections</span>
+          <span className="mb-2 block font-display text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Chronicle Sections</span>
           <div className="flex flex-wrap gap-1.5">
             {[
               { href: `${base}/chronicle`, label: "Overview" },
@@ -56,7 +60,7 @@ export function SubjectNav({ subjects, currentSubjectId, view }: Props) {
               <Link
                 key={link.href}
                 href={link.href as any}
-                className="inline-flex items-center justify-center whitespace-nowrap text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring border h-8 px-3 border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground"
+                className="ris-subject-link inline-flex items-center justify-center whitespace-nowrap border border-input bg-background px-3 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               >
                 {link.label}
               </Link>
@@ -69,8 +73,8 @@ export function SubjectNav({ subjects, currentSubjectId, view }: Props) {
 
   const suffix = VIEW_SUFFIX[view] ?? "";
   return (
-    <nav aria-label="Subject navigation" className="bg-card p-4 border border-border">
-      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-2">Quick Switch Subject</span>
+    <nav aria-label="Subject navigation" className="ris-subject-bar flex flex-wrap items-center gap-3 p-3">
+      <span className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">SUBJECT</span>
       <div className="flex flex-wrap gap-1.5">
         {subjects.map((s) => {
           const slug = s.subject_id.replace(/-/g, "_");
@@ -79,9 +83,9 @@ export function SubjectNav({ subjects, currentSubjectId, view }: Props) {
             <Link
               key={s.subject_id}
               href={`/dashboard/subjects/${slug}${suffix}` as any}
-              className={`inline-flex items-center justify-center whitespace-nowrap text-xs font-mono font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring border h-8 px-3 ${
+              className={`ris-subject-link inline-flex items-center justify-center whitespace-nowrap border px-3 font-mono text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
                 isCurrent
-                  ? "bg-primary text-primary-foreground shadow"
+                  ? "border-primary bg-primary text-black"
                   : "border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground"
               }`}
             >
@@ -90,6 +94,10 @@ export function SubjectNav({ subjects, currentSubjectId, view }: Props) {
           );
         })}
       </div>
+      <span className="ris-chip ml-auto inline-flex items-center gap-1.5 border border-primary/60 bg-primary/15 px-2 py-1 text-primary">
+        <i className="ris-blink h-1.5 w-1.5 bg-primary" />
+        SCOPED
+      </span>
     </nav>
   );
 }

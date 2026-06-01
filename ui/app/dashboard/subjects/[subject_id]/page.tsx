@@ -1,6 +1,7 @@
 // Subject Overview — PR27C
 import Link from "next/link";
 import { SubjectIntelligence } from "../../../../components/SubjectIntelligence";
+import { SubjectNav } from "../../../../components/SubjectNav";
 import { formatDate } from "../../../../lib/format";
 import { getGumiProfile, getStudyOverview, getSubjectIntelligence, getSubjectOverview } from "../../../../lib/workbench-data";
 import { Badge } from "../../../../components/ui/badge";
@@ -14,10 +15,12 @@ export function generateStaticParams() {
 
 export default async function SubjectPage({ params }: { params: Promise<{ subject_id: string }> }) {
   const { subject_id } = await params;
+  const study = getStudyOverview();
   const d = getSubjectOverview(subject_id);
   if (!d) {
     return (
       <div className="space-y-6">
+        <SubjectNav subjects={study.subject_registry} currentSubjectId={subject_id} view="overview" />
         <header className="border-b border-border pb-5">
           <div className="text-xs font-mono uppercase tracking-widest text-destructive mb-1">Subject profile</div>
           <h1 className="text-3xl font-bold tracking-tight font-mono mb-2">{subject_id}</h1>
@@ -44,6 +47,7 @@ export default async function SubjectPage({ params }: { params: Promise<{ subjec
 
   return (
     <div className="space-y-8">
+      <SubjectNav subjects={study.subject_registry} currentSubjectId={subject_id} view="overview" />
       {/* Page Header */}
       <header className="border-b border-border pb-5">
         <div className="text-xs font-mono uppercase tracking-widest text-primary mb-1">

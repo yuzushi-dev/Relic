@@ -1,18 +1,32 @@
+"use client";
+
 import type { ChronicleDecision } from "@/lib/chronicle-types";
 import { ValidationBadge, ConfidenceBar } from "./Badges";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { useSearchParams } from "next/navigation";
 
 function formatTs(ts: string) {
   return new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }).format(new Date(ts));
 }
 
 export function DecisionsList({ decisions }: { decisions: ChronicleDecision[] }) {
-  if (decisions.length === 0)
+  const searchParams = useSearchParams();
+  const validationStatus = searchParams.get("validation_status") ?? "";
+  const rawMinConfidence = searchParams.get("min_confidence");
+  const minConfidence = rawMinConfidence ? Number(rawMinConfidence) : Number.NaN;
+
+  const filtered = decisions.filter((decision) => {
+    if (validationStatus && decision.validation_status !== validationStatus) return false;
+    if (Number.isFinite(minConfidence) && decision.confidence < minConfidence) return false;
+    return true;
+  });
+
+  if (filtered.length === 0)
     return <p className="text-sm text-muted-foreground italic p-4 text-center">No decisions match the current filters.</p>;
     
   return (
     <div className="space-y-4" data-testid="decisions-list">
-      {decisions.map((d) => (
+      {filtered.map((d) => (
         <Card key={d.decision_id} className="rounded-none border-border">
           <CardHeader className="p-4 pb-2">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">

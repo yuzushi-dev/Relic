@@ -3,13 +3,26 @@ import type { ChronicleEvent } from "@/lib/chronicle-types";
 import { SeverityBadge, SensitivityBadge } from "./Badges";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { useSearchParams } from "next/navigation";
 
 function formatTs(ts: string) {
   return new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }).format(new Date(ts));
 }
 
 export function EventsTable({ events }: { events: ChronicleEvent[] }) {
-  if (events.length === 0)
+  const searchParams = useSearchParams();
+  const severity = searchParams.get("severity") ?? "";
+  const category = searchParams.get("category") ?? "";
+  const sensitivity = searchParams.get("sensitivity") ?? "";
+
+  const filtered = events.filter((event) => {
+    if (severity && event.severity !== severity) return false;
+    if (category && event.category !== category) return false;
+    if (sensitivity && event.sensitivity !== sensitivity) return false;
+    return true;
+  });
+
+  if (filtered.length === 0)
     return <p className="text-sm text-muted-foreground italic p-4 text-center">No events match the current filters.</p>;
     
   return (
@@ -26,7 +39,7 @@ export function EventsTable({ events }: { events: ChronicleEvent[] }) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {events.map((e) => (
+          {filtered.map((e) => (
             <TableRow key={e.event_id} className="hover:bg-muted/30">
               <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap">{formatTs(e.timestamp)}</TableCell>
               <TableCell>
