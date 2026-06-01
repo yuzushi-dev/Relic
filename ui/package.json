@@ -5,8 +5,8 @@
   "description": "Relic Researcher Workbench (PR16D/E skeleton)",
   "scripts": {
     "dev": "next dev -p 4143",
-    "build": "next build",
-    "build:static": "RELIC_UI_BUILD_TARGET=static RELIC_UI_DATA_SOURCE=demo next build",
+    "build": "next build --webpack",
+    "build:static": "RELIC_UI_BUILD_TARGET=static RELIC_UI_DATA_SOURCE=demo next build --webpack",
     "start": "next start -p 4143",
     "start:static": "node scripts/serve-static.mjs",
     "lint": "next lint",
@@ -36,5 +36,8 @@
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.4.0",
     "zod": "^4.4.3"
+  },
+  "overrides": {
+    "postcss": "$postcss"
   }
 }
