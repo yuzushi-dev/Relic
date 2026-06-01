@@ -282,6 +282,9 @@ def _rewrite_memory_block(memory_path: Path, new_entries: list[dict[str, Any]]) 
 
     tmp = memory_path.with_suffix(".md.tmp")
     tmp.write_text(text, encoding="utf-8")
+    # Subject PII in clear text: restrict to owner-only before the rename
+    # (os.replace preserves the tmp file's mode on the final path).
+    os.chmod(tmp, 0o600)
     os.replace(tmp, memory_path)
     return True
 

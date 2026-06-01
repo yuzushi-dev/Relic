@@ -42,6 +42,7 @@ def save_media_state(hermes_home: Path, state: dict) -> None:
     tmp = path.with_suffix(".tmp")
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(state, f, indent=2, ensure_ascii=False)
+    os.chmod(tmp, 0o600)
     os.replace(tmp, path)
 
 
@@ -107,6 +108,7 @@ def record_outbound_delivery(hermes_home: Path, channel: str, media_type: str) -
     tmp = path.with_suffix(".tmp")
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
+    os.chmod(tmp, 0o600)
     os.replace(tmp, path)
 
 
@@ -164,6 +166,9 @@ def record_sent_media_memory(
 
         tmp = mem_path.with_suffix(".md.tmp")
         tmp.write_text(text, encoding="utf-8")
+        # Subject PII in clear text: restrict to owner-only before the rename
+        # (os.replace preserves the tmp file's mode on the final path).
+        os.chmod(tmp, 0o600)
         os.replace(tmp, mem_path)
     except Exception:
         pass
