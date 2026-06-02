@@ -180,6 +180,14 @@ def run_workflow(*, output_dir: Path, mode: str) -> dict[str, Any]:
             "local workflow execution does not create recruited human or live-provider evidence",
             "blocked status is expected until the scientific_defensibility_gate requirements are satisfied",
             "full mode is required before release packaging; smoke mode is a quick artifact exercisability check",
+            (
+                "the gate appears at different counts by evidence scope, not by contradiction: "
+                "scientific_defensibility_gate with no bundle = 1/7 (benchmark only); "
+                "scientific_local_evidence_package = 2/7 (adds code-generated mock telemetry); "
+                "the committed live-model + telemetry evidence reaches 3/7 via "
+                "`make gate` / `scripts/gate_local_evidence.py`. 3/7 is the local maximum; "
+                "requirements 4-7 require recruited human data"
+            ),
         ],
     }
     (output_dir / "scientific-claim-readiness-run.json").write_text(
@@ -194,8 +202,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--mode",
         choices=["smoke", "full"],
-        default="full",
-        help="smoke generates core reports; full also runs local verification commands",
+        default="smoke",
+        help=(
+            "smoke (default) generates the core reports + gate; "
+            "full also runs the broad pytest-cov surface and a docker build "
+            "(heavy: requires uv + docker, can OOM on small machines) and is "
+            "required only before release packaging"
+        ),
     )
     parser.add_argument(
         "--output-dir",

@@ -36,8 +36,14 @@ jobs:
             tests/checkin/test_policy_scenarios.py \
             tests/gumi_plugin/test_decision_log_canonical.py \
             -q
+      - name: Evaluation, docs, and defensibility-gate contracts
+        # Guards the scientific-claim surface (gate 1/7-default and 3/7-committed,
+        # replication-bundle contract, docs contracts, correction-propagation FK
+        # integrity) that `make test` does not cover.
+        run: python -m pytest tests/eval tests/docs tests/memory_dynamics tests/correction -q
 
 env:
   RELIC_ENV: ci
   RELIC_NO_NETWORK: '1'
   RELIC_USE_FIXTURES: '1'
+  PYTHONPATH: '.'

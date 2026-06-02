@@ -1,4 +1,4 @@
-.PHONY: help setup lint test test-full test-full-root test-full-docs test-full-runtime test-full-gumi test-full-hermes test-full-memory test-full-lab-eval test-full-ui test-full-skills test-bootstrap test-hermes-compat fixture-gumi-memory test-db test-cac test-privacy test-correction test-compiler test-vault test-hermes-plugin test-eval test-ui fixture-basic fixture-corrections fixture-privacy fixture-no-injection fixture-ui-validation fixture-memory-dynamics eval-baselines replication-bundle demo-e2e validate-design test-memory-dynamics memory-dynamics-report setup-dry-run debug-bundle test-debug-bundle test-gumi-roleplay fixture-gumi-roleplay test-gumi-plugin test-gumi-provider-normalization test-docs validate-handoff
+.PHONY: help setup lint test test-full test-full-root test-full-docs test-full-runtime test-full-gumi test-full-hermes test-full-memory test-full-lab-eval test-full-ui test-full-skills test-bootstrap test-hermes-compat fixture-gumi-memory test-db test-cac test-privacy test-correction test-compiler test-vault test-hermes-plugin test-eval test-ui fixture-basic fixture-corrections fixture-privacy fixture-no-injection fixture-ui-validation fixture-memory-dynamics eval-baselines gate gate-default replication-bundle demo-e2e validate-design test-memory-dynamics memory-dynamics-report setup-dry-run debug-bundle test-debug-bundle test-gumi-roleplay fixture-gumi-roleplay test-gumi-plugin test-gumi-provider-normalization test-docs validate-handoff
 
 HERMES_VENV ?= $(HOME)/.hermes/hermes-agent/venv/bin
 PYTHON := $(shell command -v python3 2>/dev/null || echo python)
@@ -43,6 +43,8 @@ help:
 	@echo "  fixture-gumi-roleplay Load gumi roleplay fixture"
 	@echo "  fixture-memory-dynamics Load memory dynamics fixture"
 	@echo "  eval-baselines     Run evaluation baselines"
+	@echo "  gate               Run defensibility gate over committed evidence (3/7)"
+	@echo "  gate-default       Run defensibility gate with no evidence bundle (1/7)"
 	@echo "  replication-bundle Build replication bundle"
 	@echo "  debug-bundle       Build debug bundle"
 	@echo "  demo-e2e           Run E2E demo"
@@ -167,6 +169,14 @@ fixture-memory-dynamics:
 eval-baselines:
 	@echo "Running evaluation baselines..."
 	@PYTHONPATH=. $(PYTHON) -c "from relic.eval.baselines import run_baselines; result = run_baselines(); print('Baselines completed:', list(result.keys()))"
+
+gate:
+	@echo "Scientific defensibility gate over committed local evidence (reaches 3/7)..."
+	@PYTHONPATH=. $(PYTHON) scripts/gate_local_evidence.py --strict
+
+gate-default:
+	@echo "Scientific defensibility gate with no evidence bundle (baseline 1/7)..."
+	@PYTHONPATH=. $(PYTHON) scripts/eval_run.py --experiment scientific_defensibility_gate
 
 replication-bundle:
 	@echo "Building replication bundle..."

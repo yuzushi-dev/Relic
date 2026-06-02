@@ -10,6 +10,8 @@ ROOT_MARKDOWN_ALLOWED = {
     "SECURITY.md",
     "CODE_OF_CONDUCT.md",
     "CONTRIBUTING.md",
+    "CHANGELOG.md",
+    "DESIGN.md",
 }
 
 INTERNAL_DOC_PREFIXES = [

@@ -167,11 +167,10 @@
     "no clinical efficacy, therapeutic, or deployment-safety claim is permitted by this gate"
   ],
   "_provenance": {
-    "note": "partial local evidence; 4 requirements need recruited humans",
-    "artifact_hashes": {
-      "live_model_artifact": "sha256:a160c5cab7c0b61d02ceae43a2de94be69c193e320e48d33f63fe40f1c7256f3",
-      "live_model_descriptor": "sha256:f313bfa13da6494ccad63cf71fb60d0f4b2fa41180f6fdec8e737d1706f71f15",
-      "mock_runtime_telemetry": "sha256:1ea3871c5dccea348dbf5c4140b53f41411039ebc3dcec3b5c26b0b075d4b4f8"
+    "regenerated_by": "scripts/gate_local_evidence.py",
+    "evidence_inputs": {
+      "docs/research/evidence/live-model-campaign-2026-05-26/artifact.json": "a160c5cab7c0b61d02ceae43a2de94be69c193e320e48d33f63fe40f1c7256f3",
+      "docs/research/evidence/live-model-campaign-2026-05-26/mock-runtime-telemetry.json": "1ea3871c5dccea348dbf5c4140b53f41411039ebc3dcec3b5c26b0b075d4b4f8"
     }
   }
 }

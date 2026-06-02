@@ -72,6 +72,8 @@ ui/tsconfig.tsbuildinfo
 !/docs/research/
 /docs/research/perplexity-academic-codebase-review-prompt.md
 /docs/research/BRANCH_CHANGES.md
+/docs/research/academic-audit-2026-06-02.md
+/docs/research/academic-audit-codex-2026-06-02.md
 
 # E2E test subjects (local data)
 subjects/*

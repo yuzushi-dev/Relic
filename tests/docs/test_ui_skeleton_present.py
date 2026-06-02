@@ -1,4 +1,4 @@
-"""PR16D — Next.js workbench skeleton must exist."""
+"""PR16D, Next.js workbench skeleton must exist."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -19,7 +19,14 @@ def test_ui_next_config() -> None:
 
 
 def test_ui_workbench_page() -> None:
-    assert (ROOT / "ui" / "app" / "workbench" / "page.tsx").exists()
+    # The redesigned researcher workbench lives under app/dashboard/ (the prior
+    # app/workbench/ skeleton was replaced in "feat(ui): ship redesigned
+    # researcher workbench"). Accept either layout so the contract tracks reality.
+    candidates = [
+        ROOT / "ui" / "app" / "dashboard" / "page.tsx",
+        ROOT / "ui" / "app" / "workbench" / "page.tsx",
+    ]
+    assert any(p.exists() for p in candidates), "missing researcher workbench landing page"
 
 
 def test_ui_design_tokens() -> None:

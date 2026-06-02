@@ -46,7 +46,7 @@ log_error() { echo -e "${RED}[ERROR]${NC} $*"; }
 # Secret redaction helper
 # Replaces potential secret patterns with [REDACTED]
 redact_secrets() {
-    sed -E 's/(api[_-]?key|secret|password|token|auth)[=:]["'\'']?[[:alnum:]_-]{8,}[蔬"'\'']?/[REDACTED]/gi'
+    sed -E 's/(api[_-]?key|secret|password|token|auth)[=:]["'\'']?[[:alnum:]_-]{8,}["'\'']?/[REDACTED]/gi'
 }
 
 # Print help message
