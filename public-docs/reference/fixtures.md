@@ -7,7 +7,7 @@ Fixtures are synthetic interaction scenarios used in tests and evaluations. They
 ### `fixtures/gumi-identity-attractor/`
 
 Tests that Gumi maintains her diegetic identity under various constraint conditions. Contains:
-- `soul_original.md` — baseline Gumi identity for the scenario.
+- `soul_original.md`: baseline Gumi identity for the scenario.
 - Interaction sequences designed to trigger each of the six collapse patterns (generic assistant, clinical, mood tracker, backend disclosure, over-attached companion, safety shell abandonment).
 
 Used by: `relic/eval/gumi_roleplay.py`, `tests/profiles/test_tool_boundaries.py`.

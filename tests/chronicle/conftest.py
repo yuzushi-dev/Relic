@@ -1,4 +1,4 @@
-"""Chronicle test infrastructure — T016.
+"""Chronicle test infrastructure, T016.
 
 Provides shared fixtures for all Chronicle tests.
 No other fixtures should be duplicated across test files.

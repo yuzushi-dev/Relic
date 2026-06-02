@@ -1,4 +1,4 @@
-"""Chronicle provenance — artifact provenance graph management.
+"""Chronicle provenance, artifact provenance graph management.
 
 Module: relic.chronicle.provenance
 Version: chronicle-provenance/v1

@@ -6,8 +6,8 @@ What sits behind Gumi's recall and which of those options actually leave your ma
 
 Gumi has two separate memory layers; they answer different questions and have different governance:
 
-1. **Shared Continuity Memory** — Relic-governed, subject-confirmed markers. Stored in `relic.db`. Never leaves the machine. Always local.
-2. **Provider-backed semantic memory** — broad recall over past turns. This is the layer the provider table below configures.
+1. **Shared Continuity Memory**: Relic-governed, subject-confirmed markers. Stored in `relic.db`. Never leaves the machine. Always local.
+2. **Provider-backed semantic memory**: broad recall over past turns. This is the layer the provider table below configures.
 
 The provider table only governs layer 2. Shared Continuity is non-negotiable: it lives in the local SQLite.
 
@@ -19,8 +19,8 @@ The provider table only governs layer 2. Shared Continuity is non-negotiable: it
 | `c1-holographic` | Holographic memory (local) | ✅ | None | No | Production |
 | `c2-hindsight-tools` | Hindsight tool-mode (local) | ✅ | None or `HINDSIGHT_LLM_API_KEY` if non-Ollama backend | No (with Ollama) | Default for full Gumi |
 | `c3-hindsight-context` | Hindsight context-mode (local) | ✅ | Same as c2 | No (with Ollama) | Production |
-| `c4-byterover` | Byterover (cloud) | ❌ | `byterover_token` | Yes — full | **PR19 evaluation fixture only**, not enabled as runtime default |
-| `c5-honcho` | Honcho (cloud) | ❌ | `honcho_api_key` | Yes — full | **PR19 evaluation fixture only**, not enabled as runtime default |
+| `c4-byterover` | Byterover (cloud) | ❌ | `byterover_token` | Yes, full | **PR19 evaluation fixture only**, not enabled as runtime default |
+| `c5-honcho` | Honcho (cloud) | ❌ | `honcho_api_key` | Yes, full | **PR19 evaluation fixture only**, not enabled as runtime default |
 
 The `is_external` flag in the profile definition gates a provider as cloud-bound; the OSS distribution ships `c4` and `c5` as **evaluation fixtures only**. Enabling them as runtime defaults requires you to flip the flag and accept the privacy implications.
 
@@ -28,8 +28,8 @@ The `is_external` flag in the profile definition gates a provider as cloud-bound
 
 | Provider | What is sent | Where it goes | Stored by them |
 |---|---|---|---|
-| `c0-builtin` | nothing | nowhere | — |
-| `c1-holographic` | nothing | nowhere | — |
+| `c0-builtin` | nothing | nowhere |, |
+| `c1-holographic` | nothing | nowhere |, |
 | `c2-hindsight-tools` (Ollama backend, default) | embedding requests | `http://localhost:11434/v1` | Local |
 | `c2-hindsight-tools` (cloud LLM backend) | embedding requests + retrieval queries with text | The configured OpenAI-compatible endpoint | Provider-dependent |
 | `c3-hindsight-context` | Same as c2 | Same as c2 | Same as c2 |

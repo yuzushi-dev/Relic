@@ -249,7 +249,7 @@ class FinalOutputPrivacyGate:
 
 
 class PrivacyGate:
-    """Output privacy gate — blocks workflow/sensitive content from SOUL.md and other restricted sources."""
+    """Output privacy gate, blocks workflow/sensitive content from SOUL.md and other restricted sources."""
 
     _BLOCKED_SOURCES = {"SOUL.md"}
     _BLOCKED_CONTENT_TYPES = {"workflow"}

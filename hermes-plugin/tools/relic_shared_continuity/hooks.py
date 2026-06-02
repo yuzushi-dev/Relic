@@ -1,4 +1,4 @@
-"""PR03/PR05 — Hermes lifecycle hooks for Relic Shared Continuity.
+"""PR03/PR05, Hermes lifecycle hooks for Relic Shared Continuity.
 
 pre_llm_call:
   Builds PromptContextPack from continuity markers (ContinuityAdmissionPolicy)
@@ -11,7 +11,7 @@ transform_llm_output:
   a replacement string.
 
 post_llm_call:
-  Fire-and-forget observer — return value ignored by Hermes.
+  Fire-and-forget observer, return value ignored by Hermes.
 """
 
 from __future__ import annotations
@@ -134,7 +134,7 @@ def pre_llm_call(
         logger.warning("pre_llm_call hook failed (fail-closed): %s", type(exc).__name__)
         return None
     finally:
-        # Safety signal scan — fire-and-forget, never blocks Hermes turn.
+        # Safety signal scan: fire-and-forget, never blocks Hermes turn.
         # Runs in finally so it executes even when context injection returns early.
         if user_message:
             _run_safety_scan(
@@ -223,7 +223,7 @@ def _redacted_event_ref(user_message: str) -> str:
 
 
 def post_llm_call(*args, **kwargs) -> None:
-    """Fire-and-forget observer — return value ignored by Hermes."""
+    """Fire-and-forget observer, return value ignored by Hermes."""
     return None
 
 
@@ -231,8 +231,8 @@ def transform_llm_output(output=None, *args, **kwargs) -> str | None:
     """Run OutputCritic then fallback term-list filter.
 
     Returns:
-        None — pass-through (no change)
-        str  — replacement text (critic blocked or clinical term found)
+        None, pass-through (no change)
+        str, replacement text (critic blocked or clinical term found)
     """
     if output is None:
         return None

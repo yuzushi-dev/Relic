@@ -1,5 +1,5 @@
 """
-PR33F — Hermes Hooks for Shared Continuity Memory
+PR33F, Hermes Hooks for Shared Continuity Memory
 
 Pre-LLM call, post-LLM call, and transform LLM output hooks
 for context injection. Hooks inject only subject-confirmed markers.

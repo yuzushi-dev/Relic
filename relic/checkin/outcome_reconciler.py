@@ -12,7 +12,7 @@ Source order:
 
 Replies are matched against Hermes ``state.db`` (any subject-authored message
 inside ``[delivered_at, response_deadline_at]``), not only the
-``checkin_exchanges`` table — non-ask deliveries must not be misclassified.
+``checkin_exchanges`` table, non-ask deliveries must not be misclassified.
 
 The reconciler is idempotent: events that already produced an
 ``unanswered_24h`` transition for the same ``parent_event_id`` are skipped.

@@ -1,4 +1,4 @@
-"""Chronicle access audit — records every researcher/researcher-mode access.
+"""Chronicle access audit, records every researcher/researcher-mode access.
 
 Module: relic.chronicle.access_audit
 Version: chronicle-access/v1
@@ -51,7 +51,7 @@ def log_access(
         access_kind: query/timeline/decision/snapshot/provenance/export/delete/reaper_run/replay/report/config_change/forensic_mode/encryption_key_access
         target_filter: filter applied (e.g., {"subject_id": "X", "category": "memory"})
         rows_returned: number of rows returned by the access
-        result_data: the actual data returned (for hashing — never stored raw)
+        result_data: the actual data returned (for hashing, never stored raw)
         reason: why this access was made (optional, free-text)
         trace_id: associated trace
         ip_address: client IP (from request context if available)

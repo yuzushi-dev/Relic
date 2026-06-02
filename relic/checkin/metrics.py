@@ -1,6 +1,6 @@
 """Naturalness metrics for the cron check-in policy (Plan §Task 11).
 
-Pure functions only — no I/O. Each helper takes an explicit iterable so
+Pure functions only, no I/O. Each helper takes an explicit iterable so
 tests are trivial and CI can run them directly against either
 ``decision_events.jsonl`` or an in-memory list.
 """

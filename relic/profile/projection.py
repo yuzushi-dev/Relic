@@ -1,4 +1,4 @@
-"""PR08 — redacted projection for system_inferred_fields."""
+"""PR08, redacted projection for system_inferred_fields."""
 from __future__ import annotations
 
 from typing import Any

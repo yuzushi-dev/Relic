@@ -1,4 +1,4 @@
-"""PR26H — Cross-PR Contract Tests.
+"""PR26H, Cross-PR Contract Tests.
 
 Tests verifying subject scope consistency, signal isolation, and marker scope
 across PR26, PR27, PR30, PR32, and PR33 integration points.

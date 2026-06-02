@@ -1,4 +1,4 @@
-"""Tests for relic.chronicle.redaction — T012."""
+"""Tests for relic.chronicle.redaction, T012."""
 from __future__ import annotations
 
 import pytest
@@ -146,7 +146,7 @@ class TestRedactPayload:
         assert result is not original
 
     def test_redact_nested_dict_formatted_string(self) -> None:
-        # Secrets stored as "api_key: value" string — pattern matches the label+separator
+        # Secrets stored as "api_key: value" string: pattern matches the label+separator
         payload = {
             "config": {
                 "credentials": "api_key: supersecretkey1234567890",

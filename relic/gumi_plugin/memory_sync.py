@@ -1,5 +1,5 @@
 """
-gumi_memory_sync — auto-update MEMORY.md with cron-delivered outbound messages.
+gumi_memory_sync, auto-update MEMORY.md with cron-delivered outbound messages.
 
 Runs as a no-agent Hermes cron job offset from the checkin_message job.
 Scans new session JSONs, extracts assistant messages, and appends a bounded
@@ -61,7 +61,7 @@ def _delivery_enabled(hermes_home: Path) -> bool:
     """Check if delivery is enabled for this subject.
 
     Looks for delivery_enabled flag in relationship_policy.md.
-    Returns True by default (safe — missing flag means delivery is allowed).
+    Returns True by default (safe, missing flag means delivery is allowed).
     """
     try:
         policy_path = hermes_home / "workspace" / "gumi" / "relationship_policy.md"
@@ -98,7 +98,7 @@ def _extract_outbound_entries(
     # Skip internal maintenance cron jobs (workspace compaction, continuity
     # review): their assistant output is an audit report read via workspace
     # tools, NOT a message delivered to the subject. Counting them polluted
-    # MEMORY.md — the only interactive-continuity bridge — with tooling chatter.
+    # MEMORY.md: the only interactive-continuity bridge, with tooling chatter.
     # Fail-open: if the helper is unavailable, fall back to the legacy behaviour.
     try:
         from relic.hermes_plugin.recent_outbound import is_maintenance_session
@@ -123,7 +123,7 @@ def _extract_outbound_entries(
         if delivery_status == "error":
             continue
 
-        # Extract timestamp — prefer session metadata, then message ts, then file mtime
+        # Extract timestamp: prefer session metadata, then message ts, then file mtime
         ts = msg.get("ts") or msg.get("timestamp") or session_path.stat().st_mtime
         entries.append({
             "session_id": session_id,
@@ -178,7 +178,7 @@ def _scan_sessions(
                 data = json.load(f)
             msg_count = len(data.get("messages", []))
         except Exception:
-            msg_count = start_idx  # Can't read — don't advance
+            msg_count = start_idx  # Can't read, don't advance
 
         entries = _extract_outbound_entries(session_path, session_id, job_id, start_idx)
         all_entries.extend(entries)
@@ -277,7 +277,7 @@ def _rewrite_memory_block(memory_path: Path, new_entries: list[dict[str, Any]]) 
         # Append block at end
         text = text.rstrip() + block
     else:
-        # Malformed — log and skip
+        # Malformed: log and skip
         return False
 
     tmp = memory_path.with_suffix(".md.tmp")
@@ -363,7 +363,7 @@ def main() -> None:
     facet_result = _process_pending_facets()
     result["facet_processing"] = facet_result
 
-    # Status to stderr only — no-agent cron delivers stdout, must stay silent on success.
+    # Status to stderr only: no-agent cron delivers stdout, must stay silent on success.
     print(json.dumps(result, ensure_ascii=False), file=sys.stderr)
 
     if not result.get("done"):

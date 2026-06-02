@@ -1,5 +1,5 @@
 """
-StateStore — Durable JSON persistence for adapter governance state.
+StateStore, Durable JSON persistence for adapter governance state.
 
 In-memory dicts (consent store, pending approvals) are lost on restart.
 This module provides a lightweight file-based store backed by

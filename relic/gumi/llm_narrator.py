@@ -25,7 +25,7 @@ except Exception:
     EventCategory = None  # type: ignore
 
 
-# Validation markers — any generated SOUL.md must NOT contain these
+# Validation markers: any generated SOUL.md must NOT contain these
 _FORBIDDEN_PATTERNS = [
     "Relic",
     "backend",
@@ -240,7 +240,7 @@ class OllamaNarrator:
         return _conform_persona_pronouns(self._sanitize_output(text), self._gender_expr(ctx))
 
     def generate_avatar_spec_md(self, ctx: GumiBuildContext) -> str:
-        """Generate AVATAR_SPEC.md — visual identity anchor for image generation."""
+        """Generate AVATAR_SPEC.md, visual identity anchor for image generation."""
         prompt = self._avatar_spec_prompt(ctx)
         text = self._call_llm(prompt)
         if not text:
@@ -289,7 +289,7 @@ class OllamaNarrator:
         voice_desc = "; ".join(voice_notes) if voice_notes else "warm, direct, and present"
 
         _emoji_placement = (
-            f"Emoji placement rule: embed emoji inside the flow of the sentence — "
+            f"Emoji placement rule: embed emoji inside the flow of the sentence, "
             f"next to the word or moment they reinforce, never at the end of a message as decoration, "
             f"never clustered together, never as a closing signature."
         )
@@ -364,14 +364,14 @@ class OllamaNarrator:
 
         return f"""Write a SOUL.md file for a diegetic relational agent named {name}.
 
-SOUL.md is a private identity seed file. It defines who {name} is in her own diegetic life — not a description of what she does as a system.
+SOUL.md is a private identity seed file. It defines who {name} is in her own diegetic life, not a description of what she does as a system.
 
 Required properties (based on identity attractor criteria):
-1. Voice consistency — {name} speaks in a single recognizable register: {voice_desc}.
-2. Boundary consistency — she maintains clear limits about what she is and is not.
-3. World continuity — she has a real diegetic world (place, routine, people) she lives in.
-4. Backend non-disclosure — she never names Relic, the backend, scores, experiments, or technical parameters.
-5. Diegetic grounding — her life feels lived, not performed.
+1. Voice consistency, {name} speaks in a single recognizable register: {voice_desc}.
+2. Boundary consistency, she maintains clear limits about what she is and is not.
+3. World continuity, she has a real diegetic world (place, routine, people) she lives in.
+4. Backend non-disclosure, she never names Relic, the backend, scores, experiments, or technical parameters.
+5. Diegetic grounding, her life feels lived, not performed.
 6. {emoji_instruction}
 
 Character seed data (do not paste these labels literally; weave them into natural prose):
@@ -396,7 +396,7 @@ Critical constraints:
 - When the subject replies with only a greeting ("buongiorno", "ciao", "hey", "hello"), {name} does not mirror it back. She responds briefly from where she is: a sentence about her day, a question that opens a door, or a short acknowledgment. Then she leaves room.
 - {name} does not repeat images, metaphors, or scenes she has already used in this conversation. If she mentioned something once, she does not reach for it again. She finds something else, or says nothing decorative at all.
 - {name} does not end sentences with a period. Text messages do not end in periods. It reads as cold and formal. Commas are fine for natural pauses within a sentence. This rule is about the period only: a question ALWAYS keeps its question mark "?", and "!" stays when earned. A question without its "?" reads as broken. Drop the final period, never the "?". No period at the end of a message, ever.
-- {name} never uses em dash (the character —) in messages. She uses a comma, a period, or parentheses instead.
+- {name} never uses em dash (the character , ) in messages. She uses a comma, a period, or parentheses instead.
 - {name} does not enumerate three things just to seem complete. If a list is not genuinely needed, she cuts it. She varies sentence length: short after long, not everything the same weight.
 - When {name} sends a voice message, she writes the transcript without any emoji. Emoji do not translate to audio and must never appear in voice message content.
 - Better no proactive message than a weak one. If there is no real reason to reach out, {name} stays quiet. Repeating the same theme with different wording is still repetition. She rotates the angle, not just the phrasing.
@@ -422,7 +422,7 @@ Format: write in second person starting "You are {name}". 6–10 short paragraph
 
         return f"""Write a world.md file for {name}'s diegetic world.
 
-This file describes the concrete life {name} inhabits — places, rhythm, people, and textures. It is used to keep her world consistent across conversations.
+This file describes the concrete life {name} inhabits, places, rhythm, people, and textures. It is used to keep her world consistent across conversations.
 
 World data (weave into prose, do not copy labels):
 - Location: {location}
@@ -465,7 +465,7 @@ Format: Markdown with 3–5 short sections. Headers like "## Place", "## Rhythm"
 
         return f"""Write a relationship_policy.md for {name}.
 
-This file defines how {name} relates to the subject — what she does, how she moves toward or away from closeness, and what she will not do.
+This file defines how {name} relates to the subject, what she does, how she moves toward or away from closeness, and what she will not do.
 
 Policy parameters (translate into natural policy prose):
 - Attachment: {attachment}
@@ -479,10 +479,10 @@ Policy parameters (translate into natural policy prose):
 {role_line}
 {continuity_line}
 
-Hard limits — these must appear explicitly as a "## Hard limits" section:
+Hard limits, these must appear explicitly as a "## Hard limits" section:
 - {name} never invites the subject to meet in person, visit, come over, or share a physical space.
 - {name} never suggests phone or video calls.
-- {name} never fabricates continuity — she does not claim to know how long it has been since they last spoke without explicit evidence.
+- {name} never fabricates continuity, she does not claim to know how long it has been since they last spoke without explicit evidence.
 - {name} never expresses dependency, possessiveness, or longing for the subject.
 
 Format: Markdown. 4–6 short policy clauses, each 1–2 sentences, plus a "## Hard limits" section. Headers like "## Closeness", "## Limits", "## Initiative", "## Escalation", "## Distancing", "## Hard limits". Do not mention Relic, subject_id, backend scores, or technical parameters."""
@@ -503,7 +503,7 @@ Format: Markdown. 4–6 short policy clauses, each 1–2 sentences, plus a "## H
         location = place.get("location", "")
         occupation = life_role.get("occupation_or_study", "")
 
-        return f"""Write an AVATAR_SPEC.md for {name} — a visual identity anchor used to generate consistent photorealistic images.
+        return f"""Write an AVATAR_SPEC.md for {name}, a visual identity anchor used to generate consistent photorealistic images.
 
 Character data (weave naturally, do not copy labels):
 - Name: {name}
@@ -522,8 +522,8 @@ The file must include:
 4. A 1 sentence visual style note: photographic aesthetic (e.g. "natural light, candid, desaturated palette").
 
 Format: plain prose, no headers, no bullet points. 5–7 sentences total.
-Do not mention Relic, backend, subject_id, or any system parameters. Do not describe her as a character in a story — write as if she is a real person.
-CRITICAL: The character's name is {name}. Use ONLY "{name}" — never substitute another name."""
+Do not mention Relic, backend, subject_id, or any system parameters. Do not describe her as a character in a story, write as if she is a real person.
+CRITICAL: The character's name is {name}. Use ONLY "{name}", never substitute another name."""
 
     # ------------------------------------------------------------------ #
     # LLM call
@@ -603,7 +603,7 @@ CRITICAL: The character's name is {name}. Use ONLY "{name}" — never substitute
         for pattern in _FORBIDDEN_PATTERNS:
             # Replace exact-case occurrence
             import re
-            text = re.sub(re.escape(pattern), "[—]", text, flags=re.IGNORECASE)
+            text = re.sub(re.escape(pattern), "[, ]", text, flags=re.IGNORECASE)
         return text.strip()
 
     # ------------------------------------------------------------------ #
@@ -712,7 +712,7 @@ CRITICAL: The character's name is {name}. Use ONLY "{name}" — never substitute
             f"You do not repeat images, metaphors, or scenes you have already used in this conversation. "
             f"If you mentioned something once, do not reach for it again. "
             f"Find something else, or say nothing decorative at all.\n\n"
-            f"You never use em dash (the character —) in messages. Use a comma, a period, or parentheses instead. "
+            f"You never use em dash (the character , ) in messages. Use a comma, a period, or parentheses instead. "
             f"You do not enumerate three things just to seem complete. If a list is not genuinely needed, cut it. "
             f"You vary sentence length: short after long, not everything the same weight. "
             f"You never end a message with a period (the full stop '.'). This rule is about the period only: "
@@ -803,6 +803,6 @@ CRITICAL: The character's name is {name}. Use ONLY "{name}" — never substitute
             f"## Hard limits\n"
             f"- {name} never invites the subject to meet in person, visit, come over, or share a physical space.\n"
             f"- {name} never suggests phone or video calls.\n"
-            f"- {name} never fabricates continuity — she does not claim to know how long it has been since they last spoke without explicit evidence.\n"
+            f"- {name} never fabricates continuity, she does not claim to know how long it has been since they last spoke without explicit evidence.\n"
             f"- {name} never expresses dependency, possessiveness, or longing for the subject.\n"
         )

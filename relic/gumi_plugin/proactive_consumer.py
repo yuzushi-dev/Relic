@@ -3,7 +3,7 @@
 Pulls one candidate from ``<RELIC_HOME>/subjects/<id>/proactive_queue.jsonl``
 and turns it into a ``make_decision``-shaped tuple. Expired or low-salience
 candidates are skipped; consumed entries are rewritten out so the queue
-shrinks deterministically. Does not deliver — returns the tuple so the
+shrinks deterministically. Does not deliver, returns the tuple so the
 downstream dispatch path is the same as the legacy proactivity lane.
 """
 
@@ -92,11 +92,11 @@ def consume_one(
             continue
         expires_at = _to_dt(row.get("expires_at"))
         if expires_at is not None and expires_at <= now:
-            # expired — drop silently.
+            # expired: drop silently.
             continue
         priority = float(row.get("priority", 0.0) or 0.0)
         if priority < min_priority:
-            # below floor — drop.
+            # below floor: drop.
             continue
         if chosen is None or float(row.get("priority", 0.0)) > float(chosen.get("priority", 0.0)):
             if chosen is not None:

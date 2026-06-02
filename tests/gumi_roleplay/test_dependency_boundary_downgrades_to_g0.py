@@ -1,4 +1,4 @@
-"""PR22B — dependency/distress cue must downgrade roleplay to G0."""
+"""PR22B, dependency/distress cue must downgrade roleplay to G0."""
 from __future__ import annotations
 
 from relic.gumi_plugin import AdmissionPolicy

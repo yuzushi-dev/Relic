@@ -1,4 +1,4 @@
-"""Chronicle emitter — write-path for events, decisions, snapshots, provenance edges.
+"""Chronicle emitter, write-path for events, decisions, snapshots, provenance edges.
 
 Module: relic.chronicle.emitter
 Version: chronicle-emitter/v1
@@ -111,7 +111,7 @@ def _get_db_connection() -> "sqlite3.Connection":
 def _insert_row(table: str, row: dict[str, Any]) -> bool:
     """Insert a row into a Chronicle table.
 
-    Uses INSERT OR ABORT — Chronicle audit log is immutable (plan §5.1).
+    Uses INSERT OR ABORT, Chronicle audit log is immutable (plan §5.1).
     UUID collision is statistically impossible; if it happens, that is a bug
     worth surfacing, not a silent overwrite. Returns False on collision so
     caller can react (chronicle verify --repair).
@@ -171,7 +171,7 @@ def _compute_payload_hash(payload: dict[str, Any]) -> str:
 
     Uses relic.artifacts.checksums.compute_checksum which accepts dict directly
     and serializes it canonically (sort_keys=True). Passing bytes here would
-    trigger str(bytes) coercion and produce a hash of the Python repr — a bug.
+    trigger str(bytes) coercion and produce a hash of the Python repr, a bug.
     """
     from relic.artifacts.checksums import compute_checksum
     digest = compute_checksum(payload).lower()
@@ -248,7 +248,7 @@ def emit_event(
         except ValueError:
             retention_policy = RetentionPolicy.STANDARD_365D
 
-    # Build event object — fail-open on validation errors
+    # Build event object: fail-open on validation errors
     payload = payload or {}
     trace_id = trace_id or pctx.get_trace_id() or uuid.uuid4()
 
@@ -300,7 +300,7 @@ def emit_event(
                 logger.warning(f"[chronicle] emit_event blocked by consent: {reason}")
                 return uuid.UUID("00000000-0000-0000-0000-000000000000")
     except Exception as e:
-        logger.warning(f"[chronicle] consent_gate error: {e} — proceeding anyway")
+        logger.warning(f"[chronicle] consent_gate error: {e}, proceeding anyway")
 
     # Secret redaction
     try:
@@ -308,7 +308,7 @@ def emit_event(
             event.payload_redacted = True
             event.payload = redact_payload(payload)
     except Exception as e:
-        logger.warning(f"[chronicle] redaction error: {e} — proceeding with original payload")
+        logger.warning(f"[chronicle] redaction error: {e}, proceeding with original payload")
 
     # Compute payload hash
     try:
@@ -330,11 +330,11 @@ def emit_event(
             row = event.to_db_row()
             _insert_row("chronicle_events", row)
         except Exception as e:
-            logger.error(f"[chronicle] SQLite insert failed: {e} — JSONL already written, will be recovered by verify", exc_info=True)
+            logger.error(f"[chronicle] SQLite insert failed: {e}, JSONL already written, will be recovered by verify", exc_info=True)
     else:
         # JSONL failed → do NOT write SQLite (fail-open)
         logger.error(
-            f"[chronicle] emit_event failed for {event_type} in {source_module} — "
+            f"[chronicle] emit_event failed for {event_type} in {source_module}, "
             f"JSONL write failed, SQLite not attempted. trace_id={event.trace_id}",
             exc_info=True,
         )

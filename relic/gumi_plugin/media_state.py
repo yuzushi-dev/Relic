@@ -78,7 +78,7 @@ def last_media_ts(hermes_home: Path, media_type: str) -> Optional[datetime]:
     state (the later of the two). The gate (this module) and the generator
     previously tracked the music cooldown in separate files and could diverge,
     so the gate would select/force ``tipo: music`` that the generator then
-    refused with "Cooldown active" — a silent non-delivery. Taking the max
+    refused with "Cooldown active", a silent non-delivery. Taking the max
     keeps both sides in agreement.
     """
     ts = _parse_iso(load_media_state(hermes_home).get(f"last_{media_type}_ts"))

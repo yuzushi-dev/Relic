@@ -1,5 +1,5 @@
 """
-PR28 — Gumi Identity Consistency Blackbox Tests
+PR28, Gumi Identity Consistency Blackbox Tests
 
 Tests evaluate identity stability across prompt variants:
 - original: baseline Gumi SOUL prompt

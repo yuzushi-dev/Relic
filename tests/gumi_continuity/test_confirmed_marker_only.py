@@ -1,5 +1,5 @@
 """
-PR06 — Test that only confirmed markers are admitted for Gumi recall.
+PR06, Test that only confirmed markers are admitted for Gumi recall.
 
 Tests for FIX01: Only subject-confirmed markers are admitted into
 Gumi runtime context. Unconfirmed candidates are blocked.

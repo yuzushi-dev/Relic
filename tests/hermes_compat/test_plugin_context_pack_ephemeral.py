@@ -1,4 +1,4 @@
-"""PR03 — Plugin context pack ephemeral injection tests.
+"""PR03, Plugin context pack ephemeral injection tests.
 
 Tests verify:
 - PCP is injected only as ephemeral per-turn context

@@ -6,10 +6,10 @@ bias, prompt bias, position bias and leniency bias. This validator mitigates all
 four with a genuine cross-family panel plus a non-LLM voter:
 
   LLM panel   THREE distinct free model families on the local Ollama cloud
-              endpoint (gemma4 / gpt-oss / minimax) — cross-family disagreement
+              endpoint (gemma4 / gpt-oss / minimax), cross-family disagreement
               cancels per-model bias. Each judge votes by FORCED CHOICE ("which
               candidate does the reply best evidence, or NONE") instead of yes/no
-              — kills leniency/yes-bias — with SAMPLES samples each at temp>0 and
+, kills leniency/yes-bias, with SAMPLES samples each at temp>0 and
               the candidate list SHUFFLED every call (self-consistency +
               position-bias mitigation), each judge pinned to a prompt template.
   Voter +1    DETERMINISTIC lexical overlap (reply tokens vs each facet's
@@ -19,13 +19,13 @@ four with a genuine cross-family panel plus a non-LLM voter:
 Methodology follows the "panel of LLM judges / jury" line of work (Verga et al.,
 "Replacing Judges with Juries: Evaluating LLM Generations with a Panel of Diverse
 Models", arXiv:2404.18796). Existing libraries were evaluated and not adopted:
-quotient-ai/judges (Jury class) ships only correctness/RAG classifiers — not
-custom facet attribution — and assumes cloud API keys; karpathy/llm-council is a
+quotient-ai/judges (Jury class) ships only correctness/RAG classifiers, not
+custom facet attribution, and assumes cloud API keys; karpathy/llm-council is a
 free-text web deliberation app. Both are heavier than this dependency-free,
 Ollama-only, classification-specific script, so the jury is implemented inline.
 
 Candidates are grounded: the recorded facet + its batch siblings (the other
-facets asked in the same tick — the true target is almost always one of these)
+facets asked in the same tick, the true target is almost always one of these)
 + the top lexical matches + NONE.
 
 A verdict only flags/acts on STRONG agreement (>= AGREE_MIN of the voters
@@ -55,7 +55,7 @@ import itertools
 import threading
 
 # Endpoint. The local daemon (http://localhost:11434/v1) proxies to cloud but is
-# a single-account bottleneck — rate-limited for a 40k-call audit. Point at the
+# a single-account bottleneck: rate-limited for a 40k-call audit. Point at the
 # direct cloud endpoint and rotate across several API keys to spread the load.
 #   export RELIC_OLLAMA_ENDPOINT=https://ollama.com/v1
 ENDPOINT = os.environ.get("RELIC_OLLAMA_ENDPOINT", "http://localhost:11434/v1")
@@ -121,11 +121,11 @@ def _llm_choose(model: str, reply: str, question: str, candidates: list[dict],
 
     kind="reply": text is a subject reply to a check-in question.
     kind="observation": text is an already-extracted observation summary (mnemon
-    passive/session obs have no question/reply pair) — judge whether the content
+    passive/session obs have no question/reply pair), judge whether the content
     itself evidences the facet.
     """
     none_line = ("- NONE: il testo non porta evidenza su nessuna di queste dimensioni")
-    lines = [f'- {c["id"]}: {c["name"]} — {c["description"]}' for c in candidates]
+    lines = [f'- {c["id"]}: {c["name"]}, {c["description"]}' for c in candidates]
     lines.append(none_line)
     catalog = "\n".join(lines)
     valid_ids = {c["id"] for c in candidates} | {"NONE"}
@@ -472,7 +472,7 @@ def _adjust_trait_count(conn, facet_id: str, delta: int) -> None:
 
     value_position is a synthesized aggregate owned by the writing pipelines
     (checkin facet_updater's incremental EWMA + the external mnemon synthesis).
-    Rebuilding it here from scratch would NOT reproduce that synthesis — an early
+    Rebuilding it here from scratch would NOT reproduce that synthesis, an early
     experiment recomputing a chronological EWMA over all observations flipped one
     live trait from 0.26 to 0.67, far beyond removing a single contaminated
     observation. A single corrected observation among dozens shifts the aggregate
@@ -489,7 +489,7 @@ def apply_verdicts(conn, verdicts: list[dict], facets: dict) -> dict:
     """Resolve confirmed verdicts.
 
     signal_position is facet-relative (it is the reply's position on THAT facet's
-    spectrum), so re-attribution cannot be a blind facet_id swap — the stored
+    spectrum), so re-attribution cannot be a blind facet_id swap, the stored
     value was computed against the wrong spectrum. For reattribute we re-run the
     extractor against the target facet's spectrum and rewrite content/signal, or
     drop the row if the reply turns out non-informative for the target too. The
@@ -596,7 +596,7 @@ def main() -> int:
     verdicts = validate(conn, facets, rng)
 
     panel = ", ".join(m for m, _ in JUDGES)
-    print(f"\n==== {args.subject} — jury attribution ({len(verdicts)} observations) ====")
+    print(f"\n==== {args.subject}, jury attribution ({len(verdicts)} observations) ====")
     print(f"panel: {panel} (x{SAMPLES} shuffled samples each) + 1 lexical = {N_VOTERS} voters; "
           f"flag if >= {AGREE_MIN} reject recorded AND >= 2 families reject\n")
     for v in verdicts:

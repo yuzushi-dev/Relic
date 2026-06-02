@@ -1,5 +1,5 @@
 """
-Source Policy — Unified source-class taxonomy for Hermes adapter.
+Source Policy, Unified source-class taxonomy for Hermes adapter.
 
 This module defines a single source-class taxonomy that governs
 whether a source is eligible for ingestion as subject evidence.

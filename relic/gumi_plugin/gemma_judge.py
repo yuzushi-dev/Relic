@@ -8,7 +8,7 @@ path where a few seconds of latency is acceptable.
 Constraints:
 - Synchronous but timeout-bounded; fail-open (None) on any error/timeout so it
   never blocks delivery on the judge itself.
-- In-process on live text only — nothing is persisted (privacy gate still owns
+- In-process on live text only, nothing is persisted (privacy gate still owns
   the delivered text). The judge returns a number, never stores prose.
 - Opt-in: callers gate on env (see checkin_media_dispatcher).
 """
@@ -22,7 +22,7 @@ import urllib.request
 OLLAMA_URL = "http://localhost:11434/api/generate"
 MODEL = "gemma4:31b-cloud"
 
-# Shared with scripts/prose_calibration.py — keep the rubric identical so the
+# Shared with scripts/prose_calibration.py: keep the rubric identical so the
 # runtime judge and the offline calibration speak the same scale.
 JUDGE_PROMPT = (
     "Valuta quanto questo messaggio suona naturale e umano (NON generato da AI). "

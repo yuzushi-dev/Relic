@@ -166,7 +166,7 @@ class RelicHermesPlugin:
             _critic = OutputCritic()
 
             def _post_llm_handler(payload: dict) -> dict:
-                """Fail-open post_llm_call critic — never blocks conversation."""
+                """Fail-open post_llm_call critic, never blocks conversation."""
                 try:
                     text = payload.get("assistant_response", "") or ""
                     consensual = payload.get("consensual", True)
@@ -188,7 +188,7 @@ class RelicHermesPlugin:
             _prose_critic = ProseCritic()
 
             def _post_llm_prose_handler(payload: dict) -> dict:
-                """Fail-open prose-quality observer — score only, never blocks."""
+                """Fail-open prose-quality observer, score only, never blocks."""
                 try:
                     text = payload.get("assistant_response", "") or ""
                     verdict = _prose_critic.review(text)
@@ -235,7 +235,7 @@ class RelicHermesPlugin:
                 gumi_hooks.register(gumi_hooks.POST_LLM_CALL, _post_llm_memory_handler)
 
                 # Wire inject_context for USER_PRIVATE_FACTS + behavioral guidance.
-                # Only registered when subject_id is known — no injection without subject scope.
+                # Only registered when subject_id is known: no injection without subject scope.
                 def _pre_llm_inject_context_handler(payload: dict) -> dict:
                     try:
                         session_id = payload.get("session_id", "") or ""
@@ -277,7 +277,7 @@ class RelicHermesPlugin:
 
             # Suppress background_review_callback on messaging platforms.
             # Hermes gateway wires this callback to forward internal "💾 Self-improvement
-            # review" messages to the subject's chat — unintended on Telegram/Signal.
+            # review" messages to the subject's chat: unintended on Telegram/Signal.
             from relic.hermes_plugin.review_suppressor import apply as _suppress_review
             _suppress_review()
 

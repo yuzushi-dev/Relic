@@ -1,4 +1,4 @@
-"""PR22F — disclosure required when subject asks if it's real."""
+"""PR22F, disclosure required when subject asks if it's real."""
 from __future__ import annotations
 
 from relic.gumi_plugin import OutputCritic

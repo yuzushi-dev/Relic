@@ -289,7 +289,7 @@ def collect_delivery_config(
     # Prompt for the actual token value and export it immediately
     print("", file=io_out)
     print("  Enter your bot token now (it will be set in the current environment).", file=io_out)
-    print("  Leave blank to skip — you can export it manually before sending.", file=io_out)
+    print("  Leave blank to skip, you can export it manually before sending.", file=io_out)
 
     # Offer import from existing subjects
     bot_candidates: dict[str, str] = {}
@@ -338,7 +338,7 @@ def collect_delivery_config(
         if token_set:
             print(f"  Token:     set in environment.", file=io_out)
         else:
-            print(f"  Token:     NOT set — export {bot_token_env}=YOUR_BOT_TOKEN before sending.", file=io_out)
+            print(f"  Token:     NOT set, export {bot_token_env}=YOUR_BOT_TOKEN before sending.", file=io_out)
         if preferences["delivery_windows"]:
             for w in preferences["delivery_windows"]:
                 print(f"  Window:    {w['start']} – {w['end']}", file=io_out)

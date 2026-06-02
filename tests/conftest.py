@@ -1,4 +1,4 @@
-"""Root pytest configuration — shared fixtures for all test modules."""
+"""Root pytest configuration, shared fixtures for all test modules."""
 
 from __future__ import annotations
 

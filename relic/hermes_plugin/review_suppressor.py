@@ -22,7 +22,7 @@ _patched = False
 def apply() -> None:
     """Patch RunAgent.background_review_callback to a no-op property.
 
-    Idempotent — safe to call multiple times.
+    Idempotent, safe to call multiple times.
     """
     global _patched
     if _patched:

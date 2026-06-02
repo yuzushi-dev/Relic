@@ -1,5 +1,5 @@
 """
-PolicyGate — Base abstraction for Hermes adapter policy gates.
+PolicyGate, Base abstraction for Hermes adapter policy gates.
 
 All governance gates (handoff, approval, cron, source, cache) share:
 - A typed Request dataclass

@@ -2,17 +2,17 @@
 
 What Relic protects, what it does not protect, and what you must add on top before exposing it.
 
-## Threat model — in scope
+## Threat model: in scope
 
 - **Accidental leakage** of subject data through workbench exports, chronicle exports, or logs.
 - **Researcher mistakes**: running destructive commands without intent (forget, chronicle delete, reset).
 - **Cross-subject contamination** at the application layer: data from subject A surfacing in subject B's session.
 - **Audit gaps**: an action happening without a corresponding chronicle event.
 
-## Threat model — explicitly OUT of scope
+## Threat model: explicitly OUT of scope
 
 - **Network adversary on localhost.** The workbench and Hermes gateway run on `localhost` by default. No TLS, no auth. Trusted single-machine deployment is assumed.
-- **Compromised researcher machine.** If the machine is rooted, Relic cannot help — `relic.db`, `.env` files, and bot tokens are all readable by any process running as the researcher's user.
+- **Compromised researcher machine.** If the machine is rooted, Relic cannot help: `relic.db`, `.env` files, and bot tokens are all readable by any process running as the researcher's user.
 - **Side-channel inference** about the subject from timing, hardware, or process behaviour.
 - **Cloud provider data residency.** If you enable `byterover` or `honcho`, data leaves the machine. That contract is between you and the provider.
 
@@ -35,7 +35,7 @@ If you need any of the out-of-scope properties, wrap Relic in your institution's
 | Channel | TLS | Auth | Notes |
 |---|---|---|---|
 | `localhost` workbench (`relic ui`) | No | None | Loopback only by default. Do not bind to `0.0.0.0` without a reverse proxy. |
-| Hermes gateway (`hermes gateway run`) | No | None | Same — local IPC. |
+| Hermes gateway (`hermes gateway run`) | No | None | Same, local IPC. |
 | Ollama (`http://localhost:11434/v1`) | No | None | Loopback. |
 | Hindsight cloud backend (if configured) | TLS via provider | API key | Provider-controlled. |
 | Byterover / Honcho (if configured) | TLS via provider | API key | Provider-controlled. |
@@ -67,7 +67,7 @@ CLI commands trust the operator. There is no per-command authorisation check.
 
 ## Audit
 
-Every write operation (correction, forget, chronicle delete, reaper run, replay) emits a chronicle event. Every read on `chronicle query` is itself audited unless `--no-audit` is passed — and `--no-audit` is recorded too (`AccessKind` enum, `relic/chronicle/enums.py:97`).
+Every write operation (correction, forget, chronicle delete, reaper run, replay) emits a chronicle event. Every read on `chronicle query` is itself audited unless `--no-audit` is passed, and `--no-audit` is recorded too (`AccessKind` enum, `relic/chronicle/enums.py:97`).
 
 To answer "what happened on this subject this week":
 
@@ -76,7 +76,7 @@ chronicle timeline --subject <subject_id> --since 2026-05-11T00:00:00Z
 chronicle query --accessor <researcher_id> --limit 200
 ```
 
-If a write happened without a corresponding event, that is a bug in Relic — file an issue.
+If a write happened without a corresponding event, that is a bug in Relic, file an issue.
 
 ## Privacy gates
 

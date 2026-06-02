@@ -1,4 +1,4 @@
-"""PR22E — bootstrap scripts must not leak secrets."""
+"""PR22E, bootstrap scripts must not leak secrets."""
 from __future__ import annotations
 
 from pathlib import Path

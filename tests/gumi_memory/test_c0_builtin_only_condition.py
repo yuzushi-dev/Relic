@@ -1,4 +1,4 @@
-"""PR19C — built-in-only condition: no external provider invoked."""
+"""PR19C, built-in-only condition: no external provider invoked."""
 from __future__ import annotations
 
 from relic.gumi_memory.providers.holographic import HolographicCondition

@@ -1,4 +1,4 @@
-"""PR13 — .codex/agents/*.toml must mirror reviewer roles."""
+"""PR13, .codex/agents/*.toml must mirror reviewer roles."""
 from __future__ import annotations
 
 from pathlib import Path

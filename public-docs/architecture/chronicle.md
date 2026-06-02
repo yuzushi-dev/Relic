@@ -1,6 +1,6 @@
 # Chronicle: the Audit Ledger
 
-Chronicle is Relic's append-only event ledger. Every meaningful runtime decision — a CAC ruling, a delivery gate, a correction propagation, an artifact compile, a consent change — is written as an event with structured metadata. The ledger is what makes the system auditable, reproducible, and contestable.
+Chronicle is Relic's append-only event ledger. Every meaningful runtime decision, a CAC ruling, a delivery gate, a correction propagation, an artifact compile, a consent change, is written as an event with structured metadata. The ledger is what makes the system auditable, reproducible, and contestable.
 
 The CLI surface is documented separately in [`chronicle` CLI reference](../reference/chronicle-cli.md). This page covers **what it is**, **when to use it**, and **how to read it**.
 
@@ -35,7 +35,7 @@ Every chronicle event has these fields (see `relic/chronicle/schema.py`):
 |---|---|
 | `event_id` | UUID, primary key |
 | `event_type` | Specific event, e.g. `cac_decision`, `correction_applied`, `consent_revoked` |
-| `event_category` | Coarse bucket — `message`, `decision`, `safety`, `consent`, `privacy`, … |
+| `event_category` | Coarse bucket, `message`, `decision`, `safety`, `consent`, `privacy`, … |
 | `subject_id` | Subject scope (may be null for admin events) |
 | `session_id` | Session scope |
 | `trace_id` | Joins related events across modules within one turn |
@@ -53,22 +53,22 @@ Decisions also store a `decision_kind` and a `validation_status` (`pending`, `va
 
 The taxonomy in `relic/chronicle/enums.py`:
 
-- `message` — turn-level conversational data.
-- `model` — LLM call metadata.
-- `tool` — tool invocations.
-- `memory` — memory store/retrieve.
-- `profile` — facet/inference/profile updates.
-- `decision` — CAC rulings, delivery gates, admission decisions, cron decisions.
-- `artifact` — compiler runs, artifact lifecycle transitions.
-- `safety` — safety signal emissions (researcher-only).
-- `privacy` — redaction scans and gate decisions.
-- `consent` — consent grants and revocations.
-- `admin` — operator actions.
-- `eval` — evaluation runs.
-- `background` — cron and maintenance.
-- `error` — failures.
-- `state_snapshot` — periodic state snapshots.
-- `provenance` — PROV-O edges across artifacts and decisions.
+- `message`: turn-level conversational data.
+- `model`: LLM call metadata.
+- `tool`: tool invocations.
+- `memory`: memory store/retrieve.
+- `profile`: facet/inference/profile updates.
+- `decision`: CAC rulings, delivery gates, admission decisions, cron decisions.
+- `artifact`: compiler runs, artifact lifecycle transitions.
+- `safety`: safety signal emissions (researcher-only).
+- `privacy`: redaction scans and gate decisions.
+- `consent`: consent grants and revocations.
+- `admin`: operator actions.
+- `eval`: evaluation runs.
+- `background`: cron and maintenance.
+- `error`: failures.
+- `state_snapshot`: periodic state snapshots.
+- `provenance`: PROV-O edges across artifacts and decisions.
 
 Use `--category` on `chronicle query` to filter by bucket.
 
@@ -139,7 +139,7 @@ Chronicle is **read-only for researchers** at the CLI. Writes happen only when:
 - `chronicle reaper` enforces retention policies (audited).
 - `chronicle verify --repair` reconciles SQLite ↔ JSONL gaps (audited).
 
-Every read is itself audited (event category `admin`, type `access`) unless `--no-audit` is passed — and that flag is recorded too.
+Every read is itself audited (event category `admin`, type `access`) unless `--no-audit` is passed, and that flag is recorded too.
 
 ## Retention and visibility
 
@@ -165,7 +165,7 @@ The **default for every emitter** is `standard_365d` unless the call site overri
 
 There is no fixed `category → policy` map in code; every emit site picks its own. As shipped, almost everything uses `standard_365d`. Two notable exceptions you will see in practice:
 
-- **Access audit events** (`chronicle access_log`): `standard_365d` — they are how you answer "who read this and when."
+- **Access audit events** (`chronicle access_log`): `standard_365d`: they are how you answer "who read this and when."
 - **Long-term provenance edges**: emitted with `standard_365d` but typically the artefacts they describe live longer; consider promoting to `extended_research` if you need to defend reproducibility past one year.
 
 If you need a different policy for a study (e.g. all safety events to `extended_research` for IRB compliance), wrap the emitter call sites with a project-level config rather than editing per-event defaults.
@@ -176,13 +176,13 @@ Provenance edges follow the W3C [PROV-O](https://www.w3.org/TR/prov-o/) vocabula
 
 ## When chronicle is the wrong tool
 
-- For **what the system currently believes**, use the workbench. Reconstructing current state from the event stream is possible but wasteful — the workbench reads compiled state directly.
+- For **what the system currently believes**, use the workbench. Reconstructing current state from the event stream is possible but wasteful: the workbench reads compiled state directly.
 - For **subject-facing exports**, prefer `relic-profile export` for the profile bundle and `chronicle export --subject ID` for the event ledger; the two are designed to be paired.
 - For **debugging plugin failures**, the plain Hermes log is usually faster than chronicle. Chronicle records *decisions*, not stack traces.
 
 ## Where to go next
 
-- [`chronicle` CLI reference](../reference/chronicle-cli.md) — full command surface.
-- [Daily Operations](../guides/daily-operations.md) — chronicle one-liners for the morning routine.
-- [Artifact Lifecycle](artifact-lifecycle.md) — how artifacts and their provenance are produced.
-- [Privacy Stages](privacy-stages.md) — how `privacy_level` interacts with event admission.
+- [`chronicle` CLI reference](../reference/chronicle-cli.md): full command surface.
+- [Daily Operations](../guides/daily-operations.md): chronicle one-liners for the morning routine.
+- [Artifact Lifecycle](artifact-lifecycle.md): how artifacts and their provenance are produced.
+- [Privacy Stages](privacy-stages.md): how `privacy_level` interacts with event admission.

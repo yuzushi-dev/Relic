@@ -1,6 +1,6 @@
 # `relic-profile` CLI
 
-Lower-level entry point for the multi-subject registry. Use it when the top-level `relic` shortcuts are not enough — provisioning Hermes profiles, generating Gumi media, managing per-subject cron specs.
+Lower-level entry point for the multi-subject registry. Use it when the top-level `relic` shortcuts are not enough, provisioning Hermes profiles, generating Gumi media, managing per-subject cron specs.
 
 For everyday research, `relic subject *` is sufficient. This page is the full surface, included for completeness.
 
@@ -51,7 +51,7 @@ Validate a subject profile against the schema.
 
 ### `relic-profile export <subject_id>`
 
-Export a subject profile (file path defined by extra flags — see `--help`).
+Export a subject profile (file path defined by extra flags, see `--help`).
 
 ### `relic-profile archive <subject_id>`
 

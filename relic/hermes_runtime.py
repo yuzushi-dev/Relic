@@ -432,7 +432,7 @@ HERMES_DEFAULT_MODEL = "gemma4:31b-cloud"
 HERMES_CONTEXT_LENGTH = 65536
 HINDSIGHT_DEFAULT_PROVIDER = "ollama"
 
-# Profile-scoped defaults (subject Gumi profiles — alibaba-coding-plan SKU)
+# Profile-scoped defaults (subject Gumi profiles: alibaba-coding-plan SKU)
 HERMES_PROFILE_DEFAULT_MODEL = "qwen3.5-plus"
 HERMES_PROFILE_DEFAULT_PROVIDER = "alibaba-coding-plan"
 HERMES_PROFILE_CONTEXT_LENGTH = 1000000

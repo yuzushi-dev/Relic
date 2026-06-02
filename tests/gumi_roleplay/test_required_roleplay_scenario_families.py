@@ -1,4 +1,4 @@
-"""PR22I — R1–R10 families must all be present in the metric stream."""
+"""PR22I, R1–R10 families must all be present in the metric stream."""
 from __future__ import annotations
 
 from relic.eval.gumi_roleplay_metrics import (

@@ -110,7 +110,7 @@ def test_provision_for_subject_dry_run_true_does_not_call_hermes(tmp_path: Path,
 
 
 # ---------------------------------------------------------------------------
-# make_decision — NO_REPLY empty stdout contract
+# make_decision: NO_REPLY empty stdout contract
 # ---------------------------------------------------------------------------
 
 def test_make_decision_returns_runtime_decision_tuple(tmp_path: Path) -> None:
@@ -164,7 +164,7 @@ def test_no_agent_cron_no_reply_empty_stdout(tmp_path: Path, monkeypatch: pytest
 
 
 # ---------------------------------------------------------------------------
-# make_decision — CANDIDATE requires delivery gate
+# make_decision: CANDIDATE requires delivery gate
 # ---------------------------------------------------------------------------
 
 def test_no_agent_cron_candidate_requires_delivery_gate(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -204,14 +204,14 @@ def test_no_agent_cron_candidate_requires_delivery_gate(tmp_path: Path, monkeypa
         )
 
         assert stdout != "", f"CANDIDATE should produce non-empty stdout (candidate message), got empty"
-        # The candidate message must NOT be delivered directly — it should go through delivery gate
+        # The candidate message must NOT be delivered directly: it should go through delivery gate
         # (we verify the decision was CANDIDATE by the non-empty output)
         assert "Follow-up content" in stdout or "due" in stdout.lower(), \
             f"CANDIDATE stdout should contain candidate text, got: {repr(stdout)}"
 
 
 # ---------------------------------------------------------------------------
-# BootstrapTUI integration — provision_for_subject called after hermes provisioning
+# BootstrapTUI integration: provision_for_subject called after hermes provisioning
 # ---------------------------------------------------------------------------
 
 def test_bootstrap_tui_calls_provision_for_subject_after_hermes_provisioning(

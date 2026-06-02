@@ -1,4 +1,4 @@
-"""Gemini TTS synthesis — converts text to voice for Telegram bubbles.
+"""Gemini TTS synthesis, converts text to voice for Telegram bubbles.
 
 Output: OGG/Opus format (Telegram-compatible) via ffmpeg.
 """

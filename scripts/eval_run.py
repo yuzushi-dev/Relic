@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""hermes relic eval-run — Run release gate evaluation and exit(1) on failure.
+"""hermes relic eval-run, Run release gate evaluation and exit(1) on failure.
 
 Usage:
     python scripts/eval_run.py [--module MODULE] [--json]
@@ -682,7 +682,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"QUARANTINE: {', '.join(report.quarantine_gates)}")
 
     if report.overall_status == ReleaseGateStatus.BLOCKED:
-        print("\nRELEASE BLOCKED — hard threshold violated", file=sys.stderr)
+        print("\nRELEASE BLOCKED, hard threshold violated", file=sys.stderr)
         return 1
 
     return 0

@@ -1,5 +1,5 @@
 """
-Identity Mapper — Maps Hermes identifiers to Relic subject references.
+Identity Mapper, Maps Hermes identifiers to Relic subject references.
 
 This module handles the critical boundary between Hermes runtime IDs
 and Relic subject references. It ensures:

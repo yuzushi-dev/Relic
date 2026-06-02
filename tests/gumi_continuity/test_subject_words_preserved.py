@@ -1,5 +1,5 @@
 """
-PR06 — Test that subject words are preserved through correction.
+PR06, Test that subject words are preserved through correction.
 
 Tests for FIX04: Subject words are preserved through correction
 and admission, without clinicalization.

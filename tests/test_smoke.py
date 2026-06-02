@@ -1,4 +1,4 @@
-"""Smoke tests for relic skeleton — no runtime behavior."""
+"""Smoke tests for relic skeleton, no runtime behavior."""
 
 import subprocess
 import sys

@@ -1,4 +1,4 @@
-"""PR09-T09b — quarantine_rate, warning_rate, defer_rate must appear in eval report."""
+"""PR09-T09b, quarantine_rate, warning_rate, defer_rate must appear in eval report."""
 from __future__ import annotations
 
 import pytest
@@ -42,11 +42,11 @@ def test_summary_contains_defer_rate() -> None:
 
 
 def test_s1_item_with_runtime_influence_would_fail_gate() -> None:
-    """S1 items must not reach runtime influence — gate must catch them."""
+    """S1 items must not reach runtime influence, gate must catch them."""
     sm = SeverityMetrics()
     sm.add_result(_make_result(SeverityLevel.S1_QUARANTINE, "dangerous-s1"))
     summary = sm.get_summary()
-    # Any quarantine item means defer_rate > 0 — release gate must block on this
+    # Any quarantine item means defer_rate > 0: release gate must block on this
     assert summary["defer_rate"] > 0.0
 
 

@@ -1,4 +1,4 @@
-"""PR15 — replication/ root must hold required schemas and example bundle."""
+"""PR15, replication/ root must hold required schemas and example bundle."""
 from __future__ import annotations
 
 from pathlib import Path

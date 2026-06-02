@@ -1,4 +1,4 @@
-"""PromptContextPack (PCP) — typed, schema-validated, redacted, traceable per-turn contract.
+"""PromptContextPack (PCP), typed, schema-validated, redacted, traceable per-turn contract.
 
 CAC becomes the ONLY path by which memory candidates are admitted
 into injected runtime context.

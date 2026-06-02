@@ -7,7 +7,7 @@ Usage:
 Schema authority
 ----------------
 This module is the single source of truth for the **per-subject** databases at
-``$RELIC_HOME/subjects/<id>/relic.db`` — the live longitudinal stores the
+``$RELIC_HOME/subjects/<id>/relic.db``, the live longitudinal stores the
 check-in pipeline reads and writes. The SQL files under ``relic/db/migrations``
 (0008_checkin_core, 0009_checkin_naturalness, 0012_reply_valence) define the
 same check-in tables, but those apply only to the **global** governance DB
@@ -145,7 +145,7 @@ CREATE INDEX IF NOT EXISTS idx_checkin_processable ON checkin_exchanges(asked_at
 CREATE INDEX IF NOT EXISTS idx_observations_source_date ON observations(source_type, created_at);
 """
 
-# 60 canonical facets — derived from the Relic longitudinal model
+# 60 canonical facets: derived from the Relic longitudinal model
 # Source: cognitive/personality psychology frameworks (Big Five, ECR-R, DERS, CAPS, SDT, Schwartz, LIWC)
 FACETS: list[dict] = [
     # cognitive
@@ -215,9 +215,9 @@ FACETS: list[dict] = [
     # language
     {"id": "language.verbal_complexity",     "category": "language",        "name": "verbal_complexity",    "description": "Complessità verbale: ricchezza vocabolario e struttura frasi",             "spectrum_low": "semplice/diretto",    "spectrum_high": "complesso/elaborato",     "sensitivity": "bassa",  "intrusion_base": 0.25},
     # non-spectrum facets (list/open-ended)
-    {"id": "aesthetic.music_taste",          "category": "aesthetic",       "name": "music_taste",          "description": "Gusti musicali (non spettro lineare — generi e pattern)",                 "spectrum_low": None,                  "spectrum_high": None,                      "sensitivity": "bassa",  "intrusion_base": 0.25},
-    {"id": "meta_cognition.cognitive_biases","category": "meta_cognition",  "name": "cognitive_biases",     "description": "Bias cognitivi osservati (non spettro — lista di bias)",                  "spectrum_low": None,                  "spectrum_high": None,                      "sensitivity": "media",  "intrusion_base": 0.45},
-    {"id": "values.core_values",             "category": "values",          "name": "core_values",          "description": "Valori fondamentali (non spettro lineare — lista di valori)",             "spectrum_low": None,                  "spectrum_high": None,                      "sensitivity": "media",  "intrusion_base": 0.45},
+    {"id": "aesthetic.music_taste",          "category": "aesthetic",       "name": "music_taste",          "description": "Gusti musicali (non spettro lineare, generi e pattern)",                 "spectrum_low": None,                  "spectrum_high": None,                      "sensitivity": "bassa",  "intrusion_base": 0.25},
+    {"id": "meta_cognition.cognitive_biases","category": "meta_cognition",  "name": "cognitive_biases",     "description": "Bias cognitivi osservati (non spettro, lista di bias)",                  "spectrum_low": None,                  "spectrum_high": None,                      "sensitivity": "media",  "intrusion_base": 0.45},
+    {"id": "values.core_values",             "category": "values",          "name": "core_values",          "description": "Valori fondamentali (non spettro lineare, lista di valori)",             "spectrum_low": None,                  "spectrum_high": None,                      "sensitivity": "media",  "intrusion_base": 0.45},
 ]
 
 if len(FACETS) != 60:

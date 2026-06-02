@@ -1,4 +1,4 @@
-"""Profile manager — one provider per profile enforcement."""
+"""Profile manager, one provider per profile enforcement."""
 
 from __future__ import annotations
 

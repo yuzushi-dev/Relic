@@ -1,4 +1,4 @@
-"""SOUL.md loader — persona content only, no workflow or private facts."""
+"""SOUL.md loader, persona content only, no workflow or private facts."""
 
 from __future__ import annotations
 

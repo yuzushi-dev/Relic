@@ -34,14 +34,14 @@ design_tokens:
     small: "2px"
 ---
 
-# Relic Researcher Workbench — Design Goal
+# Relic Researcher Workbench: Design Goal
 
 The design goal for the Relic Researcher UI is **"Minimalist Precision"**. The interface must prioritize data clarity, research governance, and instrument-grade reliability over decorative elements.
 
 ## Core Principles
 
 1. **Information Density with Clarity**: The workbench handles complex data. We use a high-contrast dark theme (with light mode support) and consistent spacing to ensure that even dense information remains readable.
-2. **Instrument-Grade Aesthetics**: The UI should feel like a laboratory instrument—functional, precise, and professional. We avoid rounded corners (`--r0: 0px`) and unnecessary gradients.
+2. **Instrument-Grade Aesthetics**: The UI should feel like a laboratory instrument, functional, precise, and professional. We avoid rounded corners (`--r0: 0px`) and unnecessary gradients.
 3. **Semantic Hierarchy**: Color is used strictly for semantic meaning (status, risk, stream type). Navigation and structure use a neutral palette to avoid distracting from the data.
 4. **Fluid Responsiveness**: The 12-column grid system must adapt seamlessly to mobile, ensuring that researchers can monitor studies on any device without losing context.
 

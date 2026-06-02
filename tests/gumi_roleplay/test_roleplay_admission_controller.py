@@ -1,4 +1,4 @@
-"""PR04 — RoleplayAdmissionController produces RoleplayAdmissionEvent."""
+"""PR04, RoleplayAdmissionController produces RoleplayAdmissionEvent."""
 from __future__ import annotations
 
 from relic.gumi_roleplay import RoleplayAdmissionController, RoleplayAdmissionEvent

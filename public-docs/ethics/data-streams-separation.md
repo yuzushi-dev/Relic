@@ -18,7 +18,7 @@ The most common failure mode to avoid is using Gumi's own outputs as evidence ab
 
 Collapsing these streams would produce an evidence pool contaminated by the system's own outputs. A subject who engages warmly with Gumi's creative acts would appear more "expressive" or "open" not because of anything true about them, but because Gumi generates content they respond to. This creates a feedback loop where the model reinforces its own assumptions.
 
-The ontological class field on every event (`relic/schemas.py`) enforces this distinction at the data model level. Events with class `gumi_diegetic_event` or `expressive_media` do not update the subject model by themselves. Only events with an eligible class — primarily `empirical_user_interaction`, `active_elicitation`, and `user_response_to_gumi` — can be used as evidence.
+The ontological class field on every event (`relic/schemas.py`) enforces this distinction at the data model level. Events with class `gumi_diegetic_event` or `expressive_media` do not update the subject model by themselves. Only events with an eligible class, primarily `empirical_user_interaction`, `active_elicitation`, and `user_response_to_gumi`, can be used as evidence.
 
 ## Evidence eligibility
 

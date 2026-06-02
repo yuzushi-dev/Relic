@@ -1,5 +1,5 @@
 """
-PR30B Contract Tests — Hermes v0.13 transform_llm_output Plugin Hook
+PR30B Contract Tests, Hermes v0.13 transform_llm_output Plugin Hook
 
 Tests verify:
 - Hook fires after LLM call, before output is returned

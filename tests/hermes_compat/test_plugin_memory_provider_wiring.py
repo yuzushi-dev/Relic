@@ -62,7 +62,7 @@ class TestMemoryProviderWiringViaConfig:
             _make_plugin_with_subject("subj-002")
             results = gumi_hooks.dispatch(gumi_hooks.PRE_LLM_CALL, {"query": ""})
 
-        # Handler must not inject noise — either empty dict or absent key
+        # Handler must not inject noise: either empty dict or absent key
         for r in results:
             if r is not None:
                 assert r.get("memory_context", "") == ""

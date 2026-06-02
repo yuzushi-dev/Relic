@@ -35,30 +35,30 @@ YES_NO = {
     1: "Yes",
 }
 IOS_OVERLAP_7 = {
-    1: "Completely separate — no sense of closeness",
-    2: "Very distant — minimal connection",
-    3: "Slightly distant — occasional connection",
-    4: "Neutral — some overlap, some distance",
-    5: "Somewhat close — meaningful connection",
-    6: "Close — strong sense of overlap",
-    7: "Very close — feels like a significant presence",
+    1: "Completely separate, no sense of closeness",
+    2: "Very distant, minimal connection",
+    3: "Slightly distant, occasional connection",
+    4: "Neutral, some overlap, some distance",
+    5: "Somewhat close, meaningful connection",
+    6: "Close, strong sense of overlap",
+    7: "Very close, feels like a significant presence",
 }
 DISTANCE_7 = {
-    1: "No distance — very close from the start",
-    2: "Very little distance — highly familiar tone",
-    3: "Slight distance — warm but measured",
-    4: "Moderate distance — neutral starting point",
-    5: "Considerable distance — reserved and formal",
-    6: "Much distance — minimal personal engagement",
-    7: "Maximum distance — strictly impersonal",
+    1: "No distance, very close from the start",
+    2: "Very little distance, highly familiar tone",
+    3: "Slight distance, warm but measured",
+    4: "Moderate distance, neutral starting point",
+    5: "Considerable distance, reserved and formal",
+    6: "Much distance, minimal personal engagement",
+    7: "Maximum distance, strictly impersonal",
 }
 EMOJI_5 = {
-    0: "No emoji at all — plain text only",
+    0: "No emoji at all, plain text only",
     1: "At most 1 emoji per message",
     2: "At most 2 emoji per message",
     3: "At most 3 emoji per message",
     4: "At most 4 emoji per message",
-    5: "No hard cap — emoji may be used freely and abundantly",
+    5: "No hard cap, emoji may be used freely and abundantly",
 }
 
 TIPI_CITATION = "Gosling, Rentfrow, & Swann, 2003"
@@ -184,7 +184,7 @@ SCREEN_PREAMBLES: dict[str, str] = {
         "\"Here are a number of personality traits that may or may not apply to you. "
         "Please indicate the extent to which you agree or disagree with each statement "
         "as a description of yourself. There are no right or wrong answers.\"\n"
-        "(Source: TIPI — Gosling, Rentfrow & Swann, 2003)"
+        "(Source: TIPI, Gosling, Rentfrow & Swann, 2003)"
     ),
     "attachment": (
         "INSTRUCTION (read to subject):\n"
@@ -192,7 +192,7 @@ SCREEN_PREAMBLES: dict[str, str] = {
         "Think of an important person in your life (a friend, family member, or partner). "
         "Please indicate how much you agree or disagree with each statement as a description "
         "of how you generally feel in this type of relationship.\"\n"
-        "(Source: ECR-RS — Fraley et al., 2011)"
+        "(Source: ECR-RS, Fraley et al., 2011)"
     ),
     "interaction_preferences": (
         "SECTION: Interaction preferences (Relic/Gumi project items)\n"
@@ -213,20 +213,20 @@ SCREEN_PREAMBLES: dict[str, str] = {
         "Please indicate how comfortable you would feel with each.\""
     ),
     "proactivity_permissions": (
-        "SECTION: Proactivity permissions — RESEARCHER ONLY\n"
+        "SECTION: Proactivity permissions, RESEARCHER ONLY\n"
         "⚠️  DO NOT read these items to the subject. These are not interview questions.\n"
         "    They define what the agent is allowed to do proactively.\n"
         "    Defaults are conservative. Change only with documented justification."
     ),
     "safety_boundary_gates": (
-        "SECTION: Safety boundary gates — RESEARCHER ONLY\n"
+        "SECTION: Safety boundary gates, RESEARCHER ONLY\n"
         "⚠️  DO NOT read these items to the subject. These are not interview questions.\n"
         "    They are ethical configuration parameters decided by the researcher\n"
         "    or ethics committee before/after the session.\n"
         "    Defaults are conservative. Change only with documented justification."
     ),
     "ios_like_closeness": (
-        "SECTION: Perceived closeness (IOS adaptation — Aron, Aron & Smollan, 1992)\n"
+        "SECTION: Perceived closeness (IOS adaptation, Aron, Aron & Smollan, 1992)\n"
         "INSTRUCTION (read to subject):\n"
         "\"The following question concerns how close you would like the agent to feel at the start. "
         "Please choose the option that best describes your desired initial relational distance.\""

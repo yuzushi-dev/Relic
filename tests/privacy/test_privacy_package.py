@@ -1,4 +1,4 @@
-"""PR04 — assert the modular privacy package surface and fail-closed defaults."""
+"""PR04, assert the modular privacy package surface and fail-closed defaults."""
 from __future__ import annotations
 
 import pytest

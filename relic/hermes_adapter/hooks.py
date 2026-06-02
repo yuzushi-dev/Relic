@@ -1,5 +1,5 @@
 """
-Hook Adapter — Wrapper for Hermes hooks with Chronicle event emission.
+Hook Adapter, Wrapper for Hermes hooks with Chronicle event emission.
 
 This module provides adapter wrappers around the Hermes hook entrypoint,
 emitting canonical Chronicle events for:

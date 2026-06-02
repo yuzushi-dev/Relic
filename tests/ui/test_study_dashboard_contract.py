@@ -1,4 +1,4 @@
-"""PR27B — Study Dashboard contract tests.
+"""PR27B, Study Dashboard contract tests.
 
 Verifies that:
 - Schema files exist and are valid JSON Schema.
@@ -116,7 +116,7 @@ class TestFixtureExists:
 
 
 # ---------------------------------------------------------------------------
-# Fixture — study_overview top-level fields
+# Fixture: study_overview top-level fields
 # ---------------------------------------------------------------------------
 
 class TestStudyOverviewFixture:
@@ -159,7 +159,7 @@ class TestStudyOverviewFixture:
 
 
 # ---------------------------------------------------------------------------
-# Fixture — subject registry rows
+# Fixture: subject registry rows
 # ---------------------------------------------------------------------------
 
 class TestSubjectRegistryRows:
@@ -232,7 +232,7 @@ class TestSubjectRegistryRows:
         for row in rows:
             overlap = forbidden.intersection(row.keys())
             assert not overlap, (
-                f"BLOCKED_BULK_IDENTITY_EDIT violated — row {row.get('subject_id')} "
+                f"BLOCKED_BULK_IDENTITY_EDIT violated, row {row.get('subject_id')} "
                 f"contains forbidden fields: {overlap}"
             )
 

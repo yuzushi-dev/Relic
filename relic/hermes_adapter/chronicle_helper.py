@@ -1,5 +1,5 @@
 """
-Chronicle Helper — Adapter-side emitter for canonical Chronicle events.
+Chronicle Helper, Adapter-side emitter for canonical Chronicle events.
 
 Wraps relic.chronicle.emitter.emit_event with:
 - canonical event type validation

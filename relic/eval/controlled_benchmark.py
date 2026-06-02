@@ -497,8 +497,8 @@ def _normalize_for_match(text: str) -> str:
 
     Free-form model output often quotes or punctuates a marker (e.g. 'you called
     it "the hum".'), which breaks naive substring matching against the bare
-    marker. Normalizing both sides — collapse non-alphanumeric runs to single
-    spaces — keeps the governance signal (forbidden absent / expected present)
+    marker. Normalizing both sides, collapse non-alphanumeric runs to single
+    spaces, keeps the governance signal (forbidden absent / expected present)
     robust to surface punctuation without loosening the semantic check.
     """
     return re.sub(r"[^0-9a-z]+", " ", text.lower()).strip()

@@ -189,7 +189,7 @@ def test_dispatch_voice_with_mock(tmp_path: Path, capsys: pytest.CaptureFixture)
         result = dispatch(llm_output, hermes_home, relic_home, "test_subject")
 
     captured = capsys.readouterr()
-    # Voice delivered via Telegram Bot API — stdout must be empty (immersion contract)
+    # Voice delivered via Telegram Bot API: stdout must be empty (immersion contract)
     assert captured.out == ""
     assert f"MEDIA:{fake_audio}" in captured.err
     assert result["tipo"] == "voice"
@@ -212,7 +212,7 @@ def test_dispatch_image_with_mock(tmp_path: Path, capsys: pytest.CaptureFixture)
         result = dispatch(llm_output, hermes_home, relic_home, "test_subject")
 
     captured = capsys.readouterr()
-    # Image + caption delivered directly via Telegram Bot API — stdout must be empty
+    # Image + caption delivered directly via Telegram Bot API: stdout must be empty
     assert captured.out == ""
     assert f"MEDIA:{fake_image}" in captured.err
     assert result["tipo"] == "image"
@@ -242,7 +242,7 @@ def test_dispatch_music_with_mock(tmp_path: Path, capsys: pytest.CaptureFixture)
         result = dispatch(llm_output, hermes_home, relic_home, "test_subject")
 
     captured = capsys.readouterr()
-    # Music delivered directly via Telegram Bot API — stdout must be empty
+    # Music delivered directly via Telegram Bot API: stdout must be empty
     assert captured.out == ""
     assert f"MEDIA:{fake_audio}" in captured.err
     assert result["tipo"] == "music"

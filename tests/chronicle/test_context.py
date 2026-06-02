@@ -1,4 +1,4 @@
-"""Tests for relic.chronicle.context — T011."""
+"""Tests for relic.chronicle.context, T011."""
 from __future__ import annotations
 
 import asyncio

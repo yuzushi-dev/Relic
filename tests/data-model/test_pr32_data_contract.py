@@ -1,4 +1,4 @@
-"""PR26D — PR32 Sensitive Pattern Data Contract tests."""
+"""PR26D, PR32 Sensitive Pattern Data Contract tests."""
 
 import pytest
 import json

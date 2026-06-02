@@ -2,7 +2,7 @@
 
 A correction tells Relic "this trait/inference is wrong, replace it with this." Corrections are authoritative: once applied, they take precedence over all later evidence unless explicitly contradicted.
 
-## Submitting a correction (UI — recommended)
+## Submitting a correction (UI: recommended)
 
 1. Open the researcher workbench: `relic ui`, then `http://localhost:8080`.
 2. Open the subject view.
@@ -12,7 +12,7 @@ A correction tells Relic "this trait/inference is wrong, replace it with this." 
 
 The correction history panel shows every correction with who, when, why, and which artifacts were touched.
 
-## Submitting a correction (Python — automation)
+## Submitting a correction (Python: automation)
 
 ```python
 from relic.ui.feedback import submit_researcher_feedback

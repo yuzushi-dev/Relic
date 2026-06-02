@@ -31,7 +31,7 @@ OSS does not ship a language switch for the TUI. If you need a fully English flo
 
 ## Subject language field
 
-At bootstrap (`relic/profile/_bootstrap_steps/self_report.py`), one of the descriptive fields is `language` — the subject's preferred natural language for conversation with Gumi. It is a free string by convention written as a BCP-47 tag (`it`, `en`, `it-IT`, `pt-BR`). It flows into:
+At bootstrap (`relic/profile/_bootstrap_steps/self_report.py`), one of the descriptive fields is `language`, the subject's preferred natural language for conversation with Gumi. It is a free string by convention written as a BCP-47 tag (`it`, `en`, `it-IT`, `pt-BR`). It flows into:
 
 - The Gumi background generation prompt (so Gumi's voice matches the subject's language).
 - The intro composition default (`--language` overrides).
@@ -67,7 +67,7 @@ If you need a hard gate (e.g. for a study restricted to one language), add a beh
 
 The default `qwen2.5:32b-instruct-q4_K_M` is competent in English, Italian, Spanish, French, German, and most major European languages. Quality drops on under-represented languages.
 
-If you change the model ([Model Management](../guides/model-management.md)), run a small bilingual eval slice before committing to the new model in production. The eval harness does not include a language-quality metric out of the box — write one for your target language pair if it matters.
+If you change the model ([Model Management](../guides/model-management.md)), run a small bilingual eval slice before committing to the new model in production. The eval harness does not include a language-quality metric out of the box, write one for your target language pair if it matters.
 
 ## What is **not** localised
 

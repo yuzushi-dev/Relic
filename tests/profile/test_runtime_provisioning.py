@@ -90,7 +90,7 @@ def test_provisioned_config_suppresses_gateway_lifecycle_messages(
     config_text = (profile.hermes_home / "config.yaml").read_text(encoding="utf-8")
     assert "gateway_restart_notification: false" in config_text
 
-    # The flag MUST live under platforms.telegram — Hermes' load_gateway_config
+    # The flag MUST live under platforms.telegram: Hermes' load_gateway_config
     # reads gateway_restart_notification only from platforms.<plat>, NOT from the
     # top-level telegram: shorthand. A top-level placement parses fine but is
     # silently ignored, so the shutdown notice still leaks to the subject.

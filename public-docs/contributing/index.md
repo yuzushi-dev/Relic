@@ -35,10 +35,10 @@ All public fixtures must be synthetic. The CI script `check_no_raw_private_data.
 
 ## Detailed guides
 
-- [Development Setup](development-setup.md) — virtual environment, dependencies, local dev workflow.
-- [Testing](testing.md) — test organization, how to run tests, important constraints.
-- [Contract Tests](contract-tests.md) — what the behavioral contracts are and how they are verified.
-- [Release Status](release-status.md) — stability map, what is safe to depend on.
+- [Development Setup](development-setup.md): virtual environment, dependencies, local dev workflow.
+- [Testing](testing.md): test organization, how to run tests, important constraints.
+- [Contract Tests](contract-tests.md): what the behavioral contracts are and how they are verified.
+- [Release Status](release-status.md): stability map, what is safe to depend on.
 
 ## License
 

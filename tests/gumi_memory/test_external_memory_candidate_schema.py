@@ -1,4 +1,4 @@
-"""PR19B — schema presence and required fields."""
+"""PR19B, schema presence and required fields."""
 from __future__ import annotations
 
 import json

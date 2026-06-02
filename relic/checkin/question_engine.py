@@ -19,7 +19,7 @@ from pathlib import Path
 from statistics import mean
 from typing import Any
 
-# Strip parenthetical clinical scale references — matches single scales (ECR-R, SDT)
+# Strip parenthetical clinical scale references: matches single scales (ECR-R, SDT)
 # and combined multi-scale refs like (ECR-R, DERS) or (Schwartz, McAdams).
 SCALE_REF_RE = re.compile(r"\s*\([A-Z][A-Za-z0-9\-]*(?:,\s*[A-Z][A-Za-z0-9\-]*)*\)")
 
@@ -52,7 +52,7 @@ _CATEGORY_IMPACT = {
     "language":      0.50,
 }
 
-# Facets seeded from subject_baseline.json — merged with relic.db traits
+# Facets seeded from subject_baseline.json: merged with relic.db traits
 # Psychological big-five + interaction from bootstrap map to db facet IDs
 _BASELINE_TO_DB: dict[str, str] = {
     "agreeableness":               "relational.loyalty_pattern",
@@ -182,7 +182,7 @@ def compute_unknownness(f: FacetState) -> float:
     if f.last_observation_at:
         stale_days = max(0.0, (now - f.last_observation_at).total_seconds() / 86400.0)
     elif f.confidence > 0:
-        stale_days = 30.0  # bootstrap only — treat as somewhat stale
+        stale_days = 30.0  # bootstrap only, treat as somewhat stale
     else:
         stale_days = 60.0  # never observed
     stale_factor = clamp(stale_days / 60.0)
@@ -245,7 +245,7 @@ def score_facet(f: FacetState) -> dict[str, float]:
 
 def build_question_hint(f: FacetState) -> str:
     # Strip clinical scale references (ECR-R, DERS, SDT, ...) from description and spectrum.
-    # Never expose facet_id or f.name — those may contain clinical terms.
+    # Never expose facet_id or f.name: those may contain clinical terms.
     desc = SCALE_REF_RE.sub("", f.description).strip().rstrip(":").strip()
     sp_low = SCALE_REF_RE.sub("", f.spectrum_low).strip()
     sp_high = SCALE_REF_RE.sub("", f.spectrum_high).strip()

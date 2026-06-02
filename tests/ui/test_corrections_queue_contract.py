@@ -1,5 +1,5 @@
 """
-PR27H — Corrections Queue and Propagation Viewer Contract Tests
+PR27H, Corrections Queue and Propagation Viewer Contract Tests
 
 Tests verify:
 - Every correction is subject-scoped

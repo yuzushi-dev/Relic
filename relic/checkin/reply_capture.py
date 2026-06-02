@@ -136,7 +136,7 @@ def capture_reply_if_pending(
     """Capture user_msg as reply to the most recent pending checkin exchange.
 
     Returns True if captured, False if no pending exchange / not substantive.
-    Never raises — all errors are logged at debug level.
+    Never raises, all errors are logged at debug level.
 
     Args:
         user_msg: raw user message text (truncated to 2000 chars when stored)
@@ -196,7 +196,7 @@ def capture_reply_if_pending(
             )
             conn.commit()
             if cur.rowcount == 0:
-                return False  # lost the race — another writer filled it first
+                return False  # lost the race, another writer filled it first
             _reset_cadence_after_reply(
                 conn,
                 subject_id,

@@ -44,7 +44,7 @@ FULL_LOW_INITIAL = {
 
 
 # ---------------------------------------------------------------------------
-# Confidence floor — low_initial (0.10) never generates bullets
+# Confidence floor: low_initial (0.10) never generates bullets
 # ---------------------------------------------------------------------------
 
 class TestConfidenceFloor:
@@ -86,7 +86,7 @@ class TestConfidenceFloor:
 
 
 # ---------------------------------------------------------------------------
-# Directness — bullets at both band extremes
+# Directness: bullets at both band extremes
 # ---------------------------------------------------------------------------
 
 class TestDirectnessPreference:
@@ -147,12 +147,12 @@ class TestNegativeBandFacets:
 
 
 # ---------------------------------------------------------------------------
-# Non-whitelisted facets — never appear
+# Non-whitelisted facets: never appear
 # ---------------------------------------------------------------------------
 
 class TestNonWhitelistedFacets:
     def test_psychological_section_not_accepted(self):
-        """render_style_hints only accepts interaction dict — psychological keys ignored."""
+        """render_style_hints only accepts interaction dict, psychological keys ignored."""
         # Even if caller passes psychological keys, they must produce no output
         pseudo_interaction = {
             "agreeableness":      _facet(0.10, confidence_float=0.90),
@@ -187,7 +187,7 @@ class TestNonWhitelistedFacets:
 
 
 # ---------------------------------------------------------------------------
-# Clinical term guard — output must not contain forbidden terms
+# Clinical term guard: output must not contain forbidden terms
 # ---------------------------------------------------------------------------
 
 class TestClinicalTermGuard:

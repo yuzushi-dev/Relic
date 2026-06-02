@@ -1,4 +1,4 @@
-"""PR26A — Canonical Identity and Scope Model tests."""
+"""PR26A, Canonical Identity and Scope Model tests."""
 
 import pytest
 import json

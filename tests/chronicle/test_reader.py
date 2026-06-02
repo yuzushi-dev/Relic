@@ -1,4 +1,4 @@
-"""Chronicle reader tests — T070 query/timeline/stats coverage."""
+"""Chronicle reader tests, T070 query/timeline/stats coverage."""
 from __future__ import annotations
 
 import sqlite3

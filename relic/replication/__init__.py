@@ -1,4 +1,4 @@
-"""relic.replication — Replication bundle helpers for Relic E2E."""
+"""relic.replication, Replication bundle helpers for Relic E2E."""
 
 from relic.replication.bundle import (
     create_replication_bundle,

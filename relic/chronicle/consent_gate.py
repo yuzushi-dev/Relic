@@ -1,4 +1,4 @@
-"""Consent gate module for Chronicle — T013.
+"""Consent gate module for Chronicle, T013.
 
 Controls whether events can be written to the store based on consent rules.
 Called BEFORE writing any event to ensure compliance with consent requirements.
@@ -20,14 +20,14 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# Legitimate interest bases — always allowed without explicit consent
+# Legitimate interest bases: always allowed without explicit consent
 _LEGITIMATE_INTEREST_BASES: set[str] = {"SAFETY", "PRIVACY", "INCIDENT"}
 
 
 def _fail_open() -> bool:
     """Determine fail-open behaviour for ConsentManager errors/unavailability.
 
-    Default: fail-closed (deny capture on error) — safer GDPR posture.
+    Default: fail-closed (deny capture on error), safer GDPR posture.
     Override via env CHRONICLE_CONSENT_FAIL_OPEN=1 for dev/test bootstrap.
     """
     return os.environ.get("CHRONICLE_CONSENT_FAIL_OPEN", "0") == "1"
@@ -79,15 +79,15 @@ def is_capture_allowed(
     Returns:
         tuple of (allowed: bool, reason: str)
     """
-    # Rule 1: System event (no PII) — always allowed
+    # Rule 1: System event (no PII), always allowed
     if consent_basis is None:
         return True, "system_event"
 
-    # Rule 2: Global event (no subject) — always allowed
+    # Rule 2: Global event (no subject), always allowed
     if subject_id is None:
         return True, "global_event"
 
-    # Rule 3: Legitimate interest bases — always allowed
+    # Rule 3: Legitimate interest bases: always allowed
     basis_str = str(consent_basis).upper()
     if basis_str in _LEGITIMATE_INTEREST_BASES:
         return True, f"legitimate_interest:{basis_str.lower()}"
@@ -129,7 +129,7 @@ def is_capture_allowed(
             return False, f"consent_denied:{consent_type.value}"
 
     except Exception as exc:
-        # Fail-closed by default — GDPR posture. Override with env var.
+        # Fail-closed by default: GDPR posture. Override with env var.
         logger.warning("Consent check raised %s: %s", type(exc).__name__, exc)
         if _fail_open():
             warnings.warn(

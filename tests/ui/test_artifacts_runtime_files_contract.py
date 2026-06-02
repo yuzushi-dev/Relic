@@ -1,5 +1,5 @@
 """
-PR27K — Artifacts and Runtime Files contract tests.
+PR27K, Artifacts and Runtime Files contract tests.
 
 Verifies that the artifact fixture satisfies the schema and all acceptance criteria:
 - Every artifact is subject-scoped.
@@ -123,7 +123,7 @@ def test_every_artifact_has_version(artifacts):
     """BLOCKED_UNVERSIONED_ARTIFACT_EDIT: version field must be present."""
     for artifact in artifacts:
         assert "version" in artifact, \
-            f"Artifact {artifact['artifact_id']} missing 'version' field — edit tracking not possible"
+            f"Artifact {artifact['artifact_id']} missing 'version' field, edit tracking not possible"
         assert isinstance(artifact["version"], int), \
             f"Artifact {artifact['artifact_id']} version must be integer"
         assert artifact["version"] >= 1, \
@@ -164,7 +164,7 @@ def test_no_cross_subject_artifacts(artifacts):
     """BLOCKED_CROSS_SUBJECT_ARTIFACT_COPY: all artifacts must share the same subject_id."""
     subject_ids = {a["subject_id"] for a in artifacts}
     assert len(subject_ids) == 1, \
-        f"Artifacts span multiple subjects — cross-subject copy detected: {subject_ids}"
+        f"Artifacts span multiple subjects, cross-subject copy detected: {subject_ids}"
 
 
 # --- Artifact type validity ---

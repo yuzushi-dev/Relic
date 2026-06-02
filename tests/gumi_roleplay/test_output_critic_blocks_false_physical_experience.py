@@ -1,4 +1,4 @@
-"""PR22F — critic blocks false physical experience claims."""
+"""PR22F, critic blocks false physical experience claims."""
 from __future__ import annotations
 
 from relic.gumi_plugin import OutputCritic

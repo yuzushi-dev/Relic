@@ -1,4 +1,4 @@
-"""PR26F — Export, Delete, and Forget Semantics tests."""
+"""PR26F, Export, Delete, and Forget Semantics tests."""
 
 import pytest
 import json

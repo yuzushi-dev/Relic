@@ -1,4 +1,4 @@
-"""Chronicle snapshot capture module — T020.
+"""Chronicle snapshot capture module, T020.
 
 Module: relic.chronicle.snapshots
 Version: chronicle-snapshots/v1

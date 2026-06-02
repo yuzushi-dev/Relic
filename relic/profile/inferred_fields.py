@@ -1,4 +1,4 @@
-"""PR08 — typed InferredField model for system_inferred_fields."""
+"""PR08, typed InferredField model for system_inferred_fields."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -12,7 +12,7 @@ CLINICAL_TERMS = frozenset({
     "illness", "disease", "patient", "diagnostic", "psychiatric", "psychological",
 })
 
-# Inferred fields default confidence cap — weak evidence
+# Inferred fields default confidence cap: weak evidence
 DEFAULT_CONFIDENCE_CAP = 0.35
 MULTI_EVIDENCE_CAP = 0.55
 
@@ -60,7 +60,7 @@ class InferredField:
             self.confidence = cap
 
     def apply_correction(self) -> "InferredField":
-        """Mark field as corrected by subject — blocks further update loop use."""
+        """Mark field as corrected by subject, blocks further update loop use."""
         return InferredField(
             field_name=self.field_name,
             value=None,

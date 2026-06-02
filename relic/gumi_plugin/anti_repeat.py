@@ -1,4 +1,4 @@
-"""Anti-repetition for prompt history — avoids duplicate messages.
+"""Anti-repetition for prompt history, avoids duplicate messages.
 
 Uses Jaccard similarity over word sets within a 24-hour window.
 """
@@ -94,5 +94,5 @@ def is_duplicate(hermes_home: Path, candidate: str) -> bool:
 
 
 def suggest_placeholder(hermes_home: Path) -> str:
-    """Placeholder suggestion — always returns empty string (caller decides to skip)."""
+    """Placeholder suggestion, always returns empty string (caller decides to skip)."""
     return ""

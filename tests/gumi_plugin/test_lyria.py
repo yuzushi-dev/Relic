@@ -1,4 +1,4 @@
-"""Tests for lyria.py — music generation."""
+"""Tests for lyria.py, music generation."""
 from __future__ import annotations
 
 import json

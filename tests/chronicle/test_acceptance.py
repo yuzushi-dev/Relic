@@ -1,4 +1,4 @@
-"""Chronicle acceptance tests — definition of done per research.md §16.
+"""Chronicle acceptance tests, definition of done per research.md §16.
 
 Each test maps to one acceptance question. They use the underlying reader/
 emitter API rather than the CLI (CLI scaffold T071+ comes later), but exercise
@@ -226,7 +226,7 @@ def seeded_trace(monkeypatch, tmp_relic_db, tmp_chronicle_dir):
 
 
 # ===========================================================================
-# Acceptance tests — 23 questions
+# Acceptance tests: 23 questions
 # ===========================================================================
 
 class TestAcceptance:
@@ -383,20 +383,20 @@ class TestAcceptance:
         bases = {r["consent_basis"] for r in rows if r.get("consent_basis")}
         assert "PRIVACY" in bases
 
-    # Q21 — exportable count (no CLI, just count of subject events)
+    # Q21: exportable count (no CLI, just count of subject events)
     def test_q21_exportable_count(self, seeded_trace):
         from relic.chronicle import query_events
         rows = query_events(subject_id=seeded_trace["subject_id"], limit=1000)
         assert len(rows) >= 8  # everything we seeded for this subject
 
-    # Q22 — deletable count via reaper dry-run
+    # Q22: deletable count via reaper dry-run
     def test_q22_deletable_dry_run(self, monkeypatch, tmp_relic_db, tmp_chronicle_dir, seeded_trace):
         from relic.chronicle import reaper_run
         result = reaper_run(dry_run=True, subject_id=seeded_trace["subject_id"])
         assert "total_deleted" in result
         assert result["dry_run"] is True
 
-    # Q23 — retention candidates per policy
+    # Q23: retention candidates per policy
     def test_q23_retention_policy_counts(self, seeded_trace):
         from relic.chronicle import query_events
         rows = query_events(trace_id=seeded_trace["trace_id"])

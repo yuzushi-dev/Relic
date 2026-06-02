@@ -1,5 +1,5 @@
 """
-PR33I — Complete Integration Tests
+PR33I, Complete Integration Tests
 
 Complete integration tests for Shared Continuity Memory:
 - All PR33A-H tests included in full suite

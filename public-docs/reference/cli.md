@@ -179,5 +179,5 @@ relic ui [--port PORT]
 
 ## See also
 
-- [`relic-profile`](relic-profile-cli.md) — multi-subject registry, Hermes/Telegram provisioning, Gumi media, cron specs.
-- [`chronicle`](chronicle-cli.md) — query the event ledger (audit, provenance, retention).
+- [`relic-profile`](relic-profile-cli.md): multi-subject registry, Hermes/Telegram provisioning, Gumi media, cron specs.
+- [`chronicle`](chronicle-cli.md): query the event ledger (audit, provenance, retention).

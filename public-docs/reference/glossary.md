@@ -1,79 +1,79 @@
 # Glossary
 
-**Artifact** — A compiled, versioned piece of runtime guidance produced by the compiler from the subject profile and evidence. Artifacts are injected as ephemeral per-turn context. They are not persistent prompt content.
+**Artifact**, A compiled, versioned piece of runtime guidance produced by the compiler from the subject profile and evidence. Artifacts are injected as ephemeral per-turn context. They are not persistent prompt content.
 
-**Bootstrap** — The structured process of creating an initial subject profile and Gumi diegetic profile. Handled by `relic subject create` via `relic/profile/bootstrap_tui.py`.
+**Bootstrap**, The structured process of creating an initial subject profile and Gumi diegetic profile. Handled by `relic subject create` via `relic/profile/bootstrap_tui.py`.
 
-**CAC (Context-Aware Controller)** — The component that scores, filters, and selects hint candidates per turn, producing the `PromptContextPack`. It operates per-turn and cannot mutate artifacts. See `relic/cac/`.
+**CAC (Context-Aware Controller)**, The component that scores, filters, and selects hint candidates per turn, producing the `PromptContextPack`. It operates per-turn and cannot mutate artifacts. See `relic/cac/`.
 
-**CACTrace** — An immutable per-turn record of the CAC's scoring and filtering decisions. Readable by researchers via the workbench; not writable by any component.
+**CACTrace**, An immutable per-turn record of the CAC's scoring and filtering decisions. Readable by researchers via the workbench; not writable by any component.
 
-**Confidence cap** — An explicit upper bound on how confident the system can be about a specific facet given available evidence. Defined in `relic/patterns/confidence_caps.py`.
+**Confidence cap**, An explicit upper bound on how confident the system can be about a specific facet given available evidence. Defined in `relic/patterns/confidence_caps.py`.
 
-**Continuity marker** — A subject-confirmed piece of relational memory stored across sessions. Gumi can recall confirmed markers. Unconfirmed markers cannot be stored permanently. See `relic/gumi_continuity/`.
+**Continuity marker**, A subject-confirmed piece of relational memory stored across sessions. Gumi can recall confirmed markers. Unconfirmed markers cannot be stored permanently. See `relic/gumi_continuity/`.
 
-**Correction** — A researcher or subject decision that a specific trait, inference, or continuity marker is wrong. Corrections are authoritative and propagate to all derived artifacts. See `relic/correction/`.
+**Correction**, A researcher or subject decision that a specific trait, inference, or continuity marker is wrong. Corrections are authoritative and propagate to all derived artifacts. See `relic/correction/`.
 
-**Diegetic** — Existing within the narrative frame of Gumi's relational world. Gumi's own experiences, creative acts, and emotional states are diegetic. They are not observations about the subject.
+**Diegetic**, Existing within the narrative frame of Gumi's relational world. Gumi's own experiences, creative acts, and emotional states are diegetic. They are not observations about the subject.
 
-**Epistemic hedging** — The practice of expressing claims at appropriate levels of certainty. In Relic, facet estimates are always expressed as estimates with confidence scores, not as ground truth.
+**Epistemic hedging**, The practice of expressing claims at appropriate levels of certainty. In Relic, facet estimates are always expressed as estimates with confidence scores, not as ground truth.
 
-**Evidence-eligible** — Describes an event whose ontological class permits it to be used as evidence in profile modeling (e.g., `empirical_user_interaction`, `active_elicitation`). Not all interaction events are evidence-eligible. See [Data Stream Separation](../ethics/data-streams-separation.md).
+**Evidence-eligible**, Describes an event whose ontological class permits it to be used as evidence in profile modeling (e.g., `empirical_user_interaction`, `active_elicitation`). Not all interaction events are evidence-eligible. See [Data Stream Separation](../ethics/data-streams-separation.md).
 
-**Facet** — A behavioral modeling dimension represented as a position on a bipolar spectrum, with a confidence score and source references. Not a clinical scale. See [Facet Model](../concepts/facet-model.md).
+**Facet**, A behavioral modeling dimension represented as a position on a bipolar spectrum, with a confidence score and source references. Not a clinical scale. See [Facet Model](../concepts/facet-model.md).
 
-**Forget** — Removing data from Gumi's recall without deleting it from storage. Audit event required. Subject-scoped. See [Export and Deletion](../guides/export-and-deletion.md).
+**Forget**, Removing data from Gumi's recall without deleting it from storage. Audit event required. Subject-scoped. See [Export and Deletion](../guides/export-and-deletion.md).
 
-**Gumi** — The diegetic relational agent that runs on Hermes, initialized and governed by Relic. Not a copy of the subject. Has her own identity, voice, and relational history. See [Relic and Gumi](../concepts/relic-and-gumi.md).
+**Gumi**, The diegetic relational agent that runs on Hermes, initialized and governed by Relic. Not a copy of the subject. Has her own identity, voice, and relational history. See [Relic and Gumi](../concepts/relic-and-gumi.md).
 
-**GumiInstance** — A specific Gumi deployment scoped to one subject. No global Gumi runtime exists; each subject has their own instance.
+**GumiInstance**, A specific Gumi deployment scoped to one subject. No global Gumi runtime exists; each subject has their own instance.
 
-**Hermes** — The external agent runtime that Gumi operates inside. Manages prompt assembly (SOUL.md, MEMORY.md, USER.md), memory providers, and session lifecycle.
+**Hermes**, The external agent runtime that Gumi operates inside. Manages prompt assembly (SOUL.md, MEMORY.md, USER.md), memory providers, and session lifecycle.
 
-**HermesProfile** — A Hermes configuration bound to a specific GumiInstance. Identified by a hash, not stored as a raw key.
+**HermesProfile**, A Hermes configuration bound to a specific GumiInstance. Identified by a hash, not stored as a raw key.
 
-**Hypothesis** — A tentative trait estimate with low confidence, typically based on sparse early evidence. Hypotheses are tracked separately from more established facet estimates.
+**Hypothesis**, A tentative trait estimate with low confidence, typically based on sparse early evidence. Hypotheses are tracked separately from more established facet estimates.
 
-**Inferred field** — A profile extension generated by the system without direct evidence. Held at low confidence, labeled as system-inferred, not directly injected into runtime context. See `relic/profile/inferred_fields.py`.
+**Inferred field**, A profile extension generated by the system without direct evidence. Held at low confidence, labeled as system-inferred, not directly injected into runtime context. See `relic/profile/inferred_fields.py`.
 
-**Lineage** — The source reference chain attached to every compiled artifact, tracing it back to the evidence that produced it. See `relic/compiler/lineage.py`.
+**Lineage**, The source reference chain attached to every compiled artifact, tracing it back to the evidence that produced it. See `relic/compiler/lineage.py`.
 
-**Memory dynamics** — The layer that adjusts memory salience through decay, reinforcement, association, and consolidation. Advisory only; cannot override corrections or privacy status. See `relic/memory_dynamics/`.
+**Memory dynamics**, The layer that adjusts memory salience through decay, reinforcement, association, and consolidation. Advisory only; cannot override corrections or privacy status. See `relic/memory_dynamics/`.
 
-**Observation** — A unit of behavioral evidence: something the subject said or did that was recorded and processed through the ingestion pipeline. Not a raw transcript.
+**Observation**, A unit of behavioral evidence: something the subject said or did that was recorded and processed through the ingestion pipeline. Not a raw transcript.
 
-**Ontological class** — A classification on each event indicating what type of data it represents (user interaction, diegetic event, correction, governance decision, etc.). Determines evidence eligibility. See [Data Model](../architecture/data-model.md).
+**Ontological class**, A classification on each event indicating what type of data it represents (user interaction, diegetic event, correction, governance decision, etc.). Determines evidence eligibility. See [Data Model](../architecture/data-model.md).
 
-**Passive interaction** — Behavioral signals captured from normal conversation, without direct elicitation. One of the five data streams; evidence-eligible after ingestion and review.
+**Passive interaction**, Behavioral signals captured from normal conversation, without direct elicitation. One of the five data streams; evidence-eligible after ingestion and review.
 
-**Policy snapshot** — A versioned record of the policy configuration that was active at a specific point. Artifacts and events reference a policy snapshot so their governance context is always traceable.
+**Policy snapshot**, A versioned record of the policy configuration that was active at a specific point. Artifacts and events reference a policy snapshot so their governance context is always traceable.
 
-**PromptContextPack** — The assembled set of context hints injected into Gumi's prompt for a single turn. Produced by the CAC, ephemeral, discarded after the turn.
+**PromptContextPack**, The assembled set of context hints injected into Gumi's prompt for a single turn. Produced by the CAC, ephemeral, discarded after the turn.
 
-**Provenance** — The traceable chain from a runtime artifact back to the evidence that produced it. See [Provenance and Correction](../concepts/provenance-and-correction.md).
+**Provenance**, The traceable chain from a runtime artifact back to the evidence that produced it. See [Provenance and Correction](../concepts/provenance-and-correction.md).
 
-**Recompile** — Running the compiler pipeline again for a subject after corrections or policy changes. Produces updated artifacts from the current state.
+**Recompile**, Running the compiler pipeline again for a subject after corrections or policy changes. Produces updated artifacts from the current state.
 
-**Relic** — The runtime governance and longitudinal modeling layer. Manages the subject profile, compilation pipeline, privacy gates, corrections, and artifact authority. Does not interact with subjects directly.
+**Relic**, The runtime governance and longitudinal modeling layer. Manages the subject profile, compilation pipeline, privacy gates, corrections, and artifact authority. Does not interact with subjects directly.
 
-**Relational distance** — The degree of similarity and difference between Gumi's profile and the subject's profile. Calibrated during bootstrap to be neither mirroring nor alien.
+**Relational distance**, The degree of similarity and difference between Gumi's profile and the subject's profile. Calibrated during bootstrap to be neither mirroring nor alien.
 
-**Replication bundle** — A snapshot of the inputs, corrections, policy snapshot, and seeds used for a compilation run, enabling independent reproduction of the same artifacts. See `relic/replication/`.
+**Replication bundle**, A snapshot of the inputs, corrections, policy snapshot, and seeds used for a compilation run, enabling independent reproduction of the same artifacts. See `relic/replication/`.
 
-**Researcher boundary** — The hard constraint that the researcher UI can read system state broadly but can write only `researcher_feedback_event` and replay requests. See [Researcher Boundary](../concepts/researcher-boundary.md).
+**Researcher boundary**, The hard constraint that the researcher UI can read system state broadly but can write only `researcher_feedback_event` and replay requests. See [Researcher Boundary](../concepts/researcher-boundary.md).
 
-**Roleplay admission** — The decision about how much of the roleplay frame and simulated continuity can influence a given turn. Produces a `roleplay_level` (off/minimal/light/normal/high) and a `continuity_mode`. See `relic/gumi_roleplay/admission.py`.
+**Roleplay admission**, The decision about how much of the roleplay frame and simulated continuity can influence a given turn. Produces a `roleplay_level` (off/minimal/light/normal/high) and a `continuity_mode`. See `relic/gumi_roleplay/admission.py`.
 
-**Safety signal** — A contextual pattern in interaction that triggers adaptive system behavior. Visible to researchers only; never exposed to subjects or Gumi. Not a clinical assessment. See `relic/safety/`.
+**Safety signal**, A contextual pattern in interaction that triggers adaptive system behavior. Visible to researchers only; never exposed to subjects or Gumi. Not a clinical assessment. See `relic/safety/`.
 
-**Shared continuity memory** — The subject-confirmed relational memory layer that allows Gumi to remember across sessions like a relational partner rather than retrieve like a search engine. See `relic/shared_continuity/`.
+**Shared continuity memory**, The subject-confirmed relational memory layer that allows Gumi to remember across sessions like a relational partner rather than retrieve like a search engine. See `relic/shared_continuity/`.
 
-**Signal** — A behavioral indicator extracted from interaction that contributes to a facet estimate. Processed by `relic/patterns/signal_extractor.py`.
+**Signal**, A behavioral indicator extracted from interaction that contributes to a facet estimate. Processed by `relic/patterns/signal_extractor.py`.
 
-**SOUL.md** — The Hermes file containing Gumi's stable diegetic identity. Generated during bootstrap, live in `$HERMES_HOME/`. Never modified by the plugin at runtime.
+**SOUL.md**, The Hermes file containing Gumi's stable diegetic identity. Generated during bootstrap, live in `$HERMES_HOME/`. Never modified by the plugin at runtime.
 
-**Staleness** — An artifact state indicating it is out of date due to an applied correction, policy change, or consent change. Stale artifacts are not injected.
+**Staleness**, An artifact state indicating it is out of date due to an applied correction, policy change, or consent change. Stale artifacts are not injected.
 
-**Study** — The top-level research container. Subjects belong to a study. Researchers are scoped to the studies they are assigned to.
+**Study**, The top-level research container. Subjects belong to a study. Researchers are scoped to the studies they are assigned to.
 
-**Subject** — A participant whose interaction with Gumi is modeled by Relic. Identified by `subject_id`. Has explicit consent, export, correction, pause, and deletion rights.
+**Subject**, A participant whose interaction with Gumi is modeled by Relic. Identified by `subject_id`. Has explicit consent, export, correction, pause, and deletion rights.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PR22H — verify the Gumi cron config matches schedule contract."""
+"""PR22H, verify the Gumi cron config matches schedule contract."""
 from __future__ import annotations
 
 import sys

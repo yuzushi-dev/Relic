@@ -188,7 +188,7 @@ def build_topic_hint_section(
             )
             # One open question at a time: if a prior ask is still un-replied
             # inside the capture window, don't persist (and therefore don't
-            # render) a new probe — it would strand both exchanges and corrupt
+            # render) a new probe: it would strand both exchanges and corrupt
             # reply attribution. Dry-run previews (persist_exchange=False) are
             # exempt: they never create a row to strand.
             if persist_exchange and _has_pending_exchange(
@@ -228,7 +228,7 @@ def build_topic_hint_section(
             return ""
 
         if persist_exchange:
-            # RO conn closed above — safe to open RW without lock contention.
+            # RO conn closed above: safe to open RW without lock contention.
             # Inner try/except so connect/write errors never discard the rendered block.
             try:
                 conn_rw = sqlite3.connect(str(db_path), timeout=5.0)
@@ -358,7 +358,7 @@ def build_avatar_section(hermes_home: Path) -> str:
 
 
 _POSTURE_SECTIONS: dict[tuple[str, str], dict[str, bool]] = {
-    # Spike §10.2 — posture-to-section selection. Keys default to True so legacy
+    # Spike §10.2: posture-to-section selection. Keys default to True so legacy
     # callers (no event_type/posture passed) keep the full bundle.
     ("checkin", "observe"): {
         "recent_checkins": True,
@@ -548,7 +548,7 @@ def build_deliver_context(
 
     # Fix #1: if ALL conversational anchors are empty, append a mode
     # instruction guiding the LLM toward either a tiny factual share or
-    # [SILENT]. We never force [SILENT] here — only nudge.
+    # [SILENT]. We never force [SILENT] here: only nudge.
     if all(not v for v in anchor_sections.values()):
         logger.warning(
             "[checkin] empty-anchor context subject_id=%s event=%s posture=%s",
@@ -563,7 +563,7 @@ def build_deliver_context(
             "(es: \"Sto sistemando i miei appunti del weekend\"). Niente domande, niente auguri, "
             "niente riflessioni astratte. Max 12 parole.\n"
             "(b) Rispondi esattamente [SILENT] se non hai nulla di concreto da dire.\n"
-            "Preferisci [SILENT] se sei incerta — il silenzio vale più di un messaggio generico."
+            "Preferisci [SILENT] se sei incerta, il silenzio vale più di un messaggio generico."
         )
 
     return "".join(part for part in parts if part)

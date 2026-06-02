@@ -1,4 +1,4 @@
-"""Chronicle emitter tests — T014 regression + dual-write + bug-fix coverage.
+"""Chronicle emitter tests, T014 regression + dual-write + bug-fix coverage.
 
 Covers:
   - emit_event / emit_decision / emit_snapshot / emit_provenance_edge happy path
@@ -167,7 +167,7 @@ class TestPayloadHash:
 # ---------------------------------------------------------------------------
 class TestInsertImmutability:
     def test_duplicate_event_id_rejected(self, monkeypatch, tmp_relic_db, tmp_chronicle_dir):
-        """B3 regression: INSERT OR ABORT — second insert with same event_id fails,
+        """B3 regression: INSERT OR ABORT, second insert with same event_id fails,
         does not silently overwrite."""
         _patch_db_and_journal(monkeypatch, tmp_relic_db, tmp_chronicle_dir)
         from relic.chronicle.emitter import _insert_row
@@ -211,7 +211,7 @@ class TestSnapshotTraceId:
             (str(sid),),
         ).fetchone()
         conn.close()
-        assert row is not None, "snapshot row missing — INSERT may have failed"
+        assert row is not None, "snapshot row missing, INSERT may have failed"
         assert row[0] == str(tid)
 
 

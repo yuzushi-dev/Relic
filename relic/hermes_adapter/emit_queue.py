@@ -21,7 +21,7 @@ _logger = logging.getLogger(__name__)
 
 
 class DropPolicy(str, Enum):
-    NEVER = "never"          # block until space — audit-critical
+    NEVER = "never"          # block until space, audit-critical
     DROP_OLDEST = "drop_oldest"  # evict head when full
     DROP_NEW = "drop_new"    # discard new entry when full
 
@@ -89,7 +89,7 @@ class ChronicleEmitQueue:
         For DROP_OLDEST: evicts oldest entry to make room.
         """
         if self._stopped.is_set():
-            # Shutdown in progress — emit synchronously as fallback.
+            # Shutdown in progress: emit synchronously as fallback.
             try:
                 task.execute()
             except Exception as exc:
@@ -100,7 +100,7 @@ class ChronicleEmitQueue:
 
         try:
             if policy == DropPolicy.NEVER:
-                self._queue.put(task)  # blocks — must not lose safety events
+                self._queue.put(task)  # blocks, must not lose safety events
                 return True
 
             if policy == DropPolicy.DROP_NEW:

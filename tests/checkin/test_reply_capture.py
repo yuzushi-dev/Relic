@@ -98,7 +98,7 @@ class TestIsSubstantive:
         # the subject reply; it must be rejected.
         scaffold = (
             "[IMPORTANT: You are running as a scheduled cron job. DELIVERY: Your "
-            "final response will be automatically delivered to the user — do NOT "
+            "final response will be automatically delivered to the user, do NOT "
             "use send_message or try to call tools.]"
         )
         assert _is_substantive(scaffold) is False
@@ -309,7 +309,7 @@ class TestWriteCorrectness:
         assert result is False
 
     def test_facet_id_null_not_captured(self, relic_dir: Path):
-        """Exchange with null facet_id is skipped — would orphan in facet_updater."""
+        """Exchange with null facet_id is skipped, would orphan in facet_updater."""
         _write_consent(relic_dir, active=True)
         conn = _init_db(relic_dir)
         _insert_exchange(conn, _now(), facet_id=None)

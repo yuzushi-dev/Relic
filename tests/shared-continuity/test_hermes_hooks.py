@@ -1,5 +1,5 @@
 """
-PR33F — Hermes Hooks Tests
+PR33F, Hermes Hooks Tests
 
 Tests for Hermes hooks:
 - Hooks inject only subject-confirmed markers into context

@@ -1,4 +1,4 @@
-"""PR04 — RoleplayAdmissionController and RoleplayAdmissionEvent.
+"""PR04, RoleplayAdmissionController and RoleplayAdmissionEvent.
 
 Thin wrapper over AdmissionPolicy that:
 - Accepts structured task_type / sensitivity / cac_decisions inputs
@@ -64,12 +64,12 @@ class RoleplayAdmissionController:
     """Decide roleplay level and continuity mode for a given turn.
 
     Input signals:
-    - task_type: str — classified task (technical, relational, medical, …)
-    - sensitivity: str — "low" | "medium" | "high"
-    - consent: bool — user has explicitly opted in to relational mode
-    - challenged: bool — user is questioning Gumi's nature
-    - cac_decisions: list[dict] — CAC decision summaries (optional)
-    - continuity_candidates: list[dict] — admitted continuity markers (optional)
+    - task_type: str, classified task (technical, relational, medical, …)
+    - sensitivity: str, "low" | "medium" | "high"
+    - consent: bool, user has explicitly opted in to relational mode
+    - challenged: bool, user is questioning Gumi's nature
+    - cac_decisions: list[dict], CAC decision summaries (optional)
+    - continuity_candidates: list[dict], admitted continuity markers (optional)
 
     Returns RoleplayAdmissionEvent with final roleplay_level and continuity_mode.
     """

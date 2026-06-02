@@ -1,4 +1,4 @@
-"""Tests for image_gen.py — Gemini image generation."""
+"""Tests for image_gen.py, Gemini image generation."""
 from __future__ import annotations
 
 import base64

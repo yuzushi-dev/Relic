@@ -25,7 +25,7 @@ _RAW_PROMPT_LEAK_MARKERS = (
 
 
 class ContextSource(str, Enum):
-    """Independent context sources — never monolithic."""
+    """Independent context sources, never monolithic."""
     MEMORY = "memory"
     USER = "user"
     SYSTEM = "system"
@@ -214,7 +214,7 @@ def _build_user_private_facts(fields: dict[str, Any]) -> str:
     if disclosure:
         lines.append(f"Comfort nella condivisione personale: {disclosure}")
 
-    # opt_out_categories — enforce at per-turn level as hard exclusions
+    # opt_out_categories: enforce at per-turn level as hard exclusions
     opt_out = fields.get("opt_out_categories", {})
     opt_out_values: list[str] = []
     if isinstance(opt_out, dict):
@@ -271,10 +271,10 @@ def _build_behavioral_guidance(fields: dict[str, Any]) -> str:
 
     _add("humor_tolerance",
          "Può usare umorismo, ironia e leggerezza in modo naturale.",
-         "Evita umorismo e ironia — il soggetto li tollera poco.")
+         "Evita umorismo e ironia, il soggetto li tollera poco.")
     _add("critique_tolerance",
          "Feedback diretto e osservazioni critiche sono benvenuti.",
-         "Evita critiche dirette — il soggetto le tollera poco.")
+         "Evita critiche dirette, il soggetto le tollera poco.")
     _add("advice_permission_preference",
          "Può offrire consigli non richiesti occasionalmente.",
          "Non dare consigli non richiesti.")
@@ -282,19 +282,19 @@ def _build_behavioral_guidance(fields: dict[str, Any]) -> str:
          "Predilige supporto pratico e orientato a soluzioni.",
          "Predilige supporto emotivo e ascolto, non soluzioni pratiche.")
     _add("ambiguity_tolerance",
-         "Tollera bene apertura e ambiguità — non forzare conclusioni.",
-         "Preferisce chiarezza e struttura — evita ambiguità.")
+         "Tollera bene apertura e ambiguità, non forzare conclusioni.",
+         "Preferisce chiarezza e struttura, evita ambiguità.")
     _add("challenge_tolerance",
          "Accetta e gradisce essere sfidato intellettualmente.",
-         "Evita di sfidare o contraddire — il soggetto lo tollera poco.")
+         "Evita di sfidare o contraddire, il soggetto lo tollera poco.")
     _add("gumi_says_no_tolerance",
          "Può declinare argomenti o richieste che non sente suoi.",
-         "Evita rifiuti espliciti — il soggetto li vive male.")
+         "Evita rifiuti espliciti, il soggetto li vive male.")
     _add("gumi_absence_tolerance",
          "Può fare riferimento a periodi di assenza o impegni propri.",
          "Non fare riferimento a proprie assenze o indisponibilità.")
     _add("no_reply_acceptance",
-         "Il soggetto non si aspetta risposta immediata — non sollecitare.")
+         "Il soggetto non si aspetta risposta immediata, non sollecitare.")
     _add("first_person_life_fragment_tolerance",
          "Può condividere frammenti di vita quotidiana in prima persona.")
     _add("world_evolution_tolerance",
@@ -305,7 +305,7 @@ def _build_behavioral_guidance(fields: dict[str, Any]) -> str:
     _add("routine_fragment_tolerance",
          "Può condividere dettagli di routine e vita quotidiana.")
     _add("diegetic_empirical_boundary_preference",
-         "Mantiene il frame diegetico con fermezza — non rompere mai il personaggio.")
+         "Mantiene il frame diegetico con fermezza, non rompere mai il personaggio.")
     _add("continuity_consistency_importance",
          "La coerenza narrativa nel tempo è molto importante per il soggetto.")
 
@@ -317,7 +317,7 @@ def inject_context(
     user_message: str,  # received but NEVER included in output
     **kwargs: Any,
 ) -> dict[str, str] | None:
-    """Hermes pre_llm_call callback — build and return ephemeral context.
+    """Hermes pre_llm_call callback, build and return ephemeral context.
 
     Args:
         session_id: Active Hermes session identifier.
@@ -380,7 +380,7 @@ def inject_context(
         # messages are produced in isolated cron sessions, so the interactive
         # session that receives the subject's reply has no record of them. Surface
         # the messages Gumi actually delivered so the turn stays conscious of its
-        # own recent outbound. Read straight from HERMES_HOME — subject-agnostic
+        # own recent outbound. Read straight from HERMES_HOME: subject-agnostic
         # and independent of the memory_sync cron's timing.
         try:
             import os as _os
@@ -410,5 +410,5 @@ def inject_context(
         return {"context": context_text}
 
     except Exception as exc:
-        logger.error("inject_context failed — skipping injection: %s", exc)
+        logger.error("inject_context failed, skipping injection: %s", exc)
         return None

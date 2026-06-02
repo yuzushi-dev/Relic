@@ -1,5 +1,5 @@
 """
-PR33B — Schema Tests
+PR33B, Schema Tests
 
 Tests for Shared Continuity Memory database schema:
 - All tables have subject_id, gumi_instance_id, hermes_profile_id

@@ -1,6 +1,6 @@
-"""PR08 — system_inferred_fields update loop.
+"""PR08, system_inferred_fields update loop.
 
-Reads only governed traces and redacted metadata — never raw prompt text.
+Reads only governed traces and redacted metadata, never raw prompt text.
 Updates estimated_engagement_level, inferred_relational_style,
 session_affect_summary, response_latency_pattern.
 """

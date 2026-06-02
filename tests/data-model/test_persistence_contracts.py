@@ -1,4 +1,4 @@
-"""PR26C — Persistence Contracts tests."""
+"""PR26C, Persistence Contracts tests."""
 
 import pytest
 import json

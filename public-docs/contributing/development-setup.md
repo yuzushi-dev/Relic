@@ -60,7 +60,7 @@ Branch from `main`. Keep PRs focused. A PR that fixes a bug should not include u
 make lint
 ```
 
-Relic uses ruff for linting. The configuration is in `pyproject.toml`. The lint rules are intentionally not strict in alpha; some warnings will be present. Do not disable rules to pass CI — fix the underlying issue.
+Relic uses ruff for linting. The configuration is in `pyproject.toml`. The lint rules are intentionally not strict in alpha; some warnings will be present. Do not disable rules to pass CI, fix the underlying issue.
 
 ## Environment variables for development
 
@@ -72,4 +72,4 @@ export RELIC_LOG_LEVEL=DEBUG
 export RELIC_ECHO_SQL=true
 ```
 
-Do not set `RELIC_DB_PATH` to your live database when running tests — the test suite creates and modifies data.
+Do not set `RELIC_DB_PATH` to your live database when running tests, the test suite creates and modifies data.

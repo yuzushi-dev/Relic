@@ -1,10 +1,10 @@
-"""Chronicle — unified event capture, decision tracking, and inspection for Relic.
+"""Chronicle, unified event capture, decision tracking, and inspection for Relic.
 
 Module: relic.chronicle
 Version: chronicle/v1
 Reference: docs/chronicle/agentic-development-plan.md
 
-Public API — all other modules are internal.
+Public API, all other modules are internal.
 
 Public exports:
     emit_event, emit_decision, emit_snapshot, emit_provenance_edge
@@ -27,7 +27,7 @@ Models:
 """
 from __future__ import annotations
 
-# Re-export enums from Relic core (source of truth — do not duplicate)
+# Re-export enums from Relic core (source of truth: do not duplicate)
 from relic.persistence import PrivacyLevel
 
 try:
@@ -56,7 +56,7 @@ from relic.chronicle.schema import (
     StateSnapshot,
 )
 
-# Re-export context helpers (safe — no circular dependency)
+# Re-export context helpers (safe: no circular dependency)
 from relic.chronicle.context import (
     get_experiment_id,
     get_run_id,

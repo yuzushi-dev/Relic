@@ -1,5 +1,5 @@
 """
-PR27L — Export and Replication Console Contract Tests
+PR27L, Export and Replication Console Contract Tests
 
 Tests verify:
 - Export is redacted by default

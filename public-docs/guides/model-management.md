@@ -6,9 +6,9 @@ How to pick, install, swap, and tune the local LLM Relic uses through Ollama.
 
 Three call sites:
 
-1. **Bootstrap data generation** — Gumi background, intro composition, media constraints. Runs at subject creation and on regeneration. A few dozen calls per subject lifetime.
-2. **Runtime conversation** — every turn the subject sends. The bulk of LLM usage in active deployments.
-3. **Evaluation** — `scripts/eval_run.py` and the eval harness. Use a deterministic mock model by default; only call the real model when you specifically need to.
+1. **Bootstrap data generation**: Gumi background, intro composition, media constraints. Runs at subject creation and on regeneration. A few dozen calls per subject lifetime.
+2. **Runtime conversation**: every turn the subject sends. The bulk of LLM usage in active deployments.
+3. **Evaluation**: `scripts/eval_run.py` and the eval harness. Use a deterministic mock model by default; only call the real model when you specifically need to.
 
 The same model serves all three by default, but you can split them (see [Splitting models per call site](#splitting-models-per-call-site)).
 
@@ -67,7 +67,7 @@ Restart any running Hermes gateway: `pkill -f 'hermes gateway run'`, then start 
 
 Relic talks to Hermes; Hermes talks to Ollama. As long as Hermes is configured, Relic uses whatever Hermes uses.
 
-If you set `HINDSIGHT_LLM_API_KEY` to use a non-Ollama Hindsight backend, Hindsight has its own model setting — see [Hindsight LLM API key](api-keys-and-tokens.md#hindsight-llm-api-key).
+If you set `HINDSIGHT_LLM_API_KEY` to use a non-Ollama Hindsight backend, Hindsight has its own model setting, see [Hindsight LLM API key](api-keys-and-tokens.md#hindsight-llm-api-key).
 
 ## Verifying the swap
 

@@ -4,11 +4,11 @@ Relic is in alpha. This page documents which modules are stable enough to depend
 
 ## Status definitions
 
-**Stable** — The public interface is unlikely to change without a deprecation notice. Tests cover the main contracts. Safe to build on.
+**Stable**, The public interface is unlikely to change without a deprecation notice. Tests cover the main contracts. Safe to build on.
 
-**Experimental** — Under active development. The interface may change between alpha releases without notice. Use it, but expect breakage.
+**Experimental**, Under active development. The interface may change between alpha releases without notice. Use it, but expect breakage.
 
-**Internal** — Not intended as a public interface. May be reorganized, renamed, or removed at any time.
+**Internal**, Not intended as a public interface. May be reorganized, renamed, or removed at any time.
 
 ## Module stability
 
@@ -88,7 +88,7 @@ A flatter view oriented at researchers deciding what to depend on. Status legend
 | Cron-scheduled proactivity | Stable | Subject-scoped; consent + pause gated |
 | `/relic why`, `/relic pause`, `/relic resume`, `/relic status` | Stable | In-session, researcher-only |
 
-**Status legend:** *Stable* — depend on it. *Beta* — usable, expect breakage between releases. *Eval fixtures only* — exists for evaluation, not for production routing. *Not implemented* — the string is accepted somewhere, but no code path delivers. *Out of scope* — by design, not on the public roadmap. *Migration-only* — assets ship, runtime wiring requires engineering work.
+**Status legend:** *Stable*, depend on it. *Beta*, usable, expect breakage between releases. *Eval fixtures only*, exists for evaluation, not for production routing. *Not implemented*, the string is accepted somewhere, but no code path delivers. *Out of scope*, by design, not on the public roadmap. *Migration-only*, assets ship, runtime wiring requires engineering work.
 
 ## What is on the near roadmap
 

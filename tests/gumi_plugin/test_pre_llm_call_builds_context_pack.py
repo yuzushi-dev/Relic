@@ -1,4 +1,4 @@
-"""PR22E — pre_llm_call hook dispatch."""
+"""PR22E, pre_llm_call hook dispatch."""
 from __future__ import annotations
 
 from relic.gumi_plugin import hooks

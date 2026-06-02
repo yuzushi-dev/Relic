@@ -1,6 +1,6 @@
 # Ethics
 
-Relic collects and processes behavioral data about real people. The ethical constraints described here are not peripheral — they shape the architecture, the data model, and the test suite. Ignoring them in a deployment is not a configuration choice; it breaks the system's core invariants.
+Relic collects and processes behavioral data about real people. The ethical constraints described here are not peripheral, they shape the architecture, the data model, and the test suite. Ignoring them in a deployment is not a configuration choice; it breaks the system's core invariants.
 
 ## The core tension
 
@@ -10,7 +10,7 @@ The system is designed around one principle: the model is not the person. A Reli
 
 ## What the system does and does not claim
 
-The facet model is grounded in established psychological frameworks — cognitive appraisal theory, attachment theory, self-determination theory, dual-process theory, CAPS, and LIWC. These are modeling dimensions, not clinical scales. Relic does not diagnose, screen, or assess mental health. A facet score is an estimate derived from behavioral signals in a limited interaction context. It should be treated as tentative, correctable, and domain-specific.
+The facet model is grounded in established psychological frameworks, cognitive appraisal theory, attachment theory, self-determination theory, dual-process theory, CAPS, and LIWC. These are modeling dimensions, not clinical scales. Relic does not diagnose, screen, or assess mental health. A facet score is an estimate derived from behavioral signals in a limited interaction context. It should be treated as tentative, correctable, and domain-specific.
 
 See [No Clinicalization](no-clinicalization.md) for the specific boundaries and the reasoning behind them.
 

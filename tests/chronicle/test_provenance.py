@@ -1,4 +1,4 @@
-"""Chronicle provenance tests — T021 graph add/get/verify."""
+"""Chronicle provenance tests, T021 graph add/get/verify."""
 from __future__ import annotations
 
 import sqlite3

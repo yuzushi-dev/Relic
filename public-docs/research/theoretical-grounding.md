@@ -6,7 +6,7 @@ Using these frameworks does not make Relic a psychometric instrument. See [Limit
 
 ## Cognitive Appraisal Theory
 
-**Contribution to Relic**: Appraisal pattern facets — how situations are evaluated along dimensions such as controllability, threat vs. challenge, and agency. Stress-response and coping orientation facets are derived from appraisal dimensions.
+**Contribution to Relic**: Appraisal pattern facets, how situations are evaluated along dimensions such as controllability, threat vs. challenge, and agency. Stress-response and coping orientation facets are derived from appraisal dimensions.
 
 **Key references**:
 
@@ -16,7 +16,7 @@ Using these frameworks does not make Relic a psychometric instrument. See [Limit
 
 ## Self-Determination Theory (SDT)
 
-**Contribution to Relic**: Three core need facets — autonomy (self-direction vs. dependence on external structure), competence (efficacy vs. self-doubt), and relatedness (connection vs. isolation). Observable in communication patterns related to initiative, expressed confidence, and relational engagement.
+**Contribution to Relic**: Three core need facets, autonomy (self-direction vs. dependence on external structure), competence (efficacy vs. self-doubt), and relatedness (connection vs. isolation). Observable in communication patterns related to initiative, expressed confidence, and relational engagement.
 
 **Key references**:
 
@@ -26,7 +26,7 @@ Using these frameworks does not make Relic a psychometric instrument. See [Limit
 
 ## Attachment Theory
 
-**Contribution to Relic**: Relational style facets derived from attachment dimensions — anxiety (concern about availability and acceptance) and avoidance (discomfort with closeness and reliance). Observable in how subjects discuss relationships, express needs, and respond to relational warmth or distance in interaction.
+**Contribution to Relic**: Relational style facets derived from attachment dimensions, anxiety (concern about availability and acceptance) and avoidance (discomfort with closeness and reliance). Observable in how subjects discuss relationships, express needs, and respond to relational warmth or distance in interaction.
 
 **Key references**:
 

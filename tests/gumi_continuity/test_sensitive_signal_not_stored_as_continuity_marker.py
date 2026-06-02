@@ -1,4 +1,4 @@
-"""PR06-T12 — PR32 sensitive_signals must never enter continuity marker store."""
+"""PR06-T12, PR32 sensitive_signals must never enter continuity marker store."""
 from __future__ import annotations
 
 from relic.gumi_continuity.admission import ContinuityAdmissionPolicy

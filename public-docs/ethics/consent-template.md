@@ -107,7 +107,7 @@ Record the ticks at the **Consent** step of `relic subject create`. The bootstra
 
 ## Related reading
 
-- [Ethics](index.md) — the core ethical commitments the system enforces.
-- [Consent and Control](consent-and-control.md) — how consent flows through the system.
-- [Behavioral Boundaries](boundaries.md) — what Gumi will and will not do.
-- [Export and Deletion](../guides/export-and-deletion.md) — the operational side of participant rights.
+- [Ethics](index.md): the core ethical commitments the system enforces.
+- [Consent and Control](consent-and-control.md): how consent flows through the system.
+- [Behavioral Boundaries](boundaries.md): what Gumi will and will not do.
+- [Export and Deletion](../guides/export-and-deletion.md): the operational side of participant rights.

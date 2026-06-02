@@ -74,7 +74,7 @@ def replay_event(
 
     decision_type = event.get("decision_type") or "checkin"
     if features_payload is None:
-        # Fall back to a zero vector — still deterministic.
+        # Fall back to a zero vector: still deterministic.
         features = CheckinFeatures()
     elif isinstance(features_payload, str):
         try:

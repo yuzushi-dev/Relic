@@ -4,7 +4,7 @@ Proactive / check-in / diegetic messages are produced in isolated Hermes
 ``session_cron_*`` sessions. When the subject replies, the gateway opens a
 *new* interactive session (``session_reset idle_minutes: 180``) that has no
 record of the message Gumi just sent. The interactive model therefore answers
-without knowing what it asked — it "is not conscious of previous messages".
+without knowing what it asked, it "is not conscious of previous messages".
 
 This module scans the profile's own session store for the messages actually
 delivered to the subject and renders them as a compact recent-conversation
@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 _DROP_PREFIXES = ("tipo:", "image_prompt:", "ask:", "ask_topic:", "ora:", "deliver_context")
 _UNWRAP_PREFIXES = ("caption:",)
 
-# Cap how many recent session files we stat/parse — newest-first, bounded for
+# Cap how many recent session files we stat/parse: newest-first, bounded for
 # perf on profiles with hundreds of cron sessions.
 _MAX_SCAN_FILES = 40
 _PER_MSG_CHARS = 240
@@ -46,7 +46,7 @@ def is_maintenance_session(data: dict[str, Any]) -> bool:
 
     Maintenance jobs (world_state_compaction, continuity_candidate_review) read
     the workspace via tools and emit an audit report. Subject-facing delivery
-    jobs (check-in / proactive / diegetic / media) never call tools — they emit
+    jobs (check-in / proactive / diegetic / media) never call tools, they emit
     plain text that the gateway delivers. The presence of any tool turn is a
     reliable discriminator.
     """
@@ -148,7 +148,7 @@ def recent_delivered_messages(
                 break
         return out
     except Exception:
-        logger.exception("recent_delivered_messages failed — returning empty")
+        logger.exception("recent_delivered_messages failed, returning empty")
         return []
 
 
@@ -162,7 +162,7 @@ def build_recent_outbound_context(
     """Render a compact 'messages you recently sent' block, or '' if none.
 
     The block is framed so the interactive model treats it as its own recent
-    outbound — the subject's current turn may be a reply to one of these.
+    outbound, the subject's current turn may be a reply to one of these.
     """
     msgs = recent_delivered_messages(
         hermes_home, max_msgs=max_msgs, within_hours=within_hours, now=now
@@ -171,7 +171,7 @@ def build_recent_outbound_context(
         return ""
     lines = [
         "Messaggi recenti che hai inviato tu (Gumi) al soggetto. "
-        "Il messaggio attuale del soggetto potrebbe essere una risposta a questi — "
+        "Il messaggio attuale del soggetto potrebbe essere una risposta a questi, "
         "tienine conto per restare coerente:"
     ]
     # Oldest-first reads more naturally as a short history.

@@ -1,4 +1,4 @@
-"""Tests for _select_media_type — policy fallback + voice/audio key compat."""
+"""Tests for _select_media_type, policy fallback + voice/audio key compat."""
 from __future__ import annotations
 
 import hashlib

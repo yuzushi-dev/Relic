@@ -10,10 +10,10 @@ These are not benchmarks. They are operational sanity checks.
 |---|---|---|---|
 | Item battery (TIPI + ECR-RS + project items) | 8–12 min | up to 20 min | researcher pacing varies |
 | Self-report + researcher-coded + boundaries | 5–10 min | up to 15 min | same |
-| Consent record | 1–2 min | 3 min | — |
+| Consent record | 1–2 min | 3 min |, |
 | Gumi background generation (hybrid mode) | 30–90 s | 3 min | > 3 min: check Ollama load |
 | First media canon generation (if enabled) | 1–3 min | 5 min | > 5 min: Gemini quota or network |
-| Total researcher time | 30–60 min | 90 min | structural — keep sessions short |
+| Total researcher time | 30–60 min | 90 min | structural, keep sessions short |
 
 The TUI is gated on the researcher's typing speed, not on the model. Most of the elapsed time is human, not machine.
 
@@ -35,10 +35,10 @@ First turn after gateway start is always slower (model load + warm-up). Subseque
 | Metric | Baseline | Notes |
 |---|---|---|
 | RAM | 200–400 MB (Hermes) + 18–24 GB (Ollama warm model) | Ollama unloads idle models after ~5 min |
-| CPU | < 1% | Cron ticks every 60 s — brief spikes are normal |
+| CPU | < 1% | Cron ticks every 60 s, brief spikes are normal |
 | Disk writes | a few KB/min | Cron decisions, retention reaper if scheduled |
 
-If RAM grows beyond the baseline over hours, suspect a memory leak in the plugin or in the model — restart the gateway, file an issue.
+If RAM grows beyond the baseline over hours, suspect a memory leak in the plugin or in the model, restart the gateway, file an issue.
 
 ## Workbench
 
@@ -60,7 +60,7 @@ The workbench is a thin reader. If a page is slow, the bottleneck is usually the
 | `chronicle provenance --artifact ID --depth 3` | < 500 ms |
 | `chronicle reaper --dry-run` (over 1 yr of events for a few subjects) | a few seconds |
 
-Indexes cover the common access patterns. If a query is slow, it usually means the filter is too broad — add `--subject`, `--since`, `--limit`.
+Indexes cover the common access patterns. If a query is slow, it usually means the filter is too broad, add `--subject`, `--since`, `--limit`.
 
 ## Concurrency
 

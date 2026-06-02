@@ -1,4 +1,4 @@
-"""PR16C — permission matrix denies subject role from request_recompile."""
+"""PR16C, permission matrix denies subject role from request_recompile."""
 from __future__ import annotations
 
 import pytest

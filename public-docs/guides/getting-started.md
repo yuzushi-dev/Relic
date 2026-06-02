@@ -6,7 +6,7 @@ A five-minute orientation for researchers approaching Relic for the first time. 
 
 Relic is a research tool for studying how a conversational agent maintains a relationship with one person over time. It does two things:
 
-1. It keeps an **inspectable, correctable model** of the subject — observations, traits, confidence scores, source references. Nothing is hidden; everything can be reviewed and corrected.
+1. It keeps an **inspectable, correctable model** of the subject: observations, traits, confidence scores, source references. Nothing is hidden; everything can be reviewed and corrected.
 2. It runs a companion agent (**Gumi**) that uses that model under strict governance rules: what may be remembered, what may be said back, what stays researcher-only, what the subject can pause or delete.
 
 Relic is **not** a clinical tool. It does not diagnose, screen, or rate mental health. Facets are theory-grounded modeling dimensions with confidence scores, not psychometric verdicts. See [No Clinicalization](../ethics/no-clinicalization.md).
@@ -65,17 +65,17 @@ If you also enable Gemini for media, expect modest Google API usage within the f
 
 The repo deploys a static workbench build to GitHub Pages: **[yuzushi-dev.github.io/Relic/](https://yuzushi-dev.github.io/Relic/)**.
 
-It runs entirely in the browser against synthetic demo data. No backend, no install. Use it to evaluate the UI shape before committing time to the full install. The live demo cannot run real subjects — for that you need the local install below.
+It runs entirely in the browser against synthetic demo data. No backend, no install. Use it to evaluate the UI shape before committing time to the full install. The live demo cannot run real subjects, for that you need the local install below.
 
 See also [Demo Quickstart](demo-quickstart.md) for two faster local paths: a synthetic eval pipeline and a pre-populated workbench DB.
 
 ## The path from zero
 
-1. **Install** — [Installation](installation.md). `git clone`, `pip install -e .`, `relic init` wizard.
-2. **Bootstrap a synthetic subject** — [First Subject](first-subject.md). Use the wizard to create a demo profile with synthetic data. Nothing is sent to anyone.
-3. **Open the workbench** — `relic ui`, then visit `http://localhost:8080`. Look at the generated profile, the timeline, the CAC traces.
-4. **Wire up Telegram and start Gumi** — only when you are ready to talk to a real Gumi. See [API Keys and Tokens](api-keys-and-tokens.md) and the [Hermes Integration quickstart](hermes-integration.md#quickstart-from-bootstrap-to-first-message).
-5. **Day-to-day** — see [Daily Operations](daily-operations.md) for the routine.
+1. **Install**: [Installation](installation.md). `git clone`, `pip install -e .`, `relic init` wizard.
+2. **Bootstrap a synthetic subject**: [First Subject](first-subject.md). Use the wizard to create a demo profile with synthetic data. Nothing is sent to anyone.
+3. **Open the workbench**: `relic ui`, then visit `http://localhost:8080`. Look at the generated profile, the timeline, the CAC traces.
+4. **Wire up Telegram and start Gumi**: only when you are ready to talk to a real Gumi. See [API Keys and Tokens](api-keys-and-tokens.md) and the [Hermes Integration quickstart](hermes-integration.md#quickstart-from-bootstrap-to-first-message).
+5. **Day-to-day**: see [Daily Operations](daily-operations.md) for the routine.
 
 If something breaks, see [Troubleshooting](troubleshooting.md) before re-running setup.
 
@@ -93,7 +93,7 @@ If something breaks, see [Troubleshooting](troubleshooting.md) before re-running
 
 - Synthetic data or explicitly consented data only.
 - The subject can always pause, export, correct, and delete.
-- Safety signals are researcher-facing — never shown to the subject, never injected into Gumi's memory.
+- Safety signals are researcher-facing: never shown to the subject, never injected into Gumi's memory.
 - Gumi's own diegetic events are not evidence about the subject.
 - Treat every facet as an estimate, not a fact. Read its confidence score and source trace.
 

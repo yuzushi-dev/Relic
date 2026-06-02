@@ -144,23 +144,23 @@ def main() -> int:
         print(f"replied exchanges: {rep['n_replied']} | batches(>1): {rep['batches_total']}")
 
         if rep["orphaned_batches"]:
-            print(f"  STRUCTURAL — {len(rep['orphaned_batches'])} batch con sibling orfani "
+            print(f"  STRUCTURAL, {len(rep['orphaned_batches'])} batch con sibling orfani "
                   f"(* = ha ricevuto la reply):")
             for o in rep["orphaned_batches"]:
                 print(f"    {o['asked_at']}: {', '.join(o['facets'])}")
         else:
-            print("  STRUCTURAL — nessun batch con sibling orfani")
+            print("  STRUCTURAL, nessun batch con sibling orfani")
 
         if use_llm:
             suspects = [x for x in rep["rejudge"] if x["suspect"]]
             errors = [x for x in rep["rejudge"] if x["error"]]
-            print(f"  SEMANTIC — {len(suspects)}/{rep['n_replied']} reply sostanziose "
+            print(f"  SEMANTIC, {len(suspects)}/{rep['n_replied']} reply sostanziose "
                   f"NON informative sul facet registrato (sospette):")
             for s in suspects:
                 print(f"    ex {s['id']} [{s['facet']}] (extracted={s['extracted']}): "
                       f"\"{s['reply_head']}\"")
             if errors:
-                print(f"  WARN — {len(errors)} re-giudizi falliti (LLM unreachable): "
+                print(f"  WARN, {len(errors)} re-giudizi falliti (LLM unreachable): "
                       f"ids {[e['id'] for e in errors]}")
     return 0
 

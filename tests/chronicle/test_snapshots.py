@@ -1,4 +1,4 @@
-"""Tests for snapshot capture module — T020.
+"""Tests for snapshot capture module, T020.
 
 Module: tests.chronicle.test_snapshots
 Reference: docs/chronicle/agentic-development-plan.md §8.1, T020

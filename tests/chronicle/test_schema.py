@@ -1,4 +1,4 @@
-"""Tests for relic.chronicle.schema — T010."""
+"""Tests for relic.chronicle.schema, T010."""
 from __future__ import annotations
 
 import json

@@ -1,5 +1,5 @@
 """
-PR27M — Cross-Subject Aggregate Metrics Contract Tests
+PR27M, Cross-Subject Aggregate Metrics Contract Tests
 
 Tests verify:
 - Cross-subject views show aggregate/redacted summaries only

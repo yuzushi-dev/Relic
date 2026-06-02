@@ -3,7 +3,7 @@
 Real delivered text is never persisted (privacy gate keeps only hashes), so
 the ProseCritic threshold cannot be tuned on real output. This script instead:
 
-  1. Generates an Italian Gumi-style corpus with gemma: two intended pools —
+  1. Generates an Italian Gumi-style corpus with gemma: two intended pools,
      "natural" (human voice) and "slop" (AI tells).
   2. Has gemma blindly judge each message with a prose_score 0-100 (higher =
      more human/natural).

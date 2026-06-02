@@ -1,5 +1,5 @@
 """
-PR33D — Broad Memory Candidate Boundary Tests
+PR33D, Broad Memory Candidate Boundary Tests
 
 Tests for FIX09: Unconfirmed Hindsight/broad-memory candidates must be marked
 candidate_for_confirmation=True and must NOT be returned to Gumi runtime context.

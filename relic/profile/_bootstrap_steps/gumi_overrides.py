@@ -95,7 +95,7 @@ def collect_gumi_overrides(
         prompt_optional("name", "Nome dell'agente Gumi.", io_in, io_out, default="Gumi") or "Gumi"
     )
 
-    # Gumi signature emoji — her recurring expressive vocabulary
+    # Gumi signature emoji: her recurring expressive vocabulary
     raw_emoji = prompt_optional(
         "signature_emoji",
         "Emoji identificative di Gumi (2-5 emoji separate da spazio, es. '🌿 🌙 ✨'). Usate come vocabolario espressivo ricorrente.",

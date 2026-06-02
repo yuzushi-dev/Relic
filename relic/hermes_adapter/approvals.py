@@ -1,5 +1,5 @@
 """
-Approvals — Approval event normalization for Hermes.
+Approvals, Approval event normalization for Hermes.
 
 This module normalizes approval requests and resolutions from Hermes,
 emitting canonical Chronicle events for audit.

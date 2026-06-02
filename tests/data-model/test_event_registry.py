@@ -1,4 +1,4 @@
-"""PR26B — Event Registry tests."""
+"""PR26B, Event Registry tests."""
 
 import pytest
 import json

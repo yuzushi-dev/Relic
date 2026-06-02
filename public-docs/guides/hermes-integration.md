@@ -108,11 +108,11 @@ safety:
 
 Two hooks run per turn:
 
-**`pre_llm_call`** — runs before the LLM call. Classifies the task, retrieves memory and continuity candidates, runs them through the Relic gates, assembles the PromptContextPack, and injects it as ephemeral context.
+**`pre_llm_call`**, runs before the LLM call. Classifies the task, retrieves memory and continuity candidates, runs them through the Relic gates, assembles the PromptContextPack, and injects it as ephemeral context.
 
-**`post_llm_call`** — runs after the LLM call. Evaluates the output against the critic rubric, writes continuity traces and exposure events, and checks output safety.
+**`post_llm_call`**, runs after the LLM call. Evaluates the output against the critic rubric, writes continuity traces and exposure events, and checks output safety.
 
-Hook failures produce no memory injection (not a partial injection). If the plugin fails, Gumi continues with only her SOUL.md and Hermes's own context — personalization is suppressed, not corrupted.
+Hook failures produce no memory injection (not a partial injection). If the plugin fails, Gumi continues with only her SOUL.md and Hermes's own context, personalization is suppressed, not corrupted.
 
 ## Researcher tools
 

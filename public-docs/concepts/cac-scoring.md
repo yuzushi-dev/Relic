@@ -1,6 +1,6 @@
 # CAC: How Memory Decisions Are Scored
 
-The Context-Aware Controller (CAC) decides, every turn, whether each candidate memory may influence Gumi. This page explains the inputs, the severity ladder, and the decision outcomes — at the level a researcher needs to read a CAC trace without surprise.
+The Context-Aware Controller (CAC) decides, every turn, whether each candidate memory may influence Gumi. This page explains the inputs, the severity ladder, and the decision outcomes, at the level a researcher needs to read a CAC trace without surprise.
 
 Source: `relic/cac/`.
 
@@ -9,13 +9,13 @@ Source: `relic/cac/`.
 ```
 candidates from memory provider, continuity, profile
   ↓
-score (per candidate)        — assigns a SeverityClass
+score (per candidate): assigns a SeverityClass
   ↓
-determine_decision           — maps severity + context to CACDecision
+determine_decision: maps severity + context to CACDecision
   ↓
-render                       — converts allowed decisions to PromptContextPack
+render: converts allowed decisions to PromptContextPack
   ↓
-trace                        — writes CACTrace event (immutable)
+trace: writes CACTrace event (immutable)
 ```
 
 The trace is the auditable artefact: every decision, with the inputs that produced it, ends up queryable via `chronicle decision --kind cac_decision`.
@@ -34,7 +34,7 @@ Each candidate arrives as a `CACInput` (`relic/cac/types.py`):
 | `dispute_reason` | If `disputed`, why. |
 | `metadata` | Extras: confidence, correction_type, verified, … |
 
-The input never contains raw session text — only the memory content under evaluation, its hash, and structured metadata.
+The input never contains raw session text, only the memory content under evaluation, its hash, and structured metadata.
 
 ## Severity ladder
 

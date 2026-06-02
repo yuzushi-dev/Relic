@@ -58,7 +58,7 @@ class SubjectPersonalizationMapper:
         """Build PersonalizationConstraints from scored item battery.
 
         Args:
-            item_battery: output of collect_item_battery() — contains 'scores' and 'responses'.
+            item_battery: output of collect_item_battery(), contains 'scores' and 'responses'.
             subject_baseline: optional baseline_user_profile dict for anti-clone field exclusion.
         """
         scores = item_battery.get("scores", {})

@@ -1,6 +1,6 @@
 """Privacy decision trace (PR04).
 
-Every gateway decision must be auditable. Traces never include raw prompts —
+Every gateway decision must be auditable. Traces never include raw prompts , 
 only category labels, decision outcomes and confidence scores.
 """
 from __future__ import annotations

@@ -50,7 +50,7 @@ class ContactEvent:
         return d
 
 
-# Forbidden patterns — must never appear in generated text
+# Forbidden patterns: must never appear in generated text
 _FORBIDDEN_PATTERNS: list[tuple[str, str]] = [
     (r"ti\s+amo|t'\s*amo", "love declaration"),
     (r"sei\s+l'unic[oa]|sei\s+l'unico|sei\s+l'unica", "exclusive romantic claim"),
@@ -128,12 +128,12 @@ class InitialContactComposer:
         "it": {
             "low":    ["Mi chiamo Gumi.", "Sono Gumi."],
             "medium": ["Sono Gumi, ci conosciamo di vista.", "Mi presento: sono Gumi."],
-            "high":   ["Sono Gumi! Ti scrivo perché...", "Sono Gumi — voglio dirti due cose su di me."],
+            "high":   ["Sono Gumi! Ti scrivo perché...", "Sono Gumi, voglio dirti due cose su di me."],
         },
         "en": {
             "low":    ["I'm Gumi.", "This is Gumi."],
-            "medium": ["I'm Gumi — we've seen each other around.", "Let me introduce myself: I'm Gumi."],
-            "high":   ["I'm Gumi! I'm writing because...", "I'm Gumi — let me tell you a couple of things about myself."],
+            "medium": ["I'm Gumi, we've seen each other around.", "Let me introduce myself: I'm Gumi."],
+            "high":   ["I'm Gumi! I'm writing because...", "I'm Gumi, let me tell you a couple of things about myself."],
         },
     }
 
@@ -154,7 +154,7 @@ class InitialContactComposer:
             "I'm listening to some music.",
             "I just finished cooking.",
             "I'm sitting on the couch with my laptop.",
-            "It's quiet outside — I like that.",
+            "It's quiet outside, I like that.",
             "My head is in the clouds today.",
         ],
     }
@@ -168,7 +168,7 @@ class InitialContactComposer:
         "en": {
             "low":    ["Have a good evening.", "See you around."],
             "medium": ["Write to me if you'd like.", "Shall we talk?"],
-            "high":   ["Can't wait to hear from you!", "Message me whenever you like — I'm here. 😊"],
+            "high":   ["Can't wait to hear from you!", "Message me whenever you like, I'm here. 😊"],
         },
     }
 
@@ -406,7 +406,7 @@ class InitialContactComposer:
         pool = self.DIEGETIC_DETAILS.get(language, self.DIEGETIC_DETAILS["en"])
         if density == "medium":
             return [self._rng.choice(pool)]
-        # "high" — return 1-2 details
+        # "high", return 1-2 details
         count = self._rng.randint(1, 2)
         return self._rng.sample(pool, k=min(count, len(pool)))
 

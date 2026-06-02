@@ -1,4 +1,4 @@
-"""Output sanitizer — single point of control before subject-facing stdout.
+"""Output sanitizer, single point of control before subject-facing stdout.
 
 `sanitize_for_subject(text)` is called before every print() that reaches
 the subject's chat. Returns None to silently drop the message.

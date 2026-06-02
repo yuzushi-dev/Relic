@@ -1,4 +1,4 @@
-"""PR22B — default G1 admission is relational_normal."""
+"""PR22B, default G1 admission is relational_normal."""
 from __future__ import annotations
 
 from relic.gumi_plugin import AdmissionPolicy

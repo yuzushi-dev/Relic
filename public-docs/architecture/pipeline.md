@@ -1,6 +1,6 @@
 # Runtime Pipeline
 
-Relic's runtime pipeline processes each conversational turn through a series of stages. The critical property is that privacy checks are not a single gate at the start or end — they run before and after every major step.
+Relic's runtime pipeline processes each conversational turn through a series of stages. The critical property is that privacy checks are not a single gate at the start or end, they run before and after every major step.
 
 ## Turn pipeline
 
@@ -43,7 +43,7 @@ The CAC (Context-Aware Controller) assembles the `PromptContextPack`: the set of
 4. Blocks disputed or out-of-scope hints.
 5. Produces a `CACTrace` recording the scoring and filtering decisions.
 
-The `PromptContextPack` is ephemeral — it exists only for the current turn and is not persisted. The `CACTrace` is persisted and visible to researchers via the workbench.
+The `PromptContextPack` is ephemeral, it exists only for the current turn and is not persisted. The `CACTrace` is persisted and visible to researchers via the workbench.
 
 ## Memory dynamics
 
@@ -62,7 +62,7 @@ Memory dynamics can adjust salience and consolidation state, but they are adviso
 
 ## Session boundaries
 
-Relic does not persist raw prompts. When a session ends, continuity maintenance may compact Gumi's world-state and finalize diary candidates. What is persisted to the SQLite store is structured data (events, observations) that went through the full ingestion pipeline — not the raw conversation text. Confirmed continuity markers are held by the Shared Continuity service, which is in-process by default (retained for the process lifetime but lost on restart) and only durable when the optional SQLite-backed continuity repository is injected.
+Relic does not persist raw prompts. When a session ends, continuity maintenance may compact Gumi's world-state and finalize diary candidates. What is persisted to the SQLite store is structured data (events, observations) that went through the full ingestion pipeline, not the raw conversation text. Confirmed continuity markers are held by the Shared Continuity service, which is in-process by default (retained for the process lifetime but lost on restart) and only durable when the optional SQLite-backed continuity repository is injected.
 
 ## Hermes-native operation
 

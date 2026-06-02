@@ -1,4 +1,4 @@
-"""PR22H — cron schedule contract."""
+"""PR22H, cron schedule contract."""
 from __future__ import annotations
 
 from relic.gumi_plugin.cron_schedule import ScheduleConfig

@@ -1,4 +1,4 @@
-"""PR28 — Identity schema contract tests."""
+"""PR28, Identity schema contract tests."""
 
 import json
 import pytest

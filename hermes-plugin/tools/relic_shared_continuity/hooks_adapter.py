@@ -1,5 +1,5 @@
 """
-Hooks Adapter Wrapper — Integrates relic.hermes_adapter with existing hooks.
+Hooks Adapter Wrapper, Integrates relic.hermes_adapter with existing hooks.
 
 This module wraps the existing hooks.py with the Hermes Adapter,
 adding Chronicle event emission for all governance decisions.
@@ -210,7 +210,7 @@ def pre_llm_call_adapter(
         logger.warning("pre_llm_call_adapter hook failed (fail-closed): %s", type(exc).__name__)
         return None
     finally:
-        # Safety signal scan — fire-and-forget
+        # Safety signal scan: fire-and-forget
         if user_message:
             _run_safety_scan_adapter(
                 envelope=envelope,

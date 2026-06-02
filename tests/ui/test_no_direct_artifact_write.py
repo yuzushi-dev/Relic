@@ -1,4 +1,4 @@
-"""PR16C — ApiServer must reject direct artifact-mutation handlers."""
+"""PR16C, ApiServer must reject direct artifact-mutation handlers."""
 from __future__ import annotations
 
 import pytest

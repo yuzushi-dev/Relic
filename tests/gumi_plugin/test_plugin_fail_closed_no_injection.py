@@ -1,4 +1,4 @@
-"""PR22E — plugin must not inject context when not ready."""
+"""PR22E, plugin must not inject context when not ready."""
 from __future__ import annotations
 
 from relic.gumi_plugin import GumiPlugin

@@ -1,5 +1,5 @@
 """
-PR33I — Acceptance Gates Tests
+PR33I, Acceptance Gates Tests
 
 Tests for acceptance gates:
 - All acceptance gates are automated checks

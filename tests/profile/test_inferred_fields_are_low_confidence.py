@@ -1,4 +1,4 @@
-"""PR08 — inferred fields must be capped at low confidence."""
+"""PR08, inferred fields must be capped at low confidence."""
 from __future__ import annotations
 
 from relic.profile.inferred_fields import InferredField, DEFAULT_CONFIDENCE_CAP, MULTI_EVIDENCE_CAP

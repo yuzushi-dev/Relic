@@ -32,7 +32,7 @@ except Exception:
 _REDACTED = "[redacted]"
 
 
-_SHA256_CAP = 65536  # 64 KiB — trace identity only, no need to hash full blobs
+_SHA256_CAP = 65536  # 64 KiB, trace identity only, no need to hash full blobs
 
 
 def _sha256(text: str) -> str:
@@ -95,7 +95,7 @@ class RelicMemoryProvider:
         """Convert a continuity marker to a compact human-readable line.
 
         Returns an empty string when the marker has no surfaceable content.
-        Callers must filter empty lines — never inject placeholder noise into
+        Callers must filter empty lines, never inject placeholder noise into
         the LLM context.
         """
         words = marker.get("subject_words") or marker.get("words") or []
@@ -135,7 +135,7 @@ class RelicMemoryProvider:
                 if not self._is_safe_to_surface(m):
                     continue
                 line = self._format_marker(m)
-                if line:  # drop empty markers — never inject placeholder noise
+                if line:  # drop empty markers, never inject placeholder noise
                     lines.append(line)
             if lines and _CHRONICLE:
                 try:
@@ -155,7 +155,7 @@ class RelicMemoryProvider:
                     pass  # fail-open: never block prefetch on emit failure
             return "\n".join(lines)
         except Exception:
-            logger.exception("RelicMemoryProvider.prefetch failed — returning empty")
+            logger.exception("RelicMemoryProvider.prefetch failed, returning empty")
             return ""
 
     def sync_turn(self, user_msg: str, assistant_msg: str) -> None:
@@ -185,11 +185,11 @@ class RelicMemoryProvider:
                 assistant_hash[:12],
                 datetime.now(timezone.utc).isoformat(),
             )
-            # Capture checkin reply — consent-gated carve-out to relic.db only.
+            # Capture checkin reply: consent-gated carve-out to relic.db only.
             try:
                 from relic.checkin.reply_capture import capture_reply_if_pending
                 capture_reply_if_pending(user_msg, self._subject_id, relic_home=self._relic_home)
             except Exception:
                 pass  # fail-open: never block sync_turn on capture error
         except Exception:
-            logger.exception("RelicMemoryProvider.sync_turn failed — ignoring")
+            logger.exception("RelicMemoryProvider.sync_turn failed, ignoring")

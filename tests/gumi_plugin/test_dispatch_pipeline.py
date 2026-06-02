@@ -119,7 +119,7 @@ def test_render_checkin_dispatch_script_globs_output_root(tmp_path: Path) -> Non
     env["RELIC_SUBJECT_HOME"] = str(tmp_path / "subj_home")
 
     script = _make_script(tmp_path)
-    # The script hardcodes the relic_root sys.path.insert — override via PYTHONPATH
+    # The script hardcodes the relic_root sys.path.insert: override via PYTHONPATH
     # by stripping that line so our stub wins. Simpler: rewrite the inline python.
     text = script.read_text(encoding="utf-8")
     text = re.sub(r"sys\.path\.insert\(0, '[^']+'\)", "", text)

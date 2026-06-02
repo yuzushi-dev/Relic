@@ -9,7 +9,7 @@ Source: `relic/hermes_plugin/commands.py`.
 - **Researcher-only.** Subjects never see these prompts and never see the responses.
 - **Ephemeral.** No persistent memory modification.
 - **Audited.** Every invocation writes a chronicle event.
-- **Fail-safe.** Errors fail closed — the command reports a failure, the session continues normally.
+- **Fail-safe.** Errors fail closed: the command reports a failure, the session continues normally.
 
 ## Commands
 

@@ -1,4 +1,4 @@
-"""PR22E — plugin load behavior."""
+"""PR22E, plugin load behavior."""
 from __future__ import annotations
 
 from relic.gumi_plugin import GumiPlugin, load_plugin

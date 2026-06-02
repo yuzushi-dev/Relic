@@ -2,7 +2,7 @@
 
 Privacy scanning runs four times per turn, not once. Each stage targets a different risk surface.
 
-## Stage 1 — Input scan
+## Stage 1: Input scan
 
 Runs on raw user input before it touches the CAC or any profile assembly.
 
@@ -13,7 +13,7 @@ Runs on raw user input before it touches the CAC or any profile assembly.
 
 Implemented in `relic/privacy/pii.py` and `relic/patterns/signal_extractor.py`.
 
-## Stage 2 — Pre-prompt scan
+## Stage 2: Pre-prompt scan
 
 Runs after CAC assembly, before the prompt is sent to the model.
 
@@ -24,7 +24,7 @@ Runs after CAC assembly, before the prompt is sent to the model.
 
 Implemented in `relic/privacy/gateway.py` and `relic/context_pack/trace.py`.
 
-## Stage 3 — Output scan
+## Stage 3: Output scan
 
 Runs on the raw model output before formatting or rehydration.
 
@@ -35,7 +35,7 @@ Runs on the raw model output before formatting or rehydration.
 
 Implemented in `relic/gumi_plugin/critic.py`.
 
-## Stage 4 — Pre-delivery scan
+## Stage 4: Pre-delivery scan
 
 Runs on the formatted output before it reaches the delivery channel.
 

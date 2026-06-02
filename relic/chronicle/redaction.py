@@ -1,4 +1,4 @@
-"""Redaction module for Chronicle — prevents secret/PII leakage in events.
+"""Redaction module for Chronicle, prevents secret/PII leakage in events.
 
 Public API:
     contains_secret, redact_payload, redact_string
@@ -13,7 +13,7 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Patterns — compiled once at module load
+# Patterns: compiled once at module load
 # ---------------------------------------------------------------------------
 _SECRET_PATTERN_DEFS: list[tuple[str, str]] = [
     # (name, pattern_string)

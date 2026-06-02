@@ -1,4 +1,4 @@
-"""relic.lab — Evaluation lab contracts for adapter training."""
+"""relic.lab, Evaluation lab contracts for adapter training."""
 
 from relic.lab.dataset_card import DatasetCard, DatasetCardSchema
 from relic.lab.eval_contract import EvalCommand, EvalContract

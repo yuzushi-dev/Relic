@@ -1,4 +1,4 @@
-"""Chronicle schema — Pydantic models for events, decisions, snapshots, provenance edges.
+"""Chronicle schema, Pydantic models for events, decisions, snapshots, provenance edges.
 
 Module: relic.chronicle.schema
 Version: chronicle-schema/v1
@@ -24,7 +24,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-# Reuse existing enums from Relic core — do NOT duplicate
+# Reuse existing enums from Relic core: do NOT duplicate
 from relic.persistence import PrivacyLevel
 
 try:
@@ -98,7 +98,7 @@ def _sort_json_dumps(data: dict) -> str:
 # ---------------------------------------------------------------------------
 
 class Event(BaseModel):
-    """Chronicle event — atomic, immutable fact that happened.
+    """Chronicle event, atomic, immutable fact that happened.
 
     Corresponds to the `chronicle_events` table (migration 0003).
     """
@@ -139,7 +139,7 @@ class Event(BaseModel):
     input_refs: list[str] = Field(default_factory=list)
     output_refs: list[str] = Field(default_factory=list)
 
-    # Payload (redacted, hashed — never raw content)
+    # Payload (redacted, hashed: never raw content)
     payload_redacted: bool = False
     payload_hash: str | None = None
     payload: dict[str, Any] = Field(default_factory=dict)
@@ -224,7 +224,7 @@ class Event(BaseModel):
 # ---------------------------------------------------------------------------
 
 class Decision(BaseModel):
-    """Chronicle decision — a choice made by agent/rule/user/system.
+    """Chronicle decision, a choice made by agent/rule/user/system.
 
     Corresponds to the `chronicle_decisions` table (migration 0004).
     """
@@ -308,7 +308,7 @@ class Decision(BaseModel):
 # ---------------------------------------------------------------------------
 
 class StateSnapshot(BaseModel):
-    """Chronicle state snapshot — point-in-time photograph of system state.
+    """Chronicle state snapshot, point-in-time photograph of system state.
 
     Corresponds to the `chronicle_state_snapshots` table (migration 0005).
     """
@@ -368,7 +368,7 @@ class StateSnapshot(BaseModel):
 # ---------------------------------------------------------------------------
 
 class ProvenanceEdge(BaseModel):
-    """Chronicle provenance edge — directed arc in the artifact provenance graph."""
+    """Chronicle provenance edge, directed arc in the artifact provenance graph."""
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -409,7 +409,7 @@ class ProvenanceEdge(BaseModel):
 # ---------------------------------------------------------------------------
 
 class AccessLogEntry(BaseModel):
-    """Chronicle access log entry — audit trail of every Chronicle data access."""
+    """Chronicle access log entry, audit trail of every Chronicle data access."""
 
     model_config = ConfigDict(
         populate_by_name=True,

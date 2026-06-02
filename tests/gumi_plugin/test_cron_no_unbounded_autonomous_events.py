@@ -1,4 +1,4 @@
-"""PR22H — listed cron jobs must declare side_effects=False."""
+"""PR22H, listed cron jobs must declare side_effects=False."""
 from __future__ import annotations
 
 from relic.gumi_plugin import list_cron_jobs

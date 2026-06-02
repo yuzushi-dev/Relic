@@ -1,4 +1,4 @@
-"""PR22G — Gumi skills must be mirrored in skills/, .claude/skills/, .agents/skills/."""
+"""PR22G, Gumi skills must be mirrored in skills/, .claude/skills/, .agents/skills/."""
 from __future__ import annotations
 
 from pathlib import Path

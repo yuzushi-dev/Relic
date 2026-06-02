@@ -64,7 +64,7 @@ def _init_db(relic_dir: Path) -> sqlite3.Connection:
 
 
 # ---------------------------------------------------------------------------
-# build_deliver_context — top-level gates
+# build_deliver_context: top-level gates
 # ---------------------------------------------------------------------------
 
 

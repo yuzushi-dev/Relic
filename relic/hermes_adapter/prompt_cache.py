@@ -1,5 +1,5 @@
 """
-Prompt Cache — Cache invalidation policy for Hermes prompts.
+Prompt Cache, Cache invalidation policy for Hermes prompts.
 
 This module defines cache policy for Hermes prompt caching,
 ensuring that cached prompts are invalidated when subject

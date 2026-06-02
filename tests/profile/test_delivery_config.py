@@ -225,7 +225,7 @@ class TestCollectDeliveryConfig:
         assert result["checkin_slots"] == ["evening"]
 
     def test_full_configure_with_token_value(self):
-        """User enters bot token value — it is exported to os.environ under auto env name."""
+        """User enters bot token value, it is exported to os.environ under auto env name."""
         import os
         consent = {"delivery": True}
         auto_env = "GUMI_BOT_TOKEN"
@@ -249,7 +249,7 @@ class TestCollectDeliveryConfig:
         assert "valid numeric" in output.lower()
 
     def test_env_name_auto_set_no_prompt(self):
-        """Env var name is auto-set from subject_id — no user input required."""
+        """Env var name is auto-set from subject_id, no user input required."""
         consent = {"delivery": True}
         inp = StringIO("y\n123456789\n\n\n\n\n\n\n")
         out = StringIO()

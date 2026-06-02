@@ -1,5 +1,5 @@
 """
-PR27N — Permissions and Audit Controls Contract Tests
+PR27N, Permissions and Audit Controls Contract Tests
 
 Tests verify:
 - Raw content access creates audit event

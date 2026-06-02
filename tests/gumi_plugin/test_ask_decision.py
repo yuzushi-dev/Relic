@@ -65,7 +65,7 @@ class TestSelectAskDecision:
             if ask:
                 assert hint == "Spunto domanda"
                 return
-        pytest.fail("no date roll under 35% in 30-day window — unexpected")
+        pytest.fail("no date roll under 35% in 30-day window, unexpected")
 
     def test_uses_same_daily_seed_as_topic_context_builder(self, tmp_path: Path):
         relic_home = tmp_path / "relic"
@@ -107,7 +107,7 @@ class TestSelectAskDecision:
                 ask, hint = cron_wiring._select_ask_decision(
                     "test_subj", now, relic_home=relic_home
                 )
-            # Either gate blocked it or ask_now check failed — both fine
+            # Either gate blocked it or ask_now check failed: both fine
             assert ask is False
             assert hint is None
 

@@ -29,7 +29,7 @@ _FIELDS: list[tuple[str, str]] = [
 def collect_researcher_coded_fields(io_in: TextIO, io_out: TextIO) -> dict:
     """Collect researcher-coded fields. Returns dict of {field: {value, origin}}."""
     io_out.write("\n=== Campi codificati dal ricercatore ===\n")
-    io_out.write("(Valutazione del ricercatore — non auto-dichiarata dal soggetto)\n\n")
+    io_out.write("(Valutazione del ricercatore, non auto-dichiarata dal soggetto)\n\n")
 
     result: dict = {}
     for field, prompt in _FIELDS:

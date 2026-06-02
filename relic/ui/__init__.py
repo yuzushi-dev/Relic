@@ -1,4 +1,4 @@
-"""relic.ui — Researcher audit UI contracts and view models.
+"""relic.ui, Researcher audit UI contracts and view models.
 
 This package provides UI-facing data models with zero-knowledge guarantees:
 - All view models are redacted by default

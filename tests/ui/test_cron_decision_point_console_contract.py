@@ -1,5 +1,5 @@
 """
-PR27J — Cron Decision-Point Console Contract Tests
+PR27J, Cron Decision-Point Console Contract Tests
 
 Tests verify:
 - Cron jobs are subject-scoped

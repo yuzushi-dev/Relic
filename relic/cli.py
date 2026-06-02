@@ -178,7 +178,7 @@ def _configure_hindsight_local(available: bool, model: str) -> None:
             api_key_env = "HINDSIGHT_LLM_API_KEY"
         api_key = os.environ.get(api_key_env)
         if not api_key:
-            # Print static message only — no user-supplied variable in output
+            # Print static message only: no user-supplied variable in output
             print("  [skip] LLM API key env var is not set; skipping Hindsight local config.")
             print("       Export the configured env var and rerun `relic setup --with-runtime`.")
             return
@@ -205,7 +205,7 @@ def start_hermes_gateway_for_profile(profile_name: str, timeout_seconds: int = 3
     install``) and starts it, then polls ``hermes gateway list`` until the
     profile reports running or the timeout is exceeded.
 
-    Using the managed service — not a detached ``gateway run`` subprocess —
+    Using the managed service, not a detached ``gateway run`` subprocess , 
     means the gateway survives terminal close and reboot, and exactly one
     instance per profile polls Telegram. A detached run leaves an unmanaged
     process that dies with the shell and never registers for autostart.
@@ -325,7 +325,7 @@ def _ui_start(ui_dir: Path) -> None:
         subprocess.run(["docker", "compose", "up", "-d", "--build"], cwd=ui_dir, check=True)
         print(f"UI running at http://localhost:{UI_PORT}/workbench")
     elif shutil.which("npm"):
-        print("Docker not found — starting via npm dev server (Ctrl+C to stop)...")
+        print("Docker not found, starting via npm dev server (Ctrl+C to stop)...")
         subprocess.run(["npm", "install"], cwd=ui_dir, check=True)
         subprocess.run(["npm", "run", "dev"], cwd=ui_dir)
     else:
@@ -452,7 +452,7 @@ def subject_main(argv: list[str] | None = None) -> int:
     show_parser.add_argument("subject_id", help="Subject identifier.")
     reprovision_parser = subparsers.add_parser("reprovision", help="Re-run provisioning for an active subject with missing artifacts.")
     reprovision_parser.add_argument("subject_id", help="Subject identifier.")
-    forget_parser = subparsers.add_parser("forget", help="GDPR Art. 17 hard delete — permanently erase all subject data.")
+    forget_parser = subparsers.add_parser("forget", help="GDPR Art. 17 hard delete, permanently erase all subject data.")
     forget_parser.add_argument("subject_id", help="Subject identifier to erase.")
     forget_parser.add_argument("--yes", action="store_true", help="Skip interactive confirmation (use in automated pipelines only).")
     args = parser.parse_args(argv)
@@ -565,7 +565,7 @@ def _subject_show(subject_id: str) -> int:
 
 
 def _subject_forget(subject_id: str, *, skip_confirm: bool = False) -> int:
-    """GDPR Art. 17 hard delete — permanently erase all data for a subject.
+    """GDPR Art. 17 hard delete, permanently erase all data for a subject.
 
     Requires typing the subject_id to confirm unless --yes is passed.
     Emits an anonymised audit record (subject_id hash, not raw) BEFORE erasure.
@@ -584,7 +584,7 @@ def _subject_forget(subject_id: str, *, skip_confirm: bool = False) -> int:
         print(f"  Hermes profile : {profile.hermes_profile_name}")
         print(f"  Status         : {profile.status}")
     else:
-        print("  [subject not found in registry — filesystem deletion will still run]")
+        print("  [subject not found in registry, filesystem deletion will still run]")
     print()
     print("  This will PERMANENTLY DELETE (no recovery possible):")
     print("    - All continuity markers, followups, and corrections (in-memory)")
@@ -609,7 +609,7 @@ def _subject_forget(subject_id: str, *, skip_confirm: bool = False) -> int:
 
         if typed != subject_id:
             print()
-            print(f"  Mismatch (got '{typed}'). Aborted — no data was deleted.")
+            print(f"  Mismatch (got '{typed}'). Aborted, no data was deleted.")
             return 1
 
     print()
@@ -624,7 +624,7 @@ def _subject_forget(subject_id: str, *, skip_confirm: bool = False) -> int:
             event_type="subject_forgotten",
             event_category=EventCategory.DECISION,
             source_module="relic.cli",
-            subject_id=None,  # intentionally omitted — record must survive purge
+            subject_id=None,  # intentionally omitted, record must survive purge
             payload={"subject_id_hash": subject_hash},
         )
     except Exception:
@@ -991,7 +991,7 @@ def delivery_main(argv: list[str] | None = None) -> int:
 
 
 def checkin_main(argv: list[str]) -> int:
-    """relic checkin <subcommand> — checkin loop management."""
+    """relic checkin <subcommand>, checkin loop management."""
     parser = argparse.ArgumentParser(prog="relic checkin")
     subparsers = parser.add_subparsers(dest="checkin_action", required=True)
 
@@ -1046,7 +1046,7 @@ def checkin_main(argv: list[str]) -> int:
             print(f"Error: relic.db not found at {db_path}", file=sys.stderr)
             return 1
 
-        conn = _init_db_schema(db_path)  # idempotent — applies any missing tables
+        conn = _init_db_schema(db_path)  # idempotent, applies any missing tables
         try:
             results = process_pending_exchanges(
                 conn, baseline_path, subject_id, dry_run=args.dry_run
@@ -1058,7 +1058,7 @@ def checkin_main(argv: list[str]) -> int:
         if informative == 0 and len(results) > 0:
             print(
                 f"Warning: 0 informative observations from {len(results)} replies"
-                " — replies may be ambiguous or facet_updater may need tuning",
+                ", replies may be ambiguous or facet_updater may need tuning",
                 file=sys.stderr,
             )
         print(json.dumps({
@@ -1166,7 +1166,7 @@ def _checkin_snapshot_backfill(conn: "sqlite3.Connection", subject_id: str) -> d
         except ValueError:
             gap_start = date(2026, 1, 1)
     else:
-        # No snapshots at all — start from first observation
+        # No snapshots at all: start from first observation
         first_obs = conn.execute("SELECT MIN(created_at) FROM observations").fetchone()[0]
         if not first_obs:
             return {"backfill": "no observations found"}

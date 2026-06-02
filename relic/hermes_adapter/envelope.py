@@ -1,5 +1,5 @@
 """
-HermesRuntimeEnvelope — Normalized runtime metadata boundary object.
+HermesRuntimeEnvelope, Normalized runtime metadata boundary object.
 
 This module defines the envelope that wraps Hermes runtime metadata
 for consumption by Relic governance layers. The envelope ensures:

@@ -1,4 +1,4 @@
-"""Prose-quality critic — detects AI writing tells in subject-facing text.
+"""Prose-quality critic: detects AI writing tells in subject-facing text.
 
 Companion to `OutputCritic` (critic.py). Where `OutputCritic` is a *safety*
 guardrail (dependency claims, false embodiment, clinical overreach),
@@ -163,7 +163,7 @@ def suggest_threshold(scores: list[int], percentile: float = 10.0) -> int | None
 
     Returns the score at the given low percentile (default 10th): blocking
     below it targets the worst ~10% of real output. Returns None when there
-    is too little data to be meaningful (<30 samples) — never guess on noise.
+    is too little data to be meaningful (<30 samples); never guess on noise.
     """
     clean = sorted(int(s) for s in scores if isinstance(s, (int, float)))
     if len(clean) < 30:
@@ -206,7 +206,7 @@ def log_calibration_sample(
     """Append a numeric-only calibration record to prose_calibration.jsonl.
 
     PRIVACY: never writes the prose itself nor a hash of it. Only the score,
-    violation codes, decision_type, and word count — enough to compute a
+    violation codes, decision_type, and word count, enough to compute a
     threshold from the real score distribution without retaining content.
     Fail-open: any error is swallowed so calibration logging never blocks
     or breaks delivery.

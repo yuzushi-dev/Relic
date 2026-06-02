@@ -168,7 +168,7 @@ class LyriaGenerator:
         # Use agent-provided prompt; fallback to LLM-generated if missing
         lyric_prompt = lyria_prompt or self._build_lyric_prompt(seed_hint)
 
-        # Generate via Lyria REST API — returns audio + lyrics text
+        # Generate via Lyria REST API: returns audio + lyrics text
         try:
             audio_path, returned_lyrics = self._call_lyria(lyric_prompt)
         except Exception as e:

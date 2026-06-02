@@ -84,7 +84,7 @@ class TestPreSendHandlerBehavior:
         assert "Buongiorno!" in result.get("text", "")
 
     def test_fail_open_on_exception(self):
-        """Handler must not propagate exceptions — fail-open returns {}."""
+        """Handler must not propagate exceptions, fail-open returns {}."""
         _load_plugin()
         handlers = gumi_hooks._REGISTERED.get(gumi_hooks.PRE_SEND, [])
         from unittest.mock import patch

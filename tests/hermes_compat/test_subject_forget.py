@@ -1,4 +1,4 @@
-"""Fix G: GDPR Art. 17 hard delete — relic subject forget.
+"""Fix G: GDPR Art. 17 hard delete, relic subject forget.
 
 Tests use ONLY synthetic data (tmp_path). Never touch real RELIC_HOME.
 """
@@ -94,7 +94,7 @@ class TestForgetSubject:
 
 
 # ---------------------------------------------------------------------------
-# chronicle.retention.purge_subject_records — JSONL rewrite
+# chronicle.retention.purge_subject_records: JSONL rewrite
 # ---------------------------------------------------------------------------
 
 class TestRewriteJsonlWithoutSubject:
@@ -272,7 +272,7 @@ class TestDeleteSubject:
 
 
 # ---------------------------------------------------------------------------
-# CLI: relic subject forget — confirmation guard
+# CLI: relic subject forget: confirmation guard
 # ---------------------------------------------------------------------------
 
 class TestSubjectForgetCLI:

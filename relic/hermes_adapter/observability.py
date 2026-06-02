@@ -1,5 +1,5 @@
 """
-Observability — Redacted observability bridge for Hermes.
+Observability, Redacted observability bridge for Hermes.
 
 This module provides a bridge between Relic Chronicle and external
 observability systems (e.g., Langfuse) with strict redaction policies.

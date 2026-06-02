@@ -1,5 +1,5 @@
 """
-PR33E — Hermes Plugin Tools Tests
+PR33E, Hermes Plugin Tools Tests
 
 Tests for Hermes plugin tools:
 - Tools call Relic service (not direct DB access)

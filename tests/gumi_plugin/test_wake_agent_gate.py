@@ -62,7 +62,7 @@ def test_rendered_script_json_mode_emits_single_json_object(
         "RELIC_HERMES_WAKE_AGENT_JSON": "1",
         "RELIC_PYTHON": sys.executable,
     }
-    # Force NO_REPLY by NOT setting HERMES_HOME / due followups — gate denies.
+    # Force NO_REPLY by NOT setting HERMES_HOME / due followups: gate denies.
 
     result = _exec_script(script_path, env=env)
     assert result.returncode == 0, f"stderr={result.stderr}"

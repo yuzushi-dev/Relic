@@ -47,7 +47,7 @@ are labelled separately.
 Block: TIPI personality items
 ────────────────────────────────────────────────────────────
 Item: I see myself as extraverted, enthusiastic.
-Scale: 1 (Disagree strongly) — 7 (Agree strongly)
+Scale: 1 (Disagree strongly) to 7 (Agree strongly)
 Response (1–7):  [your input]
 ... continues for the full battery
 ```
@@ -83,9 +83,9 @@ This is the order the wizard runs, matching `relic/profile/bootstrap_tui.py`. Nu
 | 8 | Boundaries | topics or behaviors Gumi must not engage in, risk flags, escalation contact method | `_bootstrap_steps/boundaries.py` |
 | 9 | Consent record | one explicit confirmation per consent type: memory storage, delivery, proactivity, media generation, etc. **No defaults**. | `_bootstrap_steps/consent.py` |
 | 10 | Gumi overrides | optional researcher overrides for Gumi's name, signature emoji, aesthetic notes | `_bootstrap_steps/gumi_overrides.py` |
-| 11 | Hermes provisioning | yes/no — provision a private Hermes profile now? | `bootstrap_tui.run_init` |
-| 12 | Gemini API key | only if you ticked any media consent at step 9 — paste or reuse from another subject | `_bootstrap_steps/delivery_config.collect_gemini_api_key` |
-| 13 | Delivery config | only if you ticked delivery consent at step 9 — Telegram user ID, bot token env var | `_bootstrap_steps/delivery_config.collect_delivery_config` |
+| 11 | Hermes provisioning | yes/no, provision a private Hermes profile now? | `bootstrap_tui.run_init` |
+| 12 | Gemini API key | only if you ticked any media consent at step 9, paste or reuse from another subject | `_bootstrap_steps/delivery_config.collect_gemini_api_key` |
+| 13 | Delivery config | only if you ticked delivery consent at step 9, Telegram user ID, bot token env var | `_bootstrap_steps/delivery_config.collect_delivery_config` |
 | 14 | Gumi review loop | `accept` / `regenerate` / `abort` after seeing the generated Gumi background | `_bootstrap_steps/gumi_review.py` |
 | 15 | First-contact controls | warmth, disclosure of prior context, first-message timing | `_bootstrap_steps/first_contact_controls.py` |
 
@@ -115,7 +115,7 @@ relic-profile validate subj_demo_01  # schema check
 The generated Gumi profile is worth reading. Check:
 
 - Does the background story feel plausible for this subject?
-- Is the relational distance calibrated — neither too similar nor completely alien?
+- Is the relational distance calibrated: neither too similar nor completely alien?
 - Are the stated boundaries respected in SOUL.md?
 - Is there anything in the inferred fields that looks like an over-reach?
 
@@ -133,7 +133,7 @@ Full backup procedure: [Troubleshooting → Backup](troubleshooting.md#backup-re
 
 ## Next steps
 
-- [Hermes Integration quickstart](hermes-integration.md#quickstart-from-bootstrap-to-first-message) — activate live delivery and send the first message.
-- [Daily Operations](daily-operations.md) — what to do each day a subject is active.
-- [Researcher Workbench](researcher-workbench.md) — inspect and correct the profile after interaction starts.
-- [Export and Deletion](export-and-deletion.md) — export, pause, forget.
+- [Hermes Integration quickstart](hermes-integration.md#quickstart-from-bootstrap-to-first-message): activate live delivery and send the first message.
+- [Daily Operations](daily-operations.md): what to do each day a subject is active.
+- [Researcher Workbench](researcher-workbench.md): inspect and correct the profile after interaction starts.
+- [Export and Deletion](export-and-deletion.md): export, pause, forget.

@@ -1,5 +1,5 @@
 """
-PR06 — Test TTL and Recall Limit enforcement.
+PR06, Test TTL and Recall Limit enforcement.
 
 Tests for FIX03: TTL (Time To Live) and recall limit enforcement
 in Gumi continuity recall.

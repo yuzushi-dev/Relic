@@ -1,5 +1,5 @@
 """
-PR06 — Test that deleted diary candidates are blocked.
+PR06, Test that deleted diary candidates are blocked.
 
 Tests for FIX02: Deleted diary entries/world-state snapshots
 are blocked from entering Gumi runtime context.

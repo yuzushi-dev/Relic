@@ -1,4 +1,4 @@
-"""PR10 — jobs/nightly.yaml and jobs/weekly.yaml must exist."""
+"""PR10, jobs/nightly.yaml and jobs/weekly.yaml must exist."""
 from __future__ import annotations
 
 from pathlib import Path

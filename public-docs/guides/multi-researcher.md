@@ -6,7 +6,7 @@ How to run a study with more than one researcher. Covers identity, role permissi
 
 The data model has roles, permissions, and `researcher_id` everywhere. The **operational** layer (auth, login, identity verification) is not in the OSS distribution. In practice that means:
 
-- The system records which `researcher_id` performed which action — for audit.
+- The system records which `researcher_id` performed which action: for audit.
 - Role-based permissions are enforced at the API layer.
 - There is **no built-in login**, password manager, or session UI. Researchers identify themselves with the IDs you assign at deployment time.
 
@@ -29,9 +29,9 @@ Defined in `relic/ui/permissions.py`:
 
 | Role | `READ_QUEUE` | `READ_ARTIFACT` | `READ_STUDY_OVERVIEW` | `EMIT_FEEDBACK` | `REQUEST_RECOMPILE` | `REPLAY_TRACE` | `EXPORT_BUNDLE` |
 |---|---|---|---|---|---|---|---|
-| `researcher` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | — |
-| `subject` | — | ✅ | — | ✅ | — | — | — |
-| `viewer` | ✅ | ✅ | — | — | — | — | — |
+| `researcher` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |, |
+| `subject` |, | ✅ |, | ✅ |, |, |, |
+| `viewer` | ✅ | ✅ |, |, |, |, |, |
 
 Notes:
 
@@ -60,7 +60,7 @@ To enforce that a researcher only sees a specific study:
 2. Wire your operational layer to map `researcher_id` → allowed `experiment_id`s.
 3. Filter at API entry. The workbench respects the filter; the CLI does not (it trusts the operator).
 
-For a single team running a single study, scoping is moot — everyone sees everything within the local DB.
+For a single team running a single study, scoping is moot, everyone sees everything within the local DB.
 
 ## Day-to-day with multiple researchers
 

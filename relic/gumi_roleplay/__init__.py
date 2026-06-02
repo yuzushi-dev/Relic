@@ -1,4 +1,4 @@
-"""Gumi Roleplay — admission controller and events."""
+"""Gumi Roleplay, admission controller and events."""
 
 from relic.gumi_roleplay.admission import (
     RoleplayAdmissionController,

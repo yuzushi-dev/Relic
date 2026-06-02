@@ -1,4 +1,4 @@
-"""PR22B — realness challenge must set disclose_when_challenged=True."""
+"""PR22B, realness challenge must set disclose_when_challenged=True."""
 from __future__ import annotations
 
 from relic.gumi_plugin import AdmissionPolicy

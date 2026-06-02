@@ -63,4 +63,4 @@ Compiled artifacts are tracked in the artifact registry (`relic/artifacts/regist
 
 ## What artifacts are not
 
-Artifacts are not stored in Hermes MEMORY.md or USER.md. They are not persistent system prompt content. They are injected as ephemeral per-turn context by the `pre_llm_call` hook and discarded after the turn. This means a stale artifact stops influencing Gumi as soon as it is marked stale — there is no residual in a persistent prompt.
+Artifacts are not stored in Hermes MEMORY.md or USER.md. They are not persistent system prompt content. They are injected as ephemeral per-turn context by the `pre_llm_call` hook and discarded after the turn. This means a stale artifact stops influencing Gumi as soon as it is marked stale, there is no residual in a persistent prompt.

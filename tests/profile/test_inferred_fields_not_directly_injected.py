@@ -1,4 +1,4 @@
-"""PR08 — inferred fields must not bypass CAC/PCP for runtime injection."""
+"""PR08, inferred fields must not bypass CAC/PCP for runtime injection."""
 from __future__ import annotations
 
 from relic.profile.inferred_fields import InferredField
@@ -6,7 +6,7 @@ from relic.profile.projection import project_inferred_fields
 
 
 def test_projection_is_candidate_only_not_prompt_text() -> None:
-    """Projection output is structured dict — not a prompt string ready for injection."""
+    """Projection output is structured dict, not a prompt string ready for injection."""
     f = InferredField(
         field_name="estimated_engagement_level",
         value="moderate",
@@ -14,7 +14,7 @@ def test_projection_is_candidate_only_not_prompt_text() -> None:
         source_refs=["e1"],
     )
     proj = project_inferred_fields({"estimated_engagement_level": f})
-    # Projection is a dict, not a string — cannot be directly injected as prompt
+    # Projection is a dict, not a string: cannot be directly injected as prompt
     assert isinstance(proj, dict)
     entry = proj["estimated_engagement_level"]
     assert "value" in entry

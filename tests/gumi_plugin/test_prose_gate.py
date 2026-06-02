@@ -13,7 +13,7 @@ from relic.gumi_plugin.checkin_media_dispatcher import _prose_block_reason
 
 SLOP = (
     "È importante notare che ci sono molti modi per navigare questo panorama "
-    "— un viaggio nel mondo delle emozioni."
+    ",  un viaggio nel mondo delle emozioni."
 )
 CLEAN = "Ehi, come è andata oggi?"
 

@@ -30,7 +30,7 @@ chronicle query --subject <subject_id> --type continuity_marker_confirmed --limi
 chronicle decision --subject <subject_id> --kind admission_ruling --limit 20
 ```
 
-In the workbench, prioritise the **Review queue** panel — items the system flagged for researcher attention.
+In the workbench, prioritise the **Review queue** panel, items the system flagged for researcher attention.
 
 ## Pausing a subject for a sensitive period
 

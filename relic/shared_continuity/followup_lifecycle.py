@@ -1,5 +1,5 @@
 """
-PR33G — Follow-Up Lifecycle and Cron Decision
+PR33G, Follow-Up Lifecycle and Cron Decision
 
 Follow-up lifecycle with due selection, TTL, ignored-expire, pause, and max attempts.
 """

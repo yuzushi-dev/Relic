@@ -189,7 +189,7 @@ def test_watermark_persists_last_idx(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# sync() — integration-level
+# sync(), integration-level
 # ---------------------------------------------------------------------------
 
 def test_sync_missing_memory_returns_no_memory(tmp_path: Path) -> None:
@@ -266,7 +266,7 @@ def test_sync_idempotent_second_run_noops(tmp_path: Path) -> None:
     result1 = sync(hermes)
     assert result1["appended"] == 1
 
-    # Second sync — no new sessions → nothing to append
+    # Second sync: no new sessions → nothing to append
     result2 = sync(hermes)
     assert result2["scanned"] == 0
     assert result2["appended"] == 0

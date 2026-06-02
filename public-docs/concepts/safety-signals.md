@@ -44,7 +44,7 @@ A category is not the same as a tier. A `food_body_context` signal might be `T1_
 
 Neutral habits ("I usually have dinner late") are not signals. They may become Shared Continuity if the subject confirms them and they stay non-sensitive.
 
-Food, sleep, substance, and similar patterns become governance signals **only** when the language is repeated, intense, linked to control/distress, or combined with other safety context — and even then they stay researcher-facing and non-clinical.
+Food, sleep, substance, and similar patterns become governance signals **only** when the language is repeated, intense, linked to control/distress, or combined with other safety context, and even then they stay researcher-facing and non-clinical.
 
 ## How signals reach you
 
@@ -81,7 +81,7 @@ Raw evidence is gated by `reasoning_capture=raw_researcher_only`; it is excluded
 - They are excluded from `relic-profile export` and from `chronicle export --subject ...` unless you explicitly include them with a researcher-only flag.
 - They do not change SOUL.md.
 
-If you observe a signal modifying any of the above, file a bug — it is a violation of the architecture, not a feature.
+If you observe a signal modifying any of the above, file a bug, it is a violation of the architecture, not a feature.
 
 ## Notification policy
 
@@ -103,7 +103,7 @@ Notifications fire only for `T4_crisis` and, if you opt in, `T3_interruptive`. T
 - WHO. *Safe and ethical AI for health.* WHO, 2024.
 - NIST. *AI Risk Management Framework (AI RMF 1.0).* NIST, 2023.
 - FDA. *Clinical Decision Support Software guidance.* FDA, 2026.
-- Digital phenotyping / passive-sensing literature — behavioral traces are proxy signals, not direct measurements.
-- Clinical decision support alert literature — tiered alerts and review queues reduce noisy interruption and alert fatigue.
+- Digital phenotyping / passive-sensing literature: behavioral traces are proxy signals, not direct measurements.
+- Clinical decision support alert literature: tiered alerts and review queues reduce noisy interruption and alert fatigue.
 
 Relic's design follows the tiered-alert and conservative-governance positions in these sources. It does not implement clinical screening.

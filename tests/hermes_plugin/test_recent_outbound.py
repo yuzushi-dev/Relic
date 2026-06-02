@@ -36,7 +36,7 @@ def _maintenance():
         {"role": "user", "content": "[IMPORTANT: cron job...] Review the workspace"},
         {"role": "assistant", "content": "", "tool_calls": [{"id": "1"}]},
         {"role": "tool", "name": "read_file", "content": "{...}"},
-        {"role": "assistant", "content": "Workspace compaction review — 7 candidates"},
+        {"role": "assistant", "content": "Workspace compaction review, 7 candidates"},
     ]
 
 

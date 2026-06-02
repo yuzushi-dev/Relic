@@ -1,6 +1,6 @@
 # Logging and Observability
 
-How Relic emits log lines, how to capture them, and how to ask useful questions of the result. This is the operational counterpart to [Chronicle](../architecture/chronicle.md) — chronicle is structured **events**, logs are unstructured (or JSON) **runtime** lines.
+How Relic emits log lines, how to capture them, and how to ask useful questions of the result. This is the operational counterpart to [Chronicle](../architecture/chronicle.md), chronicle is structured **events**, logs are unstructured (or JSON) **runtime** lines.
 
 ## Variables
 
@@ -8,7 +8,7 @@ How Relic emits log lines, how to capture them, and how to ask useful questions 
 |---|---|---|
 | `RELIC_LOG_LEVEL` | `INFO` | One of `DEBUG`, `INFO`, `WARNING`, `ERROR` |
 | `RELIC_LOG_JSON` | `false` | Emit JSON log lines instead of text |
-| `RELIC_ECHO_SQL` | `false` | Echo SQL queries to stdout (debugging only — chatty) |
+| `RELIC_ECHO_SQL` | `false` | Echo SQL queries to stdout (debugging only, chatty) |
 
 Set per shell:
 
@@ -75,7 +75,7 @@ Rule of thumb: chronicle answers *what was decided and why*; logs answer *what e
 
 - **DEBUG**: every gate decision, every plugin hook entry/exit, full payloads. Use when investigating a bug, then turn off.
 - **INFO** (default): gateway lifecycle, subject creation, recompile completion, errors. Safe to leave on in production.
-- **WARNING**: degraded but non-fatal — plugin fallback, provider unavailable, retention skip.
+- **WARNING**: degraded but non-fatal: plugin fallback, provider unavailable, retention skip.
 - **ERROR**: fatal for the affected operation. Almost always paired with a chronicle event (`category=error`).
 
 Setting `DEBUG` in production fills disk fast. Leave it scoped to investigations.
@@ -87,7 +87,7 @@ Setting `DEBUG` in production fills disk fast. Leave it scoped to investigations
 - Session keys are hashed before any log line that references them (`relic/hermes_client.py`).
 - API keys are redacted to `$HOME` substitution in CI marker scans (`scripts/ci/check_no_raw_private_data.py`).
 
-If you find raw text or a real token in a log line, that is a bug — file an issue.
+If you find raw text or a real token in a log line, that is a bug, file an issue.
 
 ## Logs and the chronicle ledger
 
@@ -100,7 +100,7 @@ If you need a permanent record, write a chronicle event from your call site (`re
 Relic does not expose Prometheus metrics, OpenTelemetry traces, or syslog by default. Patterns that work:
 
 - **Promtail / Vector / Fluent Bit** → tail JSON logs, ship to Loki / Elasticsearch / your sink.
-- **OpenTelemetry**: add a logging handler in your operational entry point (`relic ui`, `hermes gateway run` wrapper) and instrument from there. The library is not in core dependencies — you pull it in.
+- **OpenTelemetry**: add a logging handler in your operational entry point (`relic ui`, `hermes gateway run` wrapper) and instrument from there. The library is not in core dependencies: you pull it in.
 - **Sentry**: import `sentry_sdk` in your wrapper; do not push it into core.
 
 Keep instrumentation outside `relic/` so the OSS distribution stays free of operational deps.

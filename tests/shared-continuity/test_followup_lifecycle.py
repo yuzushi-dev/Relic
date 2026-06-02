@@ -1,5 +1,5 @@
 """
-PR33G — Follow-Up Lifecycle Tests
+PR33G, Follow-Up Lifecycle Tests
 
 Tests for follow-up lifecycle:
 - Follow-up not sent after max_attempts reached

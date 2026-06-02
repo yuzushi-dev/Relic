@@ -55,7 +55,7 @@ class DisclosureLevel(str, Enum):
 
 
 class ContextSource(str, Enum):
-    """Independent context sources — never monolithic."""
+    """Independent context sources, never monolithic."""
 
     MEMORY = "memory"
     USER = "user"

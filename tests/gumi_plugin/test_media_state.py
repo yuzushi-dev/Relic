@@ -1,4 +1,4 @@
-"""Tests for media_state.py — cooldown tracking."""
+"""Tests for media_state.py, cooldown tracking."""
 from __future__ import annotations
 
 import json

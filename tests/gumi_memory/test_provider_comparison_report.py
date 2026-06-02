@@ -1,4 +1,4 @@
-"""PR19F — comparison report computes admission rate."""
+"""PR19F, comparison report computes admission rate."""
 from __future__ import annotations
 
 from relic.eval.gumi_provider_metrics import ProviderMetric, comparison_table

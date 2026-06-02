@@ -1,4 +1,4 @@
-"""PR08 — subject correction must override inferred field value."""
+"""PR08, subject correction must override inferred field value."""
 from __future__ import annotations
 
 from relic.profile.inferred_fields import InferredField

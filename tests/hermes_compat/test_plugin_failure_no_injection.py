@@ -1,4 +1,4 @@
-"""PR03 — Plugin failure produces no injection tests.
+"""PR03, Plugin failure produces no injection tests.
 
 Tests verify:
 - Plugin failure produces NO memory injection

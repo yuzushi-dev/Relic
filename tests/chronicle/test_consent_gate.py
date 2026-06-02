@@ -1,4 +1,4 @@
-"""Tests for consent gate — T013.
+"""Tests for consent gate, T013.
 
 Covers all scenarios from §8.2 of the agentic development plan:
 1. consent_basis = None → allowed (system event)

@@ -1,4 +1,4 @@
-"""PR26E — PR33 Shared Continuity Data Contract tests."""
+"""PR26E, PR33 Shared Continuity Data Contract tests."""
 
 import pytest
 import json

@@ -2,7 +2,7 @@
 
 Models the subject configuration we ship for a morning/evening subject
 (check-in slots = morning + evening, diegetic enabled, daily cap = 4) and walks
-``select_decision`` — the real arbiter behind the no-agent cron — through a day
+``select_decision``, the real arbiter behind the no-agent cron, through a day
 to prove the target pattern:
 
     morning  → check-in (1)

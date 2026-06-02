@@ -1,5 +1,5 @@
 """
-PR33A — Normative Protocol Tests
+PR33A, Normative Protocol Tests
 
 Tests for Shared Continuity Memory normative protocol:
 - Marker requires subject confirmation

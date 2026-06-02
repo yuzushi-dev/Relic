@@ -1,5 +1,5 @@
 """
-PR33H — Shared Continuity Panel Contract Tests
+PR33H, Shared Continuity Panel Contract Tests
 
 Tests for Researcher Workbench Shared Continuity panel:
 - Panel shows subject words and Gumi agreed words separately

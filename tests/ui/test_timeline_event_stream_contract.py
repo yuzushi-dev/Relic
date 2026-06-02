@@ -1,5 +1,5 @@
 """
-PR27F — Timeline and Event Stream Viewer
+PR27F, Timeline and Event Stream Viewer
 Contract tests for event_stream_subj_001.json fixture.
 
 Verifies:
@@ -81,7 +81,7 @@ def test_timeline_subject_scope(fixture_data, events):
     for event in events:
         assert event["subject_id"] == fixture_subject, (
             f"Event {event.get('event_id')} subject_id {event['subject_id']} "
-            f"does not match fixture subject {fixture_subject} — BLOCKED_CROSS_SUBJECT_RAW_TIMELINE"
+            f"does not match fixture subject {fixture_subject}, BLOCKED_CROSS_SUBJECT_RAW_TIMELINE"
         )
 
 

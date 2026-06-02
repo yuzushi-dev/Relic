@@ -1,4 +1,4 @@
-"""PR03 — /relic why last trace tests.
+"""PR03, /relic why last trace tests.
 
 Tests verify:
 - /relic why returns last PCP/CAC trace

@@ -1,4 +1,4 @@
-"""Tests for anti_repeat.py — Jaccard deduplication."""
+"""Tests for anti_repeat.py, Jaccard deduplication."""
 from __future__ import annotations
 
 import time

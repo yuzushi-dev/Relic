@@ -1,4 +1,4 @@
-"""PR08 — system_inferred_fields update from governed traces."""
+"""PR08, system_inferred_fields update from governed traces."""
 from __future__ import annotations
 
 import pytest

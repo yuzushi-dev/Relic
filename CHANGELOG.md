@@ -9,15 +9,15 @@ This project does not yet use semantic versioning. Breaking changes may occur on
 ## [Unreleased]
 
 ### Added
-- `relic/safety/escalation_notifier.py` — escalation notifications for safety signals
-- `relic/gumi_roleplay/admission.py` — roleplay admission controller with `gumi_roleplay` gate
-- `relic/patterns/signal_extractor.py` — `SafetySignalExtractor` wired into `pre_llm_call`
+- `relic/safety/escalation_notifier.py`: escalation notifications for safety signals
+- `relic/gumi_roleplay/admission.py`: roleplay admission controller with `gumi_roleplay` gate
+- `relic/patterns/signal_extractor.py`: `SafetySignalExtractor` wired into `pre_llm_call`
 - Bootstrap TUI: import existing API keys from other subjects during setup
 - Cron wiring: `PRO_*` permissions, `response_timing_expectation`, timezone support
 - TTS: strip emoji from voice message text; fix `select_voice_for_canon` key lookup
 
 ### Changed
-- `relic/gumi_plugin/tts.py` — emoji stripped before TTS synthesis
+- `relic/gumi_plugin/tts.py`: emoji stripped before TTS synthesis
 
 ---
 

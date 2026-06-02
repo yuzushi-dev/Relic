@@ -1,8 +1,8 @@
 """Anti-repeat gate for check-in question generation.
 
 Two mechanisms (ported from backup anti_repeat.py):
-1. Jaccard similarity on word n-grams — blocks if > threshold (default 0.85)
-2. Archetype cooldown — limits reuse of tonal archetypes within 24h
+1. Jaccard similarity on word n-grams, blocks if > threshold (default 0.85)
+2. Archetype cooldown, limits reuse of tonal archetypes within 24h
 
 Usage:
     from relic.checkin.anti_repeat import AntiRepeatGate
@@ -56,7 +56,7 @@ def _detect_archetypes(text: str) -> list[str]:
     return found
 
 
-# SQL to persist recent questions — reuses checkin_exchanges from relic.db
+# SQL to persist recent questions: reuses checkin_exchanges from relic.db
 _RECENT_Q_SQL = """
     SELECT question_text, asked_at
     FROM checkin_exchanges
@@ -81,7 +81,7 @@ class AntiRepeatGate:
         try:
             rows = self.conn.execute(_RECENT_Q_SQL, (cutoff,)).fetchall()
         except sqlite3.OperationalError:
-            # checkin_exchanges table not yet created — no block
+            # checkin_exchanges table not yet created: no block
             return {"duplicate": False, "reason": None, "similarity": None}
 
         # Jaccard check against recent questions

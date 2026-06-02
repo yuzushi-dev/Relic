@@ -1,4 +1,4 @@
-"""Chronicle legacy JSONL adapter — migrate 7 legacy JSONL files to Chronicle SQLite.
+"""Chronicle legacy JSONL adapter, migrate 7 legacy JSONL files to Chronicle SQLite.
 
 Module: relic.chronicle.adapters.legacy_jsonl
 Version: chronicle-legacy/v1
@@ -8,7 +8,7 @@ Migrates:
   1. ~/.relic/decision_events.jsonl       → chronicle_events (event_type="cron_decision_legacy")
   2. ~/.relic/cac_trace.jsonl             → chronicle_events (event_type="cac_trace_recorded")
   3. ~/.relic/privacy_trace.jsonl         → chronicle_events (event_type="privacy_decision")
-     (handles BOTH Opzione A and Opzione B formats — see T002)
+     (handles BOTH Opzione A and Opzione B formats, see T002)
   4. ~/.relic/escalation_log.jsonl        → chronicle_events (event_type="safety_escalation")
   5. ~/.relic/subjects/<id>/bootstrap_session.jsonl → chronicle_events (event_type="bootstrap_step_state")
   6. ~/.relic/subjects/<id>/profile_edit_log.jsonl   → chronicle_events (event_type="profile_edit_legacy")
@@ -307,7 +307,7 @@ def migrate_privacy_trace(
                     "source": "opzione_b",
                 }
             else:
-                # Unknown format — skip
+                # Unknown format: skip
                 results["skipped"] += 1
                 continue
 

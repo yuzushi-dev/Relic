@@ -444,10 +444,10 @@ def _is_globally_paused() -> bool:
     """Return True if any session issued /relic pause and has not yet resumed.
 
     Uses is_any_session_paused() which checks ALL pause records regardless of
-    session_id — required because /relic pause stores real session UUIDs, not NULL.
+    session_id, required because /relic pause stores real session UUIDs, not NULL.
     Fail-open with ERROR log: DB errors return False so cron is not permanently stuck,
     but the error is visible (not silently swallowed).
-    Note: single-subject system assumed — if multi-subject, this gate is cross-subject.
+    Note: single-subject system assumed, if multi-subject, this gate is cross-subject.
     """
     try:
         from relic.control.pause import PauseController
@@ -455,7 +455,7 @@ def _is_globally_paused() -> bool:
         return PauseController().is_any_session_paused()
     except Exception as exc:
         logger.error(
-            "_is_globally_paused DB error — fail-open, pause may be ignored: %s", exc
+            "_is_globally_paused DB error, fail-open, pause may be ignored: %s", exc
         )
         return False
 
@@ -651,7 +651,7 @@ def _is_delivery_window_open(subject_id: str, hermes_home: Path) -> bool:
     target_min = _window_jitter_minute(subject_id, active, now)
     now_min = now.hour * 60 + now.minute
     if now_min < target_min:
-        return False  # too early within the window — wait for next tick
+        return False  # too early within the window, wait for next tick
     return True
 
 
@@ -698,12 +698,12 @@ def _evaluate_decision(
     """
     reasons: list[RuntimeDecisionReason] = []
 
-    # Check /relic pause — user-initiated global pause
+    # Check /relic pause: user-initiated global pause
     if _is_globally_paused():
         reasons.append(RuntimeDecisionReason.subject_paused)
         return RuntimeDecision.NO_REPLY, reasons, None
 
-    # Check PRO_CHECKIN permission — respect subject opt-out
+    # Check PRO_CHECKIN permission: respect subject opt-out
     if not _pro_checkin_allowed(subject_id):
         reasons.append(RuntimeDecisionReason.subject_paused)
         return RuntimeDecision.NO_REPLY, reasons, None
@@ -747,7 +747,7 @@ def _evaluate_decision(
         msg = f"DELIVER\ntipo: {media_type}\nora: {now_str}"
         return RuntimeDecision.CANDIDATE, reasons, {"message": msg}
 
-    # Check for due followups — used to determine CANDIDATE vs DELIVER vs NO_REPLY
+    # Check for due followups: used to determine CANDIDATE vs DELIVER vs NO_REPLY
     _svc = get_continuity_service()
     _due = _svc.due_followups(subject_id, gumi_instance_id, hermes_profile_id)
 
@@ -844,7 +844,7 @@ def emit_decision_event(
     # We log ALL decision types (NO_REPLY, CANDIDATE, DELIVER, BLOCKED, ERROR)
     # so the researcher UI can distinguish "system was silent by design" from
     # "system was broken / never ran". Chronicle event is written first (above),
-    # so the flat-file is a derived/secondary observer — fail-soft on errors.
+    # so the flat-file is a derived/secondary observer: fail-soft on errors.
     if subject_id:
         try:
             _delivery_log_path = (
@@ -928,7 +928,7 @@ def _resolve_profile_hermes_home(hermes_home: Path, hermes_profile_id: str) -> P
 
     The reconciler must read the same ``state.db`` the gateway writes subject
     replies into (``<base>/profiles/<profile_id>``). When invoked with a bare
-    base home (e.g. ``~/.hermes``) — as happens for any out-of-gateway call —
+    base home (e.g. ``~/.hermes``), as happens for any out-of-gateway call , 
     reply detection would otherwise hit the wrong/empty db and wrongly mark
     answered deliveries as ``unanswered_24h``, inflating the non-response streak.
     """
@@ -974,7 +974,7 @@ def make_decision(
     This is the main entry point for the no-agent cron script.
 
     Args:
-        force: Skip delivery window and jitter checks — bypass all gates except
+        force: Skip delivery window and jitter checks, bypass all gates except
                quiet hours and subject pause. Useful for manual testing.
 
     Returns:
@@ -1215,7 +1215,7 @@ import os
 import sys
 from pathlib import Path
 
-# Add relic to path (hardcoded at script generation time — __file__ is '-' in heredoc)
+# Add relic to path (hardcoded at script generation time: __file__ is '-' in heredoc)
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))  # fallback
 sys.path.insert(0, {relic_root})  # reliable absolute path (json-escaped)
 
@@ -1316,7 +1316,7 @@ try:
         )
         sys.exit(0)
 
-    # Legacy mode — preserve original text-stdout contract.
+    # Legacy mode: preserve original text-stdout contract.
     emit_decision_event(
         decision=decision,
         reason_codes=reasons,

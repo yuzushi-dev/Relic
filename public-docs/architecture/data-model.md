@@ -21,7 +21,7 @@ A runtime object is identified by the triple `(subject_id, gumi_instance_id, her
 
 ## Primary storage
 
-`relic.db` is the canonical source of truth. It is a SQLite database at `~/.relic/relic.db` by default (configurable via `RELIC_DB_PATH`). Markdown vault exports are derived from it and can be regenerated. External memory provider indices (Hindsight, Holographic, etc.) are also derived — they are not authoritative.
+`relic.db` is the canonical source of truth. It is a SQLite database at `~/.relic/relic.db` by default (configurable via `RELIC_DB_PATH`). Markdown vault exports are derived from it and can be regenerated. External memory provider indices (Hindsight, Holographic, etc.) are also derived, they are not authoritative.
 
 ### Core tables
 
@@ -102,7 +102,7 @@ redacted `evidence_refs`.
 | Delete | Removes data from storage; irreversible; audit event created |
 | Forget | Removes from Gumi recall without deleting; audit event created; subject-scoped only |
 
-All three operations require an audit event. Forget operates within subject scope — it cannot affect data belonging to another subject.
+All three operations require an audit event. Forget operates within subject scope, it cannot affect data belonging to another subject.
 
 ## PostgreSQL migration
 

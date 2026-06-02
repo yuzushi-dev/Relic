@@ -70,7 +70,7 @@ The subject ID is the identifier Relic generated (or the one you provided) durin
 
 ## Gemini API key
 
-Used when Gumi sends generated images, voice notes (TTS), or short music clips. Optional — text-only Gumi works without it.
+Used when Gumi sends generated images, voice notes (TTS), or short music clips. Optional, text-only Gumi works without it.
 
 ### How to get one
 

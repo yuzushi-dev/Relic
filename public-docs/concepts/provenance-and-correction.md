@@ -1,6 +1,6 @@
 # Provenance and Correction
 
-Every compiled artifact in Relic can be traced back to the evidence that produced it. Every correction propagates through the pipeline and invalidates all downstream artifacts derived from the corrected data. These two properties — provenance and correction — are what make the model inspectable and contestable.
+Every compiled artifact in Relic can be traced back to the evidence that produced it. Every correction propagates through the pipeline and invalidates all downstream artifacts derived from the corrected data. These two properties, provenance and correction, are what make the model inspectable and contestable.
 
 ## Provenance
 
@@ -21,7 +21,7 @@ With provenance, corrections can be targeted. A researcher can correct a specifi
 Corrections are the primary mechanism by which the model is updated in response to researcher judgment or subject input. A correction:
 
 1. Targets a specific fact, trait, or inference in the model.
-2. Is recorded as a `researcher_feedback_event` through the workbench or the API — it cannot be applied by directly mutating a compiled artifact.
+2. Is recorded as a `researcher_feedback_event` through the workbench or the API: it cannot be applied by directly mutating a compiled artifact.
 3. Propagates to all artifacts derived from the corrected item, marking them stale.
 4. Triggers a compiler rerun for the affected subject.
 5. Produces updated artifacts after the rerun, which are then available for use at the next turn.

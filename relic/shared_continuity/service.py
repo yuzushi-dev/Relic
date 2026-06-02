@@ -1,5 +1,5 @@
 """
-PR33D — Relic Continuity Service
+PR33D, Relic Continuity Service
 
 Service implementing remember, correct, due_followups, recent_markers,
 forget, pause, and resume operations for Shared Continuity Memory.
@@ -881,10 +881,10 @@ class ContinuityService:
         }
 
     def forget_subject(self, subject_id: str) -> Dict[str, Any]:
-        """GDPR Art. 17 hard delete — remove all in-memory data for subject_id.
+        """GDPR Art. 17 hard delete, remove all in-memory data for subject_id.
 
         Covers markers, followups, corrections, and scopes. Does NOT touch
-        filesystem or SQLite — callers must also invoke
+        filesystem or SQLite, callers must also invoke
         chronicle.retention.purge_subject_records() and
         ProfileRegistry.delete_subject() for a complete GDPR erasure.
         """

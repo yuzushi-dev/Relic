@@ -28,7 +28,7 @@ Important contracts:
 
   ``boundary_frequency_cap_per_day`` sets a hard cap independent of cadence
   and does not reset streaks (cap == subject preference, streak == inferred
-  signal — they intentionally coexist).
+  signal, they intentionally coexist).
 
 * ``compute_reach_score(non_response_streak, followup_non_response_streak)``
   follows the spike §9 damping curve: ``0.7 ^ streak``, with the follow-up
@@ -641,7 +641,7 @@ def build_checkin_features(
 def backfill_from_decision_log(path: Path, conn: sqlite3.Connection) -> int:
     """Replay an append-only decision_events.jsonl to rebuild cadence state.
 
-    Only DB state is rewritten — the JSONL is never mutated.
+    Only DB state is rewritten, the JSONL is never mutated.
     """
     if not Path(path).exists():
         return 0
@@ -953,7 +953,7 @@ def _safe_load_salience_top(subject_id: str, relic_home: Path) -> float:
 
 
 def _safe_load_topic_freshness(subject_id: str, relic_home: Path) -> float:
-    # AntiRepeatGate is consulted by the topic selector — the policy treats a
+    # AntiRepeatGate is consulted by the topic selector: the policy treats a
     # neutral 1.0 as "topic not yet known"; refinements land alongside Task 5.
     return 1.0
 

@@ -1,4 +1,4 @@
-"""PR19B — local private data must be redacted before reports leave the host."""
+"""PR19B, local private data must be redacted before reports leave the host."""
 from __future__ import annotations
 
 from relic.gumi_memory.local_private_data import (

@@ -267,7 +267,7 @@ def update_baseline(
         facet_entry["last_updated"] = now
         facet_entry["last_source"] = f"checkin_exchange:{exchange_id}"
     else:
-        # Facet not in baseline yet — add to extended_facets
+        # Facet not in baseline yet: add to extended_facets
         extended = baseline.setdefault("extended_facets", {})
         entry = extended.setdefault(facet_id, {
             "confidence": "low_initial",
@@ -324,7 +324,7 @@ def _promote_observation_to_marker(
 
         # ContinuityService.remember() requires all three IDs to be non-empty
         # (raises BLOCKED_MARKER_WITHOUT_SUBJECT_SCOPE otherwise).
-        # Fall back to subject_id sentinel — consistent with registry.py pattern.
+        # Fall back to subject_id sentinel: consistent with registry.py pattern.
         _gumi = gumi_instance_id or subject_id
         _hermes = hermes_profile_id or subject_id
 
@@ -492,7 +492,7 @@ def write_snapshot(conn: sqlite3.Connection, reason: str = "checkin") -> dict[st
     """Write a model_snapshots row reflecting current traits state.
 
     Returns a dict with the snapshot stats (for logging/testing).
-    Never raises — failure is logged and the caller continues.
+    Never raises, failure is logged and the caller continues.
     """
     try:
         cols = [
@@ -565,7 +565,7 @@ def _snapshot_needs_update(conn: sqlite3.Connection) -> bool:
     ).fetchone()
 
     if row is None:
-        return True  # no snapshots ever — write one
+        return True  # no snapshots ever, write one
 
     last_at_str, last_obs, last_data_json = row
 
@@ -575,7 +575,7 @@ def _snapshot_needs_update(conn: sqlite3.Connection) -> bool:
         if datetime.now(timezone.utc) - last_at < timedelta(hours=1):
             return False
     except (ValueError, TypeError):
-        pass  # malformed timestamp — proceed
+        pass  # malformed timestamp, proceed
 
     # Check observation count
     current_obs = conn.execute("SELECT COUNT(*) FROM observations").fetchone()[0]
@@ -610,7 +610,7 @@ def _snapshot_needs_update(conn: sqlite3.Connection) -> bool:
             if vp != prev_vp:
                 return True
     except Exception:
-        return True  # parse failure — be conservative and write
+        return True  # parse failure, be conservative and write
 
     return False
 

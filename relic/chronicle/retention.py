@@ -1,4 +1,4 @@
-"""Chronicle retention — reaper logic for expired events/snapshots/edges.
+"""Chronicle retention, reaper logic for expired events/snapshots/edges.
 
 Module: relic.chronicle.retention
 Version: chronicle-retention/v1
@@ -173,7 +173,7 @@ def delete_expired(
     if not cutoffs:
         return results  # all policies are non-deletable
 
-    # Build condition. Param ORDER MATTERS — must match placeholder order in WHERE.
+    # Build condition. Param ORDER MATTERS: must match placeholder order in WHERE.
     subject_clause = " AND subject_id = ?" if subject_id else ""
 
     def _delete_table(table: str, where_clause: str, params_list: list) -> int:
@@ -193,7 +193,7 @@ def delete_expired(
                 logger.error(f"[chronicle.reaper] delete from {table}: {e}")
                 return 0
 
-    # Events — placeholder order: retention_policy, timestamp, [subject_id]
+    # Events: placeholder order: retention_policy, timestamp, [subject_id]
     for pol, cutoff in cutoffs.items():
         p = [pol, cutoff] + ([subject_id] if subject_id else [])
         count = _delete_table("chronicle_events", "retention_policy = ? AND timestamp < ?" + subject_clause, p)
@@ -205,7 +205,7 @@ def delete_expired(
         count = _delete_table("chronicle_decisions", "retention_policy = ? AND timestamp < ?" + subject_clause, p)
         results["chronicle_decisions_deleted"] += count
 
-    # Snapshots — note captured_at instead of timestamp
+    # Snapshots: note captured_at instead of timestamp
     for pol, cutoff in cutoffs.items():
         p = [pol, cutoff] + ([subject_id] if subject_id else [])
         count = _delete_table("chronicle_state_snapshots", "retention_policy = ? AND captured_at < ?" + subject_clause, p)
@@ -276,7 +276,7 @@ def run(
 
 
 # ---------------------------------------------------------------------------
-# GDPR Art. 17 — subject hard delete
+# GDPR Art. 17: subject hard delete
 # ---------------------------------------------------------------------------
 
 def _rewrite_jsonl_without_subject(path: Path, subject_id: str) -> int:
@@ -305,7 +305,7 @@ def _rewrite_jsonl_without_subject(path: Path, subject_id: str) -> int:
                     removed += 1
                     continue
             except json.JSONDecodeError:
-                pass  # malformed line — keep it, not our data
+                pass  # malformed line, keep it, not our data
             kept.append(line)
 
         if removed > 0:
@@ -332,12 +332,12 @@ def purge_subject_records(
     relic_home: Path | None = None,
     cascade: bool = False,
 ) -> dict[str, Any]:
-    """GDPR Art. 17 hard delete — remove ALL chronicle records for subject_id.
+    """GDPR Art. 17 hard delete, remove ALL chronicle records for subject_id.
 
     Covers:
     - SQLite tables: chronicle_events, chronicle_decisions,
       chronicle_state_snapshots, chronicle_access_log
-      (provenance_edges has no subject_id column — skipped)
+      (provenance_edges has no subject_id column, skipped)
     - Daily JSONL journal files under chronicle/journal/
     - Legacy JSONL files at relic_home level
 

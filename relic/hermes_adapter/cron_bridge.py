@@ -1,5 +1,5 @@
 """
-Cron Bridge — Wrapper for Hermes cron/writer decision logic.
+Cron Bridge, Wrapper for Hermes cron/writer decision logic.
 
 This module provides a stable interface for cron-based proactive delivery
 decisions, wrapping the existing relic.gumi_plugin.cron_wiring logic with

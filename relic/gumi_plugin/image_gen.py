@@ -99,7 +99,7 @@ def generate_image_prompt_via_llm(
         f"Motifs: {motifs or 'everyday life'}\n"
         f"{'Context: ' + context_hint if context_hint else ''}\n"
         f"Avoid: {negative or 'stock photo aesthetics, artificial glow'}. "
-        f"Person looks normal and casual — no glamour, no heavy styling. "
+        f"Person looks normal and casual, no glamour, no heavy styling. "
         f"Return ONLY the image prompt, no explanations."
     )
 

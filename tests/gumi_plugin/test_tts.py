@@ -1,4 +1,4 @@
-"""Tests for tts.py — Gemini TTS synthesis."""
+"""Tests for tts.py, Gemini TTS synthesis."""
 from __future__ import annotations
 
 import base64

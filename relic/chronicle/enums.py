@@ -1,4 +1,4 @@
-"""Chronicle enums — T010 (Phase 1a).
+"""Chronicle enums, T010 (Phase 1a).
 
 Defines Chronicle-specific enums not already in Relic core.
 Enum source-of-truth per enum esistenti:
@@ -18,7 +18,7 @@ from enum import Enum
 
 
 class EventCategory(str, Enum):
-    """Category of event — determines retention, visibility, and processing path."""
+    """Category of event, determines retention, visibility, and processing path."""
 
     MESSAGE = "message"
     MODEL = "model"

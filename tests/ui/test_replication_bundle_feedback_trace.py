@@ -1,4 +1,4 @@
-"""PR16C — replay must not mutate runtime artifacts."""
+"""PR16C, replay must not mutate runtime artifacts."""
 from __future__ import annotations
 
 from pathlib import Path

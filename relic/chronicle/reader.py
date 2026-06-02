@@ -1,4 +1,4 @@
-"""Chronicle reader — read-path for events, decisions, snapshots, provenance edges.
+"""Chronicle reader, read-path for events, decisions, snapshots, provenance edges.
 
 Module: relic.chronicle.reader
 Version: chronicle-reader/v1

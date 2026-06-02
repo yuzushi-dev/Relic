@@ -1,4 +1,4 @@
-"""Tests for ProfileRegistry — all tests use tmp_path, never ~/.relic."""
+"""Tests for ProfileRegistry, all tests use tmp_path, never ~/.relic."""
 
 from __future__ import annotations
 

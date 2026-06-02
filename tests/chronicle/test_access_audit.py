@@ -1,4 +1,4 @@
-"""Chronicle access audit tests — T023 log_access + log_query/export/delete."""
+"""Chronicle access audit tests, T023 log_access + log_query/export/delete."""
 from __future__ import annotations
 
 import sqlite3

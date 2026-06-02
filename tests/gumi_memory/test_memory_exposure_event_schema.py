@@ -1,4 +1,4 @@
-"""PR19B — exposure event schema presence."""
+"""PR19B, exposure event schema presence."""
 from __future__ import annotations
 
 import json

@@ -153,7 +153,7 @@ def subject_avg_tokens(
 # Scaffold filter: cron jobs inject the LLM prompt as a ``role='user'`` row
 # wrapped in an ``[IMPORTANT: ...]`` preamble. These are not subject replies and
 # must be excluded from reply detection, otherwise every delivery looks answered
-# (and, read against the wrong db, every delivery looks unanswered) — corrupting
+# (and, read against the wrong db, every delivery looks unanswered), corrupting
 # the non-response streak. Mirrors relic.checkin.reply_capture scaffold markers.
 _SCAFFOLD_NOT_LIKE = (
     "[IMPORTANT:%",

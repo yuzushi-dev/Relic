@@ -1,5 +1,5 @@
 """
-PR27I — Boundary and Risk Monitor Contract Tests
+PR27I, Boundary and Risk Monitor Contract Tests
 
 Tests verify:
 - Boundary risk is subject-scoped

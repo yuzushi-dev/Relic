@@ -7,7 +7,7 @@ Notification paths:
 - Stderr warning if no transport available (visible in cron logs)
 
 Privacy constraints:
-- Never logs raw user message text — only signal_type + subject_id + timestamp
+- Never logs raw user message text, only signal_type + subject_id + timestamp
 - Contact values are read from delivery_policy.json (researcher-only access)
 """
 from __future__ import annotations
@@ -126,7 +126,7 @@ def _send_email(
         from email.message import EmailMessage
 
         msg = EmailMessage()
-        msg["Subject"] = f"[Relic Safety Alert] {signal_type} — subject {subject_id}"
+        msg["Subject"] = f"[Relic Safety Alert] {signal_type}, subject {subject_id}"
         msg["From"] = smtp_from
         msg["To"] = to_address
         metadata_lines = []
@@ -267,7 +267,7 @@ def notify_escalation(
             audit_kwargs["confidence"] = confidence
         _write_audit_log_safely(subject_id, signal_type, "none", "none", **audit_kwargs)
         logger.warning(
-            "Escalation signal '%s' for subject '%s' — no escalation contacts configured.",
+            "Escalation signal '%s' for subject '%s', no escalation contacts configured.",
             signal_type, subject_id,
         )
         return results
@@ -322,7 +322,7 @@ def notify_escalation(
             )
             print(
                 f"[RELIC ESCALATION] subject={subject_id} signal={signal_type} "
-                f"contact={name} method={method} — no transport ({hint})",
+                f"contact={name} method={method}, no transport ({hint})",
                 file=sys.stderr,
             )
 

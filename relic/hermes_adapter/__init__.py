@@ -1,5 +1,5 @@
 """
-Hermes Adapter — Boundary layer between Hermes runtime and Relic governance.
+Hermes Adapter, Boundary layer between Hermes runtime and Relic governance.
 
 Design principle: Hermes is runtime. Relic is governance.
 """

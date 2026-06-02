@@ -1,4 +1,4 @@
-"""Tests: EscalationNotifier — contacts loading, filtering, audit log, notify flow."""
+"""Tests: EscalationNotifier, contacts loading, filtering, audit log, notify flow."""
 from __future__ import annotations
 
 import json

@@ -12,7 +12,7 @@ No. Relic does not diagnose, screen, or rate mental health. Facets are theoretic
 
 ## Do I need to know how to code?
 
-No. The CLI and the workbench cover normal research workflows. Coding is needed only for developing new modules or contributing to the project — see [Contributing](../contributing/index.md).
+No. The CLI and the workbench cover normal research workflows. Coding is needed only for developing new modules or contributing to the project, see [Contributing](../contributing/index.md).
 
 ## Do I need a GPU?
 

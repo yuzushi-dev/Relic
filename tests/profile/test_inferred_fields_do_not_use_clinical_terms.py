@@ -1,4 +1,4 @@
-"""PR08 — inferred fields must never contain clinical/diagnosis terms."""
+"""PR08, inferred fields must never contain clinical/diagnosis terms."""
 from __future__ import annotations
 
 import pytest

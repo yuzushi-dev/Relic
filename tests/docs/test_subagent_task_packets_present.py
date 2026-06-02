@@ -1,4 +1,4 @@
-"""PR13 — local handoff docs include every dispatchable task packet."""
+"""PR13, local handoff docs include every dispatchable task packet."""
 from __future__ import annotations
 
 from pathlib import Path

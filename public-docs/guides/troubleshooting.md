@@ -85,7 +85,7 @@ relic subject forget <subject_id> --yes
 
 Walk through this list:
 
-1. `relic runtime doctor` — confirm the plugin is registered and Hermes is up.
+1. `relic runtime doctor`: confirm the plugin is registered and Hermes is up.
 2. Confirm the subject's user ID is on the allowlist: `relic runtime allowlist list <subject_id>`.
 3. Confirm the subject sent `/start` to the bot from their Telegram account at least once.
 4. Confirm the bot token env variable is exported in the shell where Hermes runs. `relic subject show <subject_id>` flags missing tokens.

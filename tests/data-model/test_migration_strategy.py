@@ -1,4 +1,4 @@
-"""PR26G — Migration Strategy tests."""
+"""PR26G, Migration Strategy tests."""
 
 import pytest
 import json

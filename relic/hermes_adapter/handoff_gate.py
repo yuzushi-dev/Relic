@@ -1,5 +1,5 @@
 """
-Handoff Gate — Authorization for Hermes /handoff feature.
+Handoff Gate, Authorization for Hermes /handoff feature.
 """
 
 from __future__ import annotations

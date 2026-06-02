@@ -1,5 +1,5 @@
 """
-PR33D — Continuity Service Tests
+PR33D, Continuity Service Tests
 
 Tests for Relic continuity service operations:
 - remember() requires subject_confirmation

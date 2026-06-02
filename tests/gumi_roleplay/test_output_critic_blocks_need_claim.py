@@ -1,4 +1,4 @@
-"""PR22F — critic blocks dependency / need claims."""
+"""PR22F, critic blocks dependency / need claims."""
 from __future__ import annotations
 
 from relic.gumi_plugin import OutputCritic

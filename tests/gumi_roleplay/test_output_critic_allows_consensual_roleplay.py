@@ -1,4 +1,4 @@
-"""PR22F — neutral content is allowed."""
+"""PR22F, neutral content is allowed."""
 from __future__ import annotations
 
 from relic.gumi_plugin import OutputCritic

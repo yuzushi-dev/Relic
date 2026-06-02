@@ -1,5 +1,5 @@
 """
-PR06 — Test that cross-subject markers are blocked.
+PR06, Test that cross-subject markers are blocked.
 
 Tests for FIX05: Markers from other subjects are blocked from
 entering Gumi runtime context.

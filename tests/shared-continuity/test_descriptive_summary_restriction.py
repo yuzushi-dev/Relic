@@ -1,5 +1,5 @@
 """
-FIX10 — Descriptive Summary Restriction Tests
+FIX10, Descriptive Summary Restriction Tests
 
 Tests for get_descriptive_summary_markers() which restricts summaries to:
 - source_type in: subject_confirmed, subject_requested, subject_corrected

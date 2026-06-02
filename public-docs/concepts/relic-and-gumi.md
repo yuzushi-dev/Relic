@@ -8,7 +8,7 @@ Relic is the governance and modeling layer. It maintains the subject profile, ru
 
 ## Gumi
 
-Gumi is a diegetic relational agent — an agent with her own identity, background, voice, and relational history. She is not a transparent interface to Relic, and she is not a copy of the subject. She has her own perspective, aesthetic sensibility, and boundaries.
+Gumi is a diegetic relational agent, an agent with her own identity, background, voice, and relational history. She is not a transparent interface to Relic, and she is not a copy of the subject. She has her own perspective, aesthetic sensibility, and boundaries.
 
 Gumi runs on Hermes and is initialized with a SOUL.md that defines her stable identity. Relic governs what context is injected into her per-turn prompt, what tools she can use, and when her behavior must be adapted for safety reasons. But Gumi's output is not Relic's output. She generates responses consistent with her own character, informed by the governed context.
 

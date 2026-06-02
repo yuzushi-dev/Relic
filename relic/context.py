@@ -1,4 +1,4 @@
-"""Prompt context pack — multiple independent context sources.
+"""Prompt context pack, multiple independent context sources.
 
 Backward-compatible stub that imports from the new context_pack package.
 """

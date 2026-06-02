@@ -261,13 +261,13 @@ class GenerationModeRunner:
         """Full 7-component sweet-spot formula.
 
         Components and weights:
-          C1 (0.20) Openness similarity — shared curiosity aids connection
-          C2 (0.25) Attachment complementarity — Gumi stable where subject insecure
-          C3 (0.20) Distinctness — occupation/location/family differ
-          C4 (0.15) Stabilization — Gumi does not mirror anxiety/avoidance
-          C5 (0.10) Autonomy fit — Gumi's boundary profile matches subject tolerance
-          C6 (0.05) Desired-closeness fit — relationship_stance aligns with IOS target
-          C7 (0.05) Passions overlap — some shared interests for connection
+          C1 (0.20) Openness similarity, shared curiosity aids connection
+          C2 (0.25) Attachment complementarity, Gumi stable where subject insecure
+          C3 (0.20) Distinctness, occupation/location/family differ
+          C4 (0.15) Stabilization, Gumi does not mirror anxiety/avoidance
+          C5 (0.10) Autonomy fit, Gumi's boundary profile matches subject tolerance
+          C6 (0.05) Desired-closeness fit, relationship_stance aligns with IOS target
+          C7 (0.05) Passions overlap, some shared interests for connection
         """
         tipi = personalization.tipi
         ecrrs = personalization.ecrrs
@@ -293,11 +293,11 @@ class GenerationModeRunner:
         if subject_insecure and gumi_is_secure:
             c2 = 1.0
         elif not subject_insecure:
-            c2 = 0.7  # secure subject — any Gumi style acceptable, slight bonus
+            c2 = 0.7  # secure subject, any Gumi style acceptable, slight bonus
         else:
             c2 = 0.2  # insecure subject + insecure Gumi = poor complement
 
-        # C3: distinctness (0.20) — penalize mirrors on occupation/location/family
+        # C3: distinctness (0.20), penalize mirrors on occupation/location/family
         gumi_life_role = domains.get("life_role", {})
         gumi_occ = gumi_life_role.get("occupation_or_study", "")
         gumi_place = domains.get("place", {})
@@ -325,7 +325,7 @@ class GenerationModeRunner:
         ])
         c3 = max(0.0, 1.0 - mirrors * 0.5)
 
-        # C4: stabilization (0.15) — Gumi must not mirror vulnerability
+        # C4: stabilization (0.15), Gumi must not mirror vulnerability
         gumi_boundary = domains.get("boundaries", {})
         gumi_personal = gumi_boundary.get("personal_space", "")
         gumi_energy = gumi_boundary.get("energy_management", "")
@@ -354,7 +354,7 @@ class GenerationModeRunner:
         else:
             c5 = 0.7
 
-        # C6: desired-closeness fit (0.05) — IOS target vs relationship_stance warmth
+        # C6: desired-closeness fit (0.05), IOS target vs relationship_stance warmth
         ios = project.get("desired_initial_closeness", 0.5)
         gumi_intimacy = gumi_stance.get("intimacy_comfort", "")
         open_styles = {"open to intimacy"}
@@ -369,7 +369,7 @@ class GenerationModeRunner:
         else:
             c6 = 0.4
 
-        # C7: passions overlap (0.05) — some shared interests aids connection
+        # C7: passions overlap (0.05), some shared interests aids connection
         _sr = subject_profile.get("self_report_fields", {})
         _ip = subject_profile.get("interaction_preferences", {})
         _raw_interests = (

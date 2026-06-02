@@ -140,7 +140,7 @@ class TestBlockConditions:
     def test_blocked_missing_gumi_instance_active_instance_present(self, fixture_data: dict) -> None:
         """BLOCKED_MISSING_GUMI_INSTANCE: active_gumi_instance must be non-null."""
         assert fixture_data.get("active_gumi_instance") is not None, (
-            "active_gumi_instance is null — triggers BLOCKED_MISSING_GUMI_INSTANCE"
+            "active_gumi_instance is null, triggers BLOCKED_MISSING_GUMI_INSTANCE"
         )
         assert isinstance(fixture_data["active_gumi_instance"], str)
         assert len(fixture_data["active_gumi_instance"]) > 0

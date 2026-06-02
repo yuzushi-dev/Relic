@@ -129,7 +129,7 @@ def render_constraint_header(
     """Return the deterministic ``[EVENTO:][POSTURA:][VINCOLI:][GROUNDING:]`` header.
 
     Spike §10.1. Single source of truth for what the composer LLM sees as
-    behavioural constraints — both posture and per-posture sentence cap.
+    behavioural constraints, both posture and per-posture sentence cap.
     Returns an empty string for silent events so the caller can no-op.
     """
     if isinstance(event_type, EventType):
@@ -200,7 +200,7 @@ PROACTIVE_MAX_PER_DAY = 1
 # Re-engagement floor: a subject whose reach has decayed to silence (high
 # non-response streak) would otherwise never receive a proactive again. After
 # this many days with no initiative delivered from us, allow one gentle
-# proactive that bypasses the reach/backoff/salience gates — a periodic light
+# proactive that bypasses the reach/backoff/salience gates: a periodic light
 # touch instead of permanent silence. Daily cap, spacing and quiet hours still
 # apply (they are checked earlier in select_decision).
 PROACTIVE_REENGAGE_FLOOR_DAYS = 4

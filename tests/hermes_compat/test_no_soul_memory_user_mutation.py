@@ -1,4 +1,4 @@
-"""PR03 — No SOUL/MEMORY/USER mutation tests.
+"""PR03, No SOUL/MEMORY/USER mutation tests.
 
 Tests verify:
 - SOUL.md is never mutated

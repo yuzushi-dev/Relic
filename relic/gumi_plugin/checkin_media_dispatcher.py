@@ -1,10 +1,10 @@
-"""Checkin media dispatcher — routes LLM output to appropriate media generators.
+"""Checkin media dispatcher, routes LLM output to appropriate media generators.
 
 Handles text, voice, image, and music delivery after gate decision.
 
 Stdout contract (subject-facing):
   - text branch: sanitized message text only
-  - voice/image/music: empty — delivery happens via Telegram Bot API directly
+  - voice/image/music: empty, delivery happens via Telegram Bot API directly
   - ALL [WARN], [DRY-RUN], MEDIA: lines go to stderr only
 
 Hermes reads stdout and may forward it to the subject chat; nothing
@@ -81,7 +81,7 @@ def _looks_interrogative(text: str) -> bool:
     """Heuristic: does this line read as an Italian question?
 
     True if it already carries a "?" anywhere, or it opens with a known
-    interrogative word/phrase. Conservative on purpose — used to decide whether
+    interrogative word/phrase. Conservative on purpose, used to decide whether
     to restore a dropped question mark without inventing questions.
     """
     body = _TRAILING_SYMBOL_RE.sub("", _strip_gate_control_lines(text)).strip().lower()
@@ -100,7 +100,7 @@ def _looks_interrogative(text: str) -> bool:
 def ensure_question_mark_if_interrogative(text: str) -> str:
     """Restore a dropped question mark only when the line reads as a question.
 
-    Used for proactive re-engagement, whose questions are optional — unlike
+    Used for proactive re-engagement, whose questions are optional, unlike
     check-ins, where the question is mandatory and ``ensure_checkin_question_mark``
     applies unconditionally.
     """
@@ -194,7 +194,7 @@ def _send_telegram_media(
     """Send a media file to Telegram via Bot API.
 
     media_type: 'voice' | 'image' | 'music'
-    - voice: no caption, no text — pure voice note
+    - voice: no caption, no text, pure voice note
     - image: caption shown below photo (stripped of trailing punctuation)
     - music: title + performer set on audio player, no caption
     Returns True on success.
@@ -206,7 +206,7 @@ def _send_telegram_media(
     chat_id = env.get("TELEGRAM_HOME_CHANNEL") or env.get("TELEGRAM_ALLOWED_USERS")
 
     if not bot_token or not chat_id:
-        print("[WARN] Missing TELEGRAM_BOT_TOKEN or chat_id — skipping Telegram delivery", file=sys.stderr)
+        print("[WARN] Missing TELEGRAM_BOT_TOKEN or chat_id, skipping Telegram delivery", file=sys.stderr)
         return False
 
     if not media_path.exists():
@@ -322,7 +322,7 @@ def _get_gumi_name(relic_subject_home: Path) -> str:
     Source-of-truth order:
       1. gumi_background_profile.json display_name/agent_name
       2. provenance/identity_generation_log.json agent_name (set at provision)
-    Falls back to "Gumi" only when no canonical name was ever recorded — older
+    Falls back to "Gumi" only when no canonical name was ever recorded, older
     subjects (e.g. barbara) carry the name only in the provenance log because
     provisioning did not back-fill the background profile.
     """
@@ -485,19 +485,19 @@ def dispatch(
         {"tipo": str, "success": bool, "output": str}
 
     Stdout contract: only sanitized subject-facing text is printed.
-    Voice/image/music deliver via Telegram Bot API — stdout stays empty.
+    Voice/image/music deliver via Telegram Bot API, stdout stays empty.
     """
     parsed = parse_gate_output(llm_output)
     tipo = parsed["tipo"]
     testo = parsed["testo"]
     if tipo in {"text", "voice", "image"}:
         if decision_type == "checkin":
-            # Check-ins always carry a question — enforce unconditionally.
+            # Check-ins always carry a question: enforce unconditionally.
             testo = ensure_checkin_question_mark(testo)
             if parsed.get("caption"):
                 parsed["caption"] = ensure_checkin_question_mark(parsed["caption"])
         elif decision_type in {"proactivity", "diegetic"}:
-            # Proactive/diegetic questions are optional — only restore a dropped
+            # Proactive/diegetic questions are optional: only restore a dropped
             # "?" when the line actually reads as a question, never invent one.
             testo = ensure_question_mark_if_interrogative(testo)
             if parsed.get("caption"):
@@ -509,7 +509,7 @@ def dispatch(
     block_reason = _critic_block_reason(testo)
     if block_reason:
         print(
-            f"[dispatch] blocked by output critic: {block_reason} — silent drop",
+            f"[dispatch] blocked by output critic: {block_reason}, silent drop",
             file=sys.stderr,
         )
         return {"tipo": tipo, "success": False, "reason": f"critic_blocked:{block_reason}"}
@@ -518,7 +518,7 @@ def dispatch(
     prose_reason = _prose_block_reason(testo, decision_type=decision_type)
     if prose_reason:
         print(
-            f"[dispatch] blocked by prose critic: {prose_reason} — silent drop",
+            f"[dispatch] blocked by prose critic: {prose_reason}, silent drop",
             file=sys.stderr,
         )
         return {"tipo": tipo, "success": False, "reason": f"prose_blocked:{prose_reason}"}
@@ -528,7 +528,7 @@ def dispatch(
     if tipo == "text":
         safe = sanitize_for_subject(testo)
         if safe is None:
-            print("[dispatch] text blocked by sanitizer — silent drop", file=sys.stderr)
+            print("[dispatch] text blocked by sanitizer, silent drop", file=sys.stderr)
             return {"tipo": "text", "success": False, "reason": "sanitized_empty"}
         if dry_run:
             print("[DRY-RUN] Text send skipped", file=sys.stderr)
@@ -580,7 +580,7 @@ def dispatch(
         image_prompt = parsed["image_prompt"]
 
         if image_prompt:
-            # Gumi wrote the image prompt — use it directly
+            # Gumi wrote the image prompt: use it directly
             from relic.gumi_plugin.image_gen import generate_image, collect_reference_images
             from datetime import date
             import hashlib
@@ -674,7 +674,7 @@ def dispatch(
     else:
         safe = sanitize_for_subject(testo)
         if safe is None:
-            print("[dispatch] fallback text blocked by sanitizer — silent drop", file=sys.stderr)
+            print("[dispatch] fallback text blocked by sanitizer, silent drop", file=sys.stderr)
             return {"tipo": "text", "success": False, "reason": "sanitized_empty"}
         if dry_run:
             print("[DRY-RUN] Fallback text send skipped", file=sys.stderr)

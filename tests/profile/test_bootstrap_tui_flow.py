@@ -39,19 +39,19 @@ def _make_full_inputs(
     """Build the complete input string for run_init.
 
     Prompt order (readline calls):
-      [subject_id]                — only if not pre-provided to run_init()
-      [experiment_id]             — only if not pre-provided to run_init()
-      item battery (69 items)     — all empty → neutral/default responses
-      boundaries (4 arrays + risk_flags exit + escalation_contacts exit) — all empty
+      [subject_id], only if not pre-provided to run_init()
+      [experiment_id], only if not pre-provided to run_init()
+      item battery (69 items), all empty → neutral/default responses
+      boundaries (4 arrays + risk_flags exit + escalation_contacts exit), all empty
       consent: 5 booleans ("n")
       consent: researcher_id (required)
       consent: version (empty → "1.0.0")
       gumi_overrides: name (empty → "Gumi") + 9 domain overrides (empty → skip)
-      hermes provision            — yes/no
-      [delivery_config]           — gated out when delivery consent = False
-      gumi_review                 — accept/regenerate/abort
-      first_message_gate          — yes/no (should Gumi send first message?)
-      [first_contact_controls]    — only if first_message_gate = "yes"
+      hermes provision, yes/no
+      [delivery_config], gated out when delivery consent = False
+      gumi_review, accept/regenerate/abort
+      first_message_gate, yes/no (should Gumi send first message?)
+      [first_contact_controls], only if first_message_gate = "yes"
     """
     lines: list[str] = []
     if subject_id is not None:
@@ -66,7 +66,7 @@ def _make_full_inputs(
     lines.append("")          # gumi name (empty → "Gumi")
     lines.extend([""] * 9)   # gumi domain overrides: 9 domains, all optional
     lines.append(hermes)      # hermes provision: yes/no
-    # delivery_config: no prompts — gated out because delivery consent is False
+    # delivery_config: no prompts: gated out because delivery consent is False
     lines.append(gumi_review_action)     # gumi_review: accept/regenerate/abort
     lines.append(first_message_gate)     # first message gate: yes/no
     if first_message_gate.lower() in ("y", "yes"):

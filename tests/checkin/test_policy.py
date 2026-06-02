@@ -1,4 +1,4 @@
-"""Tests for relic.checkin.policy — types + minimal selector."""
+"""Tests for relic.checkin.policy, types + minimal selector."""
 
 from __future__ import annotations
 

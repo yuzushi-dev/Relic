@@ -1,6 +1,6 @@
 """ByteRover provider condition (PR19E).
 
-Operational only — never relational truth. ByteRover entries describe
+Operational only, never relational truth. ByteRover entries describe
 infrastructure / runtime telemetry; outputs are candidates for the admission
 policy to evaluate, never directly relational claims about the subject.
 """

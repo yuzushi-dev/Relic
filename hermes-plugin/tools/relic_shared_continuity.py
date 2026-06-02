@@ -1,5 +1,5 @@
 """
-PR33E — Hermes Plugin Tools for Shared Continuity Memory
+PR33E, Hermes Plugin Tools for Shared Continuity Memory
 
 Tools that call the Relic continuity service (not direct DB access).
 Tools return no clinical terms to Gumi.

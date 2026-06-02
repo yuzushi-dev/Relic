@@ -1,4 +1,4 @@
-"""Chronicle CLI — unified inspection tool for Relic event store.
+"""Chronicle CLI, unified inspection tool for Relic event store.
 
 Module: relic.chronicle.cli.main
 Entry: chronicle query|timeline|decision|snapshot|provenance|stats|export|delete|reaper|report
@@ -637,7 +637,7 @@ def main(argv: list[str] | None = None) -> int:
 
     parser = argparse.ArgumentParser(
         prog="chronicle",
-        description="Chronicle — unified event capture and inspection for Relic",
+        description="Chronicle, unified event capture and inspection for Relic",
     )
     sub = parser.add_subparsers(dest="command", required=True)
 

@@ -200,7 +200,7 @@ class BootstrapTUI:
         # Step 3g: Consent record
         consent_record = collect_consent_record(self.io_in, self.io_out)
 
-        # Step 4: Gumi generation mode — always hybrid; structured battery already provides
+        # Step 4: Gumi generation mode: always hybrid; structured battery already provides
         # all calibration inputs. Optional domain overrides remain available.
         gumi_mode = "hybrid"
         gumi_overrides, gumi_name, gumi_signature_emoji = collect_gumi_overrides(self.io_in, self.io_out, mode=gumi_mode)
@@ -473,7 +473,7 @@ class BootstrapTUI:
                         self._log_step("media_canon_provisioning_failed", str(exc))
                         self._print(f"[warn] Media identity provisioning failed: {exc}")
 
-                # B2: provision cron specs — maintenance always, initiative if delivery configured,
+                # B2: provision cron specs: maintenance always, initiative if delivery configured,
                 # media if any generated-content consent granted
                 try:
                     cron_families = ["maintenance"]
@@ -516,7 +516,7 @@ class BootstrapTUI:
                     choice = raw.strip().lower() if raw else "block"
                     action = "send" if choice in ("s", "send") else "block"
                 else:
-                    self._print("\nDelivery non configurato — primo messaggio non inviato.")
+                    self._print("\nDelivery non configurato, primo messaggio non inviato.")
                     action = "block"
 
                 self._log_step("first_contact_action", action)
@@ -607,7 +607,7 @@ class BootstrapTUI:
             try:
                 prov = json.loads(provenance_path.read_text(encoding="utf-8"))
                 if prov.get("model_used") is None:
-                    missing.append("gumi_background_profile (generato senza LLM — calibrazione incompleta)")
+                    missing.append("gumi_background_profile (generato senza LLM, calibrazione incompleta)")
             except Exception:
                 pass
 
@@ -840,7 +840,7 @@ class BootstrapTUI:
                         self._print("  Generated world.md via Ollama.")
                     else:
                         world_text = narrator.fallback_world_md(ctx)
-                        self._print("  Ollama unavailable — using template fallback.")
+                        self._print("  Ollama unavailable, using template fallback.")
                     ws.mkdir(parents=True, exist_ok=True)
                     world_path.write_text(world_text, encoding="utf-8")
                     (profile.relic_subject_home / "gumi_world.md").write_text(world_text, encoding="utf-8")
@@ -901,7 +901,7 @@ class BootstrapTUI:
         # Detect missing artifacts for active subjects and offer re-provision
         missing = self._detect_missing_artifacts(profile)
         if missing:
-            self._print(f"  [!] {len(missing)} artifact(s) missing — run `relic subject reprovision {subject_id}` to complete.")
+            self._print(f"  [!] {len(missing)} artifact(s) missing, run `relic subject reprovision {subject_id}` to complete.")
             self._print("")
 
         from relic.profile.registry import _FORWARD_TRANSITIONS

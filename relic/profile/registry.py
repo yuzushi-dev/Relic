@@ -657,7 +657,7 @@ class ProfileRegistry:
         return self._load_profile(subject_id)
 
     def delete_subject(self, subject_id: str) -> dict:
-        """GDPR Art. 17 hard delete — remove all filesystem data for subject.
+        """GDPR Art. 17 hard delete, remove all filesystem data for subject.
 
         Deletes ~/.relic/subjects/{subject_id}/ entirely.
         Returns hermes_profile_name so caller can also remove the Hermes
@@ -1047,7 +1047,7 @@ class ProfileRegistry:
         env_path = profile.hermes_home / ".env"
         values = {
             "TELEGRAM_ALLOWED_USERS": telegram_user_id,
-            "TELEGRAM_HOME_CHANNEL": telegram_user_id,  # plain int — Hermes parses this directly
+            "TELEGRAM_HOME_CHANNEL": telegram_user_id,  # plain int, Hermes parses this directly
             "GUMI_TELEGRAM_BOT_TOKEN_ENV": bot_token_env,
             "GUMI_DELIVERY_CHANNEL": "telegram",
             # Relic dispatch scripts default each target to "local" (generate but
@@ -1059,7 +1059,7 @@ class ProfileRegistry:
             # NOTE: Hermes gateway shutdown/restart/online lifecycle messages are
             # suppressed via platforms.telegram.gateway_restart_notification=false
             # in config.yaml (see render_subject_hermes_config). It MUST be under
-            # platforms.telegram — the top-level telegram: shorthand is not mapped
+            # platforms.telegram: the top-level telegram: shorthand is not mapped
             # for this key, so a top-level placement silently leaks the shutdown
             # notice. The env vars Hermes never read (HERMES_SUPPRESS_SYSTEM_MESSAGES
             # / TELEGRAM_ADMIN_CHANNEL) were no-ops and have been removed.
@@ -1070,7 +1070,7 @@ class ProfileRegistry:
         # Propagate LLM provider keys so the profile's cron jobs can reach the
         # model provider. Prefer the live environment, but fall back to the global
         # ~/.hermes/.env when the researcher ran the TUI without the keys exported
-        # — otherwise cron AI calls crash with "Provider ... but no API key found".
+        #, otherwise cron AI calls crash with "Provider ... but no API key found".
         global_env_path = Path.home() / ".hermes" / ".env"
         global_env = (
             _parse_env_text(global_env_path.read_text(encoding="utf-8"))
@@ -1424,7 +1424,7 @@ Eight visual modes for consistent photography:
                 encoding="utf-8",
             )
             diegetic_dispatch_script_path.chmod(0o755)
-            # Decision (gate/message) script — gate and message jobs reference it.
+            # Decision (gate/message) script: gate and message jobs reference it.
             diegetic_decision_script_path = (
                 profile.hermes_home / "scripts" / subject_id / "relic_diegetic_decision.sh"
             )
@@ -1489,7 +1489,7 @@ Eight visual modes for consistent photography:
                 encoding="utf-8",
             )
             proactive_dispatch_script_path.chmod(0o755)
-            # Decision (gate/message) script — gate and message jobs reference it.
+            # Decision (gate/message) script: gate and message jobs reference it.
             proactive_decision_script_path = (
                 profile.hermes_home / "scripts" / subject_id / "relic_proactive_decision.sh"
             )
@@ -1498,7 +1498,7 @@ Eight visual modes for consistent photography:
                 encoding="utf-8",
             )
             proactive_decision_script_path.chmod(0o755)
-        # T5: gumi_memory_sync — no-agent script that syncs cron sessions → MEMORY.md
+        # T5: gumi_memory_sync: no-agent script that syncs cron sessions → MEMORY.md
         memory_sync_script = f"{subject_id}/relic_memory_sync.sh"
         memory_sync_job = {
             "id": f"{subject_id}_memory_sync",
@@ -1511,7 +1511,7 @@ Eight visual modes for consistent photography:
         }
         jobs_to_apply.append(memory_sync_job)
 
-        # T6: One-shot backfill — seed watermark so first tick skips historical sessions.
+        # T6: One-shot backfill: seed watermark so first tick skips historical sessions.
         from relic.gumi_plugin.memory_sync import sync as memory_sync_sync
         if not dry_run:
             memory_sync_result = memory_sync_sync(profile.hermes_home)
@@ -1608,7 +1608,7 @@ Eight visual modes for consistent photography:
                 "\n"
                 "REGOLE DI BASE (valgono per ogni modalità):\n"
                 "• MASSIMO 2 agganci al contesto del soggetto per messaggio. Spesso UNO basta. "
-                "Mai elencare/concatenare 3+ riferimenti — suona forzato, robotico, da analista.\n"
+                "Mai elencare/concatenare 3+ riferimenti, suona forzato, robotico, da analista.\n"
                 "• Scegli l'aggancio in base a RILEVANZA (cosa è più caldo/saliente ora), non ordine cronologico. "
                 "Un solo dettaglio concreto ben pescato batte tre messi in fila.\n"
                 "• Se nel contesto vedi '--- cosa ti ha detto di recente ---', usalo solo come tono o aggancio leggero: "
@@ -1618,7 +1618,7 @@ Eight visual modes for consistent photography:
                 "• I '--- messaggi recenti inviati ---' sono i tuoi: non ripetere immagini, metafore o aperture già usate.\n"
                 "• Tono umano, non lirico continuo. Niente meteo poetico ogni volta.\n"
                 "\n"
-                "ANTI-PATTERN — pattern vietati, rifiuta sempre:\n"
+                "ANTI-PATTERN, pattern vietati, rifiuta sempre:\n"
                 "• Aperture monologiche tipo \"Stasera mi viene da pensare a...\", \"Mi chiedo se...\", "
                 "\"C'è una cosa che mi resta in mente...\"\n"
                 "• Auguri generici tipo \"Spero che tu stia...\", \"Ti auguro un...\", \"Che tu possa...\"\n"
@@ -1635,7 +1635,7 @@ Eight visual modes for consistent photography:
                 "ESEMPIO CATTIVO (vago): \"Stasera mi viene da pensare a come certe cose le scegli e "
                 "basta. Spero che tu stia trovando il tuo ritmo 💚\"\n"
                 "\n"
-                "ASK MODE — se vedi 'ask: true' e 'ask_topic: <hint>':\n"
+                "ASK MODE, se vedi 'ask: true' e 'ask_topic: <hint>':\n"
                 "Il messaggio DEVE includere una domanda aperta sul soggetto ispirata al topic (non letterale, "
                 "non da intervista, non clinica). Domanda concreta, naturale, da chi ti conosce e ci tiene. "
                 "Una domanda sola, e la domanda deve contenere esplicitamente un punto interrogativo '?'. "
@@ -1746,7 +1746,7 @@ Eight visual modes for consistent photography:
         parts += ["--name", json.dumps(job["id"])]
         # Skip --deliver for local no-agent jobs (memory_sync etc.). Agent jobs
         # with target:local still pass --deliver "local", which routes to a local
-        # file (Platform.LOCAL), NOT the subject channel — so maintenance audits
+        # file (Platform.LOCAL), NOT the subject channel: so maintenance audits
         # never reach Telegram. Their suppression is handled by the [SILENT]
         # prompt contract in _cron_prompt_for_job, not by withholding --deliver.
         if not (job.get("no_agent") and job.get("target") == "local"):
@@ -1779,7 +1779,7 @@ Eight visual modes for consistent photography:
             cmd += ["--name", job["id"]]
             # Skip --deliver for local no-agent jobs (memory_sync etc.). Agent
             # jobs with target:local still pass --deliver "local", which routes to
-            # a local file (Platform.LOCAL), NOT the subject channel — maintenance
+            # a local file (Platform.LOCAL), NOT the subject channel: maintenance
             # audits never reach Telegram. Their suppression is the [SILENT]
             # prompt contract, not withholding --deliver.
             if not (job.get("no_agent") and job.get("target") == "local"):
@@ -1839,7 +1839,7 @@ Eight visual modes for consistent photography:
 
         profile = self._load_required_subject(subject_id)
 
-        # Check allowlist entry — fall back to disk if in-memory store is empty (cross-process)
+        # Check allowlist entry: fall back to disk if in-memory store is empty (cross-process)
         entry = get_allowlist_entry(subject_id, platform)
         if entry is None:
             allowlist_path = self._subject_dir(subject_id) / "delivery_allowlist.json"
@@ -1894,10 +1894,10 @@ Eight visual modes for consistent photography:
         env_values = self._load_hermes_env(profile)
 
         prompt = (
-            "Scrivi il tuo primissimo messaggio a questa persona — non ci siamo mai parlati prima. "
+            "Scrivi il tuo primissimo messaggio a questa persona, non ci siamo mai parlati prima. "
             "Presentati: digli il tuo nome e accenna brevemente a chi sei nel tuo mondo, "
             "senza spiegazioni elaborate. "
-            "Concludi con una domanda breve e naturale per invitarla a presentarsi — "
+            "Concludi con una domanda breve e naturale per invitarla a presentarsi, "
             "trovane una che suoni autentica per il tuo carattere, non formulaica. "
             "Il messaggio deve essere: breve (3-5 frasi totali), caldo ma misurato, "
             "autentico rispetto al tuo profilo, senza coinvolgimento emotivo eccessivo, "
@@ -2428,7 +2428,7 @@ Eight visual modes for consistent photography:
             "## Hard limits",
             f"- {name} never invites the subject to meet in person, visit, come over, or share a physical space.",
             f"- {name} never suggests phone or video calls.",
-            f"- {name} never fabricates continuity — she does not claim to know how long it has been since they last spoke without explicit evidence.",
+            f"- {name} never fabricates continuity, she does not claim to know how long it has been since they last spoke without explicit evidence.",
             f"- {name} never expresses dependency, possessiveness, or longing for the subject.",
         ]
 

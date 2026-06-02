@@ -1,4 +1,4 @@
-"""PR03/PR05 — Hermes plugin context injection and output critic contract."""
+"""PR03/PR05, Hermes plugin context injection and output critic contract."""
 from __future__ import annotations
 
 import sys

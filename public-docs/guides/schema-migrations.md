@@ -98,7 +98,7 @@ The verification script reports row counts and integrity checks; review every as
 
 ### Point Relic at Postgres
 
-There is no built-in Postgres adapter in the runtime as of this writing — the SQL is the integration path, not a switchable backend. Wiring the runtime to Postgres requires writing a thin adapter for `relic/persistence.py` and pointing `RELIC_DB_PATH` (or its replacement) at the Postgres URL. Plan engineering time accordingly.
+There is no built-in Postgres adapter in the runtime as of this writing, the SQL is the integration path, not a switchable backend. Wiring the runtime to Postgres requires writing a thin adapter for `relic/persistence.py` and pointing `RELIC_DB_PATH` (or its replacement) at the Postgres URL. Plan engineering time accordingly.
 
 ### Rollback
 

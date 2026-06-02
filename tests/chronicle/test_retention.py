@@ -1,4 +1,4 @@
-"""Chronicle retention tests — T022 reaper + archive + delete cascade."""
+"""Chronicle retention tests, T022 reaper + archive + delete cascade."""
 from __future__ import annotations
 
 import sqlite3
@@ -99,7 +99,7 @@ class TestDeleteExpired:
         _patch(monkeypatch, tmp_relic_db, tmp_chronicle_dir)
         from relic.chronicle import delete_expired
 
-        # Recent ephemeral event (5 min ago) — not yet expired
+        # Recent ephemeral event (5 min ago), not yet expired
         recent_ts = (datetime.now(timezone.utc) - timedelta(minutes=5)).isoformat()
         _insert_event_with_timestamp(tmp_relic_db, retention_policy="ephemeral", timestamp=recent_ts)
 

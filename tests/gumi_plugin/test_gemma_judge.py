@@ -1,4 +1,4 @@
-"""Tests: gemma_judge.judge_score — parsing and fail-open behavior.
+"""Tests: gemma_judge.judge_score, parsing and fail-open behavior.
 
 No real network: ollama calls are monkeypatched. Contract:
 - parses an integer 0-100 from the model response, clamped

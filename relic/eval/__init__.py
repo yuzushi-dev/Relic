@@ -1,4 +1,4 @@
-"""relic.eval — Evaluation and replication harness for Relic E2E."""
+"""relic.eval, Evaluation and replication harness for Relic E2E."""
 
 from relic.eval.ablation import (
     AblationComparison,

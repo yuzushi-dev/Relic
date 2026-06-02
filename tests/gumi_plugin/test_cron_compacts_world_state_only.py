@@ -1,4 +1,4 @@
-"""PR22H — compactor must not invent autonomous events."""
+"""PR22H, compactor must not invent autonomous events."""
 from __future__ import annotations
 
 from relic.gumi_plugin import ContinuityCompactor
