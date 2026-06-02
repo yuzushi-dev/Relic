@@ -40,6 +40,7 @@ export function WorkbenchShell({
 }) {
   const pathname = usePathname();
   const [confirmLock, setConfirmLock] = useState(false);
+  const [locked, setLocked] = useState(false);
 
   const activeSubjectId = useMemo(() => {
     const match = pathname.match(/^\/dashboard\/subjects\/([^/]+)/);
@@ -73,7 +74,7 @@ export function WorkbenchShell({
         className="ris-status-bar z-30 col-span-full row-start-1 flex h-[52px] items-center gap-3 px-3 md:px-4"
         data-testid="ris-status-bar"
       >
-        <img alt="Relic" className="h-8 w-8" src="/relic-mark.svg" />
+        <img alt="Relic" className="h-8 w-8" src={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/relic-mark.svg`} />
         <div className="hidden min-w-0 items-center gap-1 truncate font-mono text-[11px] tracking-wider text-muted-foreground sm:flex">
           {breadcrumb.map((part, index) => (
             <span key={`${part}-${index}`}>
@@ -176,12 +177,44 @@ export function WorkbenchShell({
               <button className="ris-btn border border-border bg-muted px-4 py-2 text-muted-foreground" onClick={() => setConfirmLock(false)} type="button">
                 Cancel
               </button>
-              <button className="ris-btn border border-destructive bg-destructive px-4 py-2 text-black" type="button">
+              <button
+                className="ris-btn border border-destructive bg-destructive px-4 py-2 text-black"
+                onClick={() => {
+                  setConfirmLock(false);
+                  setLocked(true);
+                }}
+                type="button"
+              >
                 <Shield className="mr-2 inline h-3.5 w-3.5" />
                 Lock Workbench
               </button>
             </div>
           </section>
+        </div>
+      ) : null}
+
+      {locked ? (
+        <div
+          aria-label="Workbench locked"
+          aria-modal="true"
+          className="ris-scanlines fixed inset-0 z-[60] flex flex-col items-center justify-center gap-6 bg-black/95 p-6 text-center"
+          role="dialog"
+        >
+          <Shield className="h-12 w-12 text-destructive" strokeWidth={1.5} />
+          <div className="space-y-2">
+            <h2 className="font-display text-2xl font-bold tracking-[0.3em] text-destructive">WORKBENCH LOCKED</h2>
+            <p className="font-mono text-xs tracking-wider text-muted-foreground">
+              Researcher token revoked · session ended · R-0007-RELIC
+            </p>
+          </div>
+          <button
+            className="ris-btn border border-primary bg-primary px-5 py-2 font-display text-sm tracking-widest text-primary-foreground"
+            onClick={() => setLocked(false)}
+            type="button"
+          >
+            <User className="mr-2 inline h-3.5 w-3.5" />
+            Re-authenticate
+          </button>
         </div>
       ) : null}
     </div>

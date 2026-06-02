@@ -6,6 +6,10 @@ const nextConfig = {
   reactStrictMode: true,
   output: isStaticBuild ? "export" : "standalone",
   typedRoutes: true,
+  // Expose basePath to the client bundle so client components (e.g. raw <img>
+  // tags, which next does not auto-prefix) can build correct asset URLs under
+  // the GitHub Pages subpath.
+  env: { NEXT_PUBLIC_BASE_PATH: basePath },
   ...(basePath ? { basePath } : {}),
   ...(isStaticBuild
     ? { trailingSlash: true, images: { unoptimized: true } }
