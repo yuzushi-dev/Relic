@@ -1,8 +1,21 @@
-"""Initialize relic.db schema and seed the 60-facet registry.
+"""Initialize the per-subject relic.db schema and seed the 60-facet registry.
 
 Usage:
     python -m relic.checkin.db_init --subject-id daniele
     python -m relic.checkin.db_init --subject-id daniele --db-path /path/to/relic.db
+
+Schema authority
+----------------
+This module is the single source of truth for the **per-subject** databases at
+``$RELIC_HOME/subjects/<id>/relic.db`` — the live longitudinal stores the
+check-in pipeline reads and writes. The SQL files under ``relic/db/migrations``
+(0008_checkin_core, 0009_checkin_naturalness, 0012_reply_valence) define the
+same check-in tables, but those apply only to the **global** governance DB
+(``$RELIC_HOME/relic.db``), where the check-in tables are co-resident with
+chronicle/governance tables and stay empty at runtime. The two definitions are
+kept consistent by hand; bump ``SCHEMA_VERSION`` below whenever ``SCHEMA_SQL``
+changes so the per-subject schema is auditable independently of the global
+migration numbering.
 """
 from __future__ import annotations
 
@@ -12,7 +25,16 @@ import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 
+# Per-subject schema version, namespaced to avoid collision with the global
+# migration numbering in relic/db/migrations. Bump on any SCHEMA_SQL change.
+SCHEMA_VERSION = "checkin-1"
+
 SCHEMA_SQL = """
+CREATE TABLE IF NOT EXISTS schema_version (
+    version TEXT PRIMARY KEY,
+    applied_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS facets (
     id TEXT PRIMARY KEY,
     category TEXT NOT NULL,
@@ -105,17 +127,6 @@ CREATE TABLE IF NOT EXISTS hypotheses (
     updated_at TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS inbox (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    message_id TEXT UNIQUE,
-    from_id TEXT NOT NULL,
-    content TEXT NOT NULL,
-    channel_id TEXT NOT NULL,
-    received_at TEXT NOT NULL,
-    processed INTEGER DEFAULT 0,
-    processed_at TEXT
-);
-
 CREATE TABLE IF NOT EXISTS model_snapshots (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     snapshot_at TEXT NOT NULL,
@@ -128,12 +139,10 @@ CREATE TABLE IF NOT EXISTS model_snapshots (
 CREATE INDEX IF NOT EXISTS idx_cf_subject_tick ON checkin_features(subject_id, tick_id);
 CREATE INDEX IF NOT EXISTS idx_observations_facet ON observations(facet_id);
 CREATE INDEX IF NOT EXISTS idx_observations_source ON observations(source_type);
-CREATE INDEX IF NOT EXISTS idx_inbox_processed ON inbox(processed);
 CREATE INDEX IF NOT EXISTS idx_checkin_unprocessed ON checkin_exchanges(observations_extracted);
 CREATE INDEX IF NOT EXISTS idx_checkin_pending ON checkin_exchanges(asked_at DESC) WHERE reply_text IS NULL AND facet_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_checkin_processable ON checkin_exchanges(asked_at) WHERE reply_text IS NOT NULL AND observations_extracted = 0;
 CREATE INDEX IF NOT EXISTS idx_observations_source_date ON observations(source_type, created_at);
-CREATE INDEX IF NOT EXISTS idx_inbox_pending ON inbox(received_at) WHERE processed = 0;
 """
 
 # 60 canonical facets — derived from the Relic longitudinal model
@@ -220,6 +229,10 @@ def init_db(db_path: Path) -> sqlite3.Connection:
     conn.execute("PRAGMA journal_mode = WAL")
     conn.execute("PRAGMA foreign_keys = ON")
     conn.executescript(SCHEMA_SQL)
+    conn.execute(
+        "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (?, ?)",
+        (SCHEMA_VERSION, datetime.now(timezone.utc).isoformat()),
+    )
     conn.commit()
     return conn
 

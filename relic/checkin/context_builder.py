@@ -17,6 +17,28 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
+# Mirror of relic.checkin.reply_capture.REPLY_WINDOW_HOURS: a topic-hint ask is
+# only answerable while the exchange is still inside the capture window. Asking a
+# second question while one is already pending creates >1 unanswered exchange,
+# and reply_capture (ORDER BY asked_at DESC LIMIT 1) then mis-attributes the
+# subject's single reply to the wrong facet. Enforce one open question at a time.
+_PENDING_ASK_WINDOW_HOURS = 12
+
+
+def _has_pending_exchange(conn, now: datetime) -> bool:
+    """True if an un-replied check-in exchange was asked within the ask window."""
+    cutoff = (now - timedelta(hours=_PENDING_ASK_WINDOW_HOURS)).isoformat()
+    try:
+        row = conn.execute(
+            "SELECT 1 FROM checkin_exchanges "
+            "WHERE reply_text IS NULL AND facet_id IS NOT NULL AND asked_at >= ? "
+            "LIMIT 1",
+            (cutoff,),
+        ).fetchone()
+    except Exception:
+        return False  # fail-open: never block delivery on a probe query
+    return row is not None
+
 
 def _load_consent(subject_id: str, relic_home: Path) -> bool:
     dp_path = relic_home / "subjects" / subject_id / "delivery_policy.json"
@@ -164,6 +186,15 @@ def build_topic_hint_section(
             conn_t = sqlite3.connect(
                 f"file:{db_path}?mode=ro", uri=True, timeout=5.0
             )
+            # One open question at a time: if a prior ask is still un-replied
+            # inside the capture window, don't persist (and therefore don't
+            # render) a new probe — it would strand both exchanges and corrupt
+            # reply attribution. Dry-run previews (persist_exchange=False) are
+            # exempt: they never create a row to strand.
+            if persist_exchange and _has_pending_exchange(
+                conn_t, datetime.now(timezone.utc)
+            ):
+                return ""
             sel = select_facet(
                 conn_t,
                 bl_path if bl_path.exists() else None,

@@ -416,6 +416,52 @@ class TestBuildTopicHintSection:
             check.close()
             assert len(rows) >= 1
 
+    def test_pending_exchange_blocks_new_persisted_ask(
+        self, relic_dir: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        """A still-pending exchange suppresses a new persisted ask (one open
+        question at a time), preventing reply mis-attribution."""
+        from datetime import datetime, timezone
+
+        conn = _init_db(relic_dir)
+        # Seed one un-replied exchange asked just now (inside the window).
+        conn.execute(
+            "INSERT INTO checkin_exchanges (facet_id, question_text, asked_at) "
+            "VALUES (?, ?, ?)",
+            (
+                "cognitive.abstraction_level",
+                "Livello di astrazione",
+                datetime.now(timezone.utc).isoformat(),
+            ),
+        )
+        conn.commit()
+        conn.close()
+        db_path = relic_dir / "subjects" / "test_subj" / "relic.db"
+        monkeypatch.setattr(
+            "relic.checkin.question_engine.select_facet",
+            lambda *_args, **_kwargs: {
+                "status": "ask_now",
+                "selected_facet": "cognitive.decision_speed",
+                "question_hint": "Velocità nel prendere decisioni",
+            },
+        )
+
+        result = build_topic_hint_section(
+            "test_subj",
+            db_path,
+            relic_dir / "subjects" / "test_subj" / "subject_baseline.json",
+            persist_exchange=True,
+        )
+
+        # No new question rendered, and no second exchange persisted.
+        assert result == ""
+        check = sqlite3.connect(str(db_path))
+        try:
+            rows = check.execute("SELECT id FROM checkin_exchanges").fetchall()
+        finally:
+            check.close()
+        assert len(rows) == 1
+
     def test_can_render_topic_hint_without_persisting_exchange(
         self, relic_dir: Path, monkeypatch: pytest.MonkeyPatch
     ):

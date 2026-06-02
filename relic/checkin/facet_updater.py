@@ -436,9 +436,11 @@ def process_pending_exchanges(
                     """INSERT INTO traits (facet_id, value_position, confidence, observation_count, last_observation_at)
                        VALUES (?, ?, ?, 1, ?)
                        ON CONFLICT(facet_id) DO UPDATE SET
-                           value_position = CASE WHEN excluded.value_position IS NOT NULL
-                               THEN 0.7*traits.value_position + 0.3*excluded.value_position
-                               ELSE traits.value_position END,
+                           value_position = CASE
+                               WHEN excluded.value_position IS NULL THEN traits.value_position
+                               WHEN traits.value_position IS NULL THEN excluded.value_position
+                               ELSE 0.7*traits.value_position + 0.3*excluded.value_position
+                           END,
                            confidence = MIN(traits.confidence + ?, ?),
                            observation_count = traits.observation_count + 1,
                            last_observation_at = excluded.last_observation_at""",
