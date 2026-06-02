@@ -111,6 +111,21 @@ class CorrectionPropagator:
             conn = get_connection(self._db_path)
             try:
                 cur = conn.cursor()
+                # Ensure the FK parent exists. correction_records.prompt_id
+                # references prompt_records(id) and foreign keys are enforced
+                # (PRAGMA foreign_keys = ON). When a correction targets a prompt
+                # that was not separately registered (e.g. a memory block id),
+                # register a minimal placeholder so the correction is recorded
+                # and auditable instead of being silently dropped on the FK
+                # constraint. No-op when the prompt already exists.
+                cur.execute(
+                    """
+                    INSERT OR IGNORE INTO prompt_records
+                    (id, session_id, role, content_hash, content_length)
+                    VALUES (?, ?, ?, ?, ?)
+                    """,
+                    (str(prompt_id), str(prompt_id), "correction_target", "", 0),
+                )
                 cur.execute(
                     """
                     INSERT INTO correction_records
