@@ -20,7 +20,7 @@ Until a citable paper is published, use the GitHub repository:
 
 ## CITATION.cff
 
-A `CITATION.cff` file is planned for the repository root. It will be added alongside or after the first stable release.
+A `CITATION.cff` file is provided at the repository root; GitHub renders it as a "Cite this repository" widget, and most reference managers can import it directly.
 
 ## If you build on Relic
 

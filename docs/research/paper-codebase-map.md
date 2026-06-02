@@ -2,7 +2,7 @@
 
 This document connects the Relic/Gumi research paper to the current implementation. It is written for readers who need both views at once: the academic argument behind the system and the concrete code paths that realize, test, or limit that argument.
 
-The canonical paper framing is `relic_gumi_paper_package/manuscript/relic-gumi-manuscript.md`. The canonical public implementation status is [Release Status](../contributing/release-status.md). The current codebase is the authority for all implementation claims.
+The canonical paper framing is `relic_gumi_paper_package/manuscript/relic-gumi-manuscript.md`. The canonical public implementation status is [Release Status](../../public-docs/contributing/release-status.md). The current codebase is the authority for all implementation claims.
 
 ## One-sentence project description
 
@@ -29,7 +29,7 @@ The paper begins from a risk: persistent relational agents become valuable becau
 
 The codebase encodes this problem as separation of data streams:
 
-- subject scope is represented in `relic/profile/registry.py`, `relic/hermes_runtime.py`, and the data model documented in [Data Model](../architecture/data-model.md)
+- subject scope is represented in `relic/profile/registry.py`, `relic/hermes_runtime.py`, and the data model documented in [Data Model](../../public-docs/architecture/data-model.md)
 - Gumi-facing memory is separated from researcher-facing safety signals in `relic/shared_continuity/`, `relic/gumi_continuity/`, `relic/patterns/`, and `relic/safety/`
 - auditability is handled by Chronicle in `relic/chronicle/`
 - runtime context is assembled through `relic/context_pack/`, not by treating the database as a prompt
@@ -108,7 +108,7 @@ Implementation references:
 - `relic/chronicle/` records events, decisions, snapshots, provenance edges, access audit, retention, and redaction.
 - `relic/replication/` and `replication/` package reproducible bundles.
 
-Chronicle is the audit spine. It answers "what happened and why?" rather than "what does the system currently believe?" That distinction is documented in [Chronicle](../architecture/chronicle.md).
+Chronicle is the audit spine. It answers "what happened and why?" rather than "what does the system currently believe?" That distinction is documented in [Chronicle](../../public-docs/architecture/chronicle.md).
 
 ### Layer 4: Hermes runtime mediation
 
@@ -270,17 +270,17 @@ Current scientific status:
 If you are reviewing the research claim, start with:
 
 1. `relic_gumi_paper_package/manuscript/relic-gumi-manuscript.md`
-2. [Theoretical Grounding](theoretical-grounding.md)
-3. [Limitations](limitations.md)
+2. [Theoretical Grounding](../../public-docs/research/theoretical-grounding.md)
+3. [Limitations](../../public-docs/research/limitations.md)
 4. this document
 
 If you are reviewing the architecture, start with:
 
-1. [Runtime Pipeline](../architecture/pipeline.md)
-2. [Data Model](../architecture/data-model.md)
-3. [Chronicle](../architecture/chronicle.md)
-4. [Privacy Stages](../architecture/privacy-stages.md)
-5. [Module Map](../architecture/module-map.md)
+1. [Runtime Pipeline](../../public-docs/architecture/pipeline.md)
+2. [Data Model](../../public-docs/architecture/data-model.md)
+3. [Chronicle](../../public-docs/architecture/chronicle.md)
+4. [Privacy Stages](../../public-docs/architecture/privacy-stages.md)
+5. [Module Map](../../public-docs/architecture/module-map.md)
 
 If you are reviewing implementation evidence, inspect:
 
@@ -323,7 +323,7 @@ When citing or describing the current artifact, use these constraints:
 - The current artifact provides architecture, implementation contracts, fixtures, and tests; it does not provide a completed human-subject deployment study.
 - The Hermes adapter facade exists, but some live paths still use older direct integration surfaces.
 - The researcher workbench is contract- and fixture-backed in the Python artifact; it should not be overstated as a complete live production UI.
-- External memory providers and non-Telegram channels must be described by their alpha status in [Release Status](../contributing/release-status.md).
+- External memory providers and non-Telegram channels must be described by their alpha status in [Release Status](../../public-docs/contributing/release-status.md).
 
 ## Summary
 

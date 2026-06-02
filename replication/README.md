@@ -27,7 +27,26 @@ Aggregated metrics (e.g., privacy leakage rate, correction obedience rate) are r
 
 ## Bundle Contents
 
-### Required Files
+> **Two bundle profiles.** The current `relic.eval.replication_bundle.build_bundle`
+> emits a **minimal bundle** (the five files below under "Minimal bundle (emitted
+> today)"). The richer **extended contract** ("Extended contract: target") is the
+> normative goal documented for ACM Artifact-Review parity; the example under
+> `replication/example_bundle/` follows the extended contract. Fields in the
+> extended contract that the minimal builder does not yet emit are marked
+> *(planned)*. Do not assume the extended files are present in a bundle produced by
+> `make replication-bundle` / `scripts/demo_e2e.py` until the builder is upgraded.
+
+### Minimal bundle (emitted today by `build_bundle`)
+
+| File | Purpose | Privacy Status |
+|------|---------|----------------|
+| `manifest.json` | Run/bundle metadata, trace count, traces checksum | Public |
+| `traces.jsonl` | Evaluation traces (currently a JSON array; line-delimited JSONL is *planned*) | Public |
+| `policy_snapshot.json` | Policy snapshot at execution time (JSON; YAML is *planned*) | Public |
+| `report.json` | Metrics + injection/blocking report | Public |
+| `checksums.json` | SHA-256 checksums for trace integrity | Public |
+
+### Extended contract: target (example_bundle reference)
 
 | File | Purpose | Privacy Status |
 |------|---------|----------------|
@@ -35,10 +54,10 @@ Aggregated metrics (e.g., privacy leakage rate, correction obedience rate) are r
 | `artifact_checksums.json` | SHA-256 hashes of all compiled artifacts | Public |
 | `environment.txt` | Pinned dependency versions | Public |
 | `policy_snapshot.yaml` | Compiler policy at execution time | Public |
-| `schema_versions.json` | Relic schema versions used | Public |
-| `seed_config.json` | Random seed configuration | Public |
-| `fixtures/` | Deterministic input fixtures | Public |
-| `expected_outputs/` | Expected output fixtures | Public |
+| `schema_versions.json` *(planned)* | Relic schema versions used | Public |
+| `seed_config.json` *(planned)* | Random seed configuration | Public |
+| `fixtures/` *(planned)* | Deterministic input fixtures | Public |
+| `expected_outputs/` *(planned)* | Expected output fixtures | Public |
 
 ### Conditional Files
 

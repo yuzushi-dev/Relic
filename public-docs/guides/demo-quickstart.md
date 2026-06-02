@@ -2,7 +2,7 @@
 
 Use this when you want to see Relic running in minutes without going through the full 15-step bootstrap TUI. Two paths: a **local demo bundle** (no install needed beyond Python) and a **canned demo subject** loaded into the workbench.
 
-## Path A — End-to-end demo bundle
+## Path A: End-to-end demo bundle
 
 Runs the eval pipeline against synthetic fixtures, computes metrics, produces a replication bundle. No network, no model calls, no private data. Good for "does this even work on my machine."
 
@@ -12,9 +12,9 @@ python scripts/demo_e2e.py --dry-run  # preview, no writes
 python scripts/demo_e2e.py -v         # verbose
 ```
 
-Output: a replication bundle under `artifacts/demo-bundle-<timestamp>/` with traces, metrics, and the fixtures that produced them. Inspect it directly or feed it back to a peer for independent reproduction.
+Output: a replication bundle ZIP at `artifacts/replication_bundles/demo-e2e-<timestamp>.zip` containing `manifest.json`, `traces.jsonl`, `policy_snapshot.json`, `report.json`, and `checksums.json` (the minimal-bundle profile; see `replication/README.md`). Unzip it to inspect, or feed it back to a peer for independent reproduction.
 
-## Path B — Pre-generated demo subject for the workbench
+## Path B: Pre-generated demo subject for the workbench
 
 Loads a synthetic subject with sessions, facets, corrections, and CAC traces already populated. Skip bootstrap entirely.
 
@@ -36,7 +36,7 @@ To regenerate with different randomness:
 python scripts/generate_demo_data.py --out-dir demo/generated  # idempotent by content
 ```
 
-## Path C — Live workbench demo (no install)
+## Path C: Live workbench demo (no install)
 
 The repo deploys a static workbench build to GitHub Pages:
 
@@ -57,12 +57,12 @@ It runs entirely in the browser against the committed `demo/generated/demo_data.
 
 Demo data is drawn from `fixtures/`. Each subdirectory has a `README.md` describing the scenario. The high-value ones:
 
-- `fixtures/basic/` — minimal happy path.
-- `fixtures/gumi-eval/` — identity stability and roleplay admission cases.
-- `fixtures/corrections/` — researcher feedback events and propagation.
-- `fixtures/memory-dynamics/` — decay/reinforcement scenarios.
-- `fixtures/shared-continuity/` — subject-confirmed marker lifecycle.
-- `fixtures/researcher-workbench/` — workbench-facing inputs.
+- `fixtures/basic/`: minimal happy path.
+- `fixtures/gumi-eval/`: identity stability and roleplay admission cases.
+- `fixtures/corrections/`: researcher feedback events and propagation.
+- `fixtures/memory-dynamics/`: decay/reinforcement scenarios.
+- `fixtures/shared-continuity/`: subject-confirmed marker lifecycle.
+- `fixtures/researcher-workbench/`: workbench-facing inputs.
 
 To list everything:
 

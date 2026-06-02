@@ -198,15 +198,36 @@ To prevent the software artifact from supporting premature or unevidenced scient
 
 The gate enforces a strict separation between implemented system contracts and empirical human studies. It tracks seven requirements:
 
-1. **Controlled Governance Benchmark** (Satisfied: Synthetic fixture benchmark covers 180+ scenarios across 5 conditions)
-2. **Live-Model Generation Campaign** (Satisfied: Multi-provider validation runs complete and verified)
-3. **Live Runtime Telemetry** (Satisfied: Gateway tracing verifies `cron_delivery_path` and `hermes_entry_transform_hook` under mock workloads)
-4. **Human Annotation with Inter-Rater Reliability** (Blocked/Pending: Requires recruited human annotation data)
-5. **Expert Non-Clinical Red-Teaming** (Blocked/Pending: Requires expert-review panels and risk-category agreement)
-6. **Longitudinal Non-Clinical Pilot** (Blocked/Pending: Requires longitudinal field study results)
-7. **Researcher Workbench Usability Study** (Blocked/Pending: Requires recruited task-usability metrics)
+1. **Controlled Governance Benchmark**: *satisfied* (180-scenario synthetic-fixture benchmark across 5 conditions; code-regenerable).
+2. **Live-Model Generation Campaign**: *satisfied with committed evidence* (60 redacted generation records across two model configurations, `qwen3.5:cloud` and `gemma4:31b-cloud`, on one provider backend, Ollama Cloud; `docs/research/evidence/live-model-campaign-2026-05-26/`).
+3. **Live Runtime Telemetry**: *satisfied with committed evidence* (mock-gateway traces covering `cron_delivery_path` and `hermes_entry_transform_hook`).
+4. **Human Annotation with Inter-Rater Reliability**: *blocked* (requires recruited annotators).
+5. **Expert Non-Clinical Red-Teaming**: *blocked* (requires expert reviewers plus risk-category agreement).
+6. **Longitudinal Non-Clinical Pilot**: *blocked* (requires a 12-participant-or-larger field study).
+7. **Researcher Workbench Usability Study**: *blocked* (requires recruited task-usability metrics).
 
-The gate blocks general release packaging (returning a non-zero exit code) until all seven requirements are satisfied. The current repository implements the core architecture, test contracts, synthetic fixtures, and mock telemetry. No claim of clinical efficacy, therapeutic outcome, or validated psychometric measurement is made or supported by the current artifact.
+**Reproducing the gate state (the numbers above are not hand-asserted):**
+
+```bash
+make gate-default   # default gate, no evidence bundle  -> 1/7 satisfied (benchmark only)
+make gate           # gate over the committed local evidence -> 3/7 satisfied (1 + 2 + 3)
+```
+
+The default invocation reports **1/7** because only the controlled benchmark is
+regenerable from code alone; requirements 2–3 are *satisfied* but require the
+committed campaign + telemetry artifacts to be supplied as an evidence bundle,
+which `make gate` (`scripts/gate_local_evidence.py`) does. **3/7 is the maximum
+state reachable without recruited human data**; requirements 4–7 stay blocked by
+design. `make gate` exits 0 when it reproduces exactly the expected 3/7 state
+(and non-zero on drift or missing evidence); `make gate-default` exits non-zero
+because the no-evidence gate blocks broad claims by design.
+
+The gate blocks general release packaging until all seven requirements are
+satisfied. The current repository implements the core architecture, test
+contracts, synthetic fixtures, committed live-model + mock-telemetry evidence, and
+the four still-blocked protocols/importers. No claim of clinical efficacy,
+therapeutic outcome, or validated psychometric measurement is made or supported by
+the current artifact.
 
 ## License
 

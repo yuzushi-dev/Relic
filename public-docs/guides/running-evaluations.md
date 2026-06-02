@@ -73,24 +73,27 @@ For the single local claim-readiness workflow:
 
 ```bash
 python scripts/scientific_claim_readiness.py \
-  --mode full \
   --output-dir artifacts/scientific-claim-readiness \
   --json
 ```
 
-This writes `scientific-claim-readiness-run.json`, command logs, the environment
+This runs in **`smoke` mode (the default)**: it writes
+`scientific-claim-readiness-run.json`, command logs, the environment
 manifest, reproducibility snapshot, mock runtime telemetry artifact, and the
 evidence sufficiency gate output. It also writes
 `scientific-observation-remediation-audit.json`, which maps the gaps in
 `docs/relic_gumi_scientific_observations` to current local evidence and external
-blockers. `full` mode also runs compilation,
-privacy-marker scan, whitespace diff check, the broad scientific test surface,
-generates `scientific-surface-coverage.json` with pytest-cov, and builds the
-root Docker image. The coverage file is test-execution evidence for the local
-scientific surface; it is not human, live-provider, or deployment evidence. The
-command exits non-zero while the evidence sufficiency gate is blocked; that non-zero
-exit is expected until the external evidence artifacts are supplied. Use
-`--mode smoke` only for a quick artifact exercisability check.
+blockers.
+
+Add `--mode full` only when preparing a release artifact: full mode additionally
+runs compilation, the privacy-marker scan, a whitespace diff check, the broad
+scientific test surface (generating `scientific-surface-coverage.json` with
+pytest-cov), and a root Docker build. **Full mode requires `uv` and `docker` and
+can OOM on small machines**, it is opt-in for that reason. The coverage file is
+test-execution evidence for the local scientific surface; it is not human,
+live-provider, or deployment evidence. The command exits non-zero while the
+evidence sufficiency gate is blocked; that non-zero exit is expected until the
+external evidence artifacts are supplied.
 
 To emit only the observation remediation audit:
 
