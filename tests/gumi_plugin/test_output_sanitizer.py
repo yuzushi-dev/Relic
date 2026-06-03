@@ -61,11 +61,21 @@ class TestPassThrough:
         assert sanitize_for_subject(text) == text
 
     def test_multiline_clean_text(self):
-        text = "Prima riga.\nSeconda riga.\nTerza riga."
+        text = "Prima riga,\nSeconda riga!\nTerza riga?"
         assert sanitize_for_subject(text) == text
 
     def test_text_with_url(self):
         text = "Guarda questo: https://example.com"
+        assert sanitize_for_subject(text) == text
+
+    def test_strips_only_terminal_full_stop(self):
+        assert sanitize_for_subject("Sto cucinando.") == "Sto cucinando"
+
+    def test_strips_terminal_full_stop_before_emoji(self):
+        assert sanitize_for_subject("Sto cucinando. ✨") == "Sto cucinando ✨"
+
+    def test_keeps_question_exclamation_and_comma(self):
+        text = "Ti va di raccontarmelo?\nGuarda che luce!\nresto qui,"
         assert sanitize_for_subject(text) == text
 
 
@@ -78,7 +88,7 @@ class TestMixedContent:
     def test_media_line_stripped_from_otherwise_valid(self):
         text = "Ecco la musica per te.\nMEDIA:/tmp/song.mp3 [DELIVERED]"
         result = sanitize_for_subject(text)
-        assert result == "Ecco la musica per te."
+        assert result == "Ecco la musica per te"
 
     def test_multiple_warn_lines_all_dropped(self):
         text = "[WARN] line1\n[WARN] line2\nTesto pulito"
@@ -92,10 +102,10 @@ class TestMixedContent:
     def test_traceback_block_dropped_line_by_line(self):
         text = "Ok.\nTraceback (most recent call last):\n  File foo.py\nValueError: bad\nFine."
         result = sanitize_for_subject(text)
-        # Only "Ok." and "Fine." survive; indented traceback lines pass through
+        # Only "Ok" and "Fine" survive; indented traceback lines pass through
         # (only the Traceback header and ValueError: lines are denied)
-        assert "Ok." in result
-        assert "Fine." in result
+        assert "Ok" in result
+        assert "Fine" in result
         assert "Traceback" not in result
         assert "ValueError" not in result
 

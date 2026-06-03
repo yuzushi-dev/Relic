@@ -87,6 +87,7 @@ def test_dispatch_checkin_music_does_not_force_question_mark(
 
 def test_clean_image_caption_removes_only_trailing_periods() -> None:
     assert clean_image_caption("Sto cucinando.") == "Sto cucinando"
+    assert clean_image_caption("Sto cucinando. ✨") == "Sto cucinando ✨"
     assert clean_image_caption("Ti va di raccontarmelo?") == "Ti va di raccontarmelo?"
     assert clean_image_caption("guardo fuori,") == "guardo fuori,"
 

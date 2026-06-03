@@ -162,7 +162,7 @@ class TestTextSanitizer:
     def test_media_line_stripped_from_text(self):
         stdout, _ = _dispatch_capture("tipo: text\nMessaggio.\nMEDIA:/tmp/x.jpg")
         assert "MEDIA:" not in stdout
-        assert "Messaggio." in stdout
+        assert "Messaggio" in stdout
 
 
 class TestSendTelegramMediaWarnings:

@@ -11,6 +11,13 @@ from __future__ import annotations
 import re
 import sys
 
+_TRAILING_SYMBOL_RE = re.compile(
+    r"(\s*(?:[\U0001F300-\U0001FAFF\u2600-\u27BF]\ufe0f?|\ufe0f)+\s*)$"
+)
+_TERMINAL_FULL_STOP_RE = re.compile(
+    r"\.+(?=(?:\s*(?:[\U0001F300-\U0001FAFF\u2600-\u27BF]\ufe0f?|\ufe0f))*\s*$)"
+)
+
 # Lines starting with these prefixes are operator telemetry, never subject-facing.
 _DENY_LINE_RE = re.compile(
     r"^\s*("
@@ -25,6 +32,21 @@ _DENY_LINE_RE = re.compile(
     r")",
     re.IGNORECASE,
 )
+
+
+def strip_terminal_full_stops(text: str) -> str:
+    """Remove only terminal full stops, preserving other punctuation."""
+    cleaned: list[str] = []
+    for line in text.splitlines():
+        suffix_match = _TRAILING_SYMBOL_RE.search(line.rstrip())
+        suffix = suffix_match.group(1) if suffix_match else ""
+        without_stop = _TERMINAL_FULL_STOP_RE.sub("", line)
+        if suffix and without_stop.endswith(suffix):
+            # Collapse whitespace left behind by "text. ✨" -> "text ✨".
+            body = without_stop[: -len(suffix)].rstrip()
+            without_stop = f"{body} {suffix.lstrip()}"
+        cleaned.append(without_stop)
+    return "\n".join(cleaned)
 
 
 def sanitize_for_subject(text: str) -> str | None:
@@ -44,5 +66,5 @@ def sanitize_for_subject(text: str) -> str | None:
         else:
             clean.append(line)
 
-    result = "\n".join(clean).strip()
+    result = strip_terminal_full_stops("\n".join(clean)).strip()
     return result if result else None

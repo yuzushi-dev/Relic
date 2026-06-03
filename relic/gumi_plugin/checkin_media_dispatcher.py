@@ -25,7 +25,7 @@ from relic.gumi_plugin.media_state import record_media_delivery, record_outbound
 from relic.gumi_plugin.image_gen import generate_checkin_image
 from relic.gumi_plugin.tts import synthesize_checkin_audio
 from relic.gumi_plugin.lyria import LyriaGenerator
-from relic.gumi_plugin.output_sanitizer import sanitize_for_subject
+from relic.gumi_plugin.output_sanitizer import sanitize_for_subject, strip_terminal_full_stops
 
 _TRAILING_SYMBOL_RE = re.compile(
     r"(\s*(?:[\U0001F300-\U0001FAFF\u2600-\u27BF]\ufe0f?|\ufe0f)+\s*)$"
@@ -115,7 +115,7 @@ def clean_image_caption(caption: str) -> str:
     The old cleanup removed all terminal punctuation, including ``?``. The
     intended style rule is only "no final full stop" on captions.
     """
-    return re.sub(r"\.+$", "", caption.strip())
+    return strip_terminal_full_stops(caption.strip())
 
 
 def parse_gate_output(llm_output: str) -> dict:
