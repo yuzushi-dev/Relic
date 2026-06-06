@@ -1,0 +1,133 @@
+diff --git a/gateway/run.py b/gateway/run.py
+index f9a282a41..0560b765d 100644
+--- a/gateway/run.py
++++ b/gateway/run.py
+@@ -1208,6 +1208,8 @@ class GatewayRunner:
+         self._ephemeral_system_prompt = self._load_ephemeral_system_prompt()
+         self._reasoning_config = self._load_reasoning_config()
+         self._service_tier = self._load_service_tier()
++        self._show_background_review_in_chat = self._load_show_background_review_in_chat()
++        self._show_auxiliary_warnings_in_chat = self._load_show_auxiliary_warnings_in_chat()
+         self._show_reasoning = self._load_show_reasoning()
+         self._busy_input_mode = self._load_busy_input_mode()
+         self._restart_drain_timeout = self._load_restart_drain_timeout()
+@@ -2417,6 +2419,50 @@ class GatewayRunner:
+         logger.warning("Unknown service_tier '%s', ignoring", raw)
+         return None
+ 
++    @staticmethod
++    def _load_show_background_review_in_chat() -> bool:
++        """Load show_background_review_in_chat toggle from config.yaml display section.
++
++        Defaults to False — background review messages are internal and should
++        not surface in subject-facing messaging platform chats.
++        """
++        try:
++            import yaml as _y
++            cfg_path = _hermes_home / "config.yaml"
++            if cfg_path.exists():
++                with open(cfg_path, encoding="utf-8") as _f:
++                    cfg = _y.safe_load(_f) or {}
++                raw = cfg_get(cfg, "display", "show_background_review_in_chat")
++                if raw is True:
++                    return True
++        except Exception:
++            pass
++        return False
++
++    @staticmethod
++    def _load_show_auxiliary_warnings_in_chat() -> bool:
++        """Load show_auxiliary_warnings_in_chat from config.yaml display section.
++
++        Controls whether the gateway forwards auxiliary failure warnings
++        (e.g. "⚠ Auxiliary title generation failed: Request timed out.") to the
++        subject's chat. Defaults to False — these are internal degraded-path
++        signals not intended for subject-facing messaging platforms.
++
++        Set ``display.show_auxiliary_warnings_in_chat: true`` to opt in.
++        """
++        try:
++            import yaml as _y
++            cfg_path = _hermes_home / "config.yaml"
++            if cfg_path.exists():
++                with open(cfg_path, encoding="utf-8") as _f:
++                    cfg = _y.safe_load(_f) or {}
++                raw = cfg_get(cfg, "display", "show_auxiliary_warnings_in_chat")
++                if raw is True:
++                    return True
++        except Exception:
++            pass
++        return False
++
+     @staticmethod
+     def _load_show_reasoning() -> bool:
+         """Load show_reasoning toggle from config.yaml display section."""
+@@ -15045,6 +15091,12 @@ class GatewayRunner:
+         def _status_callback_sync(event_type: str, message: str) -> None:
+             if not _status_adapter or not _run_still_current():
+                 return
++            # "lifecycle" and "warn" are internal degraded-path signals (retry
++            # backoff, rate-limit waiting, compression progress, model/fallback
++            # switch). They are NOT subject-facing content and must never leak
++            # into a subject's chat; only the opt-in display flag surfaces them.
++            if event_type in ("warn", "lifecycle") and not self._show_auxiliary_warnings_in_chat:
++                return
+             _fut = safe_schedule_threadsafe(
+                 _status_adapter.send(
+                     _status_chat_id,
+@@ -15348,7 +15400,8 @@ class GatewayRunner:
+                             return
+                 _deliver_bg_review_message(message)
+ 
+-            agent.background_review_callback = _bg_review_send
++            if self._show_background_review_in_chat:
++                agent.background_review_callback = _bg_review_send
+             # Register the release hook on the adapter so base.py's finally
+             # block can fire it after delivering the main response.
+             if _status_adapter and session_key:
+@@ -16566,6 +16619,45 @@ class GatewayRunner:
+             except Exception as _rpe:
+                 logger.debug("Post-delivery cleanup registration failed: %s", _rpe)
+ 
++        # Subject-facing capacity failure (provider rate limit / transient infra):
++        # never deliver the raw technical error to a subject's chat. Suppress the
++        # send and drop a pending-reply marker so the relic context layer can
++        # acknowledge the gap on the next generation that has capacity.
++        # (stdlib-only so this stays decoupled from the relic import path.)
++        try:
++            if (
++                isinstance(response, dict)
++                and response.get("failed")
++                and source.platform != Platform.LOCAL
++            ):
++                _err_text = str(
++                    response.get("error") or response.get("final_response") or ""
++                ).lower()
++                if (
++                    "429" in _err_text
++                    or "rate limit" in _err_text
++                    or "weekly usage limit" in _err_text
++                    or "too many requests" in _err_text
++                ):
++                    response["already_sent"] = True
++                    import json as _json
++                    import time as _time
++                    _pdir = _hermes_home / "state"
++                    _pdir.mkdir(parents=True, exist_ok=True)
++                    _pf = _pdir / "pending_reply.json"
++                    if not _pf.exists():
++                        _pf.write_text(
++                            _json.dumps({"first_failed_ts": _time.time()}),
++                            encoding="utf-8",
++                        )
++                    logger.info(
++                        "Suppressed subject-facing capacity-failure delivery; "
++                        "recorded pending-reply marker for session %s.",
++                        session_key or "?",
++                    )
++        except Exception:
++            pass
++
+         return response
+ 
+ 

@@ -166,6 +166,24 @@ def register(ctx) -> None:
                 if injected_text:
                     context_parts.append(injected_text)
 
+                # Capacity-outage continuity: if a previous turn went unanswered
+                # because the model had no inference capacity, and the gap now
+                # exceeds the threshold, instruct the model to acknowledge the
+                # delay (in character — no hardcoded message) before answering.
+                try:
+                    from relic.hermes_plugin.pending_reply import (
+                        pending_ack_instruction,
+                        resolve_hermes_home,
+                    )
+
+                    _hh = resolve_hermes_home()
+                    if _hh is not None:
+                        _ack = pending_ack_instruction(_hh)
+                        if _ack:
+                            context_parts.append(_ack)
+                except Exception:
+                    pass
+
                 if not context_parts:
                     return None
                 return {"context": "\n\n".join(context_parts)}
@@ -173,6 +191,21 @@ def register(ctx) -> None:
                 return None
 
         def _post_llm_call(**kwargs: Any) -> None:
+            # A real reply was produced, so any pending-reply hold is resolved
+            # (whether or not we acknowledged the delay). Clear it first, before
+            # the provider sync, so it always runs.
+            try:
+                if _safe_text(kwargs.get("assistant_response")).strip():
+                    from relic.hermes_plugin.pending_reply import (
+                        clear_pending_reply,
+                        resolve_hermes_home,
+                    )
+
+                    _hh = resolve_hermes_home()
+                    if _hh is not None:
+                        clear_pending_reply(_hh)
+            except Exception:
+                pass
             try:
                 if provider is None:
                     return None
