@@ -31,6 +31,20 @@ Full local divergence of `gateway/run.py`. Hunks:
 
 ## Reapply after an update
 
+Two mechanisms keep the patch applied automatically — you should not need to
+remember anything:
+
+1. **systemd `ExecStartPre`** (primary): a drop-in at
+   `~/.config/systemd/user/hermes-gateway-gumi-*.service.d/relic-patch.conf`
+   runs `apply.sh` on every gateway start. Since you restart gateways after an
+   update, the patch self-heals.
+2. **git hooks** (belt-and-suspenders): `post-merge` / `post-checkout` /
+   `post-rewrite` in `hermes-agent/.git/hooks` run `apply.sh` when a git-based
+   update touches the tree. Reinstall with `install-hooks.sh` if the repo is
+   re-cloned (hooks are not version-controlled).
+
+Manual run if ever needed:
+
 ```bash
 HERMES_AGENT_DIR=~/.hermes/hermes-agent ./apply.sh
 ```
