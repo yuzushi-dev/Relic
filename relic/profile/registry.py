@@ -2589,8 +2589,12 @@ Eight visual modes for consistent photography:
             soul_text = narrator.generate_soul_md(ctx)
             world_text = narrator.generate_world_md(ctx)
             rel_text = narrator.generate_relationship_policy_md(ctx)
-            generation_log["method"] = "ollama"
+            # last_soul_method reflects the real outcome: validation may have
+            # silently replaced the LLM output with the template fallback.
+            generation_log["method"] = narrator.last_soul_method or "ollama"
             generation_log["model"] = ollama_model
+            if narrator.last_soul_method == "template_fallback":
+                generation_log["reason"] = "soul_validation_rejected"
         else:
             from relic.gumi.llm_narrator import _conform_persona_pronouns
             _ge = narrator._gender_expr(ctx)
