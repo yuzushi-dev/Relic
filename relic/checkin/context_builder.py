@@ -164,7 +164,7 @@ def build_topic_hint_section(
         import hashlib
         import sqlite3
         from relic.checkin.anti_repeat import AntiRepeatGate
-        from relic.checkin.question_engine import select_facet
+        from relic.checkin.question_engine import select_facet, select_followup
         from relic.checkin.topic_hint import render_topic_hint
 
         day_seed = (
@@ -195,31 +195,51 @@ def build_topic_hint_section(
                 conn_t, datetime.now(timezone.utc)
             ):
                 return ""
-            sel = select_facet(
-                conn_t,
-                bl_path if bl_path.exists() else None,
-                seed=day_seed,
-            )
-            if sel.get("status") == "ask_now":
-                ar = AntiRepeatGate(conn_t, jaccard_threshold=0.60).check(
-                    sel["question_hint"]
+            # Follow-up-first: mirror _select_ask_decision so the gate's
+            # ask_topic and this rendered block agree on the same hint.
+            followup = select_followup(conn_t, datetime.now(timezone.utc))
+            if followup is not None:
+                try:
+                    recent_q = [
+                        r[0]
+                        for r in conn_t.execute(
+                            "SELECT question_text FROM checkin_exchanges "
+                            "ORDER BY asked_at DESC LIMIT 10"
+                        ).fetchall()
+                        if r[0]
+                    ]
+                except Exception:
+                    recent_q = []
+                topic_block = render_topic_hint(followup["hint"], recent_q)
+                if topic_block:
+                    topic_facet_id = followup["facet_id"]
+                    topic_hint_text = followup["hint"]
+            if not topic_block:
+                sel = select_facet(
+                    conn_t,
+                    bl_path if bl_path.exists() else None,
+                    seed=day_seed,
                 )
-                if not ar["duplicate"]:
-                    try:
-                        recent_q = [
-                            r[0]
-                            for r in conn_t.execute(
-                                "SELECT question_text FROM checkin_exchanges "
-                                "ORDER BY asked_at DESC LIMIT 10"
-                            ).fetchall()
-                            if r[0]
-                        ]
-                    except Exception:
-                        recent_q = []
-                    topic_block = render_topic_hint(sel["question_hint"], recent_q)
-                    if topic_block:
-                        topic_facet_id = sel["selected_facet"]
-                        topic_hint_text = sel["question_hint"]
+                if sel.get("status") == "ask_now":
+                    ar = AntiRepeatGate(conn_t, jaccard_threshold=0.60).check(
+                        sel["question_hint"]
+                    )
+                    if not ar["duplicate"]:
+                        try:
+                            recent_q = [
+                                r[0]
+                                for r in conn_t.execute(
+                                    "SELECT question_text FROM checkin_exchanges "
+                                    "ORDER BY asked_at DESC LIMIT 10"
+                                ).fetchall()
+                                if r[0]
+                            ]
+                        except Exception:
+                            recent_q = []
+                        topic_block = render_topic_hint(sel["question_hint"], recent_q)
+                        if topic_block:
+                            topic_facet_id = sel["selected_facet"]
+                            topic_hint_text = sel["question_hint"]
         finally:
             if conn_t is not None:
                 conn_t.close()

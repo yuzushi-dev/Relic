@@ -341,6 +341,7 @@ class RuntimeDecisionReason(str, Enum):
     output_sanitizer_blocked = "output_sanitizer_blocked"
     delivery_state_unknown = "delivery_state_unknown"
     no_due_work = "no_due_work"
+    natural_cadence_skip = "natural_cadence_skip"
 
 
 @dataclass

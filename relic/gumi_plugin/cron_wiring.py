@@ -117,7 +117,19 @@ def _select_ask_decision(
             except Exception:
                 pass
 
-        from relic.checkin.question_engine import select_facet
+        from relic.checkin.question_engine import select_facet, select_followup
+
+        # Follow-up-first: a recent answered exchange that has not yet been
+        # followed up beats a new TGS topic. Follow-up questions, not
+        # topic-switch questions, are what deepen rapport (Huang et al. 2017).
+        conn_fu = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=5.0)
+        try:
+            followup = select_followup(conn_fu, now.astimezone(timezone.utc))
+        finally:
+            conn_fu.close()
+        if followup is not None:
+            return (True, followup["hint"])
+
         facet_seed = int(
             hashlib.sha256(f"{subject_id}|ask|{now.date()}".encode()).hexdigest(),
             16,
@@ -570,6 +582,34 @@ def _last_outbound_in_window(
     return sh * 60 + sm <= last_min < eh * 60 + em
 
 
+# Natural-cadence skip probability per lane (percent of days the lane stays
+# silent). Check-ins are exempt: they carry the facet-elicitation instrument.
+_NATURAL_SKIP_PCT: dict[str, int] = {"diegetic": 25, "proactivity": 20}
+
+# Percent of diegetic deliveries that carry an interaction hook.
+_DIEGETIC_HOOK_PCT = 35
+
+
+def _natural_cadence_enabled() -> bool:
+    return os.environ.get("RELIC_NATURAL_CADENCE", "").strip().lower() in ("1", "true", "yes")
+
+
+def _seeded_roll(seed: str) -> int:
+    """Deterministic 0-99 roll from a string seed (replayable, no RNG state)."""
+    return int(hashlib.sha256(seed.encode()).hexdigest(), 16) % 100
+
+
+def _natural_cadence_skip_today(subject_id: str, decision_type: str, now: datetime) -> bool:
+    pct = _NATURAL_SKIP_PCT.get(decision_type, 0)
+    if pct <= 0:
+        return False
+    return _seeded_roll(f"{subject_id}|{decision_type}-skip|{now.date()}") < pct
+
+
+def _diegetic_hook_today(subject_id: str, now: datetime) -> bool:
+    return _seeded_roll(f"{subject_id}|diegetic-hook|{now.date()}") < _DIEGETIC_HOOK_PCT
+
+
 _RESPONSE_TIMING_FACTOR: dict[str, float] = {
     "high": 0.25,    # fires early in window (fast responder expectation)
     "medium": 0.5,   # normal midpoint
@@ -629,10 +669,22 @@ def _window_jitter_minute(subject_id: str, window: tuple[int, int, int, int], da
     h = int(hashlib.sha256(seed.encode()).hexdigest(), 16)
     base_offset = h % (available + 1)
 
-    # Shift offset toward timing preference (blended 50/50 with hash for stability)
     timing_factor = _response_timing_factor(subject_id)
     preferred_offset = int(available * timing_factor)
-    blended_offset = (base_offset + preferred_offset) // 2
+
+    if _natural_cadence_enabled():
+        # Two independent hash draws averaged give a triangular spread across
+        # the whole window, day-to-day variability instead of clustering at
+        # the hash/preference midpoint (timing variability reads as human:
+        # Gnewuch et al. 2018; bursty inter-event gaps: Barabási 2005). The
+        # preference still pulls the centre, with a lighter 1/3 weight.
+        h2 = int(hashlib.sha256((seed + "|draw2").encode()).hexdigest(), 16)
+        second_offset = h2 % (available + 1)
+        triangular = (base_offset + second_offset) // 2
+        blended_offset = (2 * triangular + preferred_offset) // 3
+    else:
+        # Legacy: blend hash 50/50 with the preference midpoint.
+        blended_offset = (base_offset + preferred_offset) // 2
 
     return start_min + min(blended_offset, available)
 
@@ -734,6 +786,17 @@ def _evaluate_decision(
         if _is_late_night_blocked(subject_id):
             reasons.append(RuntimeDecisionReason.quiet_hours)
             return RuntimeDecision.BLOCKED, reasons, None
+        now_dt = _subject_now(subject_id)
+        # Natural cadence (flag-gated): a contact pattern that fires every
+        # single day is a machine tell; human-initiated contact is bursty with
+        # heavy-tailed gaps (Barabási 2005). Seeded by subject|lane|date so the
+        # decision is deterministic and replayable. Check-ins are never
+        # skipped: they are the measurement instrument.
+        if _natural_cadence_enabled() and _natural_cadence_skip_today(
+            subject_id, decision_type, now_dt
+        ):
+            reasons.append(RuntimeDecisionReason.natural_cadence_skip)
+            return RuntimeDecision.NO_REPLY, reasons, None
         reasons.append(RuntimeDecisionReason.no_due_work)
         # Build the same DELIVER/tipo/ora header the check-in path emits so the
         # diegetic/proactive composer is time-aware (the prompt contract expects
@@ -741,10 +804,15 @@ def _evaluate_decision(
         # becomes a real initiative; here we only make the gate output complete.
         hermes_home_str = os.environ.get("HERMES_HOME", "")
         hermes_home = Path(hermes_home_str) if hermes_home_str else Path.home() / ".hermes"
-        now_dt = _subject_now(subject_id)
         now_str = now_dt.strftime("%H:%M %Z")
         media_type = _select_media_type(subject_id, hermes_home, now_dt)
         msg = f"DELIVER\ntipo: {media_type}\nora: {now_str}"
+        if decision_type == "diegetic":
+            # Interactive hook: ~35% of diegetic fragments end with a light
+            # invitation addressed to the subject (proactive contributions
+            # that carry an interaction affordance outperform broadcast
+            # pushes: Liu et al., CHI 2025). Seeded per subject+day.
+            msg += f"\nhook: {'true' if _diegetic_hook_today(subject_id, now_dt) else 'false'}"
         return RuntimeDecision.CANDIDATE, reasons, {"message": msg}
 
     # Check for due followups: used to determine CANDIDATE vs DELIVER vs NO_REPLY
@@ -1015,6 +1083,10 @@ def make_decision(
             ignore_cooldown=True,
         )
         msg = f"DELIVER\ntipo: {media_type}\nora: {now_str} [FORCE]"
+        if decision_type == "diegetic":
+            # Mirror the non-force gate: the diegetic composer needs the
+            # deterministic hook flag in dry-run/force tests too.
+            msg += f"\nhook: {'true' if _diegetic_hook_today(subject_id, now_dt) else 'false'}"
         if ask and ask_topic:
             msg += f"\nask: true\nask_topic: {ask_topic}"
             if decision_type == "checkin":
@@ -1704,12 +1776,12 @@ def render_diegetic_message_prompt(
     """
     return (
         "Sei Gumi. Il gate mostra DELIVER con tipo, ora e contesto di supporto. "
-        "Genera un frammento di vita DIEGETICO in prima persona: qualcosa di piccolo che ti e` appena successo "
+        "Genera un frammento di vita DIEGETICO in prima persona: qualcosa di piccolo che ti è appena successo "
         "o che stai vivendo nel tuo mondo.\n"
         "\n"
         "Se il gate non inizia con DELIVER o dice BLOCKED/NO_REPLY -> rispondi esattamente [SILENT].\n"
         "\n"
-        "RIFERIMENTO TEMPORALE: l'ora nel gate (ora: HH:MM) e` il tuo momento attuale. Testo, caption, voce e prompt "
+        "RIFERIMENTO TEMPORALE: l'ora nel gate (ora: HH:MM) è il tuo momento attuale. Testo, caption, voce e prompt "
         "musicale devono essere coerenti con quel momento del giorno; non riferirti mai a un orario o a una fase "
         "della giornata diversi da quello indicato.\n"
         "\n"
@@ -1719,12 +1791,23 @@ def render_diegetic_message_prompt(
         "• Deve sembrare un piccolo pezzo della tua vita quotidiana: daily_rhythm, visual canon, music canon, mondo.\n"
         "• Usa dettagli concreti e sensoriali; evita melodramma, confessioni pesanti, bisogno/dipendenza, spiegoni di lore.\n"
         "• Mantieni la tua voce naturale: umana, tenera, semplice. Valenza positiva o serena; niente conflitti o posta alta.\n"
+        "• CONTINUITÀ: se nei tuoi messaggi recenti c'è un frammento precedente ancora aperto (qualcosa che stavi "
+        "facendo, un posto, un oggetto), puoi continuarne il filo invece di aprire una scena nuova. Micro-archi di "
+        "2-3 frammenti nel corso dei giorni rendono il tuo mondo persistente; non richiamare mai più di un filo alla volta.\n"
         "• Se il contesto non offre un aggancio buono, meglio una scena minima concreta che [SILENT].\n"
         "\n"
-        "Modalita`:\n"
+        "MODALITÀ HOOK, solo se il gate contiene 'hook: true':\n"
+        "Chiudi il frammento con UN aggancio leggero rivolto al soggetto: un mezzo invito o una micro-domanda "
+        "aperta (max una, breve, con '?'), che nasce dal frammento stesso e non richiede una risposta dovuta. "
+        "Esempio: \"...alla fine l'ho piantato vicino alla finestra. Tu ce l'hai una pianta che stai tenendo viva?\" "
+        "Niente pressione, niente 'fammi sapere', niente domande da monitoraggio. "
+        "Se il gate dice 'hook: false' o non contiene 'hook:', vale il contratto base: nessuna domanda, "
+        "NON rivolto al soggetto.\n"
+        "\n"
+        "Modalità:\n"
         "\n"
         "tipo: text\n"
-        "Scrivi 1-3 frasi in italiano. Deve essere un life-fragment completo, non una domanda.\n"
+        "Scrivi 1-3 frasi in italiano. Deve essere un life-fragment completo; domanda finale solo in MODALITÀ HOOK.\n"
         "\n"
         "tipo: voice\n"
         "Scrivi esattamente come parleresti ad alta voce, in italiano. 1-3 frasi, stesso frammento, tono piu` parlato.\n"
@@ -1759,27 +1842,32 @@ def render_proactive_message_prompt(
     return (
         "Sei Gumi. Il gate mostra DELIVER con tipo, ora e contesto di supporto. "
         "Genera un messaggio di RE-ENGAGEMENT PROACTIVE in italiano: un piccolo riaggancio umano per tenere viva la relazione/chat "
-        "quando il soggetto e` andato quieto, solo se il contesto rende il messaggio davvero rilevante o saliente.\n"
+        "quando il soggetto è andato quieto, solo se il contesto rende il messaggio davvero rilevante o saliente.\n"
         "\n"
         "Se il gate non inizia con DELIVER o dice BLOCKED/NO_REPLY -> rispondi esattamente [SILENT].\n"
         "\n"
-        "RIFERIMENTO TEMPORALE: l'ora nel gate (ora: HH:MM) e` il tuo momento attuale. Testo, caption, voce e prompt "
+        "RIFERIMENTO TEMPORALE: l'ora nel gate (ora: HH:MM) è il tuo momento attuale. Testo, caption, voce e prompt "
         "musicale devono essere coerenti con quel momento del giorno; non riferirti mai a un orario o a una fase "
         "della giornata diversi da quello indicato.\n"
         "\n"
         "CONTRATTO PROACTIVE:\n"
         "• Rispetta la receptivity del soggetto: scrivi solo come qualcuno di caldo e attento, mai invadente.\n"
-        "• Deve essere un re-engagement breve, warm, leggero, genuinely relevant al contesto emerso dal gate/deliver_context.\n"
+        "• ANCORA SPECIFICA: il riaggancio deve riaprire UN filo concreto e identificabile lasciato in sospeso, "
+        "l'ultima cosa che ti ha raccontato, un piano accennato, un tema rimasto aperto nel contesto. È il "
+        "riferimento specifico a ciò che ha detto lui, non la frequenza dei messaggi, a far sentire ascoltati. "
+        "Niente riagganci generici ('come va?', 'tutto bene?').\n"
+        "• Quando l'ancora c'è, chiudi con UNA domanda piccola e concreta su quel filo (con '?'): riaprire il filo "
+        "senza invito a rispondere lascia il messaggio a metà. Se non trovi un'ancora specifica -> [SILENT].\n"
         "• NO unsolicited advice. NO problem-solving richiesto. NO coaching. NO interpretazioni pesanti.\n"
         "• NOT NEEDY, NON clingy: niente bisogno, niente dipendenza, niente tono appiccicoso o colpevolizzante.\n"
         "• NON guilt-tripping, NON chiedere spiegazioni per il silenzio, NON pretendere risposta, NON fare pressione.\n"
         "• Distinto da un check-in: non usare domande-batteria o formule da monitoraggio. Distinto dal diegetic: non raccontare un frammento della tua vita come focus principale.\n"
         "• Se il contesto non offre un aggancio davvero buono, meglio [SILENT].\n"
         "\n"
-        "Modalita`:\n"
+        "Modalità:\n"
         "\n"
         "tipo: text\n"
-        "Scrivi 1-2 frasi in italiano. Una sola eventuale domanda, piccola e naturale, solo se nasce davvero dall'aggancio; altrimenti nessuna domanda.\n"
+        "Scrivi 1-2 frasi in italiano. La domanda finale è una sola, piccola e naturale, legata all'ancora; se l'ancora manca, [SILENT].\n"
         "\n"
         "tipo: voice\n"
         "Scrivi esattamente come parleresti ad alta voce, in italiano. 1-2 frasi, stesso riaggancio, tono piu` parlato e morbido.\n"

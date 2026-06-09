@@ -254,6 +254,81 @@ def build_question_hint(f: FacetState) -> str:
     return desc
 
 
+# Follow-up window: a replied exchange is a follow-up candidate while the
+# reply is at most this old. Beyond it the thread has gone cold and a new
+# TGS-selected topic reads more natural than reviving stale context.
+FOLLOWUP_WINDOW_HOURS = 72
+
+# Cap on the reply excerpt quoted back into the follow-up hint. Keeps the
+# rendered topic block inside the 200-char budget of render_topic_hint.
+_FOLLOWUP_EXCERPT_CHARS = 90
+
+
+def select_followup(
+    conn: sqlite3.Connection,
+    now: datetime | None = None,
+    window_hours: int = FOLLOWUP_WINDOW_HOURS,
+) -> dict[str, Any] | None:
+    """Return a follow-up candidate built from the latest answered exchange.
+
+    Follow-up questions (not topic-switch questions) are the conversational
+    move that deepens rapport (Huang et al. 2017, JPSP). A replied exchange is
+    a candidate when:
+      * its reply was captured within ``window_hours``;
+      * no newer exchange was asked after the reply (i.e. the answer has not
+        been followed up yet).
+
+    Returns ``{"facet_id", "question_text", "reply_excerpt", "hint"}`` or
+    ``None``. The hint is built mostly from the reply text so the Jaccard
+    anti-repeat gate does not collide with the original question.
+    """
+    now = now or datetime.now(timezone.utc)
+    try:
+        row = conn.execute(
+            """SELECT facet_id, question_text, reply_text, reply_captured_at
+               FROM checkin_exchanges
+               WHERE reply_text IS NOT NULL AND facet_id IS NOT NULL
+               ORDER BY reply_captured_at DESC
+               LIMIT 1"""
+        ).fetchone()
+    except sqlite3.OperationalError:
+        return None
+    if not row:
+        return None
+
+    facet_id, question_text, reply_text, reply_at_iso = row
+    reply_at = _parse_iso(reply_at_iso)
+    if reply_at is None:
+        return None
+    if reply_at.tzinfo is None:
+        reply_at = reply_at.replace(tzinfo=timezone.utc)
+    if (now - reply_at).total_seconds() > window_hours * 3600:
+        return None
+
+    # Already followed up? Any exchange asked after the reply closes the thread.
+    try:
+        newer = conn.execute(
+            "SELECT 1 FROM checkin_exchanges WHERE asked_at > ? LIMIT 1",
+            (reply_at_iso,),
+        ).fetchone()
+    except sqlite3.OperationalError:
+        return None
+    if newer:
+        return None
+
+    excerpt = " ".join((reply_text or "").split())[:_FOLLOWUP_EXCERPT_CHARS].strip()
+    if not excerpt:
+        return None
+
+    hint = f"Approfondisci quello che ti ha risposto: «{excerpt}»."
+    return {
+        "facet_id": facet_id,
+        "question_text": question_text or "",
+        "reply_excerpt": excerpt,
+        "hint": hint,
+    }
+
+
 def select_facet(
     conn: sqlite3.Connection,
     subject_baseline_path: Path | None = None,

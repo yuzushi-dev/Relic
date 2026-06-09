@@ -35,6 +35,15 @@ def test_proactive_prompt_is_distinct_from_checkin_and_diegetic():
     assert "frammento di vita" not in proactive_prompt.lower()
 
 
+def test_proactive_prompt_requires_specific_anchor():
+    """Re-engagement must re-open one specific dropped thread, not a generic
+    'come va?'; without an anchor the contract demands [SILENT]."""
+    prompt = render_proactive_message_prompt()
+    assert "ANCORA SPECIFICA" in prompt
+    assert "[SILENT]" in prompt
+    assert "come va?" in prompt  # pinned as a forbidden generic example
+
+
 def test_checkin_prompt_requires_facet_question_contract():
     reg = ProfileRegistry.__new__(ProfileRegistry)
     prompt = reg._cron_prompt_for_job({"task": "gumi_checkin_message", "output": ""}).lower()

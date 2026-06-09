@@ -99,7 +99,10 @@ _POSTURE_MAX_SENTENCES: dict[Posture, int] = {
     Posture.QUIET: 0,
     Posture.OBSERVE: 1,
     Posture.BRIEF_SHARE: 2,
-    Posture.ASK: 2,
+    # 3, not 2: leaves room for the share-then-ask shape (one small
+    # self-disclosure before the question; reciprocity increases disclosure,
+    # Moon 2000) without forcing the question into a fixed second slot.
+    Posture.ASK: 3,
     Posture.FOLLOW_UP_WARM: 3,
     Posture.FOLLOW_UP_TERSE: 2,
     Posture.REFLECTIVE_MIRROR: 2,
