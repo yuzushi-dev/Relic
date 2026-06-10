@@ -101,6 +101,36 @@ _INTIMACY_PROSE = {
 }
 
 
+def _gender_anchor(gender_expr: str) -> str:
+    """Explicit self-gender paragraph for the SOUL file.
+
+    A second-person SOUL can carry zero pronouns, leaving the persona's
+    gender unstated; the gateway model then defaults to feminine
+    self-reference. In gendered languages (the chats run in Italian) every
+    adjective and participle agrees, so the anchor must spell that out.
+    """
+    g = (gender_expr or "").lower()
+    if "masc" in g or g in {"male", "man"}:
+        return (
+            "\n\nYou are a man. Every gendered word you use about yourself, in any "
+            "language, is masculine: in Italian, adjectives and participles that "
+            "refer to you are always masculine ('sono curioso', 'mi sono perso', "
+            "never 'curiosa' or 'persa')."
+        )
+    if "femin" in g or g in {"female", "woman"}:
+        return (
+            "\n\nYou are a woman. Every gendered word you use about yourself, in any "
+            "language, is feminine: in Italian, adjectives and participles that "
+            "refer to you are always feminine ('sono curiosa', never 'curioso')."
+        )
+    if not g:
+        return ""
+    return (
+        "\n\nYou do not present as strictly masculine or feminine. In gendered "
+        "languages, prefer wording that avoids gender-marked forms about yourself."
+    )
+
+
 def _persona_pronouns(gender_expr: str) -> dict[str, str] | None:
     """Map a persona's ``gender_expression`` to third-person pronouns.
 
@@ -286,6 +316,10 @@ class OllamaNarrator:
         else:
             self.last_soul_method = "template_fallback"
             soul = self._fallback_soul(ctx)
+        # The anchor is non-negotiable: a SOUL whose prose happens to dodge
+        # gendered words leaves self-reference gender to the gateway model.
+        if "every gendered word" not in soul.lower():
+            soul += _gender_anchor(self._gender_expr(ctx))
         return _conform_persona_pronouns(soul, self._gender_expr(ctx))
 
     @staticmethod
@@ -494,7 +528,7 @@ Critical constraints:
 - When {name} sends a voice message, she writes the transcript without any emoji. Emoji do not translate to audio and must never appear in voice message content.
 - Better no proactive message than a weak one. If there is no real reason to reach out, {name} stays quiet. Repeating the same theme with different wording is still repetition. She rotates the angle, not just the phrasing.
 
-Format: write in second person starting "You are {name}". 6–10 short paragraphs. No headers. No bullet points. No technical jargon. Never use psychology textbook labels ("avoidant attachment", "secure attachment", "intimacy comfort", "growth area"); show the behavior in plain words instead. Keep every gendered word (man/woman, guy/girl) consistent with the embodiment above. Do not mention Relic, backend, API, experiment, or subject IDs. End with what {name} does NOT do (boundary clause)."""
+Format: write in second person starting "You are {name}". 6–10 short paragraphs. No headers. No bullet points. No technical jargon. Never use psychology textbook labels ("avoidant attachment", "secure attachment", "intimacy comfort", "growth area"); show the behavior in plain words instead. State {name}'s gender plainly in the opening paragraph, matching the embodiment above, and keep every gendered word (man/woman, guy/girl) consistent with it. Do not mention Relic, backend, API, experiment, or subject IDs. End with what {name} does NOT do (boundary clause)."""
 
     def _world_prompt(self, ctx: GumiBuildContext) -> str:
         name = ctx.agent_name
@@ -849,6 +883,7 @@ CRITICAL: The character's name is {name}. Use ONLY "{name}", never substitute an
             f"Better no proactive message than a weak one. If there is no real reason to reach out, stay quiet. "
             f"Repeating the same theme with different wording is still repetition. Rotate the angle, not just the phrasing."
             f"{emoji_note}"
+            f"{_gender_anchor(gender_expr)}"
         )
 
     def fallback_avatar_spec_md(self, ctx: GumiBuildContext) -> str:

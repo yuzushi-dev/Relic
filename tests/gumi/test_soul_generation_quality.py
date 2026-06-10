@@ -150,6 +150,42 @@ class TestFallbackSoulQuality:
             assert label in _INTIMACY_PROSE
 
 
+class TestGenderAnchor:
+    def test_masculine_anchor_text(self) -> None:
+        from relic.gumi.llm_narrator import _gender_anchor
+        anchor = _gender_anchor("masculine")
+        assert "You are a man" in anchor
+        assert "sono curioso" in anchor
+
+    def test_feminine_anchor_text(self) -> None:
+        from relic.gumi.llm_narrator import _gender_anchor
+        anchor = _gender_anchor("feminine")
+        assert "You are a woman" in anchor
+        assert "sono curiosa" in anchor
+
+    def test_unspecified_gives_no_anchor(self) -> None:
+        from relic.gumi.llm_narrator import _gender_anchor
+        assert _gender_anchor("") == ""
+
+    def test_nonbinary_gives_neutral_anchor(self) -> None:
+        from relic.gumi.llm_narrator import _gender_anchor
+        assert "avoids gender-marked forms" in _gender_anchor("non-binary")
+
+    def test_fallback_soul_carries_anchor(self) -> None:
+        narrator = OllamaNarrator()
+        soul = narrator._fallback_soul(_ctx())
+        assert "You are a man" in soul
+        assert "sono curioso" in soul
+
+    def test_generated_soul_gets_anchor_appended(self, monkeypatch) -> None:
+        narrator = OllamaNarrator()
+        monkeypatch.setattr(narrator, "_call_llm", lambda *a, **k: _GOOD_LLM_SOUL)
+        soul = narrator.generate_soul_md(_ctx())
+        assert narrator.last_soul_method == "ollama"
+        assert "You are a man" in soul
+        assert "sono curioso" in soul
+
+
 class TestSoulPromptHumorClause:
     def test_llm_prompt_carries_humor_and_presence_rules(self) -> None:
         narrator = OllamaNarrator()
