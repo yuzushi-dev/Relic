@@ -64,7 +64,22 @@ def test_render_constraint_header_for_ask_marks_question():
 
     header = render_constraint_header(EventType.CHECKIN, Posture.ASK)
     assert "con domanda" in header
-    assert "max 2 frasi" in header
+    # 3 sentences: room for the share-then-ask shape (Moon 2000 reciprocity).
+    assert "max 3 frasi" in header
+
+
+def test_prompt_requires_reciprocity_and_episodic_framing():
+    p = _checkin_prompt()
+    assert "RECIPROCITÀ" in p
+    assert "micro-condivisione" in p
+    assert "EPISODICA" in p
+    assert "mai citando uno spettro" in p
+
+
+def test_prompt_describes_followup_mode():
+    p = _checkin_prompt()
+    assert "FOLLOW-UP MODE" in p
+    assert "Approfondisci" in p
 
 
 def test_render_constraint_header_returns_empty_for_silent():

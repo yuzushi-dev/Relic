@@ -36,3 +36,19 @@ def test_diegetic_prompt_keeps_subject_out_of_scope():
     prompt = _diegetic_prompt()
     assert "NON parlare del soggetto" in prompt
     assert "prima persona" in prompt.lower()
+
+
+def test_diegetic_prompt_hook_mode_is_gate_conditioned():
+    """HOOK MODE exists, but only behind an explicit 'hook: true' gate flag;
+    the base contract (no questions, not addressed to the subject) stays."""
+    prompt = _diegetic_prompt()
+    assert "MODALITÀ HOOK" in prompt
+    assert "'hook: true'" in prompt
+    assert "'hook: false'" in prompt
+    # Base contract still pinned alongside the hook branch.
+    assert "NON fare un check-in" in prompt
+
+
+def test_diegetic_prompt_mentions_continuity():
+    prompt = _diegetic_prompt()
+    assert "CONTINUITÀ" in prompt

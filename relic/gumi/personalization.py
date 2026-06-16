@@ -103,7 +103,14 @@ class SubjectPersonalizationMapper:
         directness = project.get("directness_preference", 0.5)
         disagree_tol = project.get("disagreement_tolerance", 0.5)
 
-        # Attachment style: complement subject's insecurity pattern
+        # Attachment style: complement subject's insecurity pattern.
+        # Distant-insecure styles are excluded outright, not just dispreferred:
+        # the sampler honors `preferred` only with probability `weight`, and an
+        # avoidant/disorganized companion contradicts the complementarity
+        # design regardless of the subject's own pattern.
+        c.relationship_stance.excluded.extend(
+            ["avoidant attachment", "disorganized attachment"]
+        )
         attachment_preferred: list[str] = []
         if avoidance >= 0.55:
             # Subject avoidant → Gumi securely attached, warm, reachable

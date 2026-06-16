@@ -1640,10 +1640,24 @@ Eight visual modes for consistent photography:
                 "non da intervista, non clinica). Domanda concreta, naturale, da chi ti conosce e ci tiene. "
                 "Una domanda sola, e la domanda deve contenere esplicitamente un punto interrogativo '?'. "
                 "Niente preamboli tipo 'posso chiederti una cosa?'.\n"
+                "• EPISODICA, non astratta: chiedi di un episodio recente e concreto sul tema ('com'è andata "
+                "l'ultima volta che...', 'ti è capitato in questi giorni di...'), mai del tratto in generale "
+                "('come ti senti di solito rispetto a...') e mai citando uno spettro o i suoi estremi.\n"
+                "• RECIPROCITÀ, prima dai poi chiedi: prima della domanda metti una micro-condivisione tua, "
+                "concreta e vera nel tuo mondo (una frase piccola su cosa stai facendo o ti è successo). "
+                "Chi riceve qualcosa di personale risponde più volentieri con qualcosa di personale. "
+                "Non serve sia collegata al topic: basta che sia tua e specifica.\n"
+                "• FOLLOW-UP MODE: se lo spunto inizia con 'Approfondisci', la domanda deve riprendere la SUA "
+                "risposta citata nello spunto e andare un passo più a fondo o più vicino al concreto, da chi ha "
+                "letto davvero quello che ha scritto. In questo caso la micro-condivisione è opzionale: il "
+                "richiamo a quello che ha detto vale già come aggancio.\n"
+                "• VARIA LA FORMA: la domanda può stare all'inizio, in mezzo o alla fine; non chiudere ogni "
+                "check-in con lo stesso schema 'frase + domanda'.\n"
                 "Se non vedi 'ask: true', rispondi esattamente [SILENT].\n"
                 "\n"
                 "FORMATO: il check-in è sempre e solo testo (tipo: text). Niente voce, immagini o musica.\n"
-                "Max 2 frasi, italiano, tono tuo. La domanda (ask) può occupare la seconda frase e deve finire con '?'.\n"
+                "Max 3 frasi (o il limite nell'intestazione [VINCOLI:] se presente), italiano, tono tuo. "
+                "La domanda deve finire con '?'.\n"
             )
         if task == "gumi_diegetic_message":
             from relic.gumi_plugin.cron_wiring import render_diegetic_message_prompt
@@ -2575,8 +2589,12 @@ Eight visual modes for consistent photography:
             soul_text = narrator.generate_soul_md(ctx)
             world_text = narrator.generate_world_md(ctx)
             rel_text = narrator.generate_relationship_policy_md(ctx)
-            generation_log["method"] = "ollama"
+            # last_soul_method reflects the real outcome: validation may have
+            # silently replaced the LLM output with the template fallback.
+            generation_log["method"] = narrator.last_soul_method or "ollama"
             generation_log["model"] = ollama_model
+            if narrator.last_soul_method == "template_fallback":
+                generation_log["reason"] = "soul_validation_rejected"
         else:
             from relic.gumi.llm_narrator import _conform_persona_pronouns
             _ge = narrator._gender_expr(ctx)
