@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import random
 import sqlite3
 from datetime import datetime, timezone
@@ -23,6 +24,7 @@ from pathlib import Path
 
 from relic.checkin import attribution_jury
 from relic.checkin.facet_updater import extract_observation
+from relic.checkin.passive_state import get_watermark, set_watermark
 from relic.checkin.reply_capture import _is_substantive, strip_reply_quote_prefix
 
 logger = logging.getLogger(__name__)
@@ -213,4 +215,84 @@ def extract_and_write(
         "facet_id": facet_id,
         "signal_position": extraction.signal_position,
         "signal_strength": extraction.signal_strength,
+    }
+
+
+def run_passive_extraction(
+    conn: sqlite3.Connection,
+    subject_id: str,
+    state_db_path: str | Path,
+    facets: dict,
+    *,
+    relic_home: str | Path | None = None,
+    delivery_policy_path: str | Path | None = None,
+    judge_fn=None,
+    llm_client=None,
+    rng: random.Random | None = None,
+    dry_run: bool = False,
+) -> dict:
+    """Run passive extraction for one subject end-to-end (consent-gated).
+
+    Ties together loading (Task 3), jury attribution (Task 4) and signal
+    extraction + observation write (Task 5), bounded by the per-subject
+    watermark (idempotency) and gated by the `consent_for_passive_extraction`
+    opt-in in `delivery_policy.json` (default OFF).
+
+    Consent loading mirrors `reply_capture.capture_reply_if_pending`: the policy
+    lives at `relic_home/subjects/<id>/delivery_policy.json`. Fail-closed —
+    a missing/unreadable policy or a falsy/missing flag means NO consent, and
+    messages are never read.
+
+    Returns `{"skipped": "no_consent"}` when consent is absent, otherwise
+    `{"processed", "attributed", "written", "watermark"}`.
+    """
+    if delivery_policy_path is not None:
+        dp_path = Path(delivery_policy_path)
+    else:
+        base = Path(relic_home or os.environ.get("RELIC_HOME", Path.home() / ".relic"))
+        dp_path = base / "subjects" / subject_id / "delivery_policy.json"
+
+    # Fail-closed consent gate (mirror reply_capture.capture_reply_if_pending).
+    if not dp_path.exists():
+        return {"skipped": "no_consent"}
+    try:
+        dp = json.loads(dp_path.read_text(encoding="utf-8"))
+        if not dp.get("consent_for_passive_extraction", False):
+            return {"skipped": "no_consent"}
+    except Exception:
+        logger.debug(
+            "run_passive_extraction: delivery_policy load failed", exc_info=True
+        )
+        return {"skipped": "no_consent"}
+
+    since = get_watermark(conn, subject_id)
+    msgs = load_new_messages(state_db_path, since)
+    if not msgs:
+        return {"processed": 0, "attributed": 0, "written": 0, "watermark": since}
+
+    n_attr = 0
+    n_written = 0
+    for msg in msgs:
+        facet = attribute_message(
+            msg["text"], facets, judge_fn=judge_fn, rng=rng
+        )
+        if facet:
+            n_attr += 1
+            res = extract_and_write(
+                conn, facet, facets, msg["text"], msg["ts"],
+                llm_client=llm_client, dry_run=dry_run,
+            )
+            if res.get("written"):
+                n_written += 1
+
+    watermark = since
+    if not dry_run:
+        watermark = max(m["ts"] for m in msgs)
+        set_watermark(conn, subject_id, watermark)
+
+    return {
+        "processed": len(msgs),
+        "attributed": n_attr,
+        "written": n_written,
+        "watermark": watermark,
     }
