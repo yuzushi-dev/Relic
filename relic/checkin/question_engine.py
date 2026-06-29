@@ -19,6 +19,8 @@ from pathlib import Path
 from statistics import mean
 from typing import Any
 
+from relic.checkin.reply_capture import strip_reply_quote_prefix
+
 # Strip parenthetical clinical scale references: matches single scales (ECR-R, SDT)
 # and combined multi-scale refs like (ECR-R, DERS) or (Schwartz, McAdams).
 SCALE_REF_RE = re.compile(r"\s*\([A-Z][A-Za-z0-9\-]*(?:,\s*[A-Z][A-Za-z0-9\-]*)*\)")
@@ -263,6 +265,20 @@ FOLLOWUP_WINDOW_HOURS = 72
 # rendered topic block inside the 200-char budget of render_topic_hint.
 _FOLLOWUP_EXCERPT_CHARS = 90
 
+# Trailing whitespace, arrows, symbols/dingbats, variation selectors and emoji —
+# stripped before checking whether a reply ends in '?'.
+_TRAILING_NOISE_RE = re.compile(
+    r"[\s←-⇿☀-➿️\U0001F000-\U0001FAFF]+$"
+)
+
+
+def _is_clarifying_question(reply: str) -> bool:
+    """True when the reply is a short question back (a clarification/confusion),
+    not an answer worth deepening. Bounded length avoids skipping real answers
+    that happen to close with a rhetorical question."""
+    core = _TRAILING_NOISE_RE.sub("", reply.strip())
+    return core.endswith("?") and len(core) <= 60
+
 
 def select_followup(
     conn: sqlite3.Connection,
@@ -316,8 +332,19 @@ def select_followup(
     if newer:
         return None
 
-    excerpt = " ".join((reply_text or "").split())[:_FOLLOWUP_EXCERPT_CHARS].strip()
+    # Strip the Telegram '[Replying to: "..."]' quote block: the quoted text is
+    # the prior turn (often Gumi's own diegetic opener), not the subject's reply.
+    # Without this the follow-up excerpt cites Gumi's life back at the subject.
+    clean_reply = strip_reply_quote_prefix(reply_text or "")
+    excerpt = " ".join(clean_reply.split())[:_FOLLOWUP_EXCERPT_CHARS].strip()
     if not excerpt:
+        return None
+
+    # Skip when the subject's last turn is itself a short clarifying question
+    # (e.g. "Quale cartelle demo?"): there is nothing to deepen, and chaining a
+    # follow-up on it lets a prior confusion propagate another hop. Fall back to
+    # a fresh facet question instead.
+    if _is_clarifying_question(excerpt):
         return None
 
     hint = f"Approfondisci quello che ti ha risposto: «{excerpt}»."

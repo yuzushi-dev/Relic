@@ -87,6 +87,8 @@ The runtime enforces:
 - **Cross-subject isolation** at the data layer (subject ID required on every query path).
 - **Safety signal isolation** from Gumi memory and from subject exports.
 
+Passive extraction of facet observations from the subject's free-form Telegram messages is **opt-in**: it runs only when `consent_for_passive_extraction` is `true` in the subject's `delivery_policy.json` (default off, written off at provisioning, fail-closed at runtime). When enabled, each candidate message is attributed to a facet by a cross-family attribution jury, and the resulting observations are single-source, so their confidence is capped at `0.55` until corroborated by human review.
+
 Contract tests cover the invariants: `tests/safety/`, `tests/privacy/`, `tests/shared-continuity/`, `tests/ui/`.
 
 ## Secrets hygiene

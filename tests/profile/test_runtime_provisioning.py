@@ -56,6 +56,8 @@ def test_configure_telegram_delivery_writes_private_env_and_redacted_policy(
 
     assert profile.subject_id == "subj_001"
     assert policy.delivery_enabled is True
+    # Passive extraction is opt-in: it must default to OFF when not requested.
+    assert policy.consent_for_passive_extraction is False
     env_text = (profile.hermes_home / ".env").read_text(encoding="utf-8")
     assert "TELEGRAM_BOT_TOKEN=123456:telegram-token-test" in env_text
     assert "TELEGRAM_ALLOWED_USERS=123456789" in env_text
@@ -64,6 +66,7 @@ def test_configure_telegram_delivery_writes_private_env_and_redacted_policy(
     assert "GUMI_DELIVERY_CHANNEL=telegram" in env_text
 
     policy_data = json.loads((profile.relic_subject_home / "delivery_policy.json").read_text(encoding="utf-8"))
+    assert policy_data["consent_for_passive_extraction"] is False
     assert policy_data["telegram_user_id_hash"] != "123456789"
     assert policy_data["telegram_user_id_display"].startswith("telegram:")
     assert "123456:telegram-token-test" not in json.dumps(policy_data)
