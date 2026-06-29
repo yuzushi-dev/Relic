@@ -200,6 +200,21 @@ def candidates(conn, recorded: str, siblings: list[str], reply: str, facets: dic
     return [dict(id=fid, **{k: facets[fid][k] for k in ("name", "description")}) for fid in ids]
 
 
+def lexical_candidates(reply: str, facets: dict, k: int = 4) -> list[dict]:
+    """Top-k facets by lexical overlap with the message — the candidate slate
+    for fresh attribution (the panel may still vote NONE)."""
+    rt = tokens(reply)
+    scored = sorted(
+        ((fid, len(rt & tokens(f["name"] + " " + f["description"] + " "
+                               + (f.get("spectrum_low") or "") + " "
+                               + (f.get("spectrum_high") or ""))))
+         for fid, f in facets.items()),
+        key=lambda x: -x[1],
+    )
+    return [dict(id=fid, name=facets[fid]["name"], description=facets[fid]["description"])
+            for fid, sc in scored[:k] if sc > 0]
+
+
 def lexical_best(reply: str, candidates: list[dict], facets: dict) -> str:
     rt = tokens(reply)
     best, best_sc = "NONE", 0

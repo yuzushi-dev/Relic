@@ -16,3 +16,30 @@ def test_load_new_messages_filters_and_cleans(tmp_path):
     texts = [m["text"] for m in msgs]
     assert texts == ["Ho corso un grosso rischio oggi", "Mi sono fermato a riflettere sulla giornata"]
     assert msgs[-1]["ts"] == 20
+
+
+def _facets(conn):
+    return {r[0]: {"name": r[1], "description": r[2], "spectrum_low": r[3], "spectrum_high": r[4]}
+            for r in conn.execute("SELECT id,name,description,spectrum_low,spectrum_high FROM facets")}
+
+
+def test_attribute_message_jury_picks_facet(tmp_path):
+    from relic.checkin.db_init import init_db, seed_facets
+    from relic.checkin.passive_extractor import attribute_message
+    conn = init_db(tmp_path / "r.db"); seed_facets(conn)
+    facets = _facets(conn)
+    target = "cognitive.risk_tolerance"
+    assert target in facets
+    # fake panel: every judge always votes the target -> majority + all families
+    fake = lambda model, reply, question, candidates, **kw: target
+    got = attribute_message("ho corso un grosso rischio", facets, judge_fn=fake)
+    assert got == target
+
+
+def test_attribute_message_none_when_panel_abstains(tmp_path):
+    from relic.checkin.db_init import init_db, seed_facets
+    from relic.checkin.passive_extractor import attribute_message
+    conn = init_db(tmp_path / "r.db"); seed_facets(conn)
+    facets = _facets(conn)
+    fake = lambda *a, **k: "NONE"
+    assert attribute_message("ciao come va oggi", facets, judge_fn=fake) is None

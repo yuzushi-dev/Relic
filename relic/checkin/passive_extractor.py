@@ -15,9 +15,11 @@ prompts. Reply scaffolds are stripped and non-substantive messages dropped via
 from __future__ import annotations
 
 import logging
+import random
 import sqlite3
 from pathlib import Path
 
+from relic.checkin import attribution_jury
 from relic.checkin.reply_capture import _is_substantive, strip_reply_quote_prefix
 
 logger = logging.getLogger(__name__)
@@ -76,3 +78,50 @@ def load_new_messages(
             continue
         out.append({"ts": float(ts), "text": text})
     return out
+
+
+def attribute_message(
+    text: str,
+    facets: dict,
+    *,
+    judge_fn=None,
+    rng: random.Random | None = None,
+) -> str | None:
+    """Attribute a single cleaned message to a facet (or None) via the jury.
+
+    Fresh attribution (no recorded facet): the cross-family panel + lexical
+    voter must reach majority + >=2 families on a real facet for it to win.
+    The jury was built to *validate a recorded facet*, so we pass
+    `recorded="NONE"` to `aggregate` — a real facet only wins when the panel
+    converges on it (otherwise the message stays unattributed).
+
+    `judge_fn` defaults to `attribution_jury.llm_choose` (network); tests inject
+    a fake panel. `rng` defaults to a fresh `random.Random()`.
+    """
+    judge_fn = judge_fn or attribution_jury.llm_choose
+    rng = rng or random.Random()
+
+    cands = attribution_jury.lexical_candidates(text, facets)
+    if not cands:
+        return None
+
+    votes: list[str] = []
+    by_judge: dict[str, list[str]] = {}
+    for model, template in attribution_jury.JUDGES:
+        for _ in range(attribution_jury.SAMPLES):
+            shuffled = cands[:]
+            rng.shuffle(shuffled)
+            vote = judge_fn(
+                model, reply=text, question="", candidates=shuffled,
+                template=template,
+            )
+            if vote is not None:
+                votes.append(vote)
+                by_judge.setdefault(model, []).append(vote)
+    votes.append(attribution_jury.lexical_best(text, cands, facets))
+
+    res = attribution_jury.aggregate(recorded="NONE", votes=votes, by_judge=by_judge)
+    target = res["target"]
+    if target and target != "NONE":
+        return target
+    return None
