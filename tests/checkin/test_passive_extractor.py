@@ -419,3 +419,21 @@ def test_run_for_hermes_home_refuses_subject_mismatch(tmp_path):
         n = c.execute("SELECT COUNT(*) FROM observations WHERE source_type='passive_chat'").fetchone()[0]
         c.close()
         assert n == 0
+
+
+def test_load_new_messages_drops_media_captions(tmp_path):
+    """Vision/media captions ('[The user sent an image~ ...]') are the model's
+    description, not the subject's words — they must be dropped."""
+    import sqlite3
+    state = tmp_path / "state.db"
+    c = sqlite3.connect(state)
+    c.execute("CREATE TABLE messages (role TEXT, content TEXT, timestamp REAL)")
+    c.executemany("INSERT INTO messages VALUES (?,?,?)", [
+        ("user", "[The user sent an image~ Here's what I can see: a coffee machine]", 10),
+        ("user", "Oggi ho riflettuto molto sulle mie scelte di lavoro", 20),
+    ])
+    c.commit(); c.close()
+    from relic.checkin.passive_extractor import load_new_messages
+    msgs = load_new_messages(state, since_ts=0.0)
+    texts = [m["text"] for m in msgs]
+    assert texts == ["Oggi ho riflettuto molto sulle mie scelte di lavoro"]

@@ -32,6 +32,12 @@ logger = logging.getLogger(__name__)
 # Passive evidence must be clear: drop any extracted signal weaker than this.
 PASSIVE_STRENGTH_FLOOR = 0.5
 
+# Vision/media captions are injected as role='user' content (e.g.
+# "[The user sent an image~ Here's what I can see: ...]"). They are a model's
+# description, NOT the subject's words — attributing them would contaminate the
+# subject's profile, so they are dropped like cron prompts.
+_MEDIA_CAPTION_PREFIX = "[The user sent"
+
 
 def load_new_messages(
     state_db_path: str | Path,
@@ -82,6 +88,8 @@ def load_new_messages(
     out: list[dict] = []
     for content, ts in rows:
         text = strip_reply_quote_prefix(content)
+        if text.lstrip().startswith(_MEDIA_CAPTION_PREFIX):
+            continue  # vision/media caption, not the subject's words
         if not _is_substantive(text):
             continue
         out.append({"ts": float(ts), "text": text})
