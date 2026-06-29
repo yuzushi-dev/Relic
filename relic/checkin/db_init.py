@@ -27,7 +27,7 @@ from pathlib import Path
 
 # Per-subject schema version, namespaced to avoid collision with the global
 # migration numbering in relic/db/migrations. Bump on any SCHEMA_SQL change.
-SCHEMA_VERSION = "checkin-1"
+SCHEMA_VERSION = "checkin-2"
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS schema_version (
@@ -134,6 +134,12 @@ CREATE TABLE IF NOT EXISTS model_snapshots (
     avg_confidence REAL,
     coverage_pct REAL,
     snapshot_data TEXT
+);
+
+CREATE TABLE IF NOT EXISTS passive_extraction_state (
+    subject_id TEXT PRIMARY KEY,
+    last_processed_ts REAL NOT NULL DEFAULT 0,
+    updated_at TEXT NOT NULL DEFAULT ''
 );
 
 CREATE INDEX IF NOT EXISTS idx_cf_subject_tick ON checkin_features(subject_id, tick_id);
