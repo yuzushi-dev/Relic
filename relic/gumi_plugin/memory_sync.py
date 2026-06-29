@@ -355,6 +355,15 @@ def main() -> None:
 
     result = sync(Path(hermes_home))
 
+    # Passive extraction for the ONE subject tied to this $HERMES_HOME (reads
+    # only <hermes_home>/state.db; never iterates subjects). Own try/except,
+    # fail-open: must not break the no-agent cron stdout contract.
+    try:
+        from relic.checkin.passive_extractor import run_for_hermes_home
+        result["passive_extraction"] = run_for_hermes_home(Path(hermes_home))
+    except Exception as exc:
+        result["passive_extraction"] = {"error": str(exc)}
+
     # Close the check-in → facet → baseline loop. Pending check-in replies are
     # otherwise never processed (facet_updater was not wired into any cron),
     # leaving subject_baseline.json unconsolidated. Fail-open: never break the

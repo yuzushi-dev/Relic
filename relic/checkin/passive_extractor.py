@@ -296,3 +296,125 @@ def run_passive_extraction(
         "written": n_written,
         "watermark": watermark,
     }
+
+
+def run_for_hermes_home(
+    hermes_home: str | Path,
+    *,
+    relic_home: str | Path | None = None,
+    subject_id: str | None = None,
+    dry_run: bool = False,
+) -> dict:
+    """Run passive extraction for the ONE subject tied to this ``$HERMES_HOME``.
+
+    PRIVACY SAFETY: the ``memory_sync`` cron runs under a single profile's
+    ``$HERMES_HOME``, whose ``state.db`` holds only that subject's Telegram
+    messages. This entrypoint resolves exactly that subject and reads exactly
+    ``<hermes_home>/state.db``. It MUST NEVER iterate all subjects — writing
+    subject A's messages as subject B's observations would be a privacy
+    incident — so it does NOT go through the global ``_process_pending_facets``
+    loop.
+
+    Subject resolution order: explicit ``subject_id`` arg, then
+    ``$RELIC_SUBJECT_ID``, then the ``hermes_home`` directory name with a
+    leading ``gumi-``/``hermes-`` prefix stripped.
+
+    HARD GUARD: returns ``{"skipped": "unresolved_subject", ...}`` and does
+    NOTHING (no reads, no writes) unless the subject is unambiguously resolved
+    AND both its own ``<hermes_home>/state.db`` and
+    ``<relic_home>/subjects/<id>/relic.db`` exist. This refusal is what
+    prevents cross-subject contamination.
+
+    Fail-open: any exception returns ``{"error": ..., "subject_id": ...}``
+    (never raises) so the cron's stdout contract is preserved.
+    """
+    hermes_home = Path(hermes_home)
+    relic_home = Path(
+        relic_home or os.environ.get("RELIC_HOME", Path.home() / ".relic")
+    )
+
+    if not subject_id:
+        subject_id = os.environ.get("RELIC_SUBJECT_ID") or None
+    if not subject_id:
+        name = hermes_home.name
+        for prefix in ("gumi-", "hermes-"):
+            if name.startswith(prefix):
+                name = name[len(prefix):]
+                break
+        subject_id = name or None
+
+    try:
+        state_db_path = hermes_home / "state.db"
+        relic_db_path = relic_home / "subjects" / str(subject_id) / "relic.db"
+
+        # HARD GUARD (cross-subject safety): never touch any data unless the
+        # subject is resolved and BOTH of its own DBs exist.
+        if (
+            not subject_id
+            or not state_db_path.exists()
+            or not relic_db_path.exists()
+        ):
+            return {"skipped": "unresolved_subject", "subject_id": subject_id}
+
+        conn = sqlite3.connect(str(relic_db_path))
+        try:
+            facets = {
+                r[0]: {
+                    "name": r[1],
+                    "description": r[2],
+                    "spectrum_low": r[3],
+                    "spectrum_high": r[4],
+                }
+                for r in conn.execute(
+                    "SELECT id,name,description,spectrum_low,spectrum_high FROM facets"
+                )
+            }
+            result = run_passive_extraction(
+                conn,
+                subject_id,
+                state_db_path,
+                facets,
+                relic_home=relic_home,
+                dry_run=dry_run,
+            )
+        finally:
+            conn.close()
+
+        result["subject_id"] = subject_id
+        return result
+    except Exception as exc:  # fail-open: never break the cron
+        logger.warning(
+            "[checkin] run_for_hermes_home failed subject_id=%s: %s",
+            subject_id, exc,
+        )
+        return {"error": str(exc), "subject_id": subject_id}
+
+
+def main(argv: list[str] | None = None) -> int:
+    """CLI: run passive extraction for one subject's ``$HERMES_HOME``."""
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Run passive observation extraction for one subject's $HERMES_HOME",
+    )
+    parser.add_argument(
+        "--hermes-home",
+        default=os.environ.get("HERMES_HOME", str(Path.home() / ".hermes")),
+    )
+    parser.add_argument("--subject-id", default=None)
+    parser.add_argument("--relic-home", default=None)
+    parser.add_argument("--dry-run", action="store_true")
+    args = parser.parse_args(argv)
+
+    result = run_for_hermes_home(
+        args.hermes_home,
+        relic_home=args.relic_home,
+        subject_id=args.subject_id,
+        dry_run=args.dry_run,
+    )
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

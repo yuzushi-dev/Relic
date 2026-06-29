@@ -211,3 +211,179 @@ def test_run_passive_extraction_no_consent_short_circuits(tmp_path):
     assert res_absent == {"skipped": "no_consent"}
 
     assert conn.execute("SELECT COUNT(*) FROM observations").fetchone()[0] == 0
+
+
+# ---------------------------------------------------------------------------
+# Task 7: run_for_hermes_home (single-subject cron entrypoint) + CLI
+# ---------------------------------------------------------------------------
+
+def _setup_subject(tmp_path, sid, *, consent, messages):
+    """Build a subject's own relic.db (+policy) and a gumi-<sid> hermes_home
+    with its own state.db. Returns (hermes_home, relic_home, relic_db)."""
+    import sqlite3
+    import json
+    from relic.checkin.db_init import init_db, seed_facets
+
+    relic_home = tmp_path / "relic"
+    subj_dir = relic_home / "subjects" / sid
+    subj_dir.mkdir(parents=True)
+    relic_db = subj_dir / "relic.db"
+    conn = init_db(relic_db)
+    seed_facets(conn)
+    conn.close()
+
+    if consent is not None:
+        (subj_dir / "delivery_policy.json").write_text(
+            json.dumps({"consent_for_passive_extraction": consent}),
+            encoding="utf-8",
+        )
+
+    hermes_home = tmp_path / f"gumi-{sid}"
+    hermes_home.mkdir()
+    if messages is not None:
+        _build_state_db(hermes_home / "state.db", messages)
+    return hermes_home, relic_home, relic_db
+
+
+def test_run_for_hermes_home_happy_path(tmp_path, monkeypatch):
+    import sqlite3
+    from relic.checkin import passive_extractor
+
+    sid = "daniele"
+    target = "cognitive.risk_tolerance"
+    hermes_home, relic_home, relic_db = _setup_subject(
+        tmp_path, sid, consent=True, messages=[
+            ("user", "ho corso un grosso rischio nelle mie scelte", 100.0),
+            ("user", "ho deciso di rischiare ancora una volta oggi", 200.0),
+        ],
+    )
+
+    # Network-free: the jury and the signal writer are the only seams that
+    # would hit the LLM; replace them at the module level (run_passive_extraction
+    # calls both by bare global name).
+    monkeypatch.setattr(
+        passive_extractor, "attribute_message",
+        lambda text, facets, **kw: target,
+    )
+
+    def _fake_write(conn, facet_id, facets, text, ts, **kw):
+        conn.execute(
+            "INSERT OR IGNORE INTO observations "
+            "(facet_id, source_type, source_ref, content, extracted_signal, "
+            "signal_strength, signal_position, created_at) "
+            "VALUES (?, 'passive_chat', ?, ?, ?, ?, ?, ?)",
+            (facet_id, f"msg:{int(ts)}", "obs", "{}", 0.9, 0.8, "now"),
+        )
+        conn.commit()
+        return {"written": True, "facet_id": facet_id}
+
+    monkeypatch.setattr(passive_extractor, "extract_and_write", _fake_write)
+
+    # subject_id NOT passed -> derived from "gumi-daniele" dir name.
+    res = passive_extractor.run_for_hermes_home(hermes_home, relic_home=relic_home)
+
+    assert res["subject_id"] == sid
+    assert res["processed"] == 2     # both messages came from <hermes_home>/state.db
+    assert res["attributed"] == 2
+    assert res["written"] == 2
+    assert res["watermark"] == 200.0
+
+    # Observations landed under the subject's OWN relic.db.
+    check = sqlite3.connect(str(relic_db))
+    rows = check.execute(
+        "SELECT facet_id, source_type FROM observations WHERE source_type='passive_chat'"
+    ).fetchall()
+    check.close()
+    assert len(rows) == 2
+    assert all(r[0] == target and r[1] == "passive_chat" for r in rows)
+
+
+def test_run_for_hermes_home_skips_without_state_db(tmp_path, monkeypatch):
+    import sqlite3
+    from relic.checkin import passive_extractor
+
+    sid = "daniele"
+    # consent ON and relic.db present, but NO state.db under hermes_home.
+    hermes_home, relic_home, relic_db = _setup_subject(
+        tmp_path, sid, consent=True, messages=None,
+    )
+
+    def _boom(*a, **k):
+        raise AssertionError("must not read/process when subject unresolved")
+
+    monkeypatch.setattr(passive_extractor, "load_new_messages", _boom)
+    monkeypatch.setattr(passive_extractor, "attribute_message", _boom)
+
+    res = passive_extractor.run_for_hermes_home(hermes_home, relic_home=relic_home)
+    assert res == {"skipped": "unresolved_subject", "subject_id": sid}
+
+    # Nothing written.
+    check = sqlite3.connect(str(relic_db))
+    n = check.execute("SELECT COUNT(*) FROM observations").fetchone()[0]
+    check.close()
+    assert n == 0
+
+
+def test_run_for_hermes_home_skips_when_subject_relic_db_missing(tmp_path, monkeypatch):
+    from relic.checkin import passive_extractor
+
+    def _boom(*a, **k):
+        raise AssertionError("must not read when subject relic.db is missing")
+
+    monkeypatch.setattr(passive_extractor, "load_new_messages", _boom)
+
+    # state.db exists, but there is no subjects/<sid>/relic.db at all.
+    hermes_home = tmp_path / "gumi-ghost"
+    hermes_home.mkdir()
+    _build_state_db(hermes_home / "state.db", [
+        ("user", "ho corso un grosso rischio", 1.0),
+    ])
+    relic_home = tmp_path / "relic"  # no subjects dir -> unresolvable subject
+
+    res = passive_extractor.run_for_hermes_home(hermes_home, relic_home=relic_home)
+    assert res == {"skipped": "unresolved_subject", "subject_id": "ghost"}
+
+
+def test_main_cli_dry_run_smoke(tmp_path, monkeypatch, capsys):
+    import json
+    import sqlite3
+    from relic.checkin import passive_extractor
+
+    sid = "daniele"
+    hermes_home, relic_home, relic_db = _setup_subject(
+        tmp_path, sid, consent=True, messages=[
+            ("user", "ho corso un grosso rischio nelle mie scelte", 100.0),
+        ],
+    )
+
+    # Keep network-free even on the dry path (extract_and_write would still
+    # call the LLM extractor under dry_run, so stub both seams).
+    monkeypatch.setattr(
+        passive_extractor, "attribute_message",
+        lambda *a, **k: "cognitive.risk_tolerance",
+    )
+    monkeypatch.setattr(
+        passive_extractor, "extract_and_write",
+        lambda *a, **k: {"written": False, "reason": "dry"},
+    )
+
+    monkeypatch.setattr("sys.argv", [
+        "passive_extractor",
+        "--hermes-home", str(hermes_home),
+        "--relic-home", str(relic_home),
+        "--subject-id", sid,
+        "--dry-run",
+    ])
+
+    rc = passive_extractor.main()
+    assert rc == 0
+
+    out = capsys.readouterr().out
+    parsed = json.loads(out)
+    assert parsed["subject_id"] == sid
+
+    # Dry-run writes nothing.
+    check = sqlite3.connect(str(relic_db))
+    n = check.execute("SELECT COUNT(*) FROM observations").fetchone()[0]
+    check.close()
+    assert n == 0
