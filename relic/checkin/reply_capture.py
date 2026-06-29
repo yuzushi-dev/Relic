@@ -64,6 +64,25 @@ def _is_substantive(text: str) -> bool:
     return True
 
 
+def strip_reply_quote_prefix(text: str) -> str:
+    """Drop a leading Telegram '[Replying to: "..."]' quote block.
+
+    The quoted message is the *previous* turn (often Gumi's own diegetic opener),
+    not the subject's words. Storing it raw lets it leak into reply_text and into
+    follow-up excerpts, which made Gumi attribute its own life to the subject.
+    Returns the subject's actual reply; falls back to the original if stripping
+    would empty it. ponytail: bounded scan, no regex — mirrors context_builder.
+    """
+    stripped = text.strip()
+    if stripped.startswith("[Replying to:"):
+        end_idx = stripped.find("]")
+        if 0 < end_idx < 250:
+            tail = stripped[end_idx + 1 :].strip()
+            if tail:
+                return tail
+    return stripped
+
+
 def _iter_decision_log(relic_home: Path) -> list[dict]:
     path = Path(relic_home) / "decision_events.jsonl"
     if not path.exists():
@@ -183,7 +202,8 @@ def capture_reply_if_pending(
 
             exchange_id, asked_at_raw = row[0], row[1]
             latency_seconds = _compute_latency_seconds(asked_at_raw, now)
-            stored_text = (user_msg[:1999] + "…") if len(user_msg) > 2000 else user_msg
+            clean_msg = strip_reply_quote_prefix(user_msg)
+            stored_text = (clean_msg[:1999] + "…") if len(clean_msg) > 2000 else clean_msg
             reply_valence = score_valence(stored_text)
             cur = conn.execute(
                 """UPDATE checkin_exchanges

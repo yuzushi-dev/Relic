@@ -114,6 +114,40 @@ class TestSelectFollowup:
         assert cand is not None
         assert len(cand["reply_excerpt"]) <= _FOLLOWUP_EXCERPT_CHARS
 
+    def test_reply_quote_scaffold_stripped_from_excerpt(self, conn):
+        """Regression: the Telegram '[Replying to: "..."]' quote block holds the
+        prior turn (Gumi's own diegetic opener). It must not leak into the
+        follow-up excerpt, or Gumi asks the subject to elaborate on Gumi's life.
+        """
+        _insert_exchange(
+            conn,
+            asked_at=NOW - timedelta(hours=10),
+            reply_text=(
+                '[Replying to: "Sto provando a sistemare l\'ordine delle cartelle '
+                'dei miei demo, ma è un caos totale ✨ Ti è capitato di fermarti?"] '
+                "Sì ieri ho avuto una discussione con Barbara e l'ho gestita con calma"
+            ),
+            reply_captured_at=NOW - timedelta(hours=9),
+        )
+        cand = select_followup(conn, NOW)
+        assert cand is not None
+        assert "Replying to" not in cand["hint"]
+        assert "demo" not in cand["hint"]  # Gumi's life must not be attributed
+        assert "Barbara" in cand["hint"]  # the subject's actual words survive
+
+    def test_clarifying_question_reply_skips_followup(self, conn):
+        """Regression: a short question-back ("Quale cartelle demo?") is a
+        clarification, not an answer. Following up on it propagates a prior
+        confusion another hop — must fall back to a fresh facet question (None).
+        """
+        _insert_exchange(
+            conn,
+            asked_at=NOW - timedelta(hours=10),
+            reply_text="Quale cartelle demo? 🤔",
+            reply_captured_at=NOW - timedelta(hours=9),
+        )
+        assert select_followup(conn, NOW) is None
+
     def test_hint_low_jaccard_with_original_question(self, conn):
         """The hint must be built from the reply, so the anti-repeat gate
         (Jaccard >= 0.60 vs recent question texts) does not block it."""
