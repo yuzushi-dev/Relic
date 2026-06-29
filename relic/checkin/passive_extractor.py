@@ -14,15 +14,21 @@ prompts. Reply scaffolds are stripped and non-substantive messages dropped via
 """
 from __future__ import annotations
 
+import json
 import logging
 import random
 import sqlite3
+from datetime import datetime, timezone
 from pathlib import Path
 
 from relic.checkin import attribution_jury
+from relic.checkin.facet_updater import extract_observation
 from relic.checkin.reply_capture import _is_substantive, strip_reply_quote_prefix
 
 logger = logging.getLogger(__name__)
+
+# Passive evidence must be clear: drop any extracted signal weaker than this.
+PASSIVE_STRENGTH_FLOOR = 0.5
 
 
 def load_new_messages(
@@ -125,3 +131,86 @@ def attribute_message(
     if target and target != "NONE":
         return target
     return None
+
+
+def extract_and_write(
+    conn: sqlite3.Connection,
+    facet_id: str,
+    facets: dict,
+    text: str,
+    ts: float,
+    *,
+    llm_client=None,
+    dry_run: bool = False,
+    strength_floor: float = PASSIVE_STRENGTH_FLOOR,
+) -> dict:
+    """Extract a behavioral signal for a confirmed (message, facet) pair and
+    persist a `source_type='passive_chat'` observation in relic.db.
+
+    Reuses `facet_updater.extract_observation`: the message is passed as
+    `reply_text` and a synthesized `question_text` grounds the facet. There is
+    no real check-in exchange, so `exchange_id=0` is passed purely for the
+    result's logging field — `extract_observation` never mutates
+    `checkin_exchanges`.
+
+    Drops anything that errors, is not informative, or whose `signal_strength`
+    is below `strength_floor` (passive evidence must be clear). The insert
+    mirrors `facet_updater.process_pending_exchanges` (`INSERT OR IGNORE`,
+    dedup on `(facet_id, source_ref)`); `source_ref = f"msg:{int(ts)}"`. Writes
+    NOTHING to the `traits` table — `synthesize_traits` owns that.
+
+    Returns `{"written": False, "reason": ...}` when nothing is persisted, or
+    `{"written": True, "facet_id", "signal_position", "signal_strength"}`.
+    """
+    facet = facets[facet_id]
+    description = facet.get("description") or ""
+    question_text = f"(osservazione passiva) {description}"
+
+    extraction = extract_observation(
+        exchange_id=0,
+        facet_id=facet_id,
+        facet_name=facet.get("name") or facet_id,
+        description=description,
+        spectrum_low=facet.get("spectrum_low") or "low",
+        spectrum_high=facet.get("spectrum_high") or "high",
+        question_text=question_text,
+        reply_text=text,
+        llm_client=llm_client,
+    )
+
+    if extraction.error:
+        return {"written": False, "reason": extraction.error}
+    if not extraction.informative:
+        return {"written": False, "reason": "not_informative"}
+    if extraction.signal_strength < strength_floor:
+        return {"written": False, "reason": "weak_signal"}
+
+    if not dry_run:
+        now_iso = datetime.now(timezone.utc).isoformat()
+        try:
+            conn.execute(
+                """INSERT OR IGNORE INTO observations
+                   (facet_id, source_type, source_ref, content, extracted_signal,
+                    signal_strength, signal_position, created_at)
+                   VALUES (?, 'passive_chat', ?, ?, ?, ?, ?, ?)""",
+                (
+                    facet_id,
+                    f"msg:{int(ts)}",
+                    extraction.observation_summary,
+                    json.dumps({"question": question_text[:100]}),
+                    extraction.signal_strength,
+                    extraction.signal_position,
+                    now_iso,
+                ),
+            )
+            conn.commit()
+        except sqlite3.Error:
+            conn.rollback()
+            return {"written": False, "reason": "db_error"}
+
+    return {
+        "written": True,
+        "facet_id": facet_id,
+        "signal_position": extraction.signal_position,
+        "signal_strength": extraction.signal_strength,
+    }
