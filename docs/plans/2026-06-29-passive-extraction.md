@@ -231,19 +231,71 @@ Given one cleaned message, pick the facet it evidences (or NONE) with the cross-
 - Modify: `relic/checkin/passive_extractor.py` (add `attribute_message`)
 - Test: `tests/checkin/test_passive_extractor.py` (inject a fake panel — no network)
 
-**Design:** candidates = lexical top-K facets (use `attribution_jury.lexical_best` over all facets to rank, take top 4) + `NONE`. Run the jury (`llm_choose` × `JUDGES` × `SAMPLES`, shuffled) + the lexical voter; `aggregate` the votes. Return `facet_id` only when a strict majority agrees on a single non-NONE facet AND ≥2 model families agree (mirror the script's `main` threshold). Else `None`.
+**CRITICAL — reuse the jury correctly (the existing functions are validation-shaped):**
+The jury was built to *validate a recorded facet*, not to attribute from scratch. Verified shapes (read `relic/checkin/attribution_jury.py`):
+- `aggregate(recorded, votes, by_judge)` returns `{votes, keep_votes, reject_votes, judge_choice, families_rejecting, action, target}`. It confirms only when `cast>=3 AND reject>=majority AND plurality!=recorded AND families_rejecting>=2`; then `action="reattribute"`/`target=plurality` (or `action="drop"`/`target=None` if plurality is `"NONE"`), else `action="keep"`/`target=recorded`.
+- `candidates(conn, recorded, siblings, reply, facets)` does NOT touch `conn`, but it indexes `facets[recorded]` — so you must NOT pass `recorded="NONE"` to it (KeyError, "NONE" is not a facet).
+- `llm_choose(model, reply, question, candidates, ...)` already adds `"NONE"` to the valid vote set itself, so the candidate list must contain only real facets.
 
-**Step 1: Failing test** — pass an injected `judge_fn` (so no network) that always votes `"cognitive.risk_tolerance"`; assert `attribute_message("ho corso un grosso rischio", facets, judge_fn=fake)` returns `"cognitive.risk_tolerance"`, and an all-`NONE` panel returns `None`.
+**The fresh-attribution recipe (no recorded facet):**
+1. Add a small helper to `relic/checkin/attribution_jury.py` (DRY, next to `lexical_best`):
+   ```python
+   def lexical_candidates(reply: str, facets: dict, k: int = 4) -> list[dict]:
+       """Top-k facets by lexical overlap with the message — the candidate slate
+       for fresh attribution (the panel may still vote NONE)."""
+       rt = tokens(reply)
+       scored = sorted(
+           ((fid, len(rt & tokens(f["name"] + " " + f["description"] + " "
+                                  + (f.get("spectrum_low") or "") + " "
+                                  + (f.get("spectrum_high") or ""))))
+            for fid, f in facets.items()),
+           key=lambda x: -x[1],
+       )
+       return [dict(id=fid, name=facets[fid]["name"], description=facets[fid]["description"])
+               for fid, sc in scored[:k] if sc > 0]
+   ```
+2. In `passive_extractor.attribute_message`: build `cands = lexical_candidates(text, facets)`. If empty → return `None`. Run the panel: for each `(model, _)` in `JUDGES`, `SAMPLES` times, shuffle `cands` (use the passed `rng`) and call `judge_fn(model, reply=text, question="", candidates=cands, ...)`; collect into `votes` and `by_judge[model]`. Append the deterministic voter `lexical_best(text, cands, facets)` to `votes`.
+3. Call `aggregate(recorded="NONE", votes=votes, by_judge=by_judge)`. With `recorded="NONE"`, a real facet only wins when the panel reaches majority + ≥2 families on it; `target` is that facet. Return `result["target"]` when it is a real facet id (not `None` and not `"NONE"`), else `None`.
+
+**Step 1: Failing test** (no network — inject `judge_fn`)
+
+```python
+def _facets(conn):
+    return {r[0]: {"name": r[1], "description": r[2], "spectrum_low": r[3], "spectrum_high": r[4]}
+            for r in conn.execute("SELECT id,name,description,spectrum_low,spectrum_high FROM facets")}
+
+def test_attribute_message_jury_picks_facet(tmp_path):
+    from relic.checkin.db_init import init_db, seed_facets
+    from relic.checkin.passive_extractor import attribute_message
+    conn = init_db(tmp_path / "r.db"); seed_facets(conn)
+    facets = _facets(conn)
+    target = "cognitive.risk_tolerance"
+    assert target in facets
+    # fake panel: every judge always votes the target → majority + all families
+    fake = lambda model, reply, question, candidates, **kw: target
+    got = attribute_message("ho corso un grosso rischio", facets, judge_fn=fake)
+    assert got == target
+
+def test_attribute_message_none_when_panel_abstains(tmp_path):
+    from relic.checkin.db_init import init_db, seed_facets
+    from relic.checkin.passive_extractor import attribute_message
+    conn = init_db(tmp_path / "r.db"); seed_facets(conn)
+    facets = _facets(conn)
+    fake = lambda *a, **k: "NONE"
+    assert attribute_message("ciao come va oggi", facets, judge_fn=fake) is None
+```
+(If `seed_facets` lacks `cognitive.risk_tolerance`, pick any seeded id with lexical overlap and adjust the message text; keep the assertion on that id.)
 
 **Step 2: Run — fails.**
 
-**Step 3: Implement** `attribute_message(text, facets, *, judge_fn=None, rng=None)`. `judge_fn` defaults to `attribution_jury.llm_choose`; accept the seam for testing. Build candidate dicts `{id,name,description,spectrum_low,spectrum_high}`. Tally votes via `aggregate`; apply the family-agreement guard. Return facet id or None.
+**Step 3: Implement** `lexical_candidates` (in `attribution_jury.py`) and `attribute_message(text, facets, *, judge_fn=None, rng=None)` (in `passive_extractor.py`) per the recipe above. `judge_fn` defaults to `attribution_jury.llm_choose`; `rng` defaults to a fresh `random.Random()`.
 
-**Step 4: Run — PASS.**
+**Step 4: Run — PASS** (`python -m pytest tests/checkin/test_passive_extractor.py -v`).
 
-**Step 5: Commit**
+**Step 5: Commit** (explicit paths — never `-a`/`-A`)
 ```bash
-git commit -am "feat(checkin): jury-based facet attribution for passive messages"
+git add relic/checkin/attribution_jury.py relic/checkin/passive_extractor.py tests/checkin/test_passive_extractor.py
+git commit -m "feat(checkin): jury-based facet attribution for passive messages"
 ```
 
 ---
@@ -262,9 +314,10 @@ For a confirmed (message, facet) pair, get `signal_position`/`signal_strength` a
 
 **Step 2–4:** implement, run, PASS.
 
-**Step 5: Commit**
+**Step 5: Commit** (explicit paths)
 ```bash
-git commit -am "feat(checkin): write passive_chat observations with strength floor"
+git add relic/checkin/passive_extractor.py tests/checkin/test_passive_extractor.py
+git commit -m "feat(checkin): write passive_chat observations with strength floor"
 ```
 
 ---
@@ -288,9 +341,10 @@ Tie Tasks 3–5 together into `run_passive_extraction(conn, subject_id, state_db
 
 **Step 2–4:** implement, run, PASS.
 
-**Step 5: Commit**
+**Step 5: Commit** (explicit paths)
 ```bash
-git commit -am "feat(checkin): end-to-end consent-gated passive extraction per subject"
+git add relic/checkin/passive_extractor.py tests/checkin/test_passive_extractor.py
+git commit -m "feat(checkin): end-to-end consent-gated passive extraction per subject"
 ```
 
 ---
