@@ -481,11 +481,133 @@ def process_pending_exchanges(
 
         results.append(entry)
 
-    # After all exchanges are processed, take a model snapshot if warranted.
+    # Re-derive trait confidence from accumulated evidence (debounced), then
+    # snapshot. Synthesis runs even when no new replies were pending, so abundant
+    # passive evidence keeps lifting confidence on schedule.
     if not dry_run:
+        if _synthesis_needs_update(conn):
+            synthesize_traits(conn)
         maybe_write_snapshot(conn, reason="checkin")
 
     return results
+
+
+# Batch-synthesis tuning.
+_SYNTHESIS_FULL_EVIDENCE_N = 8        # consistent observations that count as full evidence
+_SYNTHESIS_MAX_SPREAD = 0.5          # signal_position std-dev (0..1 scale) at which consistency → 0
+_SYNTHESIS_MIN_INTERVAL_HOURS = 20   # debounce when wired into the check-in probe
+
+
+def _clamp(x: float, lo: float = 0.0, hi: float = 1.0) -> float:
+    return max(lo, min(hi, x))
+
+
+def _synthesis_needs_update(conn: sqlite3.Connection, now: datetime | None = None) -> bool:
+    """True when no trait has been synthesised within the debounce window."""
+    from datetime import timedelta
+
+    now = now or datetime.now(timezone.utc)
+    row = conn.execute("SELECT MAX(last_synthesis_at) FROM traits").fetchone()
+    last = row[0] if row else None
+    if not last:
+        return True
+    try:
+        last_dt = datetime.fromisoformat(last.replace("Z", "+00:00"))
+        if last_dt.tzinfo is None:
+            last_dt = last_dt.replace(tzinfo=timezone.utc)
+    except (ValueError, AttributeError):
+        return True
+    return (now - last_dt) >= timedelta(hours=_SYNTHESIS_MIN_INTERVAL_HOURS)
+
+
+def synthesize_traits(
+    conn: sqlite3.Connection,
+    *,
+    dry_run: bool = False,
+    now: datetime | None = None,
+) -> list[dict[str, Any]]:
+    """Re-derive trait confidence/value_position from ALL accumulated observations.
+
+    The incremental check-in path only nudges a trait per reply, so facets with
+    abundant evidence (e.g. 80 passive observations) stay stuck at low confidence.
+    This batch pass aggregates every observation for a facet into a strength-
+    weighted estimate, raising confidence toward the governance cap where the
+    evidence supports it.
+
+    Governance:
+      - confidence capped at MULTI_EVIDENCE_CAP (0.55) until human review;
+      - monotonic — only raises confidence, never lowers an existing (possibly
+        human-reviewed) value, and touches a facet only when the evidence
+        justifies MORE confidence than is currently stored;
+      - skips facets the subject has corrected.
+
+    Returns a list of change records (also the preview payload for --dry-run).
+    """
+    now = now or datetime.now(timezone.utc)
+    agg = conn.execute(
+        """SELECT facet_id,
+                  COUNT(*) AS n,
+                  SUM(COALESCE(NULLIF(signal_strength, 0), 0.5)) AS wsum,
+                  SUM(signal_position * COALESCE(NULLIF(signal_strength, 0), 0.5)) AS wpos,
+                  SUM(signal_position * signal_position
+                      * COALESCE(NULLIF(signal_strength, 0), 0.5)) AS wpos2,
+                  MAX(created_at) AS last_obs
+           FROM observations
+           WHERE signal_position IS NOT NULL
+           GROUP BY facet_id"""
+    ).fetchall()
+
+    current = {
+        r[0]: {"confidence": r[1], "value_position": r[2], "status": r[3]}
+        for r in conn.execute(
+            "SELECT facet_id, confidence, value_position, status FROM traits"
+        )
+    }
+
+    changes: list[dict[str, Any]] = []
+    for facet_id, n, wsum, wpos, wpos2, last_obs in agg:
+        cur = current.get(facet_id)
+        if cur is not None and cur["status"] == "corrected":
+            continue
+        if not wsum or wsum <= 0:
+            continue
+        mean = wpos / wsum
+        var = max(0.0, (wpos2 / wsum) - mean * mean)
+        sd = var ** 0.5
+        consistency = _clamp(1.0 - sd / _SYNTHESIS_MAX_SPREAD)
+        evidence = _clamp(n / _SYNTHESIS_FULL_EVIDENCE_N)
+        computed = min(_clamp(evidence * (0.4 + 0.6 * consistency)), MULTI_EVIDENCE_CAP)
+
+        old_conf = cur["confidence"] if cur else None
+        if old_conf is not None and computed <= old_conf:
+            continue  # evidence does not justify a higher confidence — leave it
+
+        new_pos = round(_clamp(mean), 6)
+        new_conf = round(computed, 6)
+        changes.append({
+            "facet_id": facet_id,
+            "n": n,
+            "old_conf": round(old_conf, 4) if old_conf is not None else None,
+            "new_conf": new_conf,
+            "old_pos": round(cur["value_position"], 4) if cur and cur["value_position"] is not None else None,
+            "new_pos": new_pos,
+        })
+        if not dry_run:
+            conn.execute(
+                """INSERT INTO traits (facet_id, value_position, confidence,
+                       observation_count, last_observation_at, last_synthesis_at, status)
+                   VALUES (?, ?, ?, ?, ?, ?, 'active')
+                   ON CONFLICT(facet_id) DO UPDATE SET
+                       value_position = excluded.value_position,
+                       confidence = excluded.confidence,
+                       observation_count = excluded.observation_count,
+                       last_observation_at = excluded.last_observation_at,
+                       last_synthesis_at = excluded.last_synthesis_at""",
+                (facet_id, new_pos, new_conf, n, last_obs, now.isoformat()),
+            )
+    if not dry_run and changes:
+        conn.commit()
+    return changes
 
 
 def write_snapshot(conn: sqlite3.Connection, reason: str = "checkin") -> dict[str, Any]:
@@ -634,6 +756,14 @@ def main() -> int:
     parser.add_argument("--gumi-instance-id", default="")
     parser.add_argument("--hermes-profile-id", default="")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--synthesize", action="store_true",
+        help="Run a batch trait re-synthesis over all observations (force, ignores debounce).",
+    )
+    parser.add_argument(
+        "--synth-only", action="store_true",
+        help="Only run synthesis; skip check-in reply extraction.",
+    )
     args = parser.parse_args()
 
     relic_home = args.relic_home or os.environ.get("RELIC_HOME", str(Path.home() / ".relic"))
@@ -643,12 +773,17 @@ def main() -> int:
                     Path(relic_home) / "subjects" / args.subject_id / "subject_baseline.json"
 
     conn = sqlite3.connect(str(db_path))
-    results = process_pending_exchanges(
-        conn, baseline_path, args.subject_id,
-        dry_run=args.dry_run,
-        gumi_instance_id=args.gumi_instance_id,
-        hermes_profile_id=args.hermes_profile_id,
-    )
+    results = []
+    if not args.synth_only:
+        results = process_pending_exchanges(
+            conn, baseline_path, args.subject_id,
+            dry_run=args.dry_run,
+            gumi_instance_id=args.gumi_instance_id,
+            hermes_profile_id=args.hermes_profile_id,
+        )
+    synth_changes = None
+    if args.synthesize or args.synth_only:
+        synth_changes = synthesize_traits(conn, dry_run=args.dry_run)
     conn.close()
 
     print(json.dumps({
@@ -657,6 +792,8 @@ def main() -> int:
         "processed": len(results),
         "informative": sum(1 for r in results if r.get("informative")),
         "results": results,
+        "synthesis": synth_changes,
+        "synthesis_count": len(synth_changes) if synth_changes is not None else None,
     }, ensure_ascii=False, indent=2))
     return 0
 
