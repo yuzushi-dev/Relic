@@ -70,6 +70,8 @@ def test_configure_telegram_delivery_persists_escalation_contacts(
     )
 
     assert policy.escalation_contacts == contacts
+    # Passive extraction is opt-in: provisioning must default it to OFF.
+    assert policy.consent_for_passive_extraction is False
     assert '"method": "email"' in (profile.relic_subject_home / "delivery_policy.json").read_text(
         encoding="utf-8"
     )

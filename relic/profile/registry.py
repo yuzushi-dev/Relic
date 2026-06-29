@@ -251,6 +251,7 @@ class DeliveryPolicy:
     delivery_windows: list  # [{"start": "HH:MM", "end": "HH:MM"}, ...]
     timezone: str  # IANA timezone string, e.g. "Europe/Rome"
     consent_for_active_elicitation: bool
+    consent_for_passive_extraction: bool
     consent_for_generated_images: bool
     consent_for_generated_audio: bool
     consent_for_generated_music: bool
@@ -935,6 +936,7 @@ class ProfileRegistry:
         delivery_windows: list | None = None,
         timezone: str = "Europe/Rome",
         consent_for_active_elicitation: bool = False,
+        consent_for_passive_extraction: bool = False,
         consent_for_generated_images: bool = False,
         consent_for_generated_audio: bool = False,
         consent_for_generated_music: bool = False,
@@ -969,6 +971,7 @@ class ProfileRegistry:
             delivery_windows=delivery_windows if delivery_windows is not None else _default_windows,
             timezone=timezone,
             consent_for_active_elicitation=consent_for_active_elicitation,
+            consent_for_passive_extraction=consent_for_passive_extraction,
             consent_for_generated_images=consent_for_generated_images,
             consent_for_generated_audio=consent_for_generated_audio,
             consent_for_generated_music=consent_for_generated_music,
