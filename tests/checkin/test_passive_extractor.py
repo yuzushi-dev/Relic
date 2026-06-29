@@ -387,3 +387,35 @@ def test_main_cli_dry_run_smoke(tmp_path, monkeypatch, capsys):
     n = check.execute("SELECT COUNT(*) FROM observations").fetchone()[0]
     check.close()
     assert n == 0
+
+
+def test_run_for_hermes_home_refuses_subject_mismatch(tmp_path):
+    """Privacy guard: if the requested subject disagrees with the hermes_home
+    owner, refuse — state.db belongs to a different subject than the relic.db."""
+    from relic.checkin.db_init import init_db, seed_facets
+    from relic.checkin.passive_extractor import run_for_hermes_home
+
+    hermes_home = tmp_path / "profiles" / "gumi-daniele"
+    hermes_home.mkdir(parents=True)
+    import sqlite3
+    s = sqlite3.connect(hermes_home / "state.db")
+    s.execute("CREATE TABLE messages (role TEXT, content TEXT, timestamp REAL)")
+    s.execute("INSERT INTO messages VALUES ('user','ho corso un grosso rischio nelle scelte',100)")
+    s.commit(); s.close()
+
+    relic_home = tmp_path / "relic"
+    for sid in ("daniele", "barbara"):
+        d = relic_home / "subjects" / sid
+        d.mkdir(parents=True)
+        c = init_db(d / "relic.db"); seed_facets(c); c.close()
+        (d / "delivery_policy.json").write_text('{"consent_for_passive_extraction": true}')
+
+    # hermes_home owner = daniele, but caller asks for barbara → must refuse.
+    res = run_for_hermes_home(hermes_home, relic_home=relic_home, subject_id="barbara")
+    assert res.get("skipped") == "subject_mismatch", res
+    # no observations written to either subject
+    for sid in ("daniele", "barbara"):
+        c = sqlite3.connect(relic_home / "subjects" / sid / "relic.db")
+        n = c.execute("SELECT COUNT(*) FROM observations WHERE source_type='passive_chat'").fetchone()[0]
+        c.close()
+        assert n == 0

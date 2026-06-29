@@ -333,15 +333,22 @@ def run_for_hermes_home(
         relic_home or os.environ.get("RELIC_HOME", Path.home() / ".relic")
     )
 
-    if not subject_id:
-        subject_id = os.environ.get("RELIC_SUBJECT_ID") or None
-    if not subject_id:
-        name = hermes_home.name
-        for prefix in ("gumi-", "hermes-"):
-            if name.startswith(prefix):
-                name = name[len(prefix):]
-                break
-        subject_id = name or None
+    # The owner of hermes_home is authoritative: we read hermes_home/state.db,
+    # so the subject MUST be whoever owns that home. Derive it from the dir name.
+    owner = hermes_home.name
+    for prefix in ("gumi-", "hermes-"):
+        if owner.startswith(prefix):
+            owner = owner[len(prefix):]
+            break
+    owner = owner or None
+
+    # An explicit arg or $RELIC_SUBJECT_ID may scope the run, but if it disagrees
+    # with the home owner it is unsafe (state.db belongs to a different subject
+    # than the relic.db we'd write) — refuse rather than risk cross-subject bleed.
+    explicit = subject_id or os.environ.get("RELIC_SUBJECT_ID") or None
+    if explicit and owner and explicit != owner:
+        return {"skipped": "subject_mismatch", "hermes_owner": owner, "requested": explicit}
+    subject_id = explicit or owner
 
     try:
         state_db_path = hermes_home / "state.db"
