@@ -265,6 +265,12 @@ FOLLOWUP_WINDOW_HOURS = 72
 # rendered topic block inside the 200-char budget of render_topic_hint.
 _FOLLOWUP_EXCERPT_CHARS = 90
 
+# Marker prefix identifying a persisted question_text as itself a follow-up
+# hint (built in select_followup below). Used to cap follow-up chains at
+# depth 1: a follow-up exchange is never itself followed up, so the chain
+# always falls back to a fresh TGS facet question after one deepening step.
+_FOLLOWUP_HINT_PREFIX = "Approfondisci quello che ti ha risposto:"
+
 # Trailing whitespace, arrows, symbols/dingbats, variation selectors and emoji —
 # stripped before checking whether a reply ends in '?'.
 _TRAILING_NOISE_RE = re.compile(
@@ -313,6 +319,14 @@ def select_followup(
         return None
 
     facet_id, question_text, reply_text, reply_at_iso = row
+
+    # Depth cap: this exchange is itself a follow-up (its question_text carries
+    # the marker below). Following up on a follow-up chains indefinitely as
+    # long as replies keep landing inside the window, starving TGS facet
+    # coverage. Fall back to a fresh facet question instead.
+    if (question_text or "").startswith(_FOLLOWUP_HINT_PREFIX):
+        return None
+
     reply_at = _parse_iso(reply_at_iso)
     if reply_at is None:
         return None
@@ -347,7 +361,7 @@ def select_followup(
     if _is_clarifying_question(excerpt):
         return None
 
-    hint = f"Approfondisci quello che ti ha risposto: «{excerpt}»."
+    hint = f"{_FOLLOWUP_HINT_PREFIX} «{excerpt}»."
     return {
         "facet_id": facet_id,
         "question_text": question_text or "",

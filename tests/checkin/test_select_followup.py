@@ -94,6 +94,20 @@ class TestSelectFollowup:
         _insert_exchange(conn, asked_at=NOW - timedelta(hours=2))
         assert select_followup(conn, NOW) is None
 
+    def test_followup_of_followup_returns_none(self, conn):
+        """Regression: a follow-up exchange must never itself be followed up.
+        Without the depth cap, a replied follow-up becomes the new latest
+        answered exchange and select_followup would chain on it forever,
+        starving TGS facet coverage."""
+        _insert_exchange(
+            conn,
+            asked_at=NOW - timedelta(hours=10),
+            question_text='Approfondisci quello che ti ha risposto: «ho parlato con mio fratello».',
+            reply_text="sì è andata bene, mi ha aiutato molto",
+            reply_captured_at=NOW - timedelta(hours=9),
+        )
+        assert select_followup(conn, NOW) is None
+
     def test_empty_reply_returns_none(self, conn):
         _insert_exchange(
             conn,
