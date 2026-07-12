@@ -870,6 +870,7 @@ def emit_decision_event(
     wake_agent_emitted: Optional[bool] = None,
     message_hash: Optional[str] = None,
     delivered: Optional[bool] = None,
+    policy_reason: Optional[str] = None,
 ) -> None:
     """Emit a DecisionEvent for audit purposes."""
     event = DecisionEvent(
@@ -894,6 +895,7 @@ def emit_decision_event(
         wake_agent_emitted=wake_agent_emitted,
         message_hash=message_hash,
         delivered=delivered,
+        policy_reason=policy_reason,
     )
 
     # Write event to RELIC_HOME-aware decision_events.jsonl (Plan §Task 1, Step 4).
@@ -936,6 +938,7 @@ def emit_decision_event(
                 "posture": posture,
                 "reach_score": reach_score,
                 "outcome_status": outcome_status,
+                "policy_reason": policy_reason,
                 "status": "sent" if delivered else _decision_str.lower(),
             }
             # Strip None values to keep the log compact
@@ -1152,7 +1155,10 @@ def _apply_naturalness_policy(
     """Build features, run select_decision, merge result into candidate_data.
 
     Behaviour:
-      - silent decision   → return (NO_REPLY, reasons, None);
+      - silent decision   → return (NO_REPLY, reasons, {event_type, posture,
+                            policy_reason}) so the log writer can surface the
+                            specific silencing reason (no "message" key: the
+                            cron heredoc prints nothing for it);
       - non-silent        → prepend the constraint header to candidate_data["message"]
                             and append event_type/posture/features_id metadata so
                             the cron heredoc + log writer can surface them.
@@ -1185,7 +1191,19 @@ def _apply_naturalness_policy(
     )
 
     if pol_decision.event_type is EventType.SILENT:
-        return RuntimeDecision.NO_REPLY, reasons, None
+        # Carry the policy's specific silencing reason (e.g. "diegetic_frequency_backoff")
+        # through NO_REPLY instead of discarding it: without this, every
+        # policy-silenced tick collapses to the generic "no_due_work" reason
+        # code in the decision log and the real cause is unrecoverable.
+        return (
+            RuntimeDecision.NO_REPLY,
+            reasons,
+            {
+                "event_type": pol_decision.event_type.value,
+                "posture": pol_decision.posture.value,
+                "policy_reason": pol_decision.reason,
+            },
+        )
 
     features_id: Optional[int] = None
     db_path = relic_home / "subjects" / subject_id / "relic.db"
@@ -1284,6 +1302,7 @@ RELIC_PYTHON="${{RELIC_PYTHON:-{sys.executable}}}"
 "$RELIC_PYTHON" - "$SUBJECT_ID" "$GUMI_INSTANCE_ID" "$HERMES_PROFILE_ID" "$FORCE_DELIVER" "$DECISION_TYPE" "$RELIC_HERMES_WAKE_AGENT_JSON" <<'PYTHON_EOF'
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -1385,6 +1404,7 @@ try:
             features_id=pol_features_id,
             outcome_status=pol_outcome_status,
             delivered=False,
+            policy_reason=_cd.get("policy_reason"),
         )
         sys.exit(0)
 
@@ -1401,6 +1421,7 @@ try:
         features_id=pol_features_id,
         outcome_status=pol_outcome_status,
         delivered=False,
+        policy_reason=_cd.get("policy_reason"),
     )
 
     if decision == RuntimeDecision.NO_REPLY:
@@ -1410,6 +1431,35 @@ try:
         # Emit candidate message - delivery gate required before actual delivery
         if candidate_data and "message" in candidate_data:
             print(candidate_data["message"])
+        if decision_type in ("diegetic", "proactivity"):
+            # The no-agent gate returns CANDIDATE (not DELIVER) for these two
+            # lanes, but without deliver context the composer has nothing to
+            # anchor on and always falls back to [SILENT]. Mirror the DELIVER
+            # branch below, minus the topic hint (that's checkin-lane
+            # mechanics, not to be consumed here). Fail-soft: a context-builder
+            # error must not wipe out the gate output already printed above.
+            try:
+                _hermes_home = os.environ.get("HERMES_HOME", "")
+                if _hermes_home:
+                    from relic.checkin.context_builder import build_deliver_context
+                    _relic_home_env = os.environ.get("RELIC_HOME", "") or str(Path.home() / ".relic")
+                    # Surface the gate's media modality so the no-anchor
+                    # instruction does not collapse a music/voice/image gate
+                    # into a 12-word text share.
+                    _tipo_m = re.search(r"^tipo:\\s*(\\w+)", (candidate_data or {{}}).get("message", ""), re.MULTILINE)
+                    _ctx = build_deliver_context(
+                        subject_id,
+                        Path(_hermes_home),
+                        Path(_relic_home_env),
+                        event_type=pol_event_kind,
+                        posture=pol_posture,
+                        persist_topic_hint=False,
+                        media_type=_tipo_m.group(1).lower() if _tipo_m else None,
+                    )
+                    if _ctx:
+                        print(_ctx)
+            except Exception:
+                pass
         sys.exit(0)
     elif decision == RuntimeDecision.DELIVER:
         if candidate_data and "message" in candidate_data:
@@ -1857,12 +1907,16 @@ def render_proactive_message_prompt(
         "riferimento specifico a ciò che ha detto lui, non la frequenza dei messaggi, a far sentire ascoltati. "
         "Niente riagganci generici ('come va?', 'tutto bene?').\n"
         "• Quando l'ancora c'è, chiudi con UNA domanda piccola e concreta su quel filo (con '?'): riaprire il filo "
-        "senza invito a rispondere lascia il messaggio a metà. Se non trovi un'ancora specifica -> [SILENT].\n"
+        "senza invito a rispondere lascia il messaggio a metà. Se non trovi un'ancora specifica e il tipo è text -> [SILENT].\n"
+        "• ECCEZIONE MEDIA (tipo voice/image/music): se non trovi un'ancora specifica puoi comunque comporre un "
+        "piccolo gesto ambientale coerente con il momento della giornata — un pensiero musicale, un'immagine dal "
+        "tuo mondo, una nota vocale leggera — SENZA fingere un filo che non c'è e senza domanda finale. Un regalo "
+        "piccolo e non invadente, non un riaggancio forzato.\n"
         "• NO unsolicited advice. NO problem-solving richiesto. NO coaching. NO interpretazioni pesanti.\n"
         "• NOT NEEDY, NON clingy: niente bisogno, niente dipendenza, niente tono appiccicoso o colpevolizzante.\n"
         "• NON guilt-tripping, NON chiedere spiegazioni per il silenzio, NON pretendere risposta, NON fare pressione.\n"
         "• Distinto da un check-in: non usare domande-batteria o formule da monitoraggio. Distinto dal diegetic: non raccontare un frammento della tua vita come focus principale.\n"
-        "• Se il contesto non offre un aggancio davvero buono, meglio [SILENT].\n"
+        "• Se il contesto non offre un aggancio davvero buono e il tipo è text, meglio [SILENT].\n"
         "\n"
         "Modalità:\n"
         "\n"

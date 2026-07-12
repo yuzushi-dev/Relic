@@ -110,6 +110,7 @@ CREATE TABLE IF NOT EXISTS checkin_cadence_state (
     last_subject_msg_at           TEXT,
     last_boundary_at              TEXT,
     last_decay_at                 TEXT,
+    last_diegetic_relax_at        TEXT,
     frequency_cap_per_day         INTEGER,
     diegetic_intensity            REAL,
     diegetic_frequency            REAL,

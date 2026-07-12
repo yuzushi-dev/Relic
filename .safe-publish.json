@@ -1,0 +1,6 @@
+{
+  "path_globs_exclude": [
+    "tests/chronicle/test_redaction.py",
+    "tests/privacy/test_privacy_gate.py"
+  ]
+}

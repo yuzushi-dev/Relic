@@ -86,6 +86,10 @@ class CadenceState:
     diegetic_intensity: Optional[float] = None
     diegetic_frequency: Optional[float] = None
     updated_at: Optional[datetime] = None
+    # Dedicated gate for the C2 diegetic-frequency relax, decoupled from
+    # last_decay_at (which the checkin-lane streak decay also stamps almost
+    # daily and was starving the relax under threshold — see _maybe_relax_diegetic_frequency).
+    last_diegetic_relax_at: Optional[datetime] = None
 
 
 _REQUIRED_EVENT_KEYS = (
@@ -146,6 +150,7 @@ _CADENCE_COLUMNS = (
     "diegetic_intensity",
     "diegetic_frequency",
     "updated_at",
+    "last_diegetic_relax_at",
 )
 
 
@@ -165,6 +170,7 @@ def _cadence_select_expr(column: str, available: set[str]) -> str:
         "last_diegetic_delivered_at",
         "diegetic_intensity",
         "diegetic_frequency",
+        "last_diegetic_relax_at",
     }:
         return f"NULL AS {column}"
     return column
@@ -187,6 +193,7 @@ def _cadence_values(state: CadenceState, now: datetime) -> dict[str, Any]:
         "diegetic_intensity": state.diegetic_intensity,
         "diegetic_frequency": state.diegetic_frequency,
         "updated_at": _to_iso(now),
+        "last_diegetic_relax_at": _to_iso(state.last_diegetic_relax_at),
     }
 
 
@@ -215,13 +222,33 @@ def load_cadence_state(conn: sqlite3.Connection, subject_id: str) -> CadenceStat
         diegetic_intensity=row[12],
         diegetic_frequency=row[13],
         updated_at=_to_dt(row[14]),
+        last_diegetic_relax_at=_to_dt(row[15]),
     )
+
+
+def _ensure_relax_column(conn: sqlite3.Connection, available: set[str]) -> set[str]:
+    """Opportunistic, fail-soft migration for pre-existing per-subject DBs.
+
+    ``last_diegetic_relax_at`` was added after ``checkin-2`` shipped, so live
+    subject DBs created before this change lack the column. ``db_init.py``
+    covers fresh DBs; this covers the ones already on disk.
+    """
+    if "last_diegetic_relax_at" in available:
+        return available
+    try:
+        conn.execute("ALTER TABLE checkin_cadence_state ADD COLUMN last_diegetic_relax_at TEXT")
+    except sqlite3.OperationalError:
+        # Column already added concurrently, table missing entirely (handled
+        # by the empty-columns guard below), or transient lock - fail soft;
+        # the ALTER is retried on the next save until it sticks.
+        pass
+    return _cadence_table_columns(conn)
 
 
 def save_cadence_state(conn: sqlite3.Connection, state: CadenceState) -> None:
     now = state.updated_at or datetime.now(timezone.utc)
     values = _cadence_values(state, now)
-    available = _cadence_table_columns(conn)
+    available = _ensure_relax_column(conn, _cadence_table_columns(conn))
     columns = [column for column in _CADENCE_COLUMNS if column in available]
     if not columns:
         return
@@ -368,9 +395,9 @@ def _apply_diegetic_answered_reaction(
         state,
         diegetic_intensity=intensity,
         diegetic_frequency=frequency,
-        # Reuse the cadence timestamp so the C2 relaxation hook does not
-        # immediately counteract an explicit reaction-model update.
-        last_decay_at=now,
+        # Stamp the C2 relax gate directly so it does not immediately
+        # counteract this explicit reaction-model update.
+        last_diegetic_relax_at=now,
     )
 
 
@@ -386,9 +413,9 @@ def _apply_diegetic_disengagement(state: CadenceState, now: datetime) -> Cadence
             0.0,
             1.0,
         ),
-        # Reuse the cadence timestamp so the C2 relaxation hook does not
-        # immediately counteract an explicit reaction-model update.
-        last_decay_at=now,
+        # Stamp the C2 relax gate directly so it does not immediately
+        # counteract this explicit reaction-model update.
+        last_diegetic_relax_at=now,
     )
 
 
@@ -468,19 +495,28 @@ def _maybe_apply_decay(state: CadenceState, now: datetime) -> CadenceState:
 
 
 def _maybe_relax_diegetic_frequency(state: CadenceState, now: datetime) -> CadenceState:
-    """Nudge diegetic frequency back toward baseline on a small time window."""
+    """Nudge diegetic frequency back toward baseline on a small time window.
+
+    Gated on ``last_diegetic_relax_at`` (its own dedicated timestamp), not
+    ``last_decay_at``: the latter is also stamped by the unrelated checkin-lane
+    streak decay on almost every reconcile, which was starving this relax
+    below the naturalness-policy threshold (never a full day without a
+    checkin-lane decay touching last_decay_at). None still means "never
+    relaxed" and fires immediately, which is how live profiles stuck below
+    threshold unblock.
+    """
     if state.diegetic_frequency is None:
         return state
     if state.diegetic_frequency >= 1.0:
         return state
-    if state.last_decay_at is not None and (
-        now - state.last_decay_at
+    if state.last_diegetic_relax_at is not None and (
+        now - state.last_diegetic_relax_at
     ) < _DIEGETIC_FREQUENCY_RELAX_WINDOW:
         return state
     return replace(
         state,
         diegetic_frequency=min(1.0, state.diegetic_frequency + _DIEGETIC_FREQUENCY_RELAX_STEP),
-        last_decay_at=now,
+        last_diegetic_relax_at=now,
     )
 
 

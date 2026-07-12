@@ -44,6 +44,16 @@ def test_proactive_prompt_requires_specific_anchor():
     assert "come va?" in prompt  # pinned as a forbidden generic example
 
 
+def test_proactive_prompt_media_exception_bypasses_silent_fallback():
+    """Bug (3): voice/image/music CANDIDATE ticks always composed [SILENT]
+    because the anchor-or-silent rule made no exception for media. The
+    contract must now allow a small non-anchored gesture for media types,
+    while text stays anchor-or-silent."""
+    prompt = render_proactive_message_prompt()
+    assert "ECCEZIONE MEDIA" in prompt
+    assert "e il tipo è text" in prompt
+
+
 def test_checkin_prompt_requires_facet_question_contract():
     reg = ProfileRegistry.__new__(ProfileRegistry)
     prompt = reg._cron_prompt_for_job({"task": "gumi_checkin_message", "output": ""}).lower()

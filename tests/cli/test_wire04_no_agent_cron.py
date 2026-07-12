@@ -185,7 +185,11 @@ def test_no_agent_cron_candidate_requires_delivery_gate(tmp_path: Path, monkeypa
         ]
         mock_cs.return_value = mock_service
 
-        with patch("relic.gumi_plugin.cron_wiring._is_platform_not_allowlisted", return_value=False):
+        # Pin the delivery window closed: with it open the checkin lane falls
+        # through to the ask path (NO_REPLY here) and the test outcome would
+        # depend on the wall-clock time it runs at.
+        with patch("relic.gumi_plugin.cron_wiring._is_platform_not_allowlisted", return_value=False), \
+                patch("relic.gumi_plugin.cron_wiring._is_delivery_window_open", return_value=False):
             decision, reasons, candidate_data = make_decision(
                 subject_id="subj_candidate",
                 gumi_instance_id="gumi-subj_candidate",

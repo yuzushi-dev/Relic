@@ -491,6 +491,7 @@ def build_deliver_context(
     posture: str | None = None,
     policy_packet: dict | None = None,
     persist_topic_hint: bool = True,
+    media_type: str | None = None,
 ) -> str:
     """Build context string for check-in DELIVER output.
 
@@ -574,17 +575,32 @@ def build_deliver_context(
             "[checkin] empty-anchor context subject_id=%s event=%s posture=%s",
             subject_id, event_type, posture,
         )
-        parts.append(
-            "\n--- ISTRUZIONE MODALITÀ ---\n"
-            "Nessun aggancio concreto disponibile (nessun messaggio recente del soggetto, "
-            "nessuna observation, nessun topic hint).\n"
-            "Hai due opzioni:\n"
-            "(a) Scrivi UNA frase fattuale brevissima su cosa stai facendo TU adesso "
-            "(es: \"Sto sistemando i miei appunti del weekend\"). Niente domande, niente auguri, "
-            "niente riflessioni astratte. Max 12 parole.\n"
-            "(b) Rispondi esattamente [SILENT] se non hai nulla di concreto da dire.\n"
-            "Preferisci [SILENT] se sei incerta, il silenzio vale più di un messaggio generico."
-        )
+        if media_type in ("voice", "image", "music"):
+            # A media gate (tipo: voice/image/music) must not be collapsed to a
+            # 12-word text share: the composer's own contract handles the
+            # no-anchor media case (ambient gesture, no faked thread). Only
+            # state that no anchor exists and hand the modality back to it.
+            parts.append(
+                "\n--- ISTRUZIONE MODALITÀ ---\n"
+                "Nessun aggancio concreto disponibile (nessun messaggio recente del soggetto, "
+                "nessuna observation, nessun topic hint).\n"
+                f"Il gate chiede comunque un contenuto di tipo '{media_type}': componilo come "
+                "gesto ambientale coerente col momento della giornata e col tuo mondo, nel "
+                "formato richiesto dal tuo contratto per quel tipo, SENZA fingere un filo di "
+                "conversazione che non c'è e senza domande."
+            )
+        else:
+            parts.append(
+                "\n--- ISTRUZIONE MODALITÀ ---\n"
+                "Nessun aggancio concreto disponibile (nessun messaggio recente del soggetto, "
+                "nessuna observation, nessun topic hint).\n"
+                "Hai due opzioni:\n"
+                "(a) Scrivi UNA frase fattuale brevissima su cosa stai facendo TU adesso "
+                "(es: \"Sto sistemando i miei appunti del weekend\"). Niente domande, niente auguri, "
+                "niente riflessioni astratte. Max 12 parole.\n"
+                "(b) Rispondi esattamente [SILENT] se non hai nulla di concreto da dire.\n"
+                "Preferisci [SILENT] se sei incerta, il silenzio vale più di un messaggio generico."
+            )
 
     return "".join(part for part in parts if part)
 

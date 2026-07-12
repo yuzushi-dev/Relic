@@ -83,3 +83,6 @@ subjects/*
 
 # One-off agent prompts at repo root
 /cron-checkin-naturalness-spike-claude_prompt.md
+
+# Agent context file (private paths, not for publication)
+/CLAUDE.md

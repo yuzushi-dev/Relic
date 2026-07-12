@@ -369,6 +369,7 @@ class DecisionEvent:
     wake_agent_emitted: Optional[bool] = None
     message_hash: Optional[str] = None
     delivered: Optional[bool] = None
+    policy_reason: Optional[str] = None
 
     def to_dict(self) -> dict:
         return {
@@ -394,6 +395,7 @@ class DecisionEvent:
             "wake_agent_emitted": self.wake_agent_emitted,
             "message_hash": self.message_hash,
             "delivered": self.delivered,
+            "policy_reason": self.policy_reason,
         }
 
     @classmethod
@@ -421,6 +423,7 @@ class DecisionEvent:
             wake_agent_emitted=data.get("wake_agent_emitted"),
             message_hash=data.get("message_hash"),
             delivered=data.get("delivered"),
+            policy_reason=data.get("policy_reason"),
         )
 
 

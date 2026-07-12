@@ -29,6 +29,7 @@ _STDOUT_ALLOWED = {
     "checkin_media_dispatcher.py",  # sanitized subject-facing text (verified separately)
     "db_init.py",                   # CLI init output
     "facet_updater.py",             # CLI processing result
+    "passive_extractor.py",         # CLI extraction result (main entrypoint)
     "question_engine.py",           # CLI facet selection result
     "scheduler.py",                 # CLI gate check result
 }
