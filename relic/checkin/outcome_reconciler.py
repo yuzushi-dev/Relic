@@ -20,12 +20,14 @@ The reconciler is idempotent: events that already produced an
 
 from __future__ import annotations
 
+import fcntl
 import json
 import logging
 import sqlite3
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Iterable, Iterator, Optional
 
 from relic.checkin.features import (
     load_cadence_state,
@@ -107,6 +109,26 @@ def _already_reconciled(
     return False
 
 
+@contextmanager
+def _reconcile_lock(relic_home: Path) -> Iterator[None]:
+    """Serialise reconcilers across processes.
+
+    ``_already_reconciled`` reads the log into memory, so two reconcilers that
+    read before either appends both see "not yet reconciled" and each emits a
+    transition for the same delivery, double-incrementing the streak. The cron
+    gate and message jobs share a schedule and both call the reconciler, so the
+    two do overlap in practice.
+    """
+    lock_path = Path(relic_home) / ".outcome_reconciler.lock"
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(lock_path, "w") as fh:
+        fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+
+
 def reconcile_due_outcomes(
     subject_id: str,
     *,
@@ -119,6 +141,24 @@ def reconcile_due_outcomes(
 
     Returns the count of new transitions emitted.
     """
+    with _reconcile_lock(relic_home):
+        return _reconcile_due_outcomes_locked(
+            subject_id,
+            relic_home=relic_home,
+            hermes_home=hermes_home,
+            now=now,
+            default_window_hours=default_window_hours,
+        )
+
+
+def _reconcile_due_outcomes_locked(
+    subject_id: str,
+    *,
+    relic_home: Path,
+    hermes_home: Optional[Path] = None,
+    now: Optional[datetime] = None,
+    default_window_hours: int = DEFAULT_RESPONSE_WINDOW_HOURS,
+) -> int:
     now = now or datetime.now(timezone.utc)
     relic_home = Path(relic_home)
     if hermes_home is None:

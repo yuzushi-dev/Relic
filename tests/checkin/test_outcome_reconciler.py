@@ -181,6 +181,70 @@ def test_non_ask_delivery_with_reply_does_not_transition(tmp_path: Path):
     assert state.non_response_streak == 0
 
 
+def test_concurrent_reconcilers_emit_one_transition(tmp_path: Path, monkeypatch):
+    """The cron gate and message jobs share a schedule and both reconcile.
+
+    Without cross-process locking each reads the log before the other appends,
+    so one delivery yields two unanswered_24h transitions and the streak
+    increments twice. The barrier forces exactly that interleaving.
+    """
+    import threading
+
+    from relic.checkin import outcome_reconciler as mod
+
+    relic_home = tmp_path
+    hermes_home = tmp_path / "hermes"
+    db_path = _seed_subject_db(relic_home, "s1")
+    _seed_hermes_state(hermes_home)
+
+    delivered_at = datetime.now(timezone.utc) - timedelta(hours=25)
+    _append_event(relic_home, _delivered_event("s1", delivered_at=delivered_at))
+
+    # Both reconcilers have read the log by the time this runs; the barrier
+    # releases them together (or times out when the lock serialises them).
+    barrier = threading.Barrier(2, timeout=0.5)
+    real_has_reply = mod._has_subject_reply
+
+    def _sync_then_check(*args, **kwargs):
+        try:
+            barrier.wait()
+        except threading.BrokenBarrierError:
+            pass
+        return real_has_reply(*args, **kwargs)
+
+    monkeypatch.setattr(mod, "_has_subject_reply", _sync_then_check)
+
+    results: list[int] = []
+    threads = [
+        threading.Thread(
+            target=lambda: results.append(
+                mod.reconcile_due_outcomes("s1", relic_home=relic_home, hermes_home=hermes_home)
+            )
+        )
+        for _ in range(2)
+    ]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    assert sum(results) == 1
+
+    events = [
+        json.loads(l)
+        for l in (relic_home / "decision_events.jsonl").read_text().splitlines()
+        if l.strip()
+    ]
+    assert len([e for e in events if e.get("outcome_status") == "unanswered_24h"]) == 1
+
+    conn = sqlite3.connect(str(db_path))
+    try:
+        state = load_cadence_state(conn, "s1")
+    finally:
+        conn.close()
+    assert state.non_response_streak == 1
+
+
 def test_real_hermes_schema_with_reply_skips_transition(tmp_path):
     """Production Hermes state.db uses ``timestamp REAL``; the reconciler
     must read the right column or every reply is invisible to it."""
