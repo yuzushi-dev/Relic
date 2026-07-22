@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import fcntl
 import sqlite3
 from pathlib import Path
 
@@ -12,8 +13,15 @@ from relic.paths import get_db_path, get_relic_home
 def get_connection(db_path: Path | None = None) -> sqlite3.Connection:
     """Get a database connection."""
     path = db_path or get_db_path()
-    conn = sqlite3.connect(str(path))
+    conn = sqlite3.connect(str(path), timeout=30.0)
     conn.execute("PRAGMA foreign_keys = ON")
+    # Rollback-journal mode takes an exclusive lock and rewrites the journal file
+    # on every commit, so concurrent subject writers serialise on fsync and the
+    # stragglers time out. WAL lets readers run against a writer and makes the
+    # many small commits cheap. Silently stays in the previous mode on
+    # filesystems without shared memory (network mounts), which is why the
+    # busy timeout above still has to be generous.
+    conn.execute("PRAGMA journal_mode = WAL")
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -29,6 +37,28 @@ def get_cursor(db_path: Path | None = None):
         conn.close()
 
 
+@contextlib.contextmanager
+def _migration_lock(path: Path):
+    """Serialise migration runs against the same database file.
+
+    ``init_db`` reads ``schema_version`` into memory before applying anything, so
+    concurrent first-time callers all see "nothing applied" and each replays the
+    full migration set. Those replays are exclusive-lock DDL against one file, so
+    the redundant runs queue up and the last ones exhaust SQLite's busy timeout
+    with "database is locked". Holding the lock across both the read and the
+    writes lets one caller migrate while the rest wait and then find the work
+    already done.
+    """
+    lock_path = path.with_name(path.name + ".init.lock")
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(lock_path, "w") as fh:
+        fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+
+
 def init_db(db_path: Path | None = None) -> None:
     """Initialize the database with migrations.
 
@@ -37,8 +67,15 @@ def init_db(db_path: Path | None = None) -> None:
     """
     from relic.paths import iter_migrations
 
-    path = db_path or get_db_path()
+    # Callers annotated for Path routinely pass str; the lock needs real Path ops.
+    path = Path(db_path) if db_path else get_db_path()
     get_relic_home().mkdir(parents=True, exist_ok=True)
+
+    with _migration_lock(path):
+        _apply_migrations(path, iter_migrations())
+
+
+def _apply_migrations(path: Path, migrations) -> None:
     conn = get_connection(path)
 
     try:
@@ -51,7 +88,7 @@ def init_db(db_path: Path | None = None) -> None:
         except sqlite3.OperationalError:
             pass  # schema_version table doesn't exist yet
 
-        for migration in iter_migrations():
+        for migration in migrations:
             # Extract version from filename like "0001_initial.sql"
             version = migration.stem[:4]  # "0001" from "0001_initial.sql"
 
