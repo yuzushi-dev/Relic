@@ -1,6 +1,7 @@
 """Root markdown contract for publishable OSS repo."""
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -27,6 +28,25 @@ INTERNAL_DOC_PREFIXES = [
 ]
 
 
+def _published_root_markdown() -> set[str]:
+    """Root markdown the repo actually ships.
+
+    The contract is about what a reader of the public repo sees, so it has to
+    look at tracked files rather than the working tree: gitignored local notes
+    (CLAUDE.md and friends) never reach a clone and must not fail the check.
+    """
+    try:
+        listing = subprocess.run(
+            ["git", "-C", str(ROOT), "ls-files", "--", "*.md"],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
+    except (OSError, subprocess.CalledProcessError):
+        return {p.name for p in ROOT.glob("*.md")}
+    return {name for name in listing.split() if "/" not in name}
+
+
 def test_required_root_markdown_present() -> None:
     for name in ("README.md", "SECURITY.md"):
         p = ROOT / name
@@ -35,14 +55,13 @@ def test_required_root_markdown_present() -> None:
 
 
 def test_no_agentic_scaffolding_at_root() -> None:
-    for md in ROOT.glob("*.md"):
+    for name in _published_root_markdown():
         for prefix in INTERNAL_DOC_PREFIXES:
-            assert not md.name.startswith(prefix), (
-                f"agentic scaffolding doc found at root: {md.name}"
+            assert not name.startswith(prefix), (
+                f"agentic scaffolding doc found at root: {name}"
             )
 
 
 def test_no_unexpected_markdown_at_root() -> None:
-    actual = {p.name for p in ROOT.glob("*.md")}
-    unexpected = actual - ROOT_MARKDOWN_ALLOWED
+    unexpected = _published_root_markdown() - ROOT_MARKDOWN_ALLOWED
     assert not unexpected, f"unexpected markdown at root: {unexpected}"
