@@ -1,3 +1,5 @@
+
+
 <p align="center">
   <img src="https://readme-typing-svg.herokuapp.com?font=JetBrains+Mono&weight=800&size=42&duration=3000&pause=1000&color=3A86FF&center=true&vCenter=true&width=700&lines=RELIC" alt="Relic">
 </p>
@@ -108,7 +110,7 @@ Requirements: Python 3.10+, `pip`. Optional: Hermes for live delivery.
 ```bash
 git clone https://github.com/yuzushi-dev/Relic
 cd Relic
-pip install -e .
+pip install -e ".[dev]"
 relic init
 relic subject create
 ```
