@@ -33,6 +33,7 @@ import os
 import re
 import threading
 import urllib.request
+from urllib.parse import urlparse
 from collections import Counter
 from pathlib import Path
 
@@ -41,7 +42,19 @@ from pathlib import Path
 # direct cloud endpoint and rotate across several API keys to spread the load.
 #   export RELIC_OLLAMA_ENDPOINT=https://ollama.com/v1
 ENDPOINT = os.environ.get("RELIC_OLLAMA_ENDPOINT", "http://localhost:11434/v1")
-_IS_CLOUD = "ollama.com" in ENDPOINT
+
+
+def _is_ollama_cloud(endpoint: str) -> bool:
+    """True only when the endpoint host is ollama.com or one of its subdomains.
+
+    A substring test would also accept ``https://ollama.com.evil.net`` or a path
+    or query that merely mentions the name.
+    """
+    host = (urlparse(endpoint).hostname or "").lower()
+    return host == "ollama.com" or host.endswith(".ollama.com")
+
+
+_IS_CLOUD = _is_ollama_cloud(ENDPOINT)
 
 
 def _load_keys() -> list[str]:

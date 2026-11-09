@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import stat
 from io import StringIO
 from pathlib import Path
 import subprocess
@@ -174,6 +175,40 @@ def test_relic_setup_can_reference_ollama_api_key_env_for_hindsight(
     assert hindsight_config["llm_provider"] == "ollama"
     assert hindsight_config["llm_api_key_env"] == "OLLAMA_API_KEY"
     assert "llm_api_key" not in hindsight_config
+
+
+def test_hindsight_config_holding_an_api_key_is_owner_only(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr("relic.cli.shutil.which", lambda command: f"/usr/bin/{command}")
+    monkeypatch.setattr(
+        "subprocess.run", lambda cmd, **kw: subprocess.CompletedProcess(cmd, 0)
+    )
+    hermes_home = tmp_path / "hermes-home"
+    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("RELIC_TEST_LLM_KEY", "not-a-real-key")
+    config_path = hermes_home / "hindsight" / "config.json"
+    config_path.parent.mkdir(parents=True)
+    config_path.write_text("{}")
+    config_path.chmod(0o644)  # a pre-existing, world-readable file must be tightened
+    monkeypatch.setattr(
+        "sys.stdin",
+        StringIO(
+            "no\n"  # do not run ollama signin
+            "no\n"  # do not pull starter model
+            "yes\n"  # configure Hermes for Ollama
+            "yes\n"  # configure local Hindsight
+            "openai_compatible\n"  # non-Ollama provider: the key is read from the env
+            "RELIC_TEST_LLM_KEY\n"
+        ),
+    )
+
+    rc = main(["setup", "--with-runtime"])
+
+    assert rc == 0
+    assert json.loads(config_path.read_text())["llm_api_key"] == "not-a-real-key"
+    assert stat.S_IMODE(config_path.stat().st_mode) == 0o600
 
 
 def test_relic_subject_create_launches_bootstrap_tui(

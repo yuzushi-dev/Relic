@@ -3,7 +3,15 @@
 Pure/deterministic pieces only — these MUST NOT hit the network. They exercise
 the lexical voter, the tokenizer, the vote aggregator and the panel constants.
 """
-from relic.checkin.attribution_jury import tokens, lexical_best, aggregate, JUDGES
+import pytest
+
+from relic.checkin.attribution_jury import (
+    JUDGES,
+    _is_ollama_cloud,
+    aggregate,
+    lexical_best,
+    tokens,
+)
 
 
 def test_tokens_lowercases_and_splits():
@@ -39,3 +47,33 @@ def test_aggregate_flags_on_majority_reject():
 def test_judges_are_three_distinct_families():
     families = {m.split(":")[0].split("-")[0] for m, _ in JUDGES}
     assert {"gemma4", "gpt", "minimax"} <= families or len(JUDGES) == 3
+
+
+@pytest.mark.parametrize(
+    "endpoint",
+    [
+        "https://ollama.com/v1",
+        "https://OLLAMA.com/v1",
+        "https://api.ollama.com/v1",
+        "https://ollama.com:443/v1",
+    ],
+)
+def test_is_ollama_cloud_accepts_real_hosts(endpoint):
+    assert _is_ollama_cloud(endpoint) is True
+
+
+@pytest.mark.parametrize(
+    "endpoint",
+    [
+        "http://localhost:11434/v1",
+        "https://ollama.com.evil.net/v1",
+        "https://evilollama.com/v1",
+        "https://evil.net/?host=ollama.com",
+        "https://evil.net/ollama.com/v1",
+        "https://ollama.com@evil.net/v1",
+        "ollama.com",
+        "",
+    ],
+)
+def test_is_ollama_cloud_rejects_lookalikes(endpoint):
+    assert _is_ollama_cloud(endpoint) is False
