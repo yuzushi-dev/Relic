@@ -7,8 +7,6 @@ from pathlib import Path
 import pytest
 from jsonschema import Draft7Validator
 
-pytestmark = pytest.mark.slow
-
 from relic.bootstrap import (
     BootstrapCheckpointStore,
     build_pr28_bootstrap_outputs,

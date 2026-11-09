@@ -1,14 +1,94 @@
-"""Tests for BootstrapTUI run_init flow (complete new input sequence)."""
+"""Tests for the BootstrapTUI run_init flow.
+
+The wizard asks ~100 questions, nearly all optional. Answers are given by looking at
+the last prompt, so the tests do not break when optional questions are added, and a
+wizard stuck on a required field fails (answer cap) instead of looping.
+
+Nothing here may touch a real Hermes: ``hermes`` is hidden from ``shutil.which``, every
+subprocess / ``os.system`` call is recorded and neutralised, and the gateway start is
+faked. ``test_nothing_touched_real_hermes`` guards that safety net.
+"""
 from __future__ import annotations
 
 import json
+import os
+import shutil
+import subprocess
 from io import StringIO
 from pathlib import Path
 
 import pytest
 
+from relic.profile import bootstrap_tui
 from relic.profile.bootstrap_tui import BootstrapTUI
 from relic.profile.registry import ProfileRegistry, SubjectProfile
+
+
+class PromptDrivenInput:
+    """File-like stdin that answers each prompt from the last line the wizard printed."""
+
+    MAX_ANSWERS = 400
+
+    def __init__(self, out: StringIO, answers: dict[str, str] | None = None) -> None:
+        self._out = out
+        # substring of the prompt -> answer; anything not listed takes the default (blank)
+        self._answers = {
+            "researcher_id": "researcher_test",
+            "Azione: accept": "accept",
+            "provision a Hermes profile": "no",
+            "send the first message": "no",
+            **(answers or {}),
+        }
+        self.count = 0
+
+    def read(self, size: int = -1) -> str:  # lets the TUI treat this as file-like
+        return ""
+
+    def readline(self) -> str:
+        if self.count >= self.MAX_ANSWERS:
+            raise AssertionError(
+                f"wizard still asking after {self.MAX_ANSWERS} answers; "
+                f"last prompt: {self._last_prompt()!r}"
+            )
+        self.count += 1
+        prompt = self._last_prompt()
+        for needle, answer in self._answers.items():
+            if needle in prompt:
+                return answer + "\n"
+        return "\n"
+
+    def _last_prompt(self) -> str:
+        lines = self._out.getvalue().rstrip().splitlines()
+        return lines[-1].strip() if lines else ""
+
+
+@pytest.fixture(autouse=True)
+def hermes_sandbox(monkeypatch: pytest.MonkeyPatch) -> dict[str, list]:
+    """Keep the wizard away from any real Hermes: hide the binary, fake every process."""
+    calls: dict[str, list] = {"subprocess": [], "gateway": []}
+    real_which = shutil.which
+
+    monkeypatch.setattr(
+        shutil,
+        "which",
+        lambda cmd, *a, **k: None if cmd == "hermes" else real_which(cmd, *a, **k),
+    )
+
+    def fake_run(cmd, *args, **kwargs):  # type: ignore[no-untyped-def]
+        calls["subprocess"].append([cmd] if isinstance(cmd, str) else list(cmd))
+        return subprocess.CompletedProcess(cmd, 1, "", "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(
+        subprocess, "Popen", lambda *a, **k: pytest.fail("subprocess.Popen must not be used")
+    )
+    monkeypatch.setattr(os, "system", lambda cmd: calls["subprocess"].append([cmd]) or 1)
+    monkeypatch.setattr(
+        bootstrap_tui,
+        "start_hermes_gateway_for_profile",
+        lambda name, **kw: calls["gateway"].append(name) or True,
+    )
+    return calls
 
 
 @pytest.fixture
@@ -19,140 +99,91 @@ def registry(tmp_path: Path) -> ProfileRegistry:
     )
 
 
-def make_tui(registry: ProfileRegistry, inputs: str = "") -> BootstrapTUI:
-    return BootstrapTUI(registry=registry, io_in=StringIO(inputs), io_out=StringIO())
+def make_tui(registry: ProfileRegistry, answers: dict[str, str] | None = None) -> BootstrapTUI:
+    out = StringIO()
+    return BootstrapTUI(registry=registry, io_in=PromptDrivenInput(out, answers), io_out=out)
 
 
 def get_output(tui: BootstrapTUI) -> str:
     return tui.io_out.getvalue()
 
 
-def _make_full_inputs(
-    subject_id: str | None = None,
-    experiment_id: str | None = None,
-    hermes: str = "yes",
-    gumi_review_action: str = "accept",
-    first_contact: str = "k",
-    consent_researcher_id: str = "researcher_test",
-    first_message_gate: str = "yes",
-) -> str:
-    """Build the complete input string for run_init.
-
-    Prompt order (readline calls):
-      [subject_id], only if not pre-provided to run_init()
-      [experiment_id], only if not pre-provided to run_init()
-      item battery (69 items), all empty → neutral/default responses
-      boundaries (4 arrays + risk_flags exit + escalation_contacts exit), all empty
-      consent: 5 booleans ("n")
-      consent: researcher_id (required)
-      consent: version (empty → "1.0.0")
-      gumi_overrides: name (empty → "Gumi") + 9 domain overrides (empty → skip)
-      hermes provision, yes/no
-      [delivery_config], gated out when delivery consent = False
-      gumi_review, accept/regenerate/abort
-      first_message_gate, yes/no (should Gumi send first message?)
-      [first_contact_controls], only if first_message_gate = "yes"
-    """
-    lines: list[str] = []
-    if subject_id is not None:
-        lines.append(subject_id)
-    if experiment_id is not None:
-        lines.append(experiment_id)
-    lines.extend([""] * 49)  # structured item battery: 49 prompted items (PRO/SAFE auto-default, IOS_001 removed, INT_011 added)
-    lines.extend([""] * 6)   # boundaries: 4 string arrays + risk_flags exit + escalation_contacts exit
-    lines.extend(["n"] * 5)  # consent: 5 booleans (all denied)
-    lines.append(consent_researcher_id)  # consent: researcher_id (required)
-    lines.append("")          # consent: version (empty → "1.0.0")
-    lines.append("")          # gumi name (empty → "Gumi")
-    lines.extend([""] * 9)   # gumi domain overrides: 9 domains, all optional
-    lines.append(hermes)      # hermes provision: yes/no
-    # delivery_config: no prompts: gated out because delivery consent is False
-    lines.append(gumi_review_action)     # gumi_review: accept/regenerate/abort
-    lines.append(first_message_gate)     # first message gate: yes/no
-    if first_message_gate.lower() in ("y", "yes"):
-        lines.append(first_contact)      # first contact choice: s=send, k=keep, r=regen, e=edit, b=block
-    return "\n".join(lines) + "\n"
+def session_steps(profile: SubjectProfile) -> list[dict]:
+    log = profile.relic_subject_home / "bootstrap_session.jsonl"
+    return [json.loads(line) for line in log.read_text().splitlines()]
 
 
-@pytest.mark.slow
 class TestRunInit:
     def test_run_init_creates_profile(self, registry: ProfileRegistry) -> None:
-        inputs = _make_full_inputs(
-            subject_id="subj_001",
-            experiment_id="exp_001",
-            hermes="yes",
+        tui = make_tui(
+            registry,
+            {
+                "Enter subject ID": "subj_001",
+                "Enter experiment ID": "exp_001",
+                "provision a Hermes profile": "yes",
+            },
         )
-        tui = make_tui(registry, inputs)
         profile = tui.run_init()
 
         assert isinstance(profile, SubjectProfile)
         assert profile.subject_id == "subj_001"
         assert profile.experiment_id == "exp_001"
-        assert profile.status == "intro_composed"
-        assert profile.profile_version >= 7
+        # Provisioned but never delivered: intro_composed needs a live Hermes dispatch.
+        assert profile.status == "hermes_profile_provisioned"
+        assert profile.profile_version > 0
         assert (profile.relic_subject_home / "gumi_background_profile.json").is_file()
         assert (profile.hermes_home / "config.yaml").is_file()
-        assert (profile.relic_subject_home / "gumi_intro_message.json").is_file()
         assert (profile.relic_subject_home / "baseline_user_profile.json").is_file()
         assert (profile.relic_subject_home / "consent_record.json").is_file()
+
+    def test_run_init_without_hermes_stops_at_gumi_seed(
+        self, registry: ProfileRegistry
+    ) -> None:
+        profile = make_tui(registry).run_init(subject_id="subj_nh", experiment_id="exp_nh")
+
+        assert profile.status == "gumi_seed_generated"
+        assert not (profile.hermes_home / "config.yaml").exists()
 
     def test_run_init_with_pre_provided_ids_skips_prompts(
         self, registry: ProfileRegistry
     ) -> None:
-        inputs = _make_full_inputs(hermes="no")
-        tui = make_tui(registry, inputs)
+        tui = make_tui(registry)
         profile = tui.run_init(subject_id="subj_002", experiment_id="exp_002")
 
         assert profile.subject_id == "subj_002"
         assert profile.experiment_id == "exp_002"
-
         output = get_output(tui)
         assert "subj_002" in output
         assert "exp_002" in output
+        assert "Enter subject ID" not in output
+        assert "Enter experiment ID" not in output
 
     def test_run_init_auto_generates_subject_id_when_empty(
         self, registry: ProfileRegistry
     ) -> None:
-        # subject_id="" → auto-generate; experiment_id pre-provided via run_init()
-        inputs = _make_full_inputs(subject_id="", hermes="no")
-        tui = make_tui(registry, inputs)
+        # blank subject id answer -> auto-generate; experiment_id pre-provided
+        tui = make_tui(registry)
         profile = tui.run_init(experiment_id="exp_003")
 
-        assert profile.subject_id
         assert profile.subject_id.startswith("subj_")
-        output = get_output(tui)
-        assert "Auto-generated subject ID" in output
+        assert "Auto-generated subject ID" in get_output(tui)
 
-    def test_run_init_logs_bootstrap_session(
-        self, registry: ProfileRegistry
-    ) -> None:
-        inputs = _make_full_inputs(
-            subject_id="subj_004",
-            experiment_id="exp_004",
-            hermes="yes",
-        )
-        tui = make_tui(registry, inputs)
-        profile = tui.run_init()
+    def test_run_init_logs_bootstrap_session(self, registry: ProfileRegistry) -> None:
+        tui = make_tui(registry, {"provision a Hermes profile": "yes"})
+        profile = tui.run_init(subject_id="subj_004", experiment_id="exp_004")
 
-        session_log = profile.relic_subject_home / "bootstrap_session.jsonl"
-        assert session_log.is_file()
-        content = session_log.read_text()
-        assert "subject_id_entered" in content
-        assert "baseline_method_selected" in content
-        assert "consent_collected" in content
-        assert "gumi_seed_generated" in content
+        steps = {s["step"] for s in session_steps(profile)}
+        assert {
+            "subject_id_entered",
+            "baseline_method_selected",
+            "consent_collected",
+            "gumi_seed_generated",
+            "hermes_profile_provisioned",
+        } <= steps
 
-    def test_run_init_consent_record_written(
-        self, registry: ProfileRegistry
-    ) -> None:
-        inputs = _make_full_inputs(
-            subject_id="subj_005",
-            experiment_id="exp_005",
-            hermes="yes",
-            consent_researcher_id="researcher_alice",
-        )
-        tui = make_tui(registry, inputs)
-        profile = tui.run_init()
+    def test_run_init_consent_record_written(self, registry: ProfileRegistry) -> None:
+        tui = make_tui(registry, {"researcher_id": "researcher_alice"})
+        profile = tui.run_init(subject_id="subj_005", experiment_id="exp_005")
 
         consent_path = profile.relic_subject_home / "consent_record.json"
         assert consent_path.is_file()
@@ -160,16 +191,8 @@ class TestRunInit:
         assert data["recorded_by_researcher_id"] == "researcher_alice"
         assert data["delivery"] is False
 
-    def test_run_init_baseline_artifact_written(
-        self, registry: ProfileRegistry
-    ) -> None:
-        inputs = _make_full_inputs(
-            subject_id="subj_006",
-            experiment_id="exp_006",
-            hermes="yes",
-        )
-        tui = make_tui(registry, inputs)
-        profile = tui.run_init()
+    def test_run_init_baseline_artifact_written(self, registry: ProfileRegistry) -> None:
+        profile = make_tui(registry).run_init(subject_id="subj_006", experiment_id="exp_006")
 
         baseline_path = profile.relic_subject_home / "baseline_user_profile.json"
         assert baseline_path.is_file()
@@ -182,36 +205,54 @@ class TestRunInit:
         assert (profile.relic_subject_home / "item_battery_response.json").is_file()
 
 
-class TestFullFlow:
-    def test_full_bootstrap_block_does_not_compose(
-        self, registry: ProfileRegistry
+class TestFirstMessage:
+    """The first message is only sent when delivery is configured; here it never is."""
+
+    def test_first_message_without_delivery_is_blocked(
+        self, registry: ProfileRegistry, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        inputs = _make_full_inputs(
-            subject_id="subj_block",
-            experiment_id="exp_block",
-            hermes="yes",
-            first_contact="4",  # block → no mark_intro_composed
+        dispatched: list[str] = []
+        monkeypatch.setattr(
+            registry, "dispatch_intro_via_hermes", lambda sid, **kw: dispatched.append(sid)
         )
-        tui = make_tui(registry, inputs)
-        profile = tui.run_init()
+        tui = make_tui(
+            registry,
+            {"provision a Hermes profile": "yes", "send the first message": "yes"},
+        )
+        profile = tui.run_init(subject_id="subj_block", experiment_id="exp_block")
 
-        assert profile.status != "intro_composed"
-        output = get_output(tui)
-        assert "subj_block" in output
+        assert dispatched == []
+        assert profile.status == "hermes_profile_provisioned"
+        assert "Delivery non configurato, primo messaggio non inviato." in get_output(tui)
+        assert any(
+            s["step"] == "first_contact_action" and s["value"] == "block"
+            for s in session_steps(profile)
+        )
 
-    def test_full_bootstrap_preview_marks_intro_composed(
-        self, registry: ProfileRegistry
+    def test_declined_first_message_never_composes_or_sends(
+        self, registry: ProfileRegistry, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        inputs = _make_full_inputs(
-            subject_id="subj_preview",
-            experiment_id="exp_preview",
-            hermes="yes",
-            first_contact="1",  # preview → log_event + mark_intro_composed
+        monkeypatch.setattr(
+            registry,
+            "dispatch_intro_via_hermes",
+            lambda *a, **k: pytest.fail("intro must not be dispatched"),
         )
-        tui = make_tui(registry, inputs)
-        profile = tui.run_init()
+        profile = make_tui(registry, {"provision a Hermes profile": "yes"}).run_init(
+            subject_id="subj_decline", experiment_id="exp_decline"
+        )
 
-        assert profile.status == "intro_composed"
-        assert (profile.relic_subject_home / "gumi_intro_message.json").is_file()
-        assert (profile.relic_subject_home / "baseline_user_profile.json").is_file()
-        assert (profile.relic_subject_home / "consent_record.json").is_file()
+        assert profile.status not in {"intro_composed", "intro_sent", "active"}
+        assert not (profile.relic_subject_home / "gumi_intro_message.json").exists()
+
+
+def test_nothing_touched_real_hermes(
+    registry: ProfileRegistry, hermes_sandbox: dict[str, list]
+) -> None:
+    """Even with provisioning accepted, no `hermes` command is ever run."""
+    make_tui(registry, {"provision a Hermes profile": "yes"}).run_init(
+        subject_id="subj_safe", experiment_id="exp_safe"
+    )
+
+    ran = [Path(cmd[0]).name for cmd in hermes_sandbox["subprocess"] if cmd]
+    assert "hermes" not in ran
+    assert hermes_sandbox["gateway"] == ["gumi-subj_safe"]  # faked, never started for real

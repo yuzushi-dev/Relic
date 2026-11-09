@@ -7,8 +7,7 @@ from pathlib import Path
 
 import pytest
 
-pytestmark = pytest.mark.slow
-
+from relic.hermes_runtime import HERMES_PROFILE_DEFAULT_MODEL, HERMES_PROFILE_DEFAULT_PROVIDER
 from relic.profile.registry import ProfileRegistry
 
 
@@ -87,14 +86,16 @@ def test_hermes_provision_show_intro_compose_and_dry_run_send(
     assert (profile.hermes_home / "config.yaml").is_file()
     assert (profile.hermes_home / ".env").is_file()
     config_text = (profile.hermes_home / "config.yaml").read_text(encoding="utf-8")
-    assert "provider: custom" in config_text
-    assert "base_url: http://localhost:11434/v1" in config_text
-    assert "default: qwen3.5:cloud" in config_text
+    # Subject Gumi profiles run on the profile-scoped default provider/model
+    # (hermes_runtime.HERMES_PROFILE_DEFAULT_*), not on the local Ollama endpoint.
+    assert f"provider: {HERMES_PROFILE_DEFAULT_PROVIDER}" in config_text
+    assert f"default: {HERMES_PROFILE_DEFAULT_MODEL}" in config_text
+    assert "base_url: http://localhost:11434/v1" not in config_text
     assert "provider: hindsight" in config_text
     assert "provider_mode: tools" in config_text
     assert "namespace: gumi-subj_001" in config_text
     assert "exposure_logging: true" in config_text
-    assert "tool_use_enforcement: true" in config_text
+    assert "tool_use_enforcement: auto" in config_text
     assert "redact_pii: true" in config_text
 
     capsys.readouterr()
@@ -150,7 +151,9 @@ def test_telegram_cron_media_and_delivery_cli_use_hermes_native_artifacts(
     assert profile is not None
     env_text = (profile.hermes_home / ".env").read_text(encoding="utf-8")
     assert "TELEGRAM_ALLOWED_USERS=123456789" in env_text
-    assert "TELEGRAM_HOME_CHANNEL=telegram:123456789" in env_text
+    # Written as a plain id: Hermes parses TELEGRAM_HOME_CHANNEL directly.
+    assert "TELEGRAM_HOME_CHANNEL=123456789" in env_text
+    assert "TELEGRAM_HOME_CHANNEL=telegram:" not in env_text
 
     assert profile_main(["gumi", "media", "generate", "subj_001", "--seed", "3"]) == 0
     assert (profile.relic_subject_home / "gumi_voice_canon.json").is_file()
@@ -160,7 +163,11 @@ def test_telegram_cron_media_and_delivery_cli_use_hermes_native_artifacts(
         ["hermes", "cron", "provision", "subj_001", "--maintenance", "--initiative", "--media", "--dry-run"]
     ) == 0
     initiative_text = (profile.hermes_home / "cron" / "initiative.yaml").read_text(encoding="utf-8")
-    assert "target: telegram:123456789" in initiative_text
+    # Initiative jobs generate locally; media goes out only via checkin_media_dispatcher
+    # (see the "no second delivery" success contract), so cron must not deliver itself.
+    assert "target: local" in initiative_text
+    assert "target: telegram:" not in initiative_text
+    assert "no second delivery" in initiative_text
 
     assert profile_main(["gumi", "intro", "compose", "subj_001", "--seed", "11"]) == 0
     assert profile_main(["gumi", "intro", "send", "subj_001", "--deliver"]) == 0

@@ -7,8 +7,7 @@ from pathlib import Path
 
 import pytest
 
-pytestmark = pytest.mark.slow
-
+from relic.hermes_runtime import HERMES_CODING_BASE_URL, HERMES_PROFILE_DEFAULT_MODEL
 from relic.profile.registry import ProfileRegistry
 
 
@@ -61,7 +60,9 @@ def test_configure_telegram_delivery_writes_private_env_and_redacted_policy(
     env_text = (profile.hermes_home / ".env").read_text(encoding="utf-8")
     assert "TELEGRAM_BOT_TOKEN=123456:telegram-token-test" in env_text
     assert "TELEGRAM_ALLOWED_USERS=123456789" in env_text
-    assert "TELEGRAM_HOME_CHANNEL=telegram:123456789" in env_text
+    # Written as a plain id: Hermes parses TELEGRAM_HOME_CHANNEL directly.
+    assert "TELEGRAM_HOME_CHANNEL=123456789" in env_text
+    assert "TELEGRAM_HOME_CHANNEL=telegram:" not in env_text
     assert "GUMI_TELEGRAM_BOT_TOKEN_ENV=GUMI_SUBJ_001_TELEGRAM_BOT_TOKEN" in env_text
     assert "GUMI_DELIVERY_CHANNEL=telegram" in env_text
 
@@ -197,9 +198,13 @@ def test_provision_subject_cron_specs_creates_family_specs(
     assert manifest["families"] == ["maintenance", "initiative", "media"]
     assert manifest["hermes_native"] is True
     assert manifest["install_strategy"] == "hermes cron create"
-    assert any("--deliver \"telegram:123456789\"" in command for command in manifest["install_commands"])
+    # Cron jobs never deliver to Telegram themselves: delivery is dispatched once by
+    # checkin_media_dispatcher, so no install command may carry a telegram target.
+    assert manifest["install_commands"]
+    assert not any("telegram:" in command for command in manifest["install_commands"])
     initiative_text = paths["initiative"].read_text(encoding="utf-8")
-    assert "target: telegram:123456789" in initiative_text
+    assert "target: local" in initiative_text
+    assert "target: telegram:" not in initiative_text
     assert "send_message" not in initiative_text
 
 
@@ -278,12 +283,12 @@ def test_each_subject_profile_uses_private_hindsight_memory_provider(
     second_hindsight = json.loads((second.hermes_home / "hindsight" / "config.json").read_text())
     assert first_hindsight["mode"] == "local"
     assert second_hindsight["mode"] == "local"
-    assert first_hindsight["llm_provider"] == "ollama"
-    assert second_hindsight["llm_provider"] == "ollama"
-    assert first_hindsight["base_url"] == "http://localhost:11434/v1"
-    assert second_hindsight["base_url"] == "http://localhost:11434/v1"
-    assert first_hindsight["model"] == "qwen3.5:cloud"
-    assert second_hindsight["model"] == "qwen3.5:cloud"
+    # Subject profiles use the OpenAI-compatible coding endpoint (not local Ollama).
+    for hindsight in (first_hindsight, second_hindsight):
+        assert hindsight["llm_provider"] == "openai_compatible"
+        assert hindsight["llm_base_url"] == HERMES_CODING_BASE_URL
+        assert hindsight["llm_model"] == HERMES_PROFILE_DEFAULT_MODEL
+        assert "base_url" not in hindsight
     assert "llm_api_key_env" not in first_hindsight
     assert "llm_api_key_env" not in second_hindsight
     assert first_hindsight["bank_id"] == "gumi-subj_001"
