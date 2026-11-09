@@ -469,7 +469,12 @@ def subject_main(argv: list[str] | None = None) -> int:
 
         registry = ProfileRegistry()
         tui = BootstrapTUI(registry=registry)
-        tui.run_init(subject_id=args.subject_id, experiment_id=args.experiment_id)
+        try:
+            tui.run_init(subject_id=args.subject_id, experiment_id=args.experiment_id)
+        except EOFError as exc:
+            print(f"\nAborted: {exc}.", file=sys.stderr)
+            print("Run `relic subject create` from an interactive terminal.", file=sys.stderr)
+            return 1
         print("\nNext steps:")
         print("  - Use `relic profile list` to see subjects.")
         print("  - Use `relic profile hermes configure-telegram ...` when you are ready for live Gumi.")

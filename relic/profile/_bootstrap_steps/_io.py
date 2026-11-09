@@ -4,6 +4,22 @@ from __future__ import annotations
 from typing import TextIO
 
 
+def readline_or_none(io_in: TextIO) -> str | None:
+    """Read one line; ``None`` means the input is closed (EOF), ``"\\n"`` a blank answer."""
+    try:
+        raw = io_in.readline()
+    except (EOFError, OSError):
+        return None
+    return raw if raw else None
+
+
+def require_open_input(raw: str | None, field: str) -> str:
+    """Return the line, or raise ``EOFError`` so a required prompt cannot loop forever."""
+    if raw is None:
+        raise EOFError(f"input closed while waiting for required field: {field}")
+    return raw
+
+
 def prompt_optional(
     label: str,
     description: str,
@@ -15,17 +31,16 @@ def prompt_optional(
     print(f"\n  {description}", file=io_out)
     hint = f"Enter for {default}" if default is not None else "Enter to skip"
     print(f"  {label} ({hint}): ", end="", flush=True, file=io_out)
-    try:
-        raw = io_in.readline()
-    except (EOFError, OSError):
-        raw = ""
-    value = raw.strip() if raw else ""
+    raw = readline_or_none(io_in) or ""
+    value = raw.strip()
     return value or default or None
 
 
 def prompt_required(label: str, description: str, io_in: TextIO, io_out: TextIO) -> str:
     while True:
-        value = prompt_optional(label, description, io_in, io_out)
+        print(f"\n  {description}", file=io_out)
+        print(f"  {label} (required): ", end="", flush=True, file=io_out)
+        value = require_open_input(readline_or_none(io_in), label).strip()
         if value:
             return value
         print("  Required field.", file=io_out)

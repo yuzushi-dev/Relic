@@ -60,6 +60,7 @@ class BootstrapTUI:
         self.io_out = io_out or sys.stdout
         self._session_log_path: Optional[Path] = None
         self._edit_log_path: Optional[Path] = None
+        self._last_read_eof = False
 
     def _log_step(self, step: str, value: str) -> None:
         if self._session_log_path is not None:
@@ -83,21 +84,29 @@ class BootstrapTUI:
             prompt_text = f"{question} [{default}]"
         print(prompt_text, file=self.io_out)
 
+        self._last_read_eof = False
         if hasattr(self.io_in, "read"):
             try:
                 raw = self.io_in.readline()
-                if raw is None:
+                if not raw:
                     raw = ""
+                    self._last_read_eof = True
             except (EOFError, OSError):
                 raw = ""
+                self._last_read_eof = True
         else:
             try:
                 raw = input()
             except (EOFError, KeyboardInterrupt):
                 raw = ""
+                self._last_read_eof = True
 
         raw = raw.strip()
         return raw if raw else (default if default is not None else "")
+
+    def _input_closed(self) -> bool:
+        """True when the last read hit EOF (a blank answer is "\\n", not "")."""
+        return self._last_read_eof
 
     def _confirm(self, question: str) -> bool:
         """Print a yes/no question and return the boolean answer."""
@@ -151,6 +160,8 @@ class BootstrapTUI:
         if experiment_id is None:
             experiment_id = self._prompt("Enter experiment ID")
             while not experiment_id:
+                if self._input_closed():
+                    raise EOFError("input closed while waiting for required field: experiment_id")
                 self._print("Experiment ID is required.")
                 experiment_id = self._prompt("Enter experiment ID")
         else:

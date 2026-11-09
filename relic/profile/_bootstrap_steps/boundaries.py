@@ -268,7 +268,10 @@ def _collect_severity(io_in: TextIO, io_out: TextIO) -> str:
         )
         io_out.flush()
 
-        severity = io_in.readline().strip().lower()
+        raw = io_in.readline()
+        if not raw:  # EOF: a blank answer is "\n", so this can never be satisfied
+            raise EOFError("input closed while waiting for required field: severity")
+        severity = raw.strip().lower()
 
         if severity in valid_severities:
             return severity

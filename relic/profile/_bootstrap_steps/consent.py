@@ -4,6 +4,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import TextIO
 
+from relic.profile._bootstrap_steps._io import readline_or_none, require_open_input
+
 CONSENT_SCHEMA_VERSION = "1.0.0"
 
 
@@ -26,8 +28,7 @@ def _ask_researcher_id(io_in: TextIO, io_out: TextIO) -> str:
     while True:
         print("\n  Researcher ID collecting consent.", file=io_out)
         print("  researcher_id: ", end="", flush=True, file=io_out)
-        raw = io_in.readline()
-        value = raw.strip() if raw else ""
+        value = require_open_input(readline_or_none(io_in), "researcher_id").strip()
         if value:
             return value
         print("  Required field.", file=io_out)
