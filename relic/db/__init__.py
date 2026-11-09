@@ -4,10 +4,14 @@ from __future__ import annotations
 
 import contextlib
 import fcntl
+import logging
+import re
 import sqlite3
 from pathlib import Path
 
 from relic.paths import get_db_path, get_relic_home
+
+logger = logging.getLogger(__name__)
 
 
 def get_connection(db_path: Path | None = None) -> sqlite3.Connection:
@@ -75,6 +79,106 @@ def init_db(db_path: Path | None = None) -> None:
         _apply_migrations(path, iter_migrations())
 
 
+_IDENT = r'"[^"]+"|`[^`]+`|\[[^\]]+\]|\w+'
+_LEADING_NOISE_RE = re.compile(r"\A(?:\s+|--[^\n]*(?:\n|\Z)|/\*.*?\*/)*", re.DOTALL)
+_COMMENT_RE = re.compile(r"--[^\n]*|/\*.*?\*/", re.DOTALL)
+_ADD_COLUMN_RE = re.compile(
+    rf"ALTER\s+TABLE\s+(?:(?:{_IDENT})\s*\.\s*)?({_IDENT})\s+ADD\s+(?:COLUMN\s+)?({_IDENT})",
+    re.IGNORECASE,
+)
+
+
+def _split_statements(sql: str) -> list[str]:
+    """Split a migration script into single statements.
+
+    Uses SQLite's own tokenizer (``complete_statement``) on each ``;`` candidate,
+    so semicolons inside strings, quoted identifiers, comments and trigger bodies
+    do not end a statement, and several statements on one line are still split.
+    """
+    statements: list[str] = []
+    start = 0
+    pos = 0
+    while (idx := sql.find(";", pos)) != -1:
+        if sqlite3.complete_statement(sql[start : idx + 1]):
+            statements.append(sql[start : idx + 1])
+            start = idx + 1
+        pos = idx + 1
+    tail = sql[start:]
+    if _COMMENT_RE.sub("", tail).strip():
+        statements.append(tail)
+    return statements
+
+
+def _unquote(ident: str) -> str:
+    if len(ident) >= 2 and (ident[0], ident[-1]) in {('"', '"'), ("`", "`"), ("[", "]")}:
+        return ident[1:-1]
+    return ident
+
+
+def _add_column_target(statement: str) -> tuple[str, str] | None:
+    """Return ``(table, column)`` when the statement is ``ALTER TABLE .. ADD COLUMN``."""
+    body = statement[_LEADING_NOISE_RE.match(statement).end() :]
+    match = _ADD_COLUMN_RE.match(body)
+    if match is None:
+        return None
+    return _unquote(match.group(1)), _unquote(match.group(2))
+
+
+def _table_exists(conn: sqlite3.Connection, table: str) -> bool:
+    row = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND lower(name) = lower(?)",
+        (table,),
+    ).fetchone()
+    return row is not None
+
+
+def _column_exists(conn: sqlite3.Connection, table: str, column: str) -> bool:
+    row = conn.execute(
+        "SELECT 1 FROM pragma_table_info(?) WHERE lower(name) = lower(?)",
+        (table, column),
+    ).fetchone()
+    return row is not None
+
+
+def _has_missing_columns(conn: sqlite3.Connection, statements: list[str]) -> list[tuple[str, str]]:
+    """Columns that a migration adds, whose table exists but which are absent."""
+    missing = []
+    for statement in statements:
+        target = _add_column_target(statement)
+        if target and _table_exists(conn, target[0]) and not _column_exists(conn, *target):
+            missing.append(target)
+    return missing
+
+
+def _run_migration(conn: sqlite3.Connection, version: str, statements: list[str]) -> None:
+    """Apply one migration file atomically.
+
+    ``ALTER TABLE .. ADD COLUMN`` statements whose column already exists are
+    skipped one by one, so a partially applied file is completed instead of being
+    recorded as done. Everything runs in a single transaction and the version is
+    recorded last: a failure rolls the whole file back and leaves it unrecorded.
+    """
+    assert not conn.in_transaction
+    conn.isolation_level = None  # explicit BEGIN/COMMIT; executescript would auto-commit
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        for statement in statements:
+            target = _add_column_target(statement)
+            if target and _column_exists(conn, *target):
+                continue
+            conn.execute(statement)
+        conn.execute(
+            "INSERT OR REPLACE INTO schema_version (version, applied_at) "
+            "VALUES (?, CURRENT_TIMESTAMP)",
+            (version,),
+        )
+        conn.execute("COMMIT")
+    except BaseException:
+        if conn.in_transaction:
+            conn.execute("ROLLBACK")
+        raise
+
+
 def _apply_migrations(path: Path, migrations) -> None:
     conn = get_connection(path)
 
@@ -88,31 +192,28 @@ def _apply_migrations(path: Path, migrations) -> None:
         except sqlite3.OperationalError:
             pass  # schema_version table doesn't exist yet
 
-        for migration in migrations:
-            # Extract version from filename like "0001_initial.sql"
-            version = migration.stem[:4]  # "0001" from "0001_initial.sql"
+        # Extract version from filename like "0001_initial.sql" -> "0001"
+        parsed = {m.stem[:4]: _split_statements(m.read_text()) for m in migrations}
 
-            if version in applied:
+        # Databases hit by an earlier runner may record a version whose
+        # ADD COLUMN statements never all ran. Re-run those files: the runner is
+        # idempotent, so only the missing columns are added.
+        # Invariant: migrations only ever add columns, never drop or rename them.
+        for version, statements in parsed.items():
+            if version not in applied:
                 continue
-
-            sql = migration.read_text()
-            try:
-                conn.executescript(sql)
-            except sqlite3.OperationalError as exc:
-                if "duplicate column name" not in str(exc).lower():
-                    raise
-                # Older local DBs may have received ALTER-only migrations before
-                # schema_version was recorded. Continue when the only conflict is
-                # an already-present column; subsequent CREATE/INSERT statements
-                # in the migration are idempotent and safe to skip/re-run later.
-                conn.rollback()
-                conn.execute(
-                    "INSERT OR REPLACE INTO schema_version (version, applied_at) "
-                    "VALUES (?, CURRENT_TIMESTAMP)",
-                    (version,),
+            missing = _has_missing_columns(conn, statements)
+            if missing:
+                logger.warning(
+                    "migration %s is recorded but columns are missing %s; re-applying",
+                    version,
+                    missing,
                 )
+                applied.discard(version)
 
-        conn.commit()
+        for version, statements in parsed.items():
+            if version not in applied:
+                _run_migration(conn, version, statements)
     finally:
         conn.close()
 

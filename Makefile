@@ -83,7 +83,7 @@ test-full:
 	$(MAKE) test-full-skills
 
 test-full-root:
-	PYTHONPATH=. $(PYTEST) tests/test_cli_setup.py tests/test_config.py tests/test_db_schema.py tests/test_makefile_targets.py tests/test_smoke.py -q --tb=short
+	PYTHONPATH=. $(PYTEST) tests/test_cli_setup.py tests/test_config.py tests/test_db_migrations.py tests/test_db_schema.py tests/test_makefile_targets.py tests/test_smoke.py -q --tb=short
 
 test-full-docs:
 	PYTHONPATH=. $(PYTEST) tests/docs/ -q --tb=short

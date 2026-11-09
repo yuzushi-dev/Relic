@@ -1,10 +1,10 @@
 -- Check-in naturalness: cadence state, feature snapshots, posture/latency columns.
--- Uses PRAGMA-based column checking to make ALTER TABLE idempotent.
+-- ALTER TABLE ... ADD COLUMN is made idempotent by the migration runner.
 
--- Add posture column (idempotent via PRAGMA check)
+-- Add posture column (made idempotent by the runner in relic/db/__init__.py, which skips existing columns)
 ALTER TABLE checkin_exchanges ADD COLUMN posture TEXT;
 
--- Add response_latency_seconds column (idempotent via PRAGMA check)
+-- Add response_latency_seconds column (same: skipped by the runner if it already exists)
 ALTER TABLE checkin_exchanges ADD COLUMN response_latency_seconds INTEGER;
 
 -- Feature snapshots for naturalness tracking
