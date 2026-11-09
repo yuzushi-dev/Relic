@@ -7,6 +7,19 @@
 </p>
 
 <p align="center">
+  <strong>Paper</strong> ·
+  <a href="https://arxiv.org/abs/2611.08504"><em>Relic and Gumi: Governing Memory, Safety, and Continuity in Diegetic Relational Agents</em></a><br>
+  Daniele Veri' · arXiv:2611.08504 [cs.HC] ·
+  <a href="https://arxiv.org/abs/2611.08504">Abstract</a> ·
+  <a href="https://arxiv.org/pdf/2611.08504">PDF</a> ·
+  <a href="https://doi.org/10.48550/arXiv.2611.08504">DOI</a>
+</p>
+
+<p align="center">
+  <sub>Exploratory two-participant pilot; no claims about clinical efficacy, diagnosis, therapeutic outcomes, general usability or deployment safety.</sub>
+</p>
+
+<p align="center">
 > <a href="https://yuzushi-dev.github.io/Relic/">Live Demo</a> <
 </p>
 
