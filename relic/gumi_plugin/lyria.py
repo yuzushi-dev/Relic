@@ -130,9 +130,10 @@ class LyriaGenerator:
             f"Return ONLY the Lyria prompt text, no explanations."
         )
 
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={self.api_key}"
+        url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
         resp = requests.post(
             url,
+            headers={"x-goog-api-key": self.api_key},
             json={"contents": [{"parts": [{"text": meta_prompt}]}]},
             timeout=20,
         )
@@ -194,7 +195,7 @@ class LyriaGenerator:
         import base64
         import requests
 
-        url = f"{LYRIA_API_BASE}/models/{model}:generateContent?key={self.api_key}"
+        url = f"{LYRIA_API_BASE}/models/{model}:generateContent"
         payload = {
             "contents": [{"parts": [{"text": prompt}]}],
             "generationConfig": {
@@ -202,7 +203,9 @@ class LyriaGenerator:
             },
         }
 
-        resp = requests.post(url, json=payload, timeout=120)
+        resp = requests.post(
+            url, headers={"x-goog-api-key": self.api_key}, json=payload, timeout=120
+        )
         if resp.status_code != 200:
             raise RuntimeError(f"Lyria API error {resp.status_code}: {resp.text[:300]}")
 
@@ -236,10 +239,10 @@ class LyriaGenerator:
 def verify_lyria_models(api_key: str) -> dict[str, bool]:
     """Verify which Lyria models are available."""
     import requests
-    url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
-    
+    url = "https://generativelanguage.googleapis.com/v1beta/models"
+
     try:
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, headers={"x-goog-api-key": api_key}, timeout=10)
         if response.status_code != 200:
             return {LYRIA_MODEL_PRIMARY: False}
 

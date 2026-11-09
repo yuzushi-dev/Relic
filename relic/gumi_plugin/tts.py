@@ -104,7 +104,7 @@ def synthesize(
     """Synthesize text to speech via Gemini TTS, convert to OGG/Opus."""
     import requests
 
-    url = f"{TTS_API_BASE}/{model}:generateContent?key={api_key}"
+    url = f"{TTS_API_BASE}/{model}:generateContent"
     payload = {
         "contents": [{"parts": [{"text": text}]}],
         "generationConfig": {
@@ -117,7 +117,9 @@ def synthesize(
         },
     }
 
-    response = requests.post(url, json=payload, timeout=60)
+    response = requests.post(
+        url, headers={"x-goog-api-key": api_key}, json=payload, timeout=60
+    )
     if response.status_code != 200:
         raise RuntimeError(f"TTS synthesis failed: {response.status_code} {response.text[:200]}")
 

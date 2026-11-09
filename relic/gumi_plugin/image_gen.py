@@ -103,10 +103,11 @@ def generate_image_prompt_via_llm(
         f"Return ONLY the image prompt, no explanations."
     )
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
     try:
         resp = requests.post(
             url,
+            headers={"x-goog-api-key": api_key},
             json={"contents": [{"parts": [{"text": meta_prompt}]}]},
             timeout=15,
         )
@@ -181,10 +182,12 @@ def generate_image(
     """Generate image via Gemini API, save to output_path."""
     contents = build_api_contents(prompt, reference_images)
 
-    url = f"{IMAGE_API_BASE}/{model}:generateContent?key={api_key}"
+    url = f"{IMAGE_API_BASE}/{model}:generateContent"
     payload = {"contents": contents, "generation_config": {"response_modalities": ["IMAGE"]}}
 
-    response = requests.post(url, json=payload, timeout=timeout)
+    response = requests.post(
+        url, headers={"x-goog-api-key": api_key}, json=payload, timeout=timeout
+    )
     if response.status_code != 200:
         raise RuntimeError(f"Image generation failed: {response.status_code} {response.text[:200]}")
 

@@ -7,10 +7,10 @@ import requests
 
 def verify_lyria_models(api_key: str) -> dict[str, bool]:
     """Check which Lyria models are available."""
-    url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
+    url = "https://generativelanguage.googleapis.com/v1beta/models"
 
     try:
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, headers={"x-goog-api-key": api_key}, timeout=10)
         if response.status_code != 200:
             print(f"Error: API returned {response.status_code}")
             return {}
