@@ -194,10 +194,12 @@ def _configure_hindsight_local(available: bool, model: str) -> None:
         llm_api_key_env=api_key_env or None,
     )
     # The file may hold an API key: create it owner-only, and tighten an existing one.
+    # fchmod before writing: the mode passed to os.open is ignored for an existing file.
     fd = os.open(config_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     with os.fdopen(fd, "w", encoding="utf-8") as fh:
+        if hasattr(os, "fchmod"):
+            os.fchmod(fh.fileno(), 0o600)
         fh.write(json.dumps(config, indent=2) + "\n")
-    os.chmod(config_path, 0o600)
     subprocess.run(["hermes", "config", "set", "memory.provider", "hindsight"], check=True)
     subprocess.run(["hermes", "memory", "status"], check=False)
 
