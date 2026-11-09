@@ -150,13 +150,19 @@ def _has_missing_columns(conn: sqlite3.Connection, statements: list[str]) -> lis
     return missing
 
 
-def _run_migration(conn: sqlite3.Connection, version: str, statements: list[str]) -> None:
+def _run_migration(
+    conn: sqlite3.Connection,
+    version: str,
+    statements: list[str],
+    applied_at: str | None = None,
+) -> None:
     """Apply one migration file atomically.
 
     ``ALTER TABLE .. ADD COLUMN`` statements whose column already exists are
     skipped one by one, so a partially applied file is completed instead of being
     recorded as done. Everything runs in a single transaction and the version is
     recorded last: a failure rolls the whole file back and leaves it unrecorded.
+    ``applied_at`` keeps the original timestamp when a recorded version is re-applied.
     """
     assert not conn.in_transaction
     conn.isolation_level = None  # explicit BEGIN/COMMIT; executescript would auto-commit
@@ -172,6 +178,11 @@ def _run_migration(conn: sqlite3.Connection, version: str, statements: list[str]
             "VALUES (?, CURRENT_TIMESTAMP)",
             (version,),
         )
+        if applied_at is not None:
+            conn.execute(
+                "UPDATE schema_version SET applied_at = ? WHERE version = ?",
+                (applied_at, version),
+            )
         conn.execute("COMMIT")
     except BaseException:
         if conn.in_transaction:
@@ -184,11 +195,11 @@ def _apply_migrations(path: Path, migrations) -> None:
 
     try:
         # Get already-applied migrations
-        applied = set[str]()
+        applied: dict[str, str | None] = {}
         try:
             cur = conn.cursor()
-            cur.execute("SELECT version FROM schema_version")
-            applied = {row[0] for row in cur.fetchall()}
+            cur.execute("SELECT version, applied_at FROM schema_version")
+            applied = {row[0]: row[1] for row in cur.fetchall()}
         except sqlite3.OperationalError:
             pass  # schema_version table doesn't exist yet
 
@@ -198,7 +209,9 @@ def _apply_migrations(path: Path, migrations) -> None:
         # Databases hit by an earlier runner may record a version whose
         # ADD COLUMN statements never all ran. Re-run those files: the runner is
         # idempotent, so only the missing columns are added.
-        # Invariant: migrations only ever add columns, never drop or rename them.
+        # Invariant: migrations only ever add columns, never drop or rename them
+        # (enforced by tests/test_db_migrations.py).
+        repair_timestamps: dict[str, str | None] = {}
         for version, statements in parsed.items():
             if version not in applied:
                 continue
@@ -209,11 +222,11 @@ def _apply_migrations(path: Path, migrations) -> None:
                     version,
                     missing,
                 )
-                applied.discard(version)
+                repair_timestamps[version] = applied.pop(version)
 
         for version, statements in parsed.items():
             if version not in applied:
-                _run_migration(conn, version, statements)
+                _run_migration(conn, version, statements, repair_timestamps.get(version))
     finally:
         conn.close()
 

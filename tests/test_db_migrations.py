@@ -8,6 +8,7 @@ skipping the remaining statements.
 from __future__ import annotations
 
 import logging
+import re
 import sqlite3
 import threading
 from pathlib import Path
@@ -262,3 +263,57 @@ def test_concurrent_init_db_is_safe(tmp_path):
 
     assert errors == []
     assert _versions(db) == {f.stem[:4] for f in _files()}
+
+
+# --- review follow-ups -------------------------------------------------------
+
+
+def test_repair_keeps_original_applied_at(tmp_path):
+    db = tmp_path / "ts.db"
+    files = _files()
+    _apply_migrations(db, files)
+    with sqlite3.connect(db) as conn:
+        conn.execute("ALTER TABLE checkin_exchanges DROP COLUMN response_latency_seconds")
+        conn.execute("UPDATE schema_version SET applied_at = '2020-01-01 00:00:00'")
+
+    _apply_migrations(db, files)
+
+    with sqlite3.connect(db) as conn:
+        rows = dict(conn.execute("SELECT version, applied_at FROM schema_version"))
+    assert rows["0009"] == "2020-01-01 00:00:00"
+    assert "response_latency_seconds" in _columns(db, "checkin_exchanges")
+
+
+def test_registered_version_with_absent_table_is_not_rerun(tmp_path):
+    """The repair only looks at tables that exist: no spurious 'no such table'."""
+    db = tmp_path / "absent.db"
+    m1 = tmp_path / "0001_base.sql"
+    m1.write_text(
+        "CREATE TABLE IF NOT EXISTS schema_version "
+        "(version TEXT PRIMARY KEY, applied_at TEXT);\n"
+        "ALTER TABLE ghost ADD COLUMN x TEXT;\n"
+    )
+    with sqlite3.connect(db) as conn:
+        conn.execute("CREATE TABLE schema_version (version TEXT PRIMARY KEY, applied_at TEXT)")
+        conn.execute("INSERT INTO schema_version VALUES ('0001', 'then')")
+
+    _apply_migrations(db, [m1])  # would raise 'no such table: ghost' if re-run
+
+    assert _versions(db) == {"0001"}
+
+
+def test_migration_files_keep_the_repair_invariants():
+    """The repair re-runs whole files, which is only safe while they stay idempotent."""
+    for f in _files():
+        body = "\n".join(
+            line for line in f.read_text().splitlines() if not line.lstrip().startswith("--")
+        )
+        assert not re.search(r"\b(DROP|RENAME)\b", body, re.IGNORECASE), f.name
+        for stmt in _split_statements(body):
+            if re.match(r"\s*CREATE\s+(TABLE|INDEX|UNIQUE\s+INDEX|VIEW)\b", stmt, re.IGNORECASE):
+                assert re.search(r"IF\s+NOT\s+EXISTS", stmt, re.IGNORECASE), (f.name, stmt[:60])
+            if re.match(r"\s*(INSERT|UPDATE|DELETE)\b", stmt, re.IGNORECASE):
+                assert re.match(r"\s*INSERT\s+OR\s+(REPLACE|IGNORE)\b", stmt, re.IGNORECASE), (
+                    f.name,
+                    stmt[:60],
+                )
