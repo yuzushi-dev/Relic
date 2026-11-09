@@ -30,24 +30,9 @@ CONTAINER_FILES = (
     "compose.yml",
     "ui/Dockerfile",
 )
-EXCLUDED_TEST_REASONS = {
-    "tests/profile/test_bootstrap_tui_flow.py": (
-        "explicitly ignored in pyproject pytest addopts; interactive/bootstrap "
-        "profile flow requires a separate documented integration run"
-    ),
-    "tests/profile/test_gumi_hermes_cli.py": (
-        "explicitly ignored in pyproject pytest addopts; CLI integration surface "
-        "requires a separate documented integration run"
-    ),
-    "tests/profile/test_runtime_provisioning.py": (
-        "explicitly ignored in pyproject pytest addopts; runtime provisioning "
-        "requires environment-specific integration validation"
-    ),
-    "tests/bootstrap/test_pr28_bootstrap_outputs.py": (
-        "explicitly ignored in pyproject pytest addopts; bootstrap output "
-        "fixtures require a separate release-artifact check"
-    ),
-}
+# Documented reason per ``--ignore`` path in pyproject pytest addopts. Empty when nothing
+# is excluded; an ignored path missing here still gets a generic reason in the manifest.
+EXCLUDED_TEST_REASONS: dict[str, str] = {}
 REQUIRED_VERIFICATION_COMMANDS = (
     {
         "id": "scientific_claim_readiness_workflow",
@@ -154,7 +139,9 @@ def build_scientific_environment_manifest() -> dict[str, Any]:
             git["current_commit"]
             and pyproject_present
             and dependency_lockfile_present
-            and excluded_tests
+            # Exclusions are recorded, each with a reason; an empty list (nothing
+            # excluded) is a valid state.
+            and all(entry["reason"] for entry in excluded_tests)
             and REQUIRED_VERIFICATION_COMMANDS
         ),
         "checked_rules": validation_rules,

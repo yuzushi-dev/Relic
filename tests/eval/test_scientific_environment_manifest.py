@@ -48,8 +48,14 @@ def test_scientific_environment_manifest_records_reproducibility_inputs():
     assert "Dockerfile" in container_paths
     assert ".dockerignore" in container_paths
 
+    # Exclusions mirror the --ignore entries of pyproject addopts, whatever they are now.
     ignored_paths = {entry["path"] for entry in manifest["excluded_tests"]}
-    assert "tests/profile/test_bootstrap_tui_flow.py" in ignored_paths
+    assert ignored_paths == set(
+        environment_manifest._ignored_paths_from_addopts(
+            manifest["pytest_configuration"]["addopts"]
+        )
+    )
+    assert summary["excluded_test_count"] == len(manifest["excluded_tests"])
     assert all(entry["reason"] for entry in manifest["excluded_tests"])
 
     commands = {entry["id"]: entry["command"] for entry in manifest["required_verification_commands"]}
@@ -81,6 +87,48 @@ def test_eval_run_scientific_environment_manifest_outputs_json(tmp_path, capsys)
     output = json.loads(output_path.read_text(encoding="utf-8"))
     assert stdout["report_id"] == "scientific_environment_manifest_v1"
     assert output["summary"] == stdout["summary"]
+
+
+def test_ignored_paths_are_parsed_from_addopts():
+    parse = environment_manifest._ignored_paths_from_addopts
+    assert parse("-v --ignore=tests/a.py --ignore tests/b.py -m 'not slow'") == [
+        "tests/a.py",
+        "tests/b.py",
+    ]
+    assert parse("-v -m 'not slow'") == []
+
+
+def test_manifest_without_pytest_exclusions_is_valid(monkeypatch):
+    monkeypatch.setattr(
+        environment_manifest,
+        "_pytest_configuration",
+        lambda pyproject: {"testpaths": [], "addopts": "-v", "markers": [], "ignored_paths": []},
+    )
+
+    manifest = build_scientific_environment_manifest()
+
+    assert manifest["excluded_tests"] == []
+    assert manifest["summary"]["excluded_test_count"] == 0
+    assert manifest["validation"]["valid"] is True
+
+
+def test_undocumented_exclusion_still_gets_a_reason(monkeypatch):
+    monkeypatch.setattr(
+        environment_manifest,
+        "_pytest_configuration",
+        lambda pyproject: {
+            "testpaths": [],
+            "addopts": "",
+            "markers": [],
+            "ignored_paths": ["tests/new_exclusion.py"],
+        },
+    )
+
+    manifest = build_scientific_environment_manifest()
+
+    assert manifest["excluded_tests"][0]["path"] == "tests/new_exclusion.py"
+    assert manifest["excluded_tests"][0]["reason"]
+    assert manifest["validation"]["valid"] is True
 
 
 def test_git_state_falls_back_to_container_source_metadata(monkeypatch):
