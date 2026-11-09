@@ -211,6 +211,43 @@ def test_hindsight_config_holding_an_api_key_is_owner_only(
     assert stat.S_IMODE(config_path.stat().st_mode) == 0o600
 
 
+class _PromptDrivenStdin:
+    """Answer the bootstrap wizard by looking at the last prompt it printed.
+
+    The wizard asks ~100 questions, almost all optional. Answering by prompt keeps
+    the test valid when optional questions are added, and the line cap turns a
+    wizard stuck on a required field into a failure instead of an endless loop.
+    """
+
+    MAX_LINES = 400
+
+    def __init__(self, out: StringIO) -> None:
+        self._out = out
+        self.lines = 0
+
+    def readline(self) -> str:
+        if self.lines >= self.MAX_LINES:
+            raise AssertionError(
+                f"wizard still asking after {self.MAX_LINES} answers; "
+                f"last prompt: {self._last_prompt()!r}"
+            )
+        prompt = self._last_prompt()
+        self.lines += 1
+        if "Enter subject ID" in prompt:
+            return "subj_001\n"
+        if "Enter experiment ID" in prompt:
+            return "exp_001\n"
+        if "researcher_id" in prompt:
+            return "researcher_test\n"
+        if "Azione: accept" in prompt:
+            return "accept\n"
+        return "\n"  # optional question: take the default
+
+    def _last_prompt(self) -> str:
+        lines = self._out.getvalue().rstrip().splitlines()
+        return lines[-1].strip() if lines else ""
+
+
 def test_relic_subject_create_launches_bootstrap_tui(
     tmp_path: Path,
     monkeypatch,
@@ -220,8 +257,8 @@ def test_relic_subject_create_launches_bootstrap_tui(
         hermes_profiles_home=tmp_path / "hermes_profiles",
     )
     monkeypatch.setattr("relic.cli.ProfileRegistry", lambda: registry)
-    monkeypatch.setattr("sys.stdin", StringIO("subj_001\nexp_001\n\n\n\nyes\n\n"))
     out = StringIO()
+    monkeypatch.setattr("sys.stdin", _PromptDrivenStdin(out))
     monkeypatch.setattr("sys.stdout", out)
 
     rc = main(["subject", "create"])
@@ -229,7 +266,11 @@ def test_relic_subject_create_launches_bootstrap_tui(
     assert rc == 0
     profile = registry.get_subject("subj_001")
     assert profile is not None
-    assert profile.status == "intro_composed"
+    # Hermes provisioning is declined (blank answer): saying "yes" would start a real
+    # gateway service. "intro_composed" is only reached after provisioning plus a live
+    # first-message delivery, so the wizard stops at "gumi_seed_generated" here.
+    assert profile.status == "gumi_seed_generated"
     output = out.getvalue()
+    assert "Do you want to provision a Hermes profile?" in output
     assert "Relic Subject" in output
     assert "Use `relic profile list`" in output
