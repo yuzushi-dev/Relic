@@ -33,7 +33,7 @@
   },
   {
    "case": "clinical_term_in_tags_blocked",
-   "error": "ContinuityServiceError: BLOCKED_CLINICALIZATION_IN_MARKER: Forbidden clinical terms in normalized_tags: ['depressi",
+   "error": "ContinuityServiceError: BLOCKED_CLINICALIZATION_IN_MARKER: Forbidden clinical terms in normalized_tags: ['depression']",
    "recalled_after": []
   },
   {

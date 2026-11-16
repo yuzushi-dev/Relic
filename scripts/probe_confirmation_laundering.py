@@ -16,7 +16,7 @@ def run(name, fn):
         out = fn(svc)
         err = None
     except Exception as e:  # report the guard that fired
-        out, err = None, f"{type(e).__name__}: {str(e)[:90]}"
+        out, err = None, f"{type(e).__name__}: {e}"
     return {"case": name, "error": err, "recalled_after": recalled(svc)}
 
 cases = []
