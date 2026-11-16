@@ -1,0 +1,77 @@
+{
+ "probe": "confirmation_laundering_v1",
+ "cases": [
+  {
+   "case": "direct_honest_source_type",
+   "error": null,
+   "recalled_after": []
+  },
+  {
+   "case": "direct_plain_source_type",
+   "error": null,
+   "recalled_after": [
+    [
+     "you are drinking more than before",
+     "worried about alcohol"
+    ]
+   ]
+  },
+  {
+   "case": "proposed_candidate_unconfirmed",
+   "error": null,
+   "recalled_after": []
+  },
+  {
+   "case": "confirmation_laundering",
+   "error": null,
+   "recalled_after": [
+    [
+     "you are drinking more than before",
+     "worried about alcohol"
+    ]
+   ]
+  },
+  {
+   "case": "clinical_term_in_tags_blocked",
+   "error": "ContinuityServiceError: BLOCKED_CLINICALIZATION_IN_MARKER: Forbidden clinical terms in normalized_tags: ['depressi",
+   "recalled_after": []
+  },
+  {
+   "case": "non_listed_inference_in_tags_allowed",
+   "error": null,
+   "recalled_after": [
+    [
+     "x"
+    ]
+   ]
+  }
+ ],
+ "signatures": {
+  "remember_params": [
+   "gumi_agreed_words",
+   "gumi_instance_id",
+   "gumi_words",
+   "hermes_profile_id",
+   "max_recall_count",
+   "normalized_tags",
+   "self",
+   "source_type",
+   "subject_confirmation",
+   "subject_id",
+   "subject_words",
+   "ttl_seconds"
+  ],
+  "propose_candidate_params": [
+   "gumi_instance_id",
+   "gumi_words",
+   "hermes_profile_id",
+   "max_recall_count",
+   "normalized_tags",
+   "self",
+   "source_type",
+   "subject_id",
+   "subject_words",
+   "ttl_seconds"
+  ]
+ }
+}
